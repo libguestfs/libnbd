@@ -1,0 +1,631 @@
+#!/usr/bin/env ocaml
+(* hey emacs, this is OCaml code: -*- tuareg -*- *)
+(* nbd client library in userspace: generator
+ * Copyright (C) 2013-2019 Red Hat Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ *)
+
+(* This script generates the state machine and language
+ * bindings.  After editing this file, run:
+ *
+ *   generator/generator
+ *
+ * from the top source directory to regenerate output files.
+ *)
+
+#load "str.cma";;
+#load "unix.cma";;
+
+open Unix
+open Printf
+
+(*----------------------------------------------------------------------*)
+
+(* The state machine.
+ *
+ * Each state has some associated C code which is called when
+ * the state is entered, or when the state is re-entered because
+ * of an external event.  That code is not in this file, it's
+ * in [generator/states.c].
+ *
+ * The handle usually contains one connection, but might have more
+ * if multi-conn is enabled.  Each connection starts in the CREATED
+ * state.  A connection can move between states for one of two
+ * reasons: Either the C code associated with the state moves
+ * to another state (eg. move to the DEAD state because a system call
+ * returns an error).  Or an external event happens which causes
+ * the connection to move to a new state.
+ *
+ * An external event is something like the file descriptor being
+ * ready to read or write, or the main program calling a function
+ * such as [nbd_aio_connect].  Possible external events, and the
+ * next state resulting, are listed in the states table below.
+ *
+ * An empty string [""] for next state means the same state
+ * is re-entered.  The same C code for the state will be called
+ * again.
+ *
+ * If the C code calls SET_NEXT_STATE then the next state is
+ * entered immediately.  If the C code does not call SET_NEXT_STATE
+ * then the state machine stops until an external event happens.
+ * When the external event happens the state machine restarts,
+ * either in the same state ([""]) or the new state associated
+ * with the external event.
+ *)
+
+type external_event =
+  | NotifyRead                  (* fd becomes ready to read *)
+  | NotifyWrite                 (* fd becomes ready to write *)
+  | CmdCreate                   (* [nbd_create] function called *)
+  | CmdConnect                  (* [nbd_aio_connect] function called *)
+  | CmdIssue                    (* issuing an NBD command *)
+
+let c_string_of_external_event = function
+  | NotifyRead -> "notify_read"
+  | NotifyWrite -> "notify_write"
+  | CmdCreate -> "cmd_create"
+  | CmdConnect -> "cmd_connect"
+  | CmdIssue -> "cmd_issue"
+
+type state = {
+  comment : string;             (* comment about the state *)
+
+  (* Possible transitions from this state to a next state.  The
+   * external events are coded into the state table below.  The
+   * internal transitions are parsed out of the C code.
+   *)
+  external_events : (external_event * string) list;
+  mutable internal_transitions : string list;
+
+  (* The C code implementing this state. *)
+  mutable code : string;
+}
+
+let default_state = { comment = ""; external_events = [];
+                      internal_transitions = []; code = "" }
+
+let states = [
+  "CREATED", {
+    default_state with
+    comment = "Connection after being initially created, idle and not connected";
+    external_events = [ CmdCreate, "";
+                        CmdConnect, "CONNECT" ];
+  };
+
+  "CONNECT", {
+    default_state with
+    comment = "Initial call to connect(2) on the socket";
+    external_events = [ NotifyWrite, "CONNECTING" ];
+  };
+
+  "CONNECTING", {
+    default_state with
+    comment = "Connecting to the remote server";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  "RECV_MAGIC", {
+    default_state with
+    comment = "Receive initial magic identification from remote";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "CHECK_MAGIC", {
+    default_state with
+    comment = "Check magic and version sent by remote";
+  };
+
+  "RECV_NEWSTYLE_GFLAGS", {
+    default_state with
+    comment = "Receive newstyle gflags from remote";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "CHECK_NEWSTYLE_GFLAGS", {
+    default_state with
+    comment = "Check global flags sent by remote";
+  };
+
+  "SEND_NEWSTYLE_CFLAGS", {
+    default_state with
+    comment = "Send newstyle client flags to remote";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  "TRY_NEWSTYLE_OPT_GO", {
+    default_state with
+    comment = "Try to send newstyle NBD_OPT_GO to end handshake";
+    external_events = [];
+  };
+
+  "SEND_NEWSTYLE_OPT_GO", {
+    default_state with
+    comment = "Send newstyle NBD_OPT_GO to end handshake";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  "SEND_NEWSTYLE_OPT_GO_EXPORTNAMELEN", {
+    default_state with
+    comment = "Send newstyle NBD_OPT_GO export name length";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  "SEND_NEWSTYLE_OPT_GO_EXPORT", {
+    default_state with
+    comment = "Send newstyle NBD_OPT_GO export name";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  "SEND_NEWSTYLE_OPT_GO_NRINFOS", {
+    default_state with
+    comment = "Send newstyle NBD_OPT_GO number of infos";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  "RECV_NEWSTYLE_OPT_GO_REPLY", {
+    default_state with
+    comment = "Receive newstyle NBD_OPT_GO reply";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "SKIP_NEWSTYLE_OPT_GO_REPLY_PAYLOAD", {
+    default_state with
+    comment = "Skip newstyle NBD_OPT_GO reply payload";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "CHECK_NEWSTYLE_OPT_GO_REPLY", {
+    default_state with
+    comment = "Check newstyle NBD_OPT_GO reply";
+    external_events = [];
+  };
+
+  "READY", {
+    default_state with
+    comment = "Connection is ready to process NBD commands";
+    external_events = [ CmdIssue, "ISSUE_COMMAND";
+                        NotifyRead, "PREPARE_FOR_REPLY" ];
+  };
+
+  "ISSUE_COMMAND", {
+    default_state with
+    (* XXX There's a possible deadlock here if a server cannot
+     * handle multiple requests pipelined on a single connection.
+     * We could try to issue a command and block, but reads might
+     * be available.  It should be possible to break this with
+     * another state.
+     *)
+    comment = "Begin issuing a command to the remote server";
+    external_events = [];
+  };
+
+  "SEND_REQUEST", {
+    default_state with
+    comment = "Sending a request to the remote server";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  "SEND_WRITE_PAYLOAD", {
+    default_state with
+    comment = "Sending the write payload to the remote server";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  "PREPARE_FOR_REPLY", {
+    default_state with
+    comment = "Prepare to receive a reply from the remote server";
+    external_events = [];
+  };
+
+  "RECV_REPLY", {
+    default_state with
+    comment = "Receive a reply from the remote server";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "RECV_READ_PAYLOAD", {
+    default_state with
+    comment = "Receiving the read payload from the remote server";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "FINISH_COMMAND", {
+    default_state with
+    comment = "Finish receiving a command";
+    external_events = [];
+  };
+
+  "DEAD", {
+    default_state with
+    comment = "Connection is in an unrecoverable error state, can only be closed";
+  };
+]
+
+(*----------------------------------------------------------------------*)
+
+(* Helper functions. *)
+
+let failwithf fs = ksprintf failwith fs
+
+let rec filter_map f = function
+  | [] -> []
+  | x :: xs ->
+      match f x with
+      | Some y -> y :: filter_map f xs
+      | None -> filter_map f xs
+
+let chan = ref Pervasives.stdout
+let pr fs = ksprintf (fun str -> output_string !chan str) fs
+
+type comment_style =
+  | CStyle | CPlusPlusStyle | HashStyle | OCamlStyle | HaskellStyle
+  | PODCommentStyle
+
+let generate_header ?(extra_sources = []) comment_style =
+  let inputs = "generator/generator" :: extra_sources in
+  let c = match comment_style with
+    | CStyle ->         pr "/* "; " *"
+    | CPlusPlusStyle -> pr "// "; "//"
+    | HashStyle ->      pr "# ";  "#"
+    | OCamlStyle ->     pr "(* "; " *"
+    | HaskellStyle ->   pr "{- "; "  "
+    | PODCommentStyle -> pr "=begin comment\n\n "; "" in
+  pr "NBD client library in userspace\n";
+  pr "%s WARNING: THIS FILE IS GENERATED FROM\n" c;
+  pr "%s %s\n" c (String.concat " " inputs);
+  pr "%s ANY CHANGES YOU MAKE TO THIS FILE WILL BE LOST.\n" c;
+  pr "%s\n" c;
+  pr "%s Copyright (C) 2013-2019 Red Hat Inc.\n" c;
+  pr "%s\n" c;
+  pr "%s This library is free software; you can redistribute it and/or\n" c;
+  pr "%s modify it under the terms of the GNU Lesser General Public\n" c;
+  pr "%s License as published by the Free Software Foundation; either\n" c;
+  pr "%s version 2 of the License, or (at your option) any later version.\n" c;
+  pr "%s\n" c;
+  pr "%s This library is distributed in the hope that it will be useful,\n" c;
+  pr "%s but WITHOUT ANY WARRANTY; without even the implied warranty of\n" c;
+  pr "%s MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU\n" c;
+  pr "%s Lesser General Public License for more details.\n" c;
+  pr "%s\n" c;
+  pr "%s You should have received a copy of the GNU Lesser General Public\n" c;
+  pr "%s License along with this library; if not, write to the Free Software\n" c;
+  pr "%s Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA\n" c;
+  (match comment_style with
+   | CStyle -> pr " */\n"
+   | CPlusPlusStyle
+   | HashStyle -> ()
+   | OCamlStyle -> pr " *)\n"
+   | HaskellStyle -> pr "-}\n"
+   | PODCommentStyle -> pr "\n=end comment\n"
+  );
+  pr "\n"
+
+let files_equal n1 n2 =
+  let cmd = sprintf "cmp -s %s %s" (Filename.quote n1) (Filename.quote n2) in
+  match Sys.command cmd with
+  | 0 -> true
+  | 1 -> false
+  | i -> failwithf "%s: failed with error code %d" cmd i
+
+let output_to filename k =
+  let filename_new = filename ^ ".new" in
+  chan := open_out filename_new;
+  k ();
+  close_out !chan;
+  chan := Pervasives.stdout;
+
+  (* Is the new file different from the current file? *)
+  if Sys.file_exists filename && files_equal filename filename_new then
+    unlink filename_new                 (* same, so skip it *)
+  else (
+    (* different, overwrite old one *)
+    (try chmod filename 0o644 with Unix_error _ -> ());
+    rename filename_new filename;
+    chmod filename 0o444;
+    printf "written %s\n%!" filename;
+  )
+
+(*----------------------------------------------------------------------*)
+
+(* Implement state machine. *)
+
+let state_machine_prologue =
+  let chan = open_in "generator/states.c" in
+  let lines = ref [] in
+  (try while true do lines := input_line chan :: !lines done
+   with End_of_file -> ());
+  close_in chan;
+  let lines = !lines in
+
+  (* The last line in the file (which is the first element in lines
+   * before we reverse the list) must have a particular form, check
+   * and remove.
+   *)
+  if List.length lines = 0 || List.hd lines <> "} /* END STATE MACHINE */" then
+    failwith "generator/states.c: unexpected file ending";
+  let lines = List.tl lines in
+  let lines = List.rev lines in
+
+  (* Find the start of the state machine and split the list into
+   * the prologue and the list of state code fragments.
+   *)
+  let prologue, statecodes =
+    let rec loop acc = function
+      | [] -> failwith "generator/states.c: could not find state machine"
+      | "/* STATE MACHINE */ {" :: lines -> acc, lines
+      | line :: lines -> loop (acc ^ "\n" ^ line) lines
+    in
+    let prologue, lines = loop "" lines in
+
+    let statecodes = ref [] in
+    let curr_state = ref None in
+    let rex = Str.regexp "^ \\([A-Z0-9][A-Z0-9_]*\\):$" in
+    List.iter (
+      fun line ->
+        if Str.string_match rex line 0 then ( (* new case *)
+          (match !curr_state with
+           | None -> ()
+           | Some state -> statecodes := state :: !statecodes);
+          curr_state := Some (Str.matched_group 1 line, "");
+        )
+        else (
+          (match !curr_state with
+           | None -> failwith "generator/states.c: missing label"
+           | Some (name, code) ->
+              curr_state := Some (name, code ^ "\n" ^ line)
+          )
+        );
+    ) lines;
+    (match !curr_state with
+     | None -> ()
+     | Some state -> statecodes := state :: !statecodes);
+    let statecodes = List.rev !statecodes in
+
+    prologue, statecodes in
+
+  (* Check there are no code fragments which don't correspond
+   * to a known state in the states table.
+   *)
+  List.iter (
+    fun (name, _) ->
+      if not (List.mem_assoc name states) then
+        failwithf "generator/states.c: unknown state: %s" name
+  ) statecodes;
+
+  (* Parse the state code fragments to get internal state
+   * transitions, marked by "%STATE".
+   *)
+  let rex = Str.regexp "%\\([A-Z0-9][A-Z0-9_]*\\)" in
+  List.iter (
+    fun (name, code) ->
+      let code = Str.full_split rex code in
+      let code =
+        List.map (
+          function
+          | Str.Delim name ->
+             Str.Delim (String.sub name 1 (String.length name - 1))
+          | (Str.Text _) as c -> c
+      ) code in
+      (* Check all the next states exist. *)
+      List.iter (
+        function
+        | Str.Delim name ->
+           if not (List.mem_assoc name states) then
+             failwithf "generator/states.c: unknown next state: %%%s" name
+        | Str.Text _ -> ()
+      ) code;
+
+      (* Create the list of internal transitions. *)
+      let state = List.assoc name states in
+      state.internal_transitions <- (
+        filter_map (function Str.Delim name -> Some name | Str.Text _ -> None)
+                   code
+      );
+
+      (* Create the final C code fragment. *)
+      state.code <- (
+        String.concat "" (
+          List.map (
+            function
+            | Str.Delim name -> "STATE_" ^ name
+            | Str.Text text -> text
+          ) code
+        )
+      );
+  ) statecodes;
+
+  prologue
+
+(* Write the state machine code. *)
+let generate_lib_states_h () =
+  generate_header ~extra_sources:["generator/states.c"] CStyle;
+  pr "enum state {\n";
+  List.iter (
+    fun (name, { comment }) ->
+      pr "  /* %s */\n" comment;
+      pr "  STATE_%s,\n" name;
+      pr "\n";
+  ) states;
+  pr "};\n"
+
+let generate_lib_states_c () =
+  generate_header ~extra_sources:["generator/states.c"] CStyle;
+
+  pr "%s\n" state_machine_prologue;
+  pr "\n";
+  pr "#define SET_NEXT_STATE(s) (*blocked = false, *next_state = (s))\n";
+  pr "\n";
+
+  (* The state machine C code fragments. *)
+  List.iter (
+    fun (name, { comment; code }) ->
+      pr "/* %s */\n" comment;
+      pr "static int\n";
+      pr "_enter_STATE_%s (struct nbd_handle *h,\n" name;
+      pr "             struct nbd_connection *conn,\n";
+      pr "             enum state *next_state,\n";
+      pr "             bool *blocked)\n";
+      pr "{\n";
+      if code <> "" then
+        pr "%s\n" code
+      else
+        pr "  return 0;\n";
+      pr "}\n";
+      pr "\n";
+      pr "static int\n";
+      pr "enter_STATE_%s (struct nbd_handle *h, struct nbd_connection *conn,\n"
+         name;
+      pr "            bool *blocked)\n";
+      pr "{\n";
+      pr "  int r;\n";
+      pr "  enum state next_state = STATE_%s;\n" name;
+      pr "\n";
+      pr "  r = _enter_STATE_%s (h, conn, &next_state, blocked);\n" name;
+      pr "  if (conn->state != next_state) {\n";
+      pr "    debug (\"conn %%p: STATE_%%s -> STATE_%%s\", conn,\n";
+      pr "           nbd_internal_state_short_string (conn->state),\n";
+      pr "           nbd_internal_state_short_string (next_state));\n";
+      pr "    conn->state = next_state;\n";
+      pr "  }\n";
+      pr "  return r;\n";
+      pr "}\n";
+      pr "\n";
+  ) states;
+
+  pr "/* Run the state machine based on an external event until it would block. */\n";
+  pr "int\n";
+  pr "nbd_internal_run (struct nbd_handle *h, struct nbd_connection *conn,\n";
+  pr "                  enum external_event ev)\n";
+  pr "{\n";
+  pr "  int r;\n";
+  pr "  bool blocked;\n";
+  pr "\n";
+  pr "  /* Validate and handle the external event. */\n";
+  pr "  switch (conn->state)\n";
+  pr "  {\n";
+  List.iter (
+    fun (name, { external_events }) ->
+      pr "  case STATE_%s:\n" name;
+      if external_events <> [] then (
+        pr "    switch (ev)\n";
+        pr "    {\n";
+        List.iter (
+          fun (e, next_state) ->
+            pr "    case %s:\n" (c_string_of_external_event e);
+            if next_state <> "" then
+              pr "      conn->state = STATE_%s;\n" next_state;
+            pr "      goto ok;\n";
+        ) external_events;
+        pr "    }\n";
+      );
+      pr "    break;\n";
+  ) states;
+  pr "  }\n";
+  pr "\n";
+  pr "  set_error (0, \"external event %%d is invalid in state %%s\",\n";
+  pr "             ev, nbd_internal_state_short_string (conn->state));\n";
+  pr "  return -1;\n";
+  pr "\n";
+  pr " ok:\n";
+  pr "  do {\n";
+  pr "    blocked = true;\n";
+  pr "\n";
+  pr "    /* Run a single step. */\n";
+  pr "    switch (conn->state)\n";
+  pr "    {\n";
+  List.iter (
+    fun (name, _) ->
+      pr "    case STATE_%s:\n" name;
+      pr "      r = enter_STATE_%s (h, conn, &blocked);\n" name;
+      pr "      break;\n"
+  ) states;
+  pr "    }\n";
+  pr "\n";
+  pr "    if (r == -1) return -1;\n";
+  pr "  } while (!blocked);\n";
+  pr "  return 0;\n";
+  pr "}\n";
+  pr "\n";
+
+  pr "/* Returns whether in the current state read or write would be valid. */\n";
+  pr "int\n";
+  pr "nbd_aio_get_direction (struct nbd_connection *conn)\n";
+  pr "{\n";
+  pr "  int r = 0;\n";
+  pr "\n";
+  pr "  switch (conn->state)\n";
+  pr "  {\n";
+  List.iter (
+    fun (name, { external_events }) ->
+      pr "  case STATE_%s:\n" name;
+      List.iter (
+        fun (e, _) ->
+          match e with
+          | NotifyRead ->  pr "    r |= LIBNBD_AIO_DIRECTION_READ;\n"
+          | NotifyWrite -> pr "    r |= LIBNBD_AIO_DIRECTION_WRITE;\n"
+          | CmdCreate | CmdConnect | CmdIssue -> ()
+      ) external_events;
+      pr "    break;\n";
+  ) states;
+  pr "  }\n";
+  pr "\n";
+  pr "  return r;\n";
+  pr "}\n";
+  pr "\n";
+
+  pr "/* Other functions associated with the state machine. */\n";
+  pr "const char *\n";
+  pr "nbd_internal_state_short_string (enum state state)\n";
+  pr "{\n";
+  pr "  switch (state)\n";
+  pr "  {\n";
+  List.iter (
+    fun (name, { comment }) ->
+      pr "  case STATE_%s:\n" name;
+      pr "    return \"%s\";\n" name
+  ) states;
+  pr "  }\n";
+  pr "\n";
+  pr "  /* This function is only used for debug messages, and\n";
+  pr "   * this should never happen.\n";
+  pr "   */\n";
+  pr "  return \"UNKNOWN!\";\n";
+  pr "}\n";
+  pr "\n";
+
+  pr "const char *\n";
+  pr "nbd_aio_connection_state (struct nbd_connection *conn)\n";
+  pr "{\n";
+  pr "  switch (conn->state)\n";
+  pr "  {\n";
+  List.iter (
+    fun (name, { comment }) ->
+      pr "  case STATE_%s:\n" name;
+      pr "    return \"%s\" \": \"\n" name;
+      pr "           \"%s\";\n" comment;
+      pr "\n";
+  ) states;
+  pr "  }\n";
+  pr "\n";
+  pr "  return NULL;\n";
+  pr "}\n"
+
+(*----------------------------------------------------------------------*)
+
+(* Write the output files. *)
+let () =
+  output_to "lib/states.h" generate_lib_states_h;
+  output_to "lib/states.c" generate_lib_states_c
