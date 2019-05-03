@@ -389,15 +389,13 @@ send_from_wbuf (struct nbd_connection *conn)
     }
 
     cmd->error = conn->sbuf.simple_reply.error;
-    if (cmd->error != 0) {
-      SET_NEXT_STATE (%FINISH_COMMAND);
-      return 0;
-    }
-
-    if (cmd->type == NBD_CMD_READ) {
+    if (cmd->error == 0 && cmd->type == NBD_CMD_READ) {
       conn->rbuf = cmd->data;
       conn->rlen = cmd->count;
       SET_NEXT_STATE (%RECV_READ_PAYLOAD);
+    }
+    else {
+      SET_NEXT_STATE (%FINISH_COMMAND);
     }
   }
   return 0;
@@ -412,7 +410,7 @@ send_from_wbuf (struct nbd_connection *conn)
  FINISH_COMMAND:
   struct command_in_flight *prev_cmd, *cmd;
 
-  conn->sbuf.simple_reply.handle = be64toh (conn->sbuf.simple_reply.handle);
+  conn->sbuf.simple_reply.handle = conn->sbuf.simple_reply.handle;
   /* Find the command amongst the commands in flight. */
   for (cmd = conn->cmds_in_flight, prev_cmd = NULL;
        cmd != NULL;
