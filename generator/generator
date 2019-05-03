@@ -73,13 +73,6 @@ type external_event =
   | CmdConnect                  (* [nbd_aio_connect] function called *)
   | CmdIssue                    (* issuing an NBD command *)
 
-let c_string_of_external_event = function
-  | NotifyRead -> "notify_read"
-  | NotifyWrite -> "notify_write"
-  | CmdCreate -> "cmd_create"
-  | CmdConnect -> "cmd_connect"
-  | CmdIssue -> "cmd_issue"
-
 type state = {
   comment : string;             (* comment about the state *)
 
@@ -342,6 +335,20 @@ let output_to filename k =
 
 (* Implement state machine. *)
 
+let string_of_external_event = function
+  | NotifyRead -> "NotifyRead"
+  | NotifyWrite -> "NotifyWrite"
+  | CmdCreate -> "CmdCreate"
+  | CmdConnect -> "CmdConnect"
+  | CmdIssue -> "CmdIssue"
+
+let c_string_of_external_event = function
+  | NotifyRead -> "notify_read"
+  | NotifyWrite -> "notify_write"
+  | CmdCreate -> "cmd_create"
+  | CmdConnect -> "cmd_connect"
+  | CmdIssue -> "cmd_issue"
+
 let state_machine_prologue =
   let chan = open_in "generator/states.c" in
   let lines = ref [] in
@@ -495,8 +502,8 @@ let generate_lib_states_c () =
       pr "\n";
       pr "  r = _enter_STATE_%s (h, conn, &next_state, blocked);\n" name;
       pr "  if (conn->state != next_state) {\n";
-      pr "    debug (\"conn %%p: STATE_%%s -> STATE_%%s\", conn,\n";
-      pr "           nbd_internal_state_short_string (conn->state),\n";
+      pr "    debug (\"conn %%p: transition: %%s -> %%s\", conn, \"%s\",\n"
+         name;
       pr "           nbd_internal_state_short_string (next_state));\n";
       pr "    conn->state = next_state;\n";
       pr "  }\n";
@@ -525,8 +532,12 @@ let generate_lib_states_c () =
         List.iter (
           fun (e, next_state) ->
             pr "    case %s:\n" (c_string_of_external_event e);
-            if next_state <> "" then
+            if next_state <> "" then (
               pr "      conn->state = STATE_%s;\n" next_state;
+              pr "      debug (\"conn %%p: event %%s: %%s -> %%s\",\n";
+              pr "             conn, \"%s\", \"%s\", \"%s\");\n"
+                 (string_of_external_event e) name next_state;
+            );
             pr "      goto ok;\n";
         ) external_events;
         pr "    }\n";
