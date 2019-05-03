@@ -18,11 +18,19 @@
 CLEANFILES = *~
 
 noinst_PROGRAMS = \
-	simple-fetch-first-sector
+	simple-fetch-first-sector \
+	simple-reads-and-writes
 
 simple_fetch_first_sector_SOURCES = \
 	simple-fetch-first-sector.c
 simple_fetch_first_sector_CPPFLAGS = \
 	-I$(top_srcdir)/include
 simple_fetch_first_sector_LDADD = \
+	$(top_builddir)/lib/libnbd.la
+
+simple_reads_and_writes_SOURCES = \
+	simple-reads-and-writes.c
+simple_reads_and_writes_CPPFLAGS = \
+	-I$(top_srcdir)/include
+simple_reads_and_writes_LDADD = \
 	$(top_builddir)/lib/libnbd.la
