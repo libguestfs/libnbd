@@ -38,5 +38,7 @@ libnbd_la_SOURCES = \
 	states.h
 libnbd_la_CPPFLAGS = \
 	-I$(top_srcdir)/include
+libnbd_la_CFLAGS = \
+	$(WARNINGS_CFLAGS)
 libnbd_la_LDFLAGS = \
 	-version-info 0:0:0

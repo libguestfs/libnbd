@@ -3,6 +3,8 @@
 *.lo
 *.o
 
+/local*
+
 .deps
 .libs
 Makefile

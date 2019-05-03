@@ -828,6 +828,7 @@ let generate_lib_states_c () =
             );
             pr "      goto ok;\n";
         ) external_events;
+        pr "    default: ; /* nothing, silence GCC warning */\n";
         pr "    }\n";
       );
       pr "    break;\n";
