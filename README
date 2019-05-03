@@ -1,0 +1,8 @@
+NBD client library in userspace
+
+To build from git:
+
+  autoreconf -i
+  ./generator/generator
+  ./configure
+  make
