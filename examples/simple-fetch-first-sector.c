@@ -3,11 +3,12 @@
  *
  * Example usage with nbdkit:
  *
- * nbdkit -U - memory 1M --run './simple-fetch-first-sector $unixsocket sector'
+ * nbdkit -U - pattern 1M --run './simple-fetch-first-sector $unixsocket sector'
  *
  * This will read the first sector (512 bytes) from the NBD server and
- * write it to the local file 'sector'.  In this case the ouput will
- * be all zeroes because we are using nbdkit-memory-plugin.
+ * write it to the local file 'sector'.  nbdkit-pattern-plugin
+ * contains a simple regular which you can use to check the data read
+ * is correct.
  */
 
 #include <stdio.h>
