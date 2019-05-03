@@ -249,6 +249,294 @@ let states = [
 
 (*----------------------------------------------------------------------*)
 
+(* The API. *)
+
+type call = {
+  args : arg list;
+  ret : ret;
+  is_aio : bool;
+  shortdesc : string;
+  longdesc : string;
+  dummy : int;             (* unused, avoids a warning *)
+}
+and arg =
+| BytesIn of string * string (* byte array + size passed in to the function *)
+| BytesOut of string * string(* byte array + size specified by caller,
+                              written by the function *)
+| Int of string            (* small int *)
+| Int64 of string          (* 64 bit signed int *)
+| Path of string           (* filename or path *)
+| SockAddrAndLen of string (* struct sockaddr * + socklen_t *)
+| String of string         (* string *)
+| UInt of string           (* small unsigned int *)
+| UInt64 of string         (* 64 bit unsigned int *)
+and ret =
+| RBool                    (* return a boolean, or error *)
+| RConstString             (* return a const string, NULL for error *)
+| RErr                     (* return a small int, -1 = error *)
+| RFd                      (* return a file descriptor, or error *)
+| RInt64                   (* 64 bit int, -1 = error *)
+
+let default_call = { args = []; ret = RErr; is_aio = false;
+                     shortdesc = ""; longdesc = "";
+                     dummy = 0 }
+
+(* Calls on [nbd_handle *nbd] *)
+let handle_calls = [
+  "set_multi_conn", {
+    default_call with
+    args = [ UInt "multi_conn" ]; ret = RErr;
+    shortdesc = "enable or disable multi-conn and set nr connections";
+    longdesc = "\
+NBD can make multiple connections, if the server supports it.
+The C<multi_conn> parameter controls whether this feature is
+enabled (if E<gt> 1) or disabled (if C<1>).  The parameter
+passed must not be C<0>.  Usually small powers of 2 (eg. 2, 4, 8)
+will provide increments in performance.  Some servers do not
+support this feature and will return an error on connection.";
+  };
+
+  "connect_unix", {
+    default_call with
+    args = [ Path "sockpath" ]; ret = RErr;
+    shortdesc = "connect to NBD server over a Unix domain socket";
+    longdesc = "\
+Connect (synchronously) over the named Unix domain socket (C<sockpath>)
+to an NBD server running on the same machine.  This call returns
+when the connection has been made.  If multi-conn is enabled, this
+begins connecting all of the connections, and returns as soon as
+any one of them is connected.";
+  };
+
+  "pread", {
+    default_call with
+    args = [ BytesOut ("buf", "count"); UInt64 "offset" ];
+    ret = RErr;
+    shortdesc = "read from the NBD server";
+    longdesc = "\
+Issue a read command to the NBD server for the range starting
+at C<offset> and ending at C<offset> + C<count> - 1.  NBD
+can only read all or nothing using this call.  The call
+returns when the data has been read fully into C<buf> or there is an
+error.  If multi-conn is enabled, the command is issued on the next
+ready connection is picked in a round-robin manner.";
+  };
+
+  "pwrite", {
+    default_call with
+    args = [ BytesIn ("buf", "count"); UInt64 "offset" ];
+    ret = RErr;
+    shortdesc = "write to the NBD server";
+    longdesc = "\
+Issue a write command to the NBD server, writing the data in
+C<buf> to the range starting at C<offset> and ending at
+C<offset> + C<count> - 1.  NBD can only write all or nothing
+using this call.  The call returns when the data has been written
+fully and acknowledged by the server, or there is an error.
+If multi-conn is enabled, the command is issued on the next
+ready connection is picked in a round-robin manner.";
+  };
+
+  "poll", {
+    default_call with
+    args = [ Int "timeout" ];
+    ret = RErr;
+    shortdesc = "poll the handle once";
+    longdesc = "\
+This is a simple implementation of L<poll(2)> which is used
+internally by synchronous API calls.  It is mainly useful as
+an example of how you might integrate libnbd with your own
+main loop, rather than being intended as something you would use.";
+  };
+
+
+
+
+]
+
+(* Calls on [nbd_connection *conn] *)
+let connection_calls = [
+  "aio_connect", {
+    default_call with
+    args = [ SockAddrAndLen "addr" ];
+    ret = RErr;
+    is_aio = true;
+    shortdesc = "connect to the NBD server";
+    longdesc = "\
+Begin connecting to the NBD server.  You can check if the
+connection has connected to the server and completed the NBD
+handshake by calling C<nbd_aio_is_ready> on the connection.";
+  };
+
+  "aio_pread", {
+    default_call with
+    args = [ BytesOut ("buf", "count"); UInt64 "offset" ];
+    ret = RInt64;
+    is_aio = true;
+    shortdesc = "read from the NBD server";
+    longdesc = "\
+Issue a read command to the NBD server.  This returns the
+unique 64 bit handle for this command.  To check if the command
+completed, call C<nbd_aio_command_completed>.  Note that
+you must ensure C<buf> is valid until the command has
+completed.";
+  };
+
+  "aio_pwrite", {
+    default_call with
+    args = [ BytesIn ("buf", "count"); UInt64 "offset" ];
+    ret = RInt64;
+    is_aio = true;
+    shortdesc = "write to the NBD server";
+    longdesc = "\
+Issue a write command to the NBD server.  This returns the
+unique 64 bit handle for this command.  To check if the command
+completed, call C<nbd_aio_command_completed>.  Note that
+you must ensure C<buf> is valid until the command has
+completed.";
+  };
+
+  "aio_get_fd", {
+    default_call with
+    args = [];
+    ret = RFd;
+    is_aio = true;
+    shortdesc = "return file descriptor associated with this connection";
+    longdesc = "\
+Return the underlying file descriptor associated with this
+connection.  You can use this to check if the file descriptor
+is ready for reading or writing and call C<nbd_aio_notify_read>
+or C<nbd_aio_notify_write>.  See also C<nbd_aio_get_direction>.
+Do not do anything else with the file descriptor.";
+  };
+
+  "aio_get_direction", {
+    default_call with
+    args = [];
+    ret = RErr;
+    is_aio = true;
+    shortdesc = "return the read or write direction";
+    longdesc = "\
+Return the current direction of this connection, which means
+whether we are next expecting to read data from the server, write
+data to the server, or both.  It returns
+
+=over 4
+
+=item C<LIBNBD_AIO_DIRECTION_READ> = 1
+
+We are expected next to read from the server.  If using L<poll(2)>
+you would set C<events = POLLIN>.  If C<revents> returns C<POLLIN>
+you would then call C<nbd_aio_notify_read>.
+
+=item C<LIBNBD_AIO_DIRECTION_WRITE> = 2
+
+We are expected next to write to the server.  If using L<poll(2)>
+you would set C<events = POLLOUT>.  If C<revents> returns C<POLLOUT>
+you would then call C<nbd_aio_notify_write>.
+
+=item C<LIBNBD_AIO_DIRECTION_BOTH> = 3
+
+We are expected next to either read or write to the server.
+If using L<poll(2)> you would set C<events = POLLIN|POLLOUT>.
+If one of C<POLLIN> or C<POLLOUT> is returned, then see above.
+However note that you shouldn't call C<nbd_aio_notify_read>
+and C<nbd_aio_notify_write> because calling the first one will
+change the state of the connection, possibly invalidating the second
+notification.
+
+=back";
+  };
+
+  "aio_notify_read", {
+    default_call with
+    args = [];
+    ret = RErr;
+    is_aio = true;
+    shortdesc = "notify that the connection is readable";
+    longdesc = "\
+Send notification to the state machine that the connection
+is readable.  Typically this is called after your main loop
+has detected that the file descriptor associated with this
+connection is readable.";
+  };
+
+  "aio_notify_write", {
+    default_call with
+    args = [];
+    ret = RErr;
+    is_aio = true;
+    shortdesc = "notify that the connection is writable";
+    longdesc = "\
+Send notification to the state machine that the connection
+is writable.  Typically this is called after your main loop
+has detected that the file descriptor associated with this
+connection is writable.";
+  };
+
+  "aio_is_ready", {
+    default_call with
+    args = [];
+    ret = RBool;
+    is_aio = true;
+    shortdesc = "check if the connection is in the ready state";
+    longdesc = "\
+Return true if this connection is connected to the NBD server,
+the handshake has completed, and the connection is idle or
+waiting for a reply.  In this state the handle is ready to
+issue commands.";
+  };
+
+  "aio_is_dead", {
+    default_call with
+    args = [];
+    ret = RBool;
+    is_aio = true;
+    shortdesc = "check if the connection is dead";
+    longdesc = "\
+Return true if the connection has encountered a fatal
+error and is dead.  In this state the connection (or whole handle)
+may only be closed.  There is no way to recover a handle from
+the dead state.";
+  };
+
+  "aio_command_completed", {
+    default_call with
+    args = [Int64 "handle"];
+    ret = RBool;
+    is_aio = true;
+    shortdesc = "check if the command completed";
+    longdesc = "\
+Return true if the command completed.  If this function returns
+true then the command was successful and it has been retired.
+Return false if the command is still in flight.  This can also
+fail with an error in case the command failed (in this case
+the command is also retired).
+
+The C<handle> parameter is the unique 64 bit handle for the command,
+as returned by a call such as C<nbd_aio_pread>.";
+  };
+
+  "connection_state", {
+    default_call with
+    args = [];
+    ret = RConstString;
+    shortdesc = "return a descriptive string for the state of the connection";
+    longdesc = "\
+Returns a descriptive string for the state of the connection.  This
+can be used for debugging or troubleshooting, but you should not
+rely on the state of connections since it may change in future
+versions.";
+  };
+
+
+
+
+
+]
+
+(*----------------------------------------------------------------------*)
+
 (* Helper functions. *)
 
 let failwithf fs = ksprintf failwith fs
@@ -636,7 +924,70 @@ let generate_lib_states_c () =
 
 (*----------------------------------------------------------------------*)
 
+(* Generate C API. *)
+
+let generate_include_libnbd_h () =
+  let print_extern name htype args ret =
+    pr "extern ";
+    (match ret with
+     | RBool
+     | RErr
+     | RFd -> pr "int "
+     | RConstString -> pr "const char *"
+     | RInt64 -> pr "int64_t "
+    );
+    pr "nbd_%s (struct nbd_%s *" name htype;
+    List.iter (
+      function
+      | BytesIn (n, len) -> pr ", const void *%s, size_t %s" n len
+      | BytesOut (n, len) -> pr ", void *%s, size_t %s" n len
+      | Int n -> pr ", int %s" n
+      | Int64 n -> pr ", int64_t %s" n
+      | Path n
+      | String n -> pr ", const char *%s" n
+      | SockAddrAndLen n ->
+         pr ", const struct sockaddr *%s, socklen_t %s_len" n n
+      | UInt n -> pr ", unsigned %s" n
+      | UInt64 n -> pr ", uint64_t %s" n
+    ) args;
+    pr ");\n"
+  in
+
+  generate_header CStyle;
+  pr "#ifndef LIBNBD_H\n";
+  pr "#define LIBNBD_H\n";
+  pr "\n";
+  pr "#include <stdint.h>\n";
+  pr "#include <sys/socket.h>\n";
+  pr "\n";
+  pr "struct nbd_handle;\n";
+  pr "struct nbd_connection;\n";
+  pr "\n";
+  pr "#define LIBNBD_AIO_DIRECTION_READ  1\n";
+  pr "#define LIBNBD_AIO_DIRECTION_WRITE 2\n";
+  pr "#define LIBNBD_AIO_DIRECTION_BOTH  3\n";
+  pr "\n";
+  pr "extern struct nbd_handle *nbd_create (void);\n";
+  pr "extern void nbd_close (struct nbd_handle *h);\n";
+  pr "\n";
+  List.iter (
+    fun (name, { args; ret }) -> print_extern name "handle" args ret
+  ) handle_calls;
+  pr "\n";
+  pr "extern struct nbd_connection *nbd_get_connection (struct nbd_handle *h,\n";
+  pr "                                                  unsigned i);\n";
+  pr "extern void nbd_connection_close (struct nbd_connection *conn);\n";
+  pr "\n";
+  List.iter (
+    fun (name, { args; ret }) -> print_extern name "connection" args ret
+  ) connection_calls;
+  pr "\n";
+  pr "#endif /* LIBNBD_H */\n"
+
+(*----------------------------------------------------------------------*)
+
 (* Write the output files. *)
 let () =
   output_to "lib/states.h" generate_lib_states_h;
-  output_to "lib/states.c" generate_lib_states_c
+  output_to "lib/states.c" generate_lib_states_c;
+  output_to "include/libnbd.h" generate_include_libnbd_h

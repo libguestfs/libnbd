@@ -28,7 +28,7 @@
 
 /* A simple main loop implementation using poll(2). */
 int
-nbd_aio_poll (struct nbd_handle *h, int timeout)
+nbd_poll (struct nbd_handle *h, int timeout)
 {
   struct pollfd fds[h->multi_conn];
   size_t i;

@@ -40,7 +40,7 @@ nbd_pread (struct nbd_handle *h, void *buf,
     return -1;
 
   while (!nbd_aio_command_completed (conn, ch)) {
-    if (nbd_aio_poll (h, -1) == -1)
+    if (nbd_poll (h, -1) == -1)
       return -1;
   }
 
@@ -62,7 +62,7 @@ nbd_pwrite (struct nbd_handle *h, const void *buf,
     return -1;
 
   while (!nbd_aio_command_completed (conn, ch)) {
-    if (nbd_aio_poll (h, -1) == -1)
+    if (nbd_poll (h, -1) == -1)
       return -1;
   }
 

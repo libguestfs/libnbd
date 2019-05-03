@@ -86,7 +86,7 @@ nbd_connect_unix (struct nbd_handle *h, const char *sockpath)
     if (connected)
       break;
 
-    if (nbd_aio_poll (h, -1) == -1)
+    if (nbd_poll (h, -1) == -1)
       return -1;
   }
 

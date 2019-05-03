@@ -21,6 +21,7 @@ Makefile.in
 /depcomp
 /examples/simple-fetch-first-sector
 /examples/simple-reads-and-writes
+/include/libnbd.h
 /lib/states.c
 /lib/states.h
 /install-sh

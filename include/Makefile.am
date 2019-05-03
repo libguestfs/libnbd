@@ -17,5 +17,8 @@
 
 CLEANFILES = *~
 
+BUILT_SOURCES = \
+	libnbd.h
+
 include_HEADERS = \
 	libnbd.h
