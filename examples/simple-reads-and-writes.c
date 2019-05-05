@@ -70,9 +70,7 @@ main (int argc, char *argv[])
     }
   }
 
-  /* XXX CLOSE SOCKET */
-
-
+  nbd_close (nbd);
 
   exit (EXIT_SUCCESS);
 }

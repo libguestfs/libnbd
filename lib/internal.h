@@ -35,7 +35,9 @@ enum external_event {
 
 struct nbd_handle {
   /* Connection(s).  Usually 1 but there may be several.  The length
-   * of the list is multi_conn.
+   * of the list is multi_conn.  The elements are never NULL.  If a
+   * connection is closed then it is replaced with a newly created
+   * connection immediately.
    */
   struct nbd_connection **conns;
   unsigned multi_conn;

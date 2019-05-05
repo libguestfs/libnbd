@@ -977,7 +977,7 @@ let generate_include_libnbd_h () =
   pr "\n";
   pr "extern struct nbd_connection *nbd_get_connection (struct nbd_handle *h,\n";
   pr "                                                  unsigned i);\n";
-  pr "extern void nbd_connection_close (struct nbd_connection *conn);\n";
+  pr "extern int nbd_connection_close (struct nbd_connection *conn);\n";
   pr "\n";
   List.iter (
     fun (name, { args; ret }) -> print_extern name "connection" args ret

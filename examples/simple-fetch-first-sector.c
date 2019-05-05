@@ -51,9 +51,6 @@ main (int argc, char *argv[])
   fwrite (buf, sizeof buf, 1, fp);
   fclose (fp);
 
-  /* XXX CLOSE SOCKET */
-
-
-
+  nbd_close (nbd);
   exit (EXIT_SUCCESS);
 }
