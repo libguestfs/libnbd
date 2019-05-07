@@ -266,7 +266,7 @@ and arg =
 | Int of string            (* small int *)
 | Int64 of string          (* 64 bit signed int *)
 | Path of string           (* filename or path *)
-| SockAddrAndLen of string (* struct sockaddr * + socklen_t *)
+| SockAddrAndLen of string * string (* struct sockaddr * + socklen_t *)
 | String of string         (* string *)
 | UInt of string           (* small unsigned int *)
 | UInt64 of string         (* 64 bit unsigned int *)
@@ -358,9 +358,8 @@ main loop, rather than being intended as something you would use.";
 let connection_calls = [
   "aio_connect", {
     default_call with
-    args = [ SockAddrAndLen "addr" ];
+    args = [ SockAddrAndLen ("addr", "addrlen") ];
     ret = RErr;
-    is_aio = true;
     shortdesc = "connect to the NBD server";
     longdesc = "\
 Begin connecting to the NBD server.  You can check if the
@@ -946,8 +945,8 @@ let generate_include_libnbd_h () =
       | Int64 n -> pr ", int64_t %s" n
       | Path n
       | String n -> pr ", const char *%s" n
-      | SockAddrAndLen n ->
-         pr ", const struct sockaddr *%s, socklen_t %s_len" n n
+      | SockAddrAndLen (n, len) ->
+         pr ", const struct sockaddr *%s, socklen_t %s" n len
       | UInt n -> pr ", unsigned %s" n
       | UInt64 n -> pr ", uint64_t %s" n
     ) args;
