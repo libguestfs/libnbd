@@ -915,6 +915,22 @@ let generate_lib_states_c () =
 
 (* Generate C API. *)
 
+let generate_lib_libnbd_syms () =
+  generate_header HashStyle;
+
+  pr "{\n";
+  pr "  global:\n";
+  pr "    nbd_create;\n";
+  pr "    nbd_close;\n";
+  pr "    nbd_get_connection;\n";
+  pr "    nbd_connection_close;\n";
+  List.iter (fun (name, _) -> pr "    nbd_%s;\n" name) handle_calls;
+  List.iter (fun (name, _) -> pr "    nbd_%s;\n" name) connection_calls;
+  pr "\n";
+  pr "  # Everything else is hidden.\n";
+  pr "  local: *;\n";
+  pr "};\n"
+
 let name_of_arg = function
 | BytesIn (n, len) -> [n; len]
 | BytesOut (n, len) -> [n; len]
@@ -1077,6 +1093,7 @@ let generate_lib_api_c () =
 let () =
   output_to "lib/states.h" generate_lib_states_h;
   output_to "lib/states.c" generate_lib_states_c;
+  output_to "lib/libnbd.syms" generate_lib_libnbd_syms;
   output_to "include/libnbd.h" generate_include_libnbd_h;
   output_to "lib/unlocked.h" generate_lib_unlocked_h;
   output_to "lib/api.c" generate_lib_api_c

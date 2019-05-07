@@ -24,7 +24,8 @@ BUILT_SOURCES = \
 	unlocked.h
 
 EXTRA_DIST = \
-	$(BUILT_SOURCES)
+	$(BUILT_SOURCES) \
+	libnbd.syms
 
 lib_LTLIBRARIES = libnbd.la
 
@@ -47,4 +48,5 @@ libnbd_la_CFLAGS = \
 	$(PTHREAD_CFLAGS)
 libnbd_la_LDFLAGS = \
 	$(PTHREAD_LIBS) \
+	-Wl,--version-script=$(srcdir)/libnbd.syms \
 	-version-info 0:0:0

@@ -25,6 +25,7 @@ Makefile.in
 /examples/simple-reads-and-writes
 /include/libnbd.h
 /lib/api.c
+/lib/libnbd.syms
 /lib/states.c
 /lib/states.h
 /lib/unlocked.h
