@@ -34,7 +34,7 @@
  * internally, and if you exceed those limits then something will
  * break.
  */
-#define NR_MULTI_CONN 4
+#define NR_MULTI_CONN 8
 
 /* Number of commands that can be "in flight" at the same time on each
  * connection.  (Therefore the total number of requests in flight may
