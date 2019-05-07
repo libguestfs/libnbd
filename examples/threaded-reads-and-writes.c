@@ -192,9 +192,11 @@ start_thread (void *arg)
       goto error;
     }
 
-    if ((fds[0].revents & POLLIN) != 0)
+    if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0 &&
+        (fds[0].revents & POLLIN) != 0)
       nbd_aio_notify_read (conn);
-    else if ((fds[0].revents & POLLOUT) != 0)
+    else if ((dir & LIBNBD_AIO_DIRECTION_WRITE) != 0 &&
+             (fds[0].revents & POLLOUT) != 0)
       nbd_aio_notify_write (conn);
 
     /* If we can issue another request, do so.  Note that we reuse the
