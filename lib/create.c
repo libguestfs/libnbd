@@ -34,6 +34,7 @@ create_conn (struct nbd_handle *h)
   if (conn == NULL)
     return NULL;
 
+  conn->id = h->unique++;
   conn->state = STATE_CREATED;
   conn->fd = -1;
   conn->h = h;
@@ -93,6 +94,7 @@ nbd_create (void)
 
   h->conns[0] = conn;
   h->multi_conn = 1;
+  h->unique = 1;
   return h;
 
  error2:

@@ -66,6 +66,11 @@ struct nbd_handle {
 struct nbd_connection {
   struct nbd_handle *h;         /* Parent handle. */
 
+  /* To avoid leaking addresses in debug messages, and to make debug
+   * easier to read, give this a unique ID used in debug.
+   */
+  int64_t id;
+
   enum state state;             /* State machine. */
   int fd;                       /* Socket. */
 

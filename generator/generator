@@ -827,8 +827,8 @@ let generate_lib_states_c () =
       pr "\n";
       pr "  r = _enter_STATE_%s (h, conn, &next_state, blocked);\n" name;
       pr "  if (conn->state != next_state) {\n";
-      pr "    debug (\"conn %%p: transition: %%s -> %%s\", conn, \"%s\",\n"
-         name;
+      pr "    debug (\"conn %%\" PRIi64 \": transition: %%s -> %%s\",\n";
+      pr "           conn->id, \"%s\",\n" name;
       pr "           nbd_internal_state_short_string (next_state));\n";
       pr "    conn->state = next_state;\n";
       pr "  }\n";
@@ -859,8 +859,8 @@ let generate_lib_states_c () =
             pr "    case %s:\n" (c_string_of_external_event e);
             if next_state <> "" then (
               pr "      conn->state = STATE_%s;\n" next_state;
-              pr "      debug (\"conn %%p: event %%s: %%s -> %%s\",\n";
-              pr "             conn, \"%s\", \"%s\", \"%s\");\n"
+              pr "      debug (\"conn %%\" PRIi64 \": event %%s: %%s -> %%s\",\n";
+              pr "             conn->id, \"%s\", \"%s\", \"%s\");\n"
                  (string_of_external_event e) name next_state;
             );
             pr "      goto ok;\n";
