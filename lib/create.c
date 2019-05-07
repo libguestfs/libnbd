@@ -47,8 +47,22 @@ create_conn (struct nbd_handle *h)
 }
 
 static void
+free_cmd_list (struct command_in_flight *list)
+{
+  struct command_in_flight *cmd, *cmd_next;
+
+  for (cmd = list; cmd != NULL; cmd = cmd_next) {
+    cmd_next = cmd->next;
+    free (cmd);
+  }
+}
+
+static void
 close_conn (struct nbd_connection *conn)
 {
+  free_cmd_list (conn->cmds_to_issue);
+  free_cmd_list (conn->cmds_in_flight);
+  free_cmd_list (conn->cmds_done);
   if (conn->fd >= 0)
     close (conn->fd);
   free (conn);
