@@ -70,6 +70,11 @@ main (int argc, char *argv[])
     }
   }
 
+  if (nbd_shutdown (nbd) == -1) {
+    /* XXX PRINT ERROR */
+    exit (EXIT_FAILURE);
+  }
+
   nbd_close (nbd);
 
   exit (EXIT_SUCCESS);

@@ -356,6 +356,22 @@ send_from_wbuf (struct nbd_connection *conn)
   return 0;
 
  PREPARE_FOR_REPLY:
+  /* This state is entered when a read notification is received in the
+   * READY state.  Therefore we know the socket is readable here.
+   * Reading a zero length now would indicate that the socket has been
+   * closed by the server and so we should jump to the CLOSED state.
+   * However recv_into_rbuf will fail in this case, so test it as a
+   * special case.
+   */
+  ssize_t r;
+  char c;
+
+  r = recv (conn->fd, &c, 1, MSG_PEEK);
+  if (r == 0) {
+    SET_NEXT_STATE (%CLOSED);
+    return 0;
+  }
+
   conn->rbuf = &conn->sbuf;
   conn->rlen = sizeof (conn->sbuf.simple_reply);
   SET_NEXT_STATE (%RECV_REPLY);

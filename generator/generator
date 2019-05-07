@@ -245,6 +245,11 @@ let states = [
     default_state with
     comment = "Connection is in an unrecoverable error state, can only be closed";
   };
+
+  "CLOSED", {
+    default_state with
+    comment = "Connection is closed";
+  };
 ]
 
 (*----------------------------------------------------------------------*)
@@ -344,6 +349,18 @@ If multi-conn is enabled, the command is issued on the next
 ready connection, picked in a round-robin manner.";
   };
 
+  "shutdown", {
+    default_call with
+    args = [];
+    ret = RErr;
+    shortdesc = "disconnect from the NBD server";
+    longdesc = "\
+Issue the disconnect command to the NBD server.  This is
+a nice way to tell the server we are going away, but from the
+client's point of view has no advantage over abruptly closing
+the connection (see C<nbd_close>).";
+  };
+
   "poll", {
     default_call with
     args = [ Int "timeout" ];
@@ -398,6 +415,18 @@ unique 64 bit handle for this command.  To check if the command
 completed, call C<nbd_aio_command_completed>.  Note that
 you must ensure C<buf> is valid until the command has
 completed.";
+  };
+
+  "aio_disconnect", {
+    default_call with
+    args = [];
+    ret = RErr;
+    shortdesc = "disconnect from the NBD server";
+    longdesc = "\
+Issue the disconnect command to the NBD server.  This is
+not a normal command because NBD servers are not obliged
+to send a reply.  Instead you should wait for
+C<nbd_aio_is_closed> to become true on the connection.";
   };
 
   "aio_get_fd", {
@@ -496,6 +525,17 @@ Return true if the connection has encountered a fatal
 error and is dead.  In this state the connection (or whole handle)
 may only be closed.  There is no way to recover a handle from
 the dead state.";
+  };
+
+  "aio_is_closed", {
+    default_call with
+    args = [];
+    ret = RBool;
+    shortdesc = "check if the connection is closed";
+    longdesc = "\
+Return true if the connection has closed.  There is no way to
+reconnect a closed connection.  Instead you must recreate the
+connection object or close the whole handle.";
   };
 
   "aio_command_completed", {

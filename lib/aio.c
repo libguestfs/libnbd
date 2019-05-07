@@ -56,6 +56,12 @@ nbd_unlocked_aio_is_dead (struct nbd_connection *conn)
 }
 
 int
+nbd_unlocked_aio_is_closed (struct nbd_connection *conn)
+{
+  return conn->state == STATE_CLOSED;
+}
+
+int
 nbd_unlocked_aio_command_completed (struct nbd_connection *conn,
                                     int64_t handle)
 {

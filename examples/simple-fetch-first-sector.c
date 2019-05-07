@@ -43,6 +43,11 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  if (nbd_shutdown (nbd) == -1) {
+    /* XXX PRINT ERROR */
+    exit (EXIT_FAILURE);
+  }
+
   fp = fopen (argv[2], "w");
   if (fp == NULL) {
     perror (argv[2]);
