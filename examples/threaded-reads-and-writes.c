@@ -38,11 +38,14 @@
 
 /* Number of commands that can be "in flight" at the same time on each
  * connection.  (Therefore the total number of requests in flight may
- * be up to NR_MULTI_CONN * MAX_IN_FLIGHT).  Some servers do not
- * support multiple requests in flight and may deadlock or even crash
- * if this is larger than 1, but common NBD servers should be OK.
+ * be up to NR_MULTI_CONN * MAX_IN_FLIGHT).  qemu's NBD client can
+ * have up to 16 requests in flight.
+ *
+ * Some servers do not support multiple requests in flight and may
+ * deadlock or even crash if this is larger than 1, but common NBD
+ * servers should be OK.
  */
-#define MAX_IN_FLIGHT 4
+#define MAX_IN_FLIGHT 16
 
 /* Number of commands we issue (per thread). */
 #define NR_CYCLES 10000
@@ -239,10 +242,13 @@ start_thread (void *arg)
     }
   }
 
+  printf ("thread %zu: finished OK\n", status->i);
+
   status->status = 0;
   pthread_exit (status);
 
  error:
+  fprintf (stderr, "thread %zu: failed\n", status->i);
   status->status = -1;
   pthread_exit (status);
 }
