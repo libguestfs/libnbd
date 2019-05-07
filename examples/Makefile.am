@@ -19,7 +19,8 @@ CLEANFILES = *~
 
 noinst_PROGRAMS = \
 	simple-fetch-first-sector \
-	simple-reads-and-writes
+	simple-reads-and-writes \
+	threaded-reads-and-writes
 
 simple_fetch_first_sector_SOURCES = \
 	simple-fetch-first-sector.c
@@ -38,3 +39,14 @@ simple_reads_and_writes_CFLAGS = \
 	$(WARNINGS_CFLAGS)
 simple_reads_and_writes_LDADD = \
 	$(top_builddir)/lib/libnbd.la
+
+threaded_reads_and_writes_SOURCES = \
+	threaded-reads-and-writes.c
+threaded_reads_and_writes_CPPFLAGS = \
+	-I$(top_srcdir)/include
+threaded_reads_and_writes_CFLAGS = \
+	$(WARNINGS_CFLAGS) \
+	$(PTHREAD_CFLAGS)
+threaded_reads_and_writes_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(PTHREAD_LIBS)

@@ -21,6 +21,7 @@ Makefile.in
 /config.sub
 /configure
 /depcomp
+/examples/threaded-reads-and-writes
 /examples/simple-fetch-first-sector
 /examples/simple-reads-and-writes
 /include/libnbd.h
