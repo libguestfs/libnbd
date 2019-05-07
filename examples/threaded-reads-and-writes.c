@@ -3,7 +3,7 @@
  *
  * Example usage with nbdkit:
  *
- * nbdkit -U - memory 1M --run './simple-reads-and-writes $unixsocket'
+ * nbdkit -U - memory 1M --run './threaded-reads-and-writes $unixsocket'
  *
  * This will read and write randomly over the first megabyte of the
  * plugin using multi-conn, multiple threads and multiple requests in
