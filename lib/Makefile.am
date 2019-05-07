@@ -39,6 +39,8 @@ libnbd_la_SOURCES = \
 libnbd_la_CPPFLAGS = \
 	-I$(top_srcdir)/include
 libnbd_la_CFLAGS = \
-	$(WARNINGS_CFLAGS)
+	$(WARNINGS_CFLAGS) \
+	$(PTHREAD_CFLAGS)
 libnbd_la_LDFLAGS = \
+	$(PTHREAD_LIBS) \
 	-version-info 0:0:0
