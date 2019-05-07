@@ -19,10 +19,13 @@
 #ifndef LIBNBD_INTERNAL_H
 #define LIBNBD_INTERNAL_H
 
+#include <pthread.h>
+
 #include "libnbd.h"
 #include "nbd-protocol.h"
 
 #include "states.h"
+#include "unlocked.h"
 
 /* These correspond to the external events in generator/generator. */
 enum external_event {
@@ -34,6 +37,11 @@ enum external_event {
 };
 
 struct nbd_handle {
+  /* Lock protecting concurrent access to either this handle or the
+   * connections owned by the handle.
+   */
+  pthread_mutex_t lock;
+
   /* Connection(s).  Usually 1 but there may be several.  The length
    * of the list is multi_conn.  The elements are never NULL.  If a
    * connection is closed then it is replaced with a newly created

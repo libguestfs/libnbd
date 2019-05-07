@@ -61,23 +61,29 @@ nbd_create (void)
   struct nbd_connection *conn;
 
   h = calloc (1, sizeof *h);
-  if (h == NULL) goto error;
+  if (h == NULL) goto error1;
+
+  errno = pthread_mutex_init (&h->lock, NULL);
+  if (errno != 0)
+    goto error1;
 
   h->export = strdup ("");
-  if (h->export == NULL) goto error;
+  if (h->export == NULL) goto error2;
 
   h->conns = malloc (sizeof (struct nbd_connection *));
-  if (h->conns == NULL) goto error;
+  if (h->conns == NULL) goto error2;
 
   /* Handles are created with a single connection. */
   conn = create_conn (h);
-  if (conn == NULL) goto error;
+  if (conn == NULL) goto error2;
 
   h->conns[0] = conn;
   h->multi_conn = 1;
   return h;
 
- error:
+ error2:
+  pthread_mutex_destroy (&h->lock);
+ error1:
   if (h) {
     free (h->export);
     free (h->conns);
@@ -94,7 +100,26 @@ nbd_close (struct nbd_handle *h)
   for (i = 0; i < h->multi_conn; ++i)
     close_conn (h->conns[i]);
   free (h->export);
+  pthread_mutex_destroy (&h->lock);
   free (h);
+}
+
+struct nbd_connection *
+nbd_get_connection (struct nbd_handle *h, unsigned i)
+{
+  struct nbd_connection *conn;
+
+  pthread_mutex_lock (&h->lock);
+
+  if (i >= h->multi_conn) {
+    set_error (0, "nbd_get_connection: %u > number of connections", i);
+    pthread_mutex_unlock (&h->lock);
+    return NULL;
+  }
+
+  conn = h->conns[i];
+  pthread_mutex_unlock (&h->lock);
+  return conn;
 }
 
 int
@@ -106,11 +131,13 @@ nbd_connection_close (struct nbd_connection *conn)
   if (conn == NULL)
     return 0;
 
+  h = conn->h;
+  pthread_mutex_lock (&h->lock);
+
   /* We have to find the connection in the list of connections of the
    * parent handle, so we can drop the old pointer and create a new
    * connection.
    */
-  h = conn->h;
   for (i = 0; i < h->multi_conn; ++i)
     if (conn == h->conns[i])
       goto found;
@@ -119,21 +146,24 @@ nbd_connection_close (struct nbd_connection *conn)
    * to abort here.
    */
   set_error (EINVAL, "connection not found in parent handle");
+  pthread_mutex_unlock (&h->lock);
   return -1;
 
  found:
   h->conns[i] = create_conn (h);
   if (h->conns[i] == NULL) {
     set_error (errno, "create_conn");
+    pthread_mutex_unlock (&h->lock);
     return -1;
   }
 
   close_conn (conn);
+  pthread_mutex_unlock (&h->lock);
   return 0;
 }
 
 int
-nbd_set_multi_conn (struct nbd_handle *h, unsigned multi_conn)
+nbd_unlocked_set_multi_conn (struct nbd_handle *h, unsigned multi_conn)
 {
   struct nbd_connection **new_conns;
   size_t i;

@@ -29,18 +29,18 @@
  * multi-conn this uses a simple round-robin.
  */
 int
-nbd_pread (struct nbd_handle *h, void *buf,
-           size_t count, uint64_t offset)
+nbd_unlocked_pread (struct nbd_handle *h, void *buf,
+                    size_t count, uint64_t offset)
 {
   struct nbd_connection *conn = h->conns[h->unique % h->multi_conn];
   int64_t ch;
 
-  ch = nbd_aio_pread (conn, buf, count, offset);
+  ch = nbd_unlocked_aio_pread (conn, buf, count, offset);
   if (ch == -1)
     return -1;
 
-  while (!nbd_aio_command_completed (conn, ch)) {
-    if (nbd_poll (h, -1) == -1)
+  while (!nbd_unlocked_aio_command_completed (conn, ch)) {
+    if (nbd_unlocked_poll (h, -1) == -1)
       return -1;
   }
 
@@ -51,17 +51,17 @@ nbd_pread (struct nbd_handle *h, void *buf,
  * For multi-conn this uses a simple round-robin.
  */
 int
-nbd_pwrite (struct nbd_handle *h, const void *buf,
-            size_t count, uint64_t offset)
+nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
+                     size_t count, uint64_t offset)
 {
   struct nbd_connection *conn = h->conns[h->unique % h->multi_conn];
   int64_t ch;
 
-  ch = nbd_aio_pwrite (conn, buf, count, offset);
+  ch = nbd_unlocked_aio_pwrite (conn, buf, count, offset);
   if (ch == -1)
     return -1;
 
-  while (!nbd_aio_command_completed (conn, ch)) {
+  while (!nbd_unlocked_aio_command_completed (conn, ch)) {
     if (nbd_poll (h, -1) == -1)
       return -1;
   }
@@ -70,8 +70,8 @@ nbd_pwrite (struct nbd_handle *h, const void *buf,
 }
 
 int64_t
-nbd_aio_pread (struct nbd_connection *conn, void *buf,
-               size_t count, uint64_t offset)
+nbd_unlocked_aio_pread (struct nbd_connection *conn, void *buf,
+                        size_t count, uint64_t offset)
 {
   struct command_in_flight *cmd;
 
@@ -98,8 +98,8 @@ nbd_aio_pread (struct nbd_connection *conn, void *buf,
 }
 
 int64_t
-nbd_aio_pwrite (struct nbd_connection *conn, const void *buf,
-                size_t count, uint64_t offset)
+nbd_unlocked_aio_pwrite (struct nbd_connection *conn, const void *buf,
+                         size_t count, uint64_t offset)
 {
   struct command_in_flight *cmd;
 

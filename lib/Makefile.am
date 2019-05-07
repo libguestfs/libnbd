@@ -18,8 +18,10 @@
 CLEANFILES = *~
 
 BUILT_SOURCES = \
+	api.c \
 	states.c \
-	states.h
+	states.h \
+	unlocked.h
 
 EXTRA_DIST = \
 	$(BUILT_SOURCES)
@@ -28,6 +30,7 @@ lib_LTLIBRARIES = libnbd.la
 
 libnbd_la_SOURCES = \
 	aio.c \
+	api.c \
 	create.c \
 	connect.c \
 	internal.h \
@@ -35,7 +38,8 @@ libnbd_la_SOURCES = \
 	poll.c \
 	rw.c \
 	states.c \
-	states.h
+	states.h \
+	unlocked.h
 libnbd_la_CPPFLAGS = \
 	-I$(top_srcdir)/include
 libnbd_la_CFLAGS = \

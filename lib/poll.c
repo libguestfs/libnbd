@@ -28,15 +28,15 @@
 
 /* A simple main loop implementation using poll(2). */
 int
-nbd_poll (struct nbd_handle *h, int timeout)
+nbd_unlocked_poll (struct nbd_handle *h, int timeout)
 {
   struct pollfd fds[h->multi_conn];
   size_t i;
   int r;
 
   for (i = 0; i < h->multi_conn; ++i) {
-    fds[i].fd = h->conns[i]->fd;
-    switch (nbd_aio_get_direction (h->conns[i])) {
+    fds[i].fd = nbd_unlocked_aio_get_fd (h->conns[i]);
+    switch (nbd_unlocked_aio_get_direction (h->conns[i])) {
     case LIBNBD_AIO_DIRECTION_READ:
       fds[i].events = POLLIN;
       break;
@@ -50,6 +50,10 @@ nbd_poll (struct nbd_handle *h, int timeout)
     fds[i].revents = 0;
   }
 
+  /* Note that it's not safe to release the handle lock here, as it
+   * would allow other threads to close file descriptors which we have
+   * passed to poll.
+   */
   r = poll (fds, h->multi_conn, timeout);
   if (r == -1) {
     set_error (errno, "poll");
@@ -66,9 +70,9 @@ nbd_poll (struct nbd_handle *h, int timeout)
      * picked up by a subsequent poll.
      */
     if ((fds[i].revents & POLLIN) != 0)
-      r = nbd_aio_notify_read (h->conns[i]);
+      r = nbd_unlocked_aio_notify_read (h->conns[i]);
     else if ((fds[i].revents & POLLOUT) != 0)
-      r = nbd_aio_notify_write (h->conns[i]);
+      r = nbd_unlocked_aio_notify_write (h->conns[i]);
     if (r == -1)
       return -1;
   }

@@ -37,7 +37,7 @@
  * state.
  */
 int
-nbd_connect_unix (struct nbd_handle *h, const char *sockpath)
+nbd_unlocked_connect_unix (struct nbd_handle *h, const char *sockpath)
 {
   size_t i;
   struct sockaddr_un sun;
@@ -61,7 +61,8 @@ nbd_connect_unix (struct nbd_handle *h, const char *sockpath)
         return -1;
       }
 
-      if (nbd_aio_connect (h->conns[i], (struct sockaddr *) &sun, len) == -1)
+      if (nbd_unlocked_aio_connect (h->conns[i],
+                                    (struct sockaddr *) &sun, len) == -1)
         return -1;
       started = true;
     }
@@ -77,7 +78,7 @@ nbd_connect_unix (struct nbd_handle *h, const char *sockpath)
 
     /* Are any connected? */
     for (i = 0; i < h->multi_conn; ++i) {
-      if (nbd_aio_is_ready (h->conns[i])) {
+      if (nbd_unlocked_aio_is_ready (h->conns[i])) {
         connected = true;
         break;
       }
@@ -86,7 +87,7 @@ nbd_connect_unix (struct nbd_handle *h, const char *sockpath)
     if (connected)
       break;
 
-    if (nbd_poll (h, -1) == -1)
+    if (nbd_unlocked_poll (h, -1) == -1)
       return -1;
   }
 
@@ -94,7 +95,7 @@ nbd_connect_unix (struct nbd_handle *h, const char *sockpath)
 }
 
 int
-nbd_aio_connect (struct nbd_connection *conn,
+nbd_unlocked_aio_connect (struct nbd_connection *conn,
                  const struct sockaddr *addr, socklen_t len)
 {
   memcpy (&conn->connaddr, addr, len);

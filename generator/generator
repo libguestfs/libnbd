@@ -252,12 +252,11 @@ let states = [
 (* The API. *)
 
 type call = {
-  args : arg list;
-  ret : ret;
-  is_aio : bool;
-  shortdesc : string;
-  longdesc : string;
-  dummy : int;             (* unused, avoids a warning *)
+  args : arg list;         (* parameters (except handle) *)
+  ret : ret;               (* return value *)
+  is_locked : bool;        (* most functions need to take a lock *)
+  shortdesc : string;      (* short description *)
+  longdesc : string;       (* long description *)
 }
 and arg =
 | BytesIn of string * string (* byte array + size passed in to the function *)
@@ -277,9 +276,8 @@ and ret =
 | RFd                      (* return a file descriptor, or error *)
 | RInt64                   (* 64 bit int, -1 = error *)
 
-let default_call = { args = []; ret = RErr; is_aio = false;
-                     shortdesc = ""; longdesc = "";
-                     dummy = 0 }
+let default_call = { args = []; ret = RErr; is_locked = true;
+                     shortdesc = ""; longdesc = "" }
 
 (* Calls on [nbd_handle *nbd] *)
 let handle_calls = [
@@ -371,7 +369,6 @@ handshake by calling C<nbd_aio_is_ready> on the connection.";
     default_call with
     args = [ BytesOut ("buf", "count"); UInt64 "offset" ];
     ret = RInt64;
-    is_aio = true;
     shortdesc = "read from the NBD server";
     longdesc = "\
 Issue a read command to the NBD server.  This returns the
@@ -385,7 +382,6 @@ completed.";
     default_call with
     args = [ BytesIn ("buf", "count"); UInt64 "offset" ];
     ret = RInt64;
-    is_aio = true;
     shortdesc = "write to the NBD server";
     longdesc = "\
 Issue a write command to the NBD server.  This returns the
@@ -399,7 +395,6 @@ completed.";
     default_call with
     args = [];
     ret = RFd;
-    is_aio = true;
     shortdesc = "return file descriptor associated with this connection";
     longdesc = "\
 Return the underlying file descriptor associated with this
@@ -413,7 +408,6 @@ Do not do anything else with the file descriptor.";
     default_call with
     args = [];
     ret = RErr;
-    is_aio = true;
     shortdesc = "return the read or write direction";
     longdesc = "\
 Return the current direction of this connection, which means
@@ -451,7 +445,6 @@ notification.
     default_call with
     args = [];
     ret = RErr;
-    is_aio = true;
     shortdesc = "notify that the connection is readable";
     longdesc = "\
 Send notification to the state machine that the connection
@@ -464,7 +457,6 @@ connection is readable.";
     default_call with
     args = [];
     ret = RErr;
-    is_aio = true;
     shortdesc = "notify that the connection is writable";
     longdesc = "\
 Send notification to the state machine that the connection
@@ -477,7 +469,6 @@ connection is writable.";
     default_call with
     args = [];
     ret = RBool;
-    is_aio = true;
     shortdesc = "check if the connection is in the ready state";
     longdesc = "\
 Return true if this connection is connected to the NBD server,
@@ -490,7 +481,6 @@ issue commands.";
     default_call with
     args = [];
     ret = RBool;
-    is_aio = true;
     shortdesc = "check if the connection is dead";
     longdesc = "\
 Return true if the connection has encountered a fatal
@@ -503,7 +493,6 @@ the dead state.";
     default_call with
     args = [Int64 "handle"];
     ret = RBool;
-    is_aio = true;
     shortdesc = "check if the command completed";
     longdesc = "\
 Return true if the command completed.  If this function returns
@@ -861,7 +850,7 @@ let generate_lib_states_c () =
 
   pr "/* Returns whether in the current state read or write would be valid. */\n";
   pr "int\n";
-  pr "nbd_aio_get_direction (struct nbd_connection *conn)\n";
+  pr "nbd_unlocked_aio_get_direction (struct nbd_connection *conn)\n";
   pr "{\n";
   pr "  int r = 0;\n";
   pr "\n";
@@ -906,7 +895,7 @@ let generate_lib_states_c () =
   pr "\n";
 
   pr "const char *\n";
-  pr "nbd_aio_connection_state (struct nbd_connection *conn)\n";
+  pr "nbd_unlocked_connection_state (struct nbd_connection *conn)\n";
   pr "{\n";
   pr "  switch (conn->state)\n";
   pr "  {\n";
@@ -926,34 +915,45 @@ let generate_lib_states_c () =
 
 (* Generate C API. *)
 
-let generate_include_libnbd_h () =
-  let print_extern name htype args ret =
-    pr "extern ";
-    (match ret with
-     | RBool
-     | RErr
-     | RFd -> pr "int "
-     | RConstString -> pr "const char *"
-     | RInt64 -> pr "int64_t "
-    );
-    pr "nbd_%s (struct nbd_%s *" name htype;
-    List.iter (
-      function
-      | BytesIn (n, len) -> pr ", const void *%s, size_t %s" n len
-      | BytesOut (n, len) -> pr ", void *%s, size_t %s" n len
-      | Int n -> pr ", int %s" n
-      | Int64 n -> pr ", int64_t %s" n
-      | Path n
-      | String n -> pr ", const char *%s" n
-      | SockAddrAndLen (n, len) ->
-         pr ", const struct sockaddr *%s, socklen_t %s" n len
-      | UInt n -> pr ", unsigned %s" n
-      | UInt64 n -> pr ", uint64_t %s" n
-    ) args;
-    pr ");\n"
-  in
+let name_of_arg = function
+| BytesIn (n, len) -> [n; len]
+| BytesOut (n, len) -> [n; len]
+| Int n -> [n]
+| Int64 n -> [n]
+| Path n -> [n]
+| SockAddrAndLen (n, len) -> [n; len]
+| String n -> [n]
+| UInt n -> [n]
+| UInt64 n -> [n]
 
+let print_extern name htype args ret =
+  pr "extern ";
+  (match ret with
+   | RBool
+   | RErr
+   | RFd -> pr "int "
+   | RConstString -> pr "const char *"
+   | RInt64 -> pr "int64_t "
+  );
+  pr "nbd_%s (struct nbd_%s *" name htype;
+  List.iter (
+    function
+    | BytesIn (n, len) -> pr ", const void *%s, size_t %s" n len
+    | BytesOut (n, len) -> pr ", void *%s, size_t %s" n len
+    | Int n -> pr ", int %s" n
+    | Int64 n -> pr ", int64_t %s" n
+    | Path n
+    | String n -> pr ", const char *%s" n
+    | SockAddrAndLen (n, len) ->
+       pr ", const struct sockaddr *%s, socklen_t %s" n len
+    | UInt n -> pr ", unsigned %s" n
+    | UInt64 n -> pr ", uint64_t %s" n
+  ) args;
+  pr ");\n"
+
+let generate_include_libnbd_h () =
   generate_header CStyle;
+
   pr "#ifndef LIBNBD_H\n";
   pr "#define LIBNBD_H\n";
   pr "\n";
@@ -984,10 +984,99 @@ let generate_include_libnbd_h () =
   pr "\n";
   pr "#endif /* LIBNBD_H */\n"
 
+let generate_lib_unlocked_h () =
+  generate_header CStyle;
+
+  pr "#ifndef LIBNBD_UNLOCKED_H\n";
+  pr "#define LIBNBD_UNLOCKED_H\n";
+  pr "\n";
+  List.iter (
+    fun (name, { args; ret }) ->
+      print_extern ("unlocked_" ^ name) "handle" args ret
+  ) handle_calls;
+  pr "\n";
+  List.iter (
+    fun (name, { args; ret }) ->
+      print_extern ("unlocked_" ^ name) "connection" args ret
+  ) connection_calls;
+  pr "\n";
+  pr "#endif /* LIBNBD_UNLOCKED_H */\n"
+
+(* Generate wrappers around each API call which are a place to
+ * grab the thread mutex (lock) and do logging.
+ *)
+let generate_lib_api_c () =
+  let print_wrapper name htype hname lock args ret =
+    (match ret with
+     | RBool
+     | RErr
+     | RFd -> pr "int\n"
+     | RConstString -> pr "const char *\n"
+     | RInt64 -> pr "int64_t\n"
+    );
+    pr "nbd_%s (struct nbd_%s *%s" name htype hname;
+    List.iter (
+      function
+      | BytesIn (n, len) -> pr ", const void *%s, size_t %s" n len
+      | BytesOut (n, len) -> pr ", void *%s, size_t %s" n len
+      | Int n -> pr ", int %s" n
+      | Int64 n -> pr ", int64_t %s" n
+      | Path n
+      | String n -> pr ", const char *%s" n
+      | SockAddrAndLen (n, len) ->
+         pr ", const struct sockaddr *%s, socklen_t %s" n len
+      | UInt n -> pr ", unsigned %s" n
+      | UInt64 n -> pr ", uint64_t %s" n
+    ) args;
+    pr ")\n";
+    pr "{\n";
+    (match ret with
+     | RBool
+     | RErr
+     | RFd -> pr "  int ret;\n"
+     | RConstString -> pr "  const char *ret;\n"
+     | RInt64 -> pr "  int64_t ret;\n"
+    );
+    pr "\n";
+    pr "  pthread_mutex_lock (&%s);\n" lock;
+    pr "  ret = nbd_unlocked_%s (%s" name hname;
+    let argnames = List.flatten (List.map name_of_arg args) in
+    List.iter (pr ", %s") argnames;
+    pr ");\n";
+    pr "  pthread_mutex_unlock (&%s);\n" lock;
+    pr "  return ret;\n";
+    pr "}\n";
+    pr "\n";
+  in
+
+  generate_header CStyle;
+
+  pr "#include <config.h>\n";
+  pr "\n";
+  pr "#include <stdio.h>\n";
+  pr "#include <stdlib.h>\n";
+  pr "\n";
+  pr "#include <pthread.h>\n";
+  pr "\n";
+  pr "#include \"libnbd.h\"\n";
+  pr "#include \"internal.h\"\n";
+  pr "\n";
+  List.iter (
+    fun (name, { args; ret }) ->
+      print_wrapper name "handle" "h" "h->lock" args ret
+  ) handle_calls;
+  pr "\n";
+  List.iter (
+    fun (name, { args; ret }) ->
+      print_wrapper name "connection" "conn" "conn->h->lock" args ret
+  ) connection_calls
+
 (*----------------------------------------------------------------------*)
 
 (* Write the output files. *)
 let () =
   output_to "lib/states.h" generate_lib_states_h;
   output_to "lib/states.c" generate_lib_states_c;
-  output_to "include/libnbd.h" generate_include_libnbd_h
+  output_to "include/libnbd.h" generate_include_libnbd_h;
+  output_to "lib/unlocked.h" generate_lib_unlocked_h;
+  output_to "lib/api.c" generate_lib_api_c

@@ -25,49 +25,39 @@
 
 #include "internal.h"
 
-struct nbd_connection *
-nbd_aio_get_connection (struct nbd_handle *h, unsigned int i)
-{
-  if (i >= h->multi_conn) {
-    set_error (0, "nbd_aio_get_connection: %u > number of connections", i);
-    return NULL;
-  }
-
-  return h->conns[i];
-}
-
 int
-nbd_aio_get_fd (struct nbd_connection *conn)
+nbd_unlocked_aio_get_fd (struct nbd_connection *conn)
 {
   return conn->fd;
 }
 
 int
-nbd_aio_notify_read (struct nbd_connection *conn)
+nbd_unlocked_aio_notify_read (struct nbd_connection *conn)
 {
   return nbd_internal_run (conn->h, conn, notify_read);
 }
 
 int
-nbd_aio_notify_write (struct nbd_connection *conn)
+nbd_unlocked_aio_notify_write (struct nbd_connection *conn)
 {
   return nbd_internal_run (conn->h, conn, notify_write);
 }
 
 int
-nbd_aio_is_ready (struct nbd_connection *conn)
+nbd_unlocked_aio_is_ready (struct nbd_connection *conn)
 {
   return conn->state == STATE_READY;
 }
 
 int
-nbd_aio_is_dead (struct nbd_connection *conn)
+nbd_unlocked_aio_is_dead (struct nbd_connection *conn)
 {
   return conn->state == STATE_DEAD;
 }
 
 int
-nbd_aio_command_completed (struct nbd_connection *conn, int64_t handle)
+nbd_unlocked_aio_command_completed (struct nbd_connection *conn,
+                                    int64_t handle)
 {
   struct command_in_flight *prev_cmd, *cmd;
 
