@@ -60,6 +60,8 @@ nbd_unlocked_aio_command_completed (struct nbd_connection *conn,
                                     int64_t handle)
 {
   struct command_in_flight *prev_cmd, *cmd;
+  uint16_t type;
+  uint32_t error;
 
   /* Find the command amongst the completed commands. */
   for (cmd = conn->cmds_done, prev_cmd = NULL;
@@ -71,6 +73,9 @@ nbd_unlocked_aio_command_completed (struct nbd_connection *conn,
   if (!cmd)
     return 0;
 
+  type = cmd->type;
+  error = cmd->error;
+
   /* Retire it from the list and free it. */
   if (prev_cmd != NULL)
     prev_cmd->next = cmd->next;
@@ -78,5 +83,14 @@ nbd_unlocked_aio_command_completed (struct nbd_connection *conn,
     conn->cmds_done = cmd->next;
 
   free (cmd);
-  return 1;
+
+  /* If the command was successful, return true. */
+  if (error == 0)
+    return 1;
+
+  /* The command failed, set an error indication and return an error. */
+  error = nbd_internal_errno_of_nbd_error (error);
+  set_error (error, "%s: command failed: %s",
+             nbd_internal_name_of_nbd_cmd (type), strerror (error));
+  return -1;
 }

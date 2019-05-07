@@ -37,6 +37,7 @@ libnbd_la_SOURCES = \
 	internal.h \
 	nbd-protocol.h \
 	poll.c \
+	protocol.c \
 	rw.c \
 	states.c \
 	states.h \

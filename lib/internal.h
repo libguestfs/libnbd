@@ -125,6 +125,10 @@ struct command_in_flight {
 #include <string.h>
 #define set_error(errno, fs, ...) do { fprintf (stderr, "libnbd: " fs, ##__VA_ARGS__); if (errno) fprintf (stderr, ": %s", strerror (errno)); fprintf (stderr, "\n"); } while (0)
 
+/* protocol.c */
+extern int nbd_internal_errno_of_nbd_error (uint32_t error);
+extern const char *nbd_internal_name_of_nbd_cmd (uint16_t type);
+
 /* states.c */
 extern int nbd_internal_run (struct nbd_handle *h, struct nbd_connection *conn,
                              enum external_event ev);

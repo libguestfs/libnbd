@@ -34,17 +34,18 @@ nbd_unlocked_pread (struct nbd_handle *h, void *buf,
 {
   struct nbd_connection *conn = h->conns[h->unique % h->multi_conn];
   int64_t ch;
+  int r;
 
   ch = nbd_unlocked_aio_pread (conn, buf, count, offset);
   if (ch == -1)
     return -1;
 
-  while (!nbd_unlocked_aio_command_completed (conn, ch)) {
+  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
     if (nbd_unlocked_poll (h, -1) == -1)
       return -1;
   }
 
-  return 0;
+  return r == -1 ? -1 : 0;
 }
 
 /* Issue a write command on any connection and wait for the reply.
@@ -56,17 +57,18 @@ nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
 {
   struct nbd_connection *conn = h->conns[h->unique % h->multi_conn];
   int64_t ch;
+  int r;
 
   ch = nbd_unlocked_aio_pwrite (conn, buf, count, offset);
   if (ch == -1)
     return -1;
 
-  while (!nbd_unlocked_aio_command_completed (conn, ch)) {
+  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
     if (nbd_poll (h, -1) == -1)
       return -1;
   }
 
-  return 0;
+  return r == -1 ? -1 : 0;
 }
 
 int64_t
