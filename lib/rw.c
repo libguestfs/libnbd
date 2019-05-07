@@ -25,16 +25,53 @@
 
 #include "internal.h"
 
-/* Issue a read command on any connection and wait for the reply.  For
- * multi-conn this uses a simple round-robin.
+/* For synchronous functions, this picks which connection to use.  It
+ * has simple round-robin behaviour, but ignores connections which are
+ * dead or not ready.  It will return an error if there are no
+ * suitable connections.
  */
+static struct nbd_connection *
+pick_connection (struct nbd_handle *h, const char *op)
+{
+  size_t i, j;
+  struct nbd_connection *conn = NULL;
+  int error = ENOTCONN;
+
+  i = h->unique % h->multi_conn;
+  for (j = 0; j < h->multi_conn; ++j) {
+    if (nbd_unlocked_aio_is_ready (h->conns[i])) {
+      conn = h->conns[i];
+      break;
+    }
+    if (!nbd_unlocked_aio_is_dead (h->conns[i]))
+      error = EBUSY; /* at least one connection is busy, not dead */
+
+    ++i;
+    if (i >= h->multi_conn)
+      i = 0;
+  }
+
+  if (conn == NULL) {
+    set_error (error, "%s: no connection(s) are ready to issue commands",
+               op);
+    return NULL;
+  }
+
+  return conn;
+}
+
+/* Issue a read command on any connection and wait for the reply. */
 int
 nbd_unlocked_pread (struct nbd_handle *h, void *buf,
                     size_t count, uint64_t offset)
 {
-  struct nbd_connection *conn = h->conns[h->unique % h->multi_conn];
+  struct nbd_connection *conn;
   int64_t ch;
   int r;
+
+  conn = pick_connection (h, "nbd_pread");
+  if (h == NULL)
+    return -1;
 
   ch = nbd_unlocked_aio_pread (conn, buf, count, offset);
   if (ch == -1)
@@ -48,16 +85,18 @@ nbd_unlocked_pread (struct nbd_handle *h, void *buf,
   return r == -1 ? -1 : 0;
 }
 
-/* Issue a write command on any connection and wait for the reply.
- * For multi-conn this uses a simple round-robin.
- */
+/* Issue a write command on any connection and wait for the reply. */
 int
 nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
                      size_t count, uint64_t offset)
 {
-  struct nbd_connection *conn = h->conns[h->unique % h->multi_conn];
+  struct nbd_connection *conn;
   int64_t ch;
   int r;
+
+  conn = pick_connection (h, "nbd_pwrite");
+  if (h == NULL)
+    return -1;
 
   ch = nbd_unlocked_aio_pwrite (conn, buf, count, offset);
   if (ch == -1)
