@@ -96,7 +96,7 @@ nbd_unlocked_connect_unix (struct nbd_handle *h, const char *sockpath)
 
 int
 nbd_unlocked_aio_connect (struct nbd_connection *conn,
-                 const struct sockaddr *addr, socklen_t len)
+                          const struct sockaddr *addr, socklen_t len)
 {
   memcpy (&conn->connaddr, addr, len);
   conn->connaddrlen = len;
