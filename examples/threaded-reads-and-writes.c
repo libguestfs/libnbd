@@ -20,8 +20,6 @@
 #include <poll.h>
 #include <time.h>
 #include <assert.h>
-#include <sys/types.h>
-#include <sys/un.h>
 
 #include <pthread.h>
 
@@ -48,9 +46,6 @@
 
 /* Number of commands we issue (per thread). */
 #define NR_CYCLES 10000
-
-static struct sockaddr_un sun;
-static socklen_t sunlen;
 
 /* The single NBD handle.  This contains NR_MULTI_CONN connections. */
 static struct nbd_handle *nbd;
@@ -80,17 +75,18 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  sun.sun_family = AF_UNIX;
-  memset (sun.sun_path, 0, sizeof (sun.sun_path));
-  strncpy (sun.sun_path, argv[1], sizeof (sun.sun_path) - 1);
-  sunlen = sizeof (sun.sun_family) + strlen (sun.sun_path) + 1;
-
   nbd = nbd_create ();
   if (nbd == NULL) {
     perror ("nbd_create");
     exit (EXIT_FAILURE);
   }
   if (nbd_set_multi_conn (nbd, NR_MULTI_CONN) == -1) {
+    /* XXX PRINT ERROR */
+    exit (EXIT_FAILURE);
+  }
+
+  /* Connect all connections synchronously as this is simpler. */
+  if (nbd_connect_unix (nbd, argv[1]) == -1) {
     /* XXX PRINT ERROR */
     exit (EXIT_FAILURE);
   }
@@ -165,40 +161,6 @@ start_thread (void *arg)
 
   /* The single thread "owns" the connection. */
   conn = nbd_get_connection (nbd, status->i);
-
-  if (nbd_aio_connect (conn, (const struct sockaddr *) &sun, sunlen) == -1) {
-    /* XXX PRINT ERROR */
-    exit (EXIT_FAILURE);
-  }
-
-  while (!nbd_aio_is_ready (conn)) {
-    /* XXX Should be able to group states to find out if the
-     * connection is "connecting" etc.
-     */
-    if (nbd_aio_is_dead (conn) || nbd_aio_is_closed (conn)) {
-      fprintf (stderr, "thread %zu: could not connect to the server\n",
-               status->i);
-      goto error;
-    }
-
-    fds[0].fd = nbd_aio_get_fd (conn);
-    fds[0].events = fds[0].revents = 0;
-    dir = nbd_aio_get_direction (conn);
-    if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0)
-      fds[0].events |= POLLIN;
-    if ((dir & LIBNBD_AIO_DIRECTION_WRITE) != 0)
-      fds[0].events |= POLLOUT;
-
-    if (poll (fds, 1, -1) == -1) {
-      perror ("poll");
-      goto error;
-    }
-
-    if ((fds[0].revents & POLLIN) != 0)
-      nbd_aio_notify_read (conn);
-    else if ((fds[0].revents & POLLOUT) != 0)
-      nbd_aio_notify_write (conn);
-  }
 
   for (i = 0; i < sizeof buf; ++i)
     buf[i] = rand ();
