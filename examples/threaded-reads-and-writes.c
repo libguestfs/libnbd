@@ -142,7 +142,8 @@ main (int argc, char *argv[])
    */
   assert (requests == NR_MULTI_CONN * NR_CYCLES);
 
-  printf ("most requests seen in flight = %u vs MAX_IN_FLIGHT = %d\n",
+  printf ("most requests seen in flight = %u (per thread) "
+          "vs MAX_IN_FLIGHT = %d\n",
           most_in_flight, MAX_IN_FLIGHT);
 
   exit (errors == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
