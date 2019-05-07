@@ -35,6 +35,7 @@ nbd_unlocked_poll (struct nbd_handle *h, int timeout)
   int r;
 
   for (i = 0; i < h->multi_conn; ++i) {
+    /* fd might be negative, and poll will ignore it. */
     fds[i].fd = nbd_unlocked_aio_get_fd (h->conns[i]);
     switch (nbd_unlocked_aio_get_direction (h->conns[i])) {
     case LIBNBD_AIO_DIRECTION_READ:

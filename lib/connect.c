@@ -52,15 +52,6 @@ nbd_unlocked_connect_unix (struct nbd_handle *h, const char *sockpath)
   started = false;
   for (i = 0; i < h->multi_conn; ++i) {
     if (h->conns[i]->state == STATE_CREATED) {
-      if (h->conns[i]->fd >= 0)
-        close (h->conns[i]->fd);
-      h->conns[i]->fd =
-        socket (AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
-      if (h->conns[i]->fd == -1) {
-        set_error (errno, "socket");
-        return -1;
-      }
-
       if (nbd_unlocked_aio_connect (h->conns[i],
                                     (struct sockaddr *) &sun, len) == -1)
         return -1;

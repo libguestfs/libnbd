@@ -30,6 +30,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
 #include <errno.h>
 #include <assert.h>
 #include <sys/types.h>
@@ -106,6 +107,14 @@ send_from_wbuf (struct nbd_connection *conn)
 
 /* STATE MACHINE */ {
  CONNECT:
+  assert (conn->fd == -1);
+  conn->fd = socket (AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
+  if (conn->fd == -1) {
+    SET_NEXT_STATE (%DEAD);
+    set_error (errno, "socket");
+    return -1;
+  }
+
   if (connect (conn->fd, (struct sockaddr *) &conn->connaddr,
                conn->connaddrlen) == -1) {
     if (errno != EINPROGRESS) {
@@ -445,6 +454,20 @@ send_from_wbuf (struct nbd_connection *conn)
   conn->cmds_done = cmd;
 
   SET_NEXT_STATE (%READY);
+  return 0;
+
+ DEAD:
+  if (conn->fd >= 0) {
+    close (conn->fd);
+    conn->fd = -1;
+  }
+  return 0;
+
+ CLOSED:
+  if (conn->fd >= 0) {
+    close (conn->fd);
+    conn->fd = -1;
+  }
   return 0;
 
 } /* END STATE MACHINE */
