@@ -112,6 +112,30 @@ nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
   return r == -1 ? -1 : 0;
 }
 
+/* Issue a flush command on any connection and wait for the reply. */
+int
+nbd_unlocked_flush (struct nbd_handle *h)
+{
+  struct nbd_connection *conn;
+  int64_t ch;
+  int r;
+
+  conn = pick_connection (h, "nbd_flush");
+  if (h == NULL)
+    return -1;
+
+  ch = nbd_unlocked_aio_flush (conn);
+  if (ch == -1)
+    return -1;
+
+  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
+    if (nbd_unlocked_poll (h, -1) == -1)
+      return -1;
+  }
+
+  return r == -1 ? -1 : 0;
+}
+
 static struct command_in_flight *
 command_common (struct nbd_connection *conn,
                 uint16_t flags, uint16_t type,
@@ -183,6 +207,25 @@ nbd_unlocked_aio_pwrite (struct nbd_connection *conn, const void *buf,
 
   cmd = command_common (conn, flags, NBD_CMD_WRITE, offset, count,
                         (void *) buf);
+  if (!cmd)
+    return -1;
+  if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)
+    return -1;
+
+  return cmd->handle;
+}
+
+int64_t
+nbd_unlocked_aio_flush (struct nbd_connection *conn)
+{
+  struct command_in_flight *cmd;
+
+  if (nbd_unlocked_can_flush (conn->h) != 1) {
+    set_error (EINVAL, "server does not support flush operations");
+    return -1;
+  }
+
+  cmd = command_common (conn, 0, NBD_CMD_FLUSH, 0, 0, NULL);
   if (!cmd)
     return -1;
   if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)

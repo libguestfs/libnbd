@@ -455,6 +455,18 @@ client's point of view has no advantage over abruptly closing
 the connection (see C<nbd_close>).";
   };
 
+  "flush", {
+    default_call with
+    args = [];
+    ret = RErr;
+    shortdesc = "flushing pending write requests";
+    longdesc = "\
+Issue the flush command to the NBD server.  The function should
+return until all write commands which have completed have been
+committed to permanent storage on the server.  Note this will
+return an error if C<nbd_can_flush> is false.";
+  };
+
   "poll", {
     default_call with
     args = [ Int "timeout" ];
@@ -521,6 +533,17 @@ Issue the disconnect command to the NBD server.  This is
 not a normal command because NBD servers are not obliged
 to send a reply.  Instead you should wait for
 C<nbd_aio_is_closed> to become true on the connection.";
+  };
+
+  "aio_flush", {
+    default_call with
+    args = [];
+    ret = RInt64;
+    shortdesc = "disconnect from the NBD server";
+    longdesc = "\
+Issue the flush command to the NBD server.  This returns the
+unique 64 bit handle for this command.  To check if the command
+completed, call C<nbd_aio_command_completed>.";
   };
 
   "aio_get_fd", {
