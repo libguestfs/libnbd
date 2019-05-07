@@ -103,7 +103,7 @@ nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
     return -1;
 
   while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
-    if (nbd_poll (h, -1) == -1)
+    if (nbd_unlocked_poll (h, -1) == -1)
       return -1;
   }
 
