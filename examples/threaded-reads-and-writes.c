@@ -155,7 +155,7 @@ start_thread (void *arg)
   struct thread_status *status = arg;
   struct nbd_connection *conn;
   char buf[512];
-  size_t i;
+  size_t i, j;
   uint64_t offset, handle;
   uint64_t handles[MAX_IN_FLIGHT];
   size_t in_flight;        /* counts number of requests in flight */
@@ -227,16 +227,17 @@ start_thread (void *arg)
     }
 
     /* If a command is ready to retire, retire it. */
-    if (in_flight > 0) {
-      r = nbd_aio_command_completed (conn, handles[0]);
+    for (j = 0; j < in_flight; ++j) {
+      r = nbd_aio_command_completed (conn, handles[j]);
       if (r == -1) {
         /* XXX PRINT ERROR */
         goto error;
       }
       if (r) {
+        memmove (&handles[j], &handles[j+1],
+                 sizeof (handles[0]) * (in_flight - j - 1));
+        j--;
         in_flight--;
-        memmove (&handles[0], &handles[1],
-                 sizeof (handles[0]) * (MAX_IN_FLIGHT-1));
         status->requests++;
       }
     }
