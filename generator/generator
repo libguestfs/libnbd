@@ -268,6 +268,7 @@ and arg =
 | SockAddrAndLen of string * string (* struct sockaddr * + socklen_t *)
 | String of string         (* string *)
 | UInt of string           (* small unsigned int *)
+| UInt32 of string         (* 32 bit unsigned int *)
 | UInt64 of string         (* 64 bit unsigned int *)
 and ret =
 | RBool                    (* return a boolean, or error *)
@@ -316,13 +317,15 @@ Issue a read command to the NBD server for the range starting
 at C<offset> and ending at C<offset> + C<count> - 1.  NBD
 can only read all or nothing using this call.  The call
 returns when the data has been read fully into C<buf> or there is an
-error.  If multi-conn is enabled, the command is issued on the next
-ready connection is picked in a round-robin manner.";
+error.
+
+If multi-conn is enabled, the command is issued on the next
+ready connection, picked in a round-robin manner.";
   };
 
   "pwrite", {
     default_call with
-    args = [ BytesIn ("buf", "count"); UInt64 "offset" ];
+    args = [ BytesIn ("buf", "count"); UInt64 "offset"; UInt32 "flags" ];
     ret = RErr;
     shortdesc = "write to the NBD server";
     longdesc = "\
@@ -331,8 +334,14 @@ C<buf> to the range starting at C<offset> and ending at
 C<offset> + C<count> - 1.  NBD can only write all or nothing
 using this call.  The call returns when the data has been written
 fully and acknowledged by the server, or there is an error.
+
+The C<flags> parameter may be C<0> for no flags, or may contain
+C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
+return until the data has been committed to permanent storage
+(if that is supported - some servers cannot do this).
+
 If multi-conn is enabled, the command is issued on the next
-ready connection is picked in a round-robin manner.";
+ready connection, picked in a round-robin manner.";
   };
 
   "poll", {
@@ -380,7 +389,7 @@ completed.";
 
   "aio_pwrite", {
     default_call with
-    args = [ BytesIn ("buf", "count"); UInt64 "offset" ];
+    args = [ BytesIn ("buf", "count"); UInt64 "offset"; UInt32 "flags" ];
     ret = RInt64;
     shortdesc = "write to the NBD server";
     longdesc = "\
@@ -940,6 +949,7 @@ let name_of_arg = function
 | SockAddrAndLen (n, len) -> [n; len]
 | String n -> [n]
 | UInt n -> [n]
+| UInt32 n -> [n]
 | UInt64 n -> [n]
 
 let print_extern name htype args ret =
@@ -963,6 +973,7 @@ let print_extern name htype args ret =
     | SockAddrAndLen (n, len) ->
        pr ", const struct sockaddr *%s, socklen_t %s" n len
     | UInt n -> pr ", unsigned %s" n
+    | UInt32 n -> pr ", uint32_t %s" n
     | UInt64 n -> pr ", uint64_t %s" n
   ) args;
   pr ");\n"
@@ -982,6 +993,8 @@ let generate_include_libnbd_h () =
   pr "#define LIBNBD_AIO_DIRECTION_READ  1\n";
   pr "#define LIBNBD_AIO_DIRECTION_WRITE 2\n";
   pr "#define LIBNBD_AIO_DIRECTION_BOTH  3\n";
+  pr "\n";
+  pr "#define LIBNBD_CMD_FLAG_FUA        (1<<0)\n";
   pr "\n";
   pr "extern struct nbd_handle *nbd_create (void);\n";
   pr "extern void nbd_close (struct nbd_handle *h);\n";
@@ -1042,6 +1055,7 @@ let generate_lib_api_c () =
       | SockAddrAndLen (n, len) ->
          pr ", const struct sockaddr *%s, socklen_t %s" n len
       | UInt n -> pr ", unsigned %s" n
+      | UInt32 n -> pr ", uint32_t %s" n
       | UInt64 n -> pr ", uint64_t %s" n
     ) args;
     pr ")\n";

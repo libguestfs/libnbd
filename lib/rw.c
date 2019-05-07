@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <errno.h>
 
 #include "internal.h"
@@ -88,7 +90,7 @@ nbd_unlocked_pread (struct nbd_handle *h, void *buf,
 /* Issue a write command on any connection and wait for the reply. */
 int
 nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
-                     size_t count, uint64_t offset)
+                     size_t count, uint64_t offset, uint32_t flags)
 {
   struct nbd_connection *conn;
   int64_t ch;
@@ -98,7 +100,7 @@ nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
   if (h == NULL)
     return -1;
 
-  ch = nbd_unlocked_aio_pwrite (conn, buf, count, offset);
+  ch = nbd_unlocked_aio_pwrite (conn, buf, count, offset, flags);
   if (ch == -1)
     return -1;
 
@@ -110,28 +112,46 @@ nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
   return r == -1 ? -1 : 0;
 }
 
+static struct command_in_flight *
+command_common (struct nbd_connection *conn,
+                uint16_t flags, uint16_t type,
+                uint64_t offset, uint32_t count, void *data)
+{
+  struct command_in_flight *cmd;
+
+  if (count > MAX_REQUEST_SIZE) {
+    set_error (ERANGE, "request too large: maximum request size is %d",
+               MAX_REQUEST_SIZE);
+    return NULL;
+  }
+
+  cmd = malloc (sizeof *cmd);
+  if (cmd == NULL) {
+    set_error (errno, "malloc");
+    return NULL;
+  }
+  cmd->flags = flags;
+  cmd->type = type;
+  cmd->handle = conn->h->unique++;
+  cmd->offset = offset;
+  cmd->count = count;
+  cmd->data = data;
+
+  cmd->next = conn->cmds_to_issue;
+  conn->cmds_to_issue = cmd;
+
+  return cmd;
+}
+
 int64_t
 nbd_unlocked_aio_pread (struct nbd_connection *conn, void *buf,
                         size_t count, uint64_t offset)
 {
   struct command_in_flight *cmd;
 
-  /* XXX CHECK COUNT NOT TOO LARGE! */
-
-  cmd = malloc (sizeof *cmd);
-  if (cmd == NULL) {
-    set_error (errno, "malloc");
+  cmd = command_common (conn, 0, NBD_CMD_READ, offset, count, buf);
+  if (!cmd)
     return -1;
-  }
-  cmd->flags = 0;
-  cmd->type = NBD_CMD_READ;
-  cmd->handle = conn->h->unique++;
-  cmd->offset = offset;
-  cmd->count = count;
-  cmd->data = buf;
-
-  cmd->next = conn->cmds_to_issue;
-  conn->cmds_to_issue = cmd;
   if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)
     return -1;
 
@@ -140,27 +160,20 @@ nbd_unlocked_aio_pread (struct nbd_connection *conn, void *buf,
 
 int64_t
 nbd_unlocked_aio_pwrite (struct nbd_connection *conn, const void *buf,
-                         size_t count, uint64_t offset)
+                         size_t count, uint64_t offset,
+                         uint32_t flags)
 {
   struct command_in_flight *cmd;
 
-  /* XXX CHECK COUNT NOT TOO LARGE! */
-  /* XXX FUA FLAG */
-
-  cmd = malloc (sizeof *cmd);
-  if (cmd == NULL) {
-    set_error (errno, "malloc");
+  if ((flags & ~LIBNBD_CMD_FLAG_FUA) != 0) {
+    set_error (EINVAL, "nbd_aio_pwrite: invalid flag: %" PRIu32, flags);
     return -1;
   }
-  cmd->flags = 0;
-  cmd->type = NBD_CMD_WRITE;
-  cmd->handle = conn->h->unique++;
-  cmd->offset = offset;
-  cmd->count = count;
-  cmd->data = (void *) buf;
 
-  cmd->next = conn->cmds_to_issue;
-  conn->cmds_to_issue = cmd;
+  cmd = command_common (conn, flags, NBD_CMD_WRITE, offset, count,
+                        (void *) buf);
+  if (!cmd)
+    return -1;
   if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)
     return -1;
 

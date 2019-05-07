@@ -49,7 +49,7 @@ main (int argc, char *argv[])
   for (i = 0; i < 1000; ++i) {
     offset = rand () % (SIZE - sizeof buf);
 
-    if (nbd_pwrite (nbd, buf, sizeof buf, offset) == -1) {
+    if (nbd_pwrite (nbd, buf, sizeof buf, offset, 0) == -1) {
       /* XXX PRINT ERROR */
       exit (EXIT_FAILURE);
     }
@@ -64,7 +64,7 @@ main (int argc, char *argv[])
     }
 
     offset = rand () % (SIZE - sizeof buf);
-    if (nbd_pwrite (nbd, buf, sizeof buf, offset) == -1) {
+    if (nbd_pwrite (nbd, buf, sizeof buf, offset, 0) == -1) {
       /* XXX PRINT ERROR */
       exit (EXIT_FAILURE);
     }

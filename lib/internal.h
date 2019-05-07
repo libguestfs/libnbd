@@ -27,6 +27,11 @@
 #include "states.h"
 #include "unlocked.h"
 
+/* XXX This is the same as nbdkit, but probably it should be detected
+ * from the server or made configurable.
+ */
+#define MAX_REQUEST_SIZE (64 * 1024 * 1024)
+
 /* These correspond to the external events in generator/generator. */
 enum external_event {
   notify_read,
