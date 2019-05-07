@@ -1,0 +1,159 @@
+=head1 NAME
+
+libnbd - NBD client library in userspace
+
+=head1 SYNOPSIS
+
+
+
+=head1 DESCRIPTION
+
+Network Block Device (NBD) is a network protocol for accessing block
+devices over the network.  Block devices are hard disks and things
+that behave like hard disks such as disk images and virtual machines.
+
+Libnbd is a client library for the NBD protocol which can access most
+of the features of NBD while being simple to use and powerful.
+
+This manual page gives an overview of libnbd, using C as an example,
+but the library is available from other programming languages.
+
+=over 4
+
+=item L<libnbd-api(3)>
+
+Covers the C API in detail.
+
+=back
+
+=head1 HANDLES AND CONNECTIONS
+
+To use the API at all you must first open a handle by calling
+C<nbd_create> (or its equivalent in other languages):
+
+ struct nbd_handle *nbd;
+ 
+ nbd = nbd_create ();
+
+This creates and returns a handle I<and> (implicitly) a single
+connection object.  The single connection stored in the handle can be
+returned by calling:
+
+ struct nbd_connection *conn;
+ 
+ conn = nbd_get_connection (nbd, 0);
+
+NBD supports "multi-conn", which means multiple connections can be
+made to the same server for higher performance.  By calling:
+
+ nbd_set_multi_conn (nbd, 4);
+
+you can change the handle so it contains 4 connection objects.  The
+extra 3 connections can be accessed using:
+
+ struct nbd_connection *conn1, *conn2, *conn3;
+ 
+ conn1 = nbd_get_connection (nbd, 1);
+ conn2 = nbd_get_connection (nbd, 2);
+ conn3 = nbd_get_connection (nbd, 3);
+
+Each connection object is a complex state machine which can be in
+states such as created, connected to a remote server, handshaking,
+idle and ready to issue commands, or busy sending or receiving
+commands.
+
+There are two levels of API available.  A simple high level
+synchronous API lets you tell the handle to "connect", "read",
+"write", etc. and each of these functions will run to completion
+before returning, using any available connection object to do the
+work.  A more complicated low level asynchronous API is also available
+where you can control each connection separately and integrate with
+L<poll(2)> or another main loop.
+
+You can freely mix the two APIs on the same handle.  You can also call
+APIs on a single handle from multiple threads.
+
+=head1 USING THE SYNCHRONOUS ("HIGH LEVEL") API
+
+This is the simplest way to use the API, with the possible drawback
+that each libnbd function blocks until it is finished.
+
+Create a handle and connect to the server:
+
+ struct nbd_handle *nbd;
+ 
+ nbd = nbd_create ();
+ if (!nbd) {
+   perror ("nbd_create");
+   exit (EXIT_FAILURE);
+ }
+ if (nbd_connect_tcp (nbd, "server.example.com", "nbd") == -1) {
+   fprintf (stderr, "connect: %s\n", nbd_get_error (nbd));
+   exit (EXIT_FAILURE);
+ }
+
+Read the first sector (512 bytes) from the NBD export:
+
+ char buf[512];
+ 
+ if (nbd_pread (nbd, buf, sizeof buf, 0) == -1) {
+   fprintf (stderr, "read: %s\n", nbd_get_error (nbd));
+   exit (EXIT_FAILURE);
+ }
+
+Close the handle:
+
+ nbd_close (nbd);
+
+If you use multiple threads and enable multi-conn on the handle then
+commands will be sent to the server in parallel on the different
+connections.
+
+=head1 USING THE ASYNCHRONOUS ("LOW LEVEL") API
+
+The low level API is useful if you want to use libnbd in non-blocking
+code or if you need more control especially over issuing multiple
+commands on a single connection or multi-conn.
+
+To use the low level API you will need to integrate with L<poll(2)> or
+another "main loop" such as the GLib main event loop.  A simple
+implementation using L<poll(2)> is available called C<nbd_poll>, and
+it is also useful to examine how this is implemented (F<lib/poll.c> in
+the libnbd source code) because that will tell you how to integrate
+libnbd with other main loops.
+
+As with the high level API, it all starts by creating a handle, but
+for the low-level API we must also get the underlying connection
+object:
+
+ struct nbd_handle *nbd;
+ struct nbd_connection *conn;
+ 
+ nbd = nbd_create ();
+ if (nbd == NULL) {
+   perror ("nbd_create");
+   exit (EXIT_FAILURE);
+ }
+ conn = nbd_get_connection (nbd, 0);
+
+To connect to the server asynchronously, we start the connection using
+C<nbd_aio_connect> and then enter our main loop to check for events
+until the connection becomes ready:
+
+ int fd;
+ struct sockaddr_un addr;
+ socklen_t len;
+ 
+ /* some code to set up addr,
+    then ... */
+ if (nbd_aio_connect (conn, &addr, len) == -1) {
+   fprintf (stderr, "connect: %s\n", nbd_get_error (nbd));
+   exit (EXIT_FAILURE);
+ }
+ while (!nbd_aio_is_ready (conn)) {
+   if (nbd_poll (h, -1) == -1) {
+     fprintf (stderr, "poll: %s\n", nbd_get_error (nbd));
+     exit (EXIT_FAILURE);
+   }
+ }
+
