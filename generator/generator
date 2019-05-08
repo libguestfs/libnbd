@@ -431,8 +431,8 @@ ready connection, picked in a round-robin manner.";
 Issue a write command to the NBD server, writing the data in
 C<buf> to the range starting at C<offset> and ending at
 C<offset> + C<count> - 1.  NBD can only write all or nothing
-using this call.  The call returns when the data has been written
-fully and acknowledged by the server, or there is an error.
+using this call.  The call returns when the command has been
+acknowledged by the server, or there is an error.
 
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
