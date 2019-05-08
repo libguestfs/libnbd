@@ -15,8 +15,23 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-ACLOCAL_AMFLAGS = -I m4
-
-SUBDIRS = include lib examples tests
-
 CLEANFILES = *~
+
+if HAVE_NBDKIT
+
+check_PROGRAMS = \
+	get-size
+
+TESTS = \
+	get-size
+
+get_size_SOURCES = \
+	get-size.c
+get_size_CPPFLAGS = \
+	-I$(top_srcdir)/include
+get_size_CFLAGS = \
+	$(WARNINGS_CFLAGS)
+get_size_LDADD = \
+	$(top_builddir)/lib/libnbd.la
+
+endif HAVE_NBDKIT

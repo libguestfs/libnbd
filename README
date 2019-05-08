@@ -6,3 +6,16 @@ To build from git:
   ./generator/generator
   ./configure
   make
+
+Requirements:
+
+ * Probably only a C compiler is required.
+
+Optional:
+
+ * ocaml is required to run the generator, which is needed for
+   building from git.  However it is not needed if building from
+   tarballs, so this is classified as an optional dependency.
+
+ * nbdkit development headers are recommended as they are needed to
+   run the test suite.

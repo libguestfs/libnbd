@@ -59,11 +59,22 @@ if test "x$gcc_warnings" = "xyes"; then
     AC_SUBST([WARNINGS_CFLAGS])
 fi
 
+dnl nbdkit development package is only needed to run the test suite.
+PKG_CHECK_MODULES([NBDKIT], [nbdkit >= 1.12], [
+    AC_SUBST([NBDKIT_CFLAGS])
+    AC_SUBST([NBDKIT_LIBS])
+    have_nbdkit=yes
+    ], [
+    AC_MSG_WARN([nbdkit development package is not installed, tests will be disabled])
+])
+AM_CONDITIONAL([HAVE_NBDKIT], [test "x$have_nbdkit" = "xyes"])
+
 dnl Produce output files.
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([Makefile
                  examples/Makefile
                  include/Makefile
-                 lib/Makefile])
+                 lib/Makefile
+                 tests/Makefile])
 
 AC_OUTPUT
