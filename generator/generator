@@ -174,9 +174,9 @@ let states = [
     external_events = [ NotifyRead, "" ];
   };
 
-  "SKIP_NEWSTYLE_OPT_GO_REPLY_PAYLOAD", {
+  "RECV_NEWSTYLE_OPT_GO_REPLY_PAYLOAD", {
     default_state with
-    comment = "Skip newstyle NBD_OPT_GO reply payload";
+    comment = "Receive newstyle NBD_OPT_GO reply payload";
     external_events = [ NotifyRead, "" ];
   };
 

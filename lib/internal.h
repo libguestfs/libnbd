@@ -56,6 +56,15 @@ struct nbd_handle {
   unsigned multi_conn;
 
   char *export;                 /* Export name, never NULL. */
+
+  /* Export size and per-export flags, received during handshake.  NB:
+   * These are *both* *only* valid if eflags != 0.  This is because
+   * all servers should set NBD_FLAG_HAS_FLAGS, so eflags should
+   * always be != 0, and we set both fields at the same time.
+   */
+  uint64_t exportsize;
+  uint16_t eflags;
+
   int64_t unique;               /* Used for generating handle numbers. */
 };
 
@@ -85,13 +94,18 @@ struct nbd_connection {
   const void *wbuf;
   size_t wlen;
 
-  /* Buffer used for short amounts of data, such as handshake and
-   * commands.
+  /* Static buffer used for short amounts of data, such as handshake
+   * and commands.
    */
   union {
     struct nbd_new_handshake handshake;
     struct nbd_new_option option;
-    struct nbd_fixed_new_option_reply option_reply;
+    struct {
+      struct nbd_fixed_new_option_reply option_reply;
+      union {
+        struct nbd_fixed_new_option_reply_info_export export;
+      } payload;
+    } or;
     struct nbd_request request;
     struct nbd_simple_reply simple_reply;
     uint32_t cflags;

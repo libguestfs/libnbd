@@ -256,30 +256,32 @@ send_from_wbuf (struct nbd_connection *conn)
   case -1: SET_NEXT_STATE (%DEAD); return -1;
   case 0:
     conn->rbuf = &conn->sbuf;
-    conn->rlen = sizeof (conn->sbuf.option_reply);
+    conn->rlen = sizeof (conn->sbuf.or.option_reply);
     SET_NEXT_STATE (%RECV_NEWSTYLE_OPT_GO_REPLY);
   }
   return 0;
 
  RECV_NEWSTYLE_OPT_GO_REPLY:
   uint32_t len;
+  const size_t maxpayload = sizeof (conn->sbuf.or.payload);
 
   switch (recv_into_rbuf (conn)) {
   case -1: SET_NEXT_STATE (%DEAD); return -1;
   case 0:
-    /* We always discard the reply payload. */
-    len = be32toh (conn->sbuf.option_reply.replylen);
-    if (len > 0) {
-      conn->rbuf = NULL;
-      conn->rlen = len;
-      SET_NEXT_STATE (%SKIP_NEWSTYLE_OPT_GO_REPLY_PAYLOAD);
-    }
+    /* Read the following payload if it is short enough to fit in the
+     * static buffer.  If it's too long, skip it.
+     */
+    len = be32toh (conn->sbuf.or.option_reply.replylen);
+    if (len <= maxpayload)
+      conn->rbuf = &conn->sbuf.or.payload;
     else
-      SET_NEXT_STATE (%CHECK_NEWSTYLE_OPT_GO_REPLY);
+      conn->rbuf = NULL;
+    conn->rlen = len;
+    SET_NEXT_STATE (%RECV_NEWSTYLE_OPT_GO_REPLY_PAYLOAD);
   }
   return 0;
 
- SKIP_NEWSTYLE_OPT_GO_REPLY_PAYLOAD:
+ RECV_NEWSTYLE_OPT_GO_REPLY_PAYLOAD:
   switch (recv_into_rbuf (conn)) {
   case -1: SET_NEXT_STATE (%DEAD); return -1;
   case 0:  SET_NEXT_STATE (%CHECK_NEWSTYLE_OPT_GO_REPLY);
@@ -287,23 +289,40 @@ send_from_wbuf (struct nbd_connection *conn)
   return 0;
 
  CHECK_NEWSTYLE_OPT_GO_REPLY:
-  conn->sbuf.option_reply.magic = be64toh (conn->sbuf.option_reply.magic);
-  conn->sbuf.option_reply.option = be32toh (conn->sbuf.option_reply.option);
-  conn->sbuf.option_reply.reply = be32toh (conn->sbuf.option_reply.reply);
-  if (conn->sbuf.option_reply.magic != NBD_REP_MAGIC ||
-      conn->sbuf.option_reply.option != NBD_OPT_GO) {
+  uint64_t magic;
+  uint32_t option;
+  uint32_t reply;
+  uint32_t len;
+
+  magic = be64toh (conn->sbuf.or.option_reply.magic);
+  option = be32toh (conn->sbuf.or.option_reply.option);
+  reply = be32toh (conn->sbuf.or.option_reply.reply);
+  len = be32toh (conn->sbuf.or.option_reply.replylen);
+  if (magic != NBD_REP_MAGIC || option != NBD_OPT_GO) {
     SET_NEXT_STATE (%DEAD);
     set_error (0, "handshake: invalid option reply magic or option");
     return -1;
   }
-  switch (conn->sbuf.option_reply.reply) {
+  switch (reply) {
   case NBD_REP_ACK:
     SET_NEXT_STATE (%READY);
     return 0;
   case NBD_REP_INFO:
-    /* Server is allowed to send any number of NBD_REP_INFO, ignore them. */
+    if (len >= sizeof (conn->sbuf.or.payload.export)) {
+      if (be16toh (conn->sbuf.or.payload.export.info) == NBD_INFO_EXPORT) {
+        conn->h->exportsize = be64toh (conn->sbuf.or.payload.export.exportsize);
+        conn->h->eflags = be16toh (conn->sbuf.or.payload.export.eflags);
+        if (conn->h->eflags == 0) {
+          SET_NEXT_STATE (%DEAD);
+          set_error (EINVAL, "handshake: invalid eflags == 0 from server");
+          return -1;
+        }
+      }
+    }
+    /* ... else ignore the payload. */
+    /* Server is allowed to send any number of NBD_REP_INFO, read next one. */
     conn->rbuf = &conn->sbuf;
-    conn->rlen = sizeof (conn->sbuf.option_reply);
+    conn->rlen = sizeof (conn->sbuf.or.option_reply);
     SET_NEXT_STATE (%RECV_NEWSTYLE_OPT_GO_REPLY);
     return 0;
   case NBD_REP_ERR_UNSUP:
@@ -314,7 +333,7 @@ send_from_wbuf (struct nbd_connection *conn)
   default:
     SET_NEXT_STATE (%DEAD);
     set_error (0, "handshake: unknown reply from NBD_OPT_GO: 0x%" PRIx32,
-               conn->sbuf.option_reply.reply);
+               reply);
     return -1;
   }
 
