@@ -11,11 +11,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
+#include <assert.h>
 #include <time.h>
 
 #include <libnbd.h>
-
-#define SIZE (1024*1024)
 
 int
 main (int argc, char *argv[])
@@ -23,6 +23,7 @@ main (int argc, char *argv[])
   struct nbd_handle *nbd;
   char buf[512];
   size_t i;
+  int64_t exportsize;
   uint64_t offset;
 
   srand (time (NULL));
@@ -42,12 +43,24 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  exportsize = nbd_get_size (nbd);
+  if (exportsize == -1) {
+    /* XXX PRINT ERROR */
+    exit (EXIT_FAILURE);
+  }
+  assert (exportsize >= sizeof buf);
+
+  if (nbd_read_only (nbd) == 1) {
+    fprintf (stderr, "%s: error: this NBD export is read-only\n", argv[0]);
+    exit (EXIT_FAILURE);
+  }
+
   for (i = 0; i < sizeof buf; ++i)
     buf[i] = rand ();
 
   /* 1000 writes. */
   for (i = 0; i < 1000; ++i) {
-    offset = rand () % (SIZE - sizeof buf);
+    offset = rand () % (exportsize - sizeof buf);
 
     if (nbd_pwrite (nbd, buf, sizeof buf, offset, 0) == -1) {
       /* XXX PRINT ERROR */
@@ -57,13 +70,13 @@ main (int argc, char *argv[])
 
   /* 1000 reads and writes. */
   for (i = 0; i < 1000; ++i) {
-    offset = rand () % (SIZE - sizeof buf);
+    offset = rand () % (exportsize - sizeof buf);
     if (nbd_pread (nbd, buf, sizeof buf, offset) == -1) {
       /* XXX PRINT ERROR */
       exit (EXIT_FAILURE);
     }
 
-    offset = rand () % (SIZE - sizeof buf);
+    offset = rand () % (exportsize - sizeof buf);
     if (nbd_pwrite (nbd, buf, sizeof buf, offset, 0) == -1) {
       /* XXX PRINT ERROR */
       exit (EXIT_FAILURE);

@@ -25,7 +25,7 @@
 
 #include <libnbd.h>
 
-#define SIZE (1024*1024)
+static int64_t exportsize;
 
 /* Number of simultaneous connections to the NBD server.  This is also
  * the number of threads, because each thread manages one connection.
@@ -91,6 +91,23 @@ main (int argc, char *argv[])
   /* Connect all connections synchronously as this is simpler. */
   if (nbd_connect_unix (nbd, argv[1]) == -1) {
     /* XXX PRINT ERROR */
+    exit (EXIT_FAILURE);
+  }
+
+  exportsize = nbd_get_size (nbd);
+  if (exportsize == -1) {
+    /* XXX PRINT ERROR */
+    exit (EXIT_FAILURE);
+  }
+
+  if (nbd_read_only (nbd) == 1) {
+    fprintf (stderr, "%s: error: this NBD export is read-only\n", argv[0]);
+    exit (EXIT_FAILURE);
+  }
+
+  if (nbd_can_multi_conn (nbd) == 0) {
+    fprintf (stderr, "%s: error: "
+             "this NBD export does not support multi-conn\n", argv[0]);
     exit (EXIT_FAILURE);
   }
 
@@ -209,7 +226,7 @@ start_thread (void *arg)
      */
     if (want_to_send && (fds[0].revents & POLLOUT) != 0 &&
         nbd_aio_is_ready (conn)) {
-      offset = rand () % (SIZE - sizeof buf);
+      offset = rand () % (exportsize - sizeof buf);
       cmd = rand () & 1;
       if (cmd == 0)
         handle = nbd_aio_pwrite (conn, buf, sizeof buf, offset, 0);
