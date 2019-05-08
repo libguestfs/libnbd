@@ -314,8 +314,7 @@ any one of them is connected.";
 
   "read_only", {
     default_call with
-    args = [];
-    ret = RBool;
+    args = []; ret = RBool;
     shortdesc = "the NBD export is read-only";
     longdesc = "\
 Returns true if the NBD export is read-only; writes and
@@ -325,8 +324,7 @@ connected to and completed the handshake with the server.";
 
   "can_flush", {
     default_call with
-    args = [];
-    ret = RBool;
+    args = []; ret = RBool;
     shortdesc = "does the server support the flush command";
     longdesc = "\
 Returns true if the server supports the flush command
@@ -337,8 +335,7 @@ connected to and completed the handshake with the server.";
 
   "can_fua", {
     default_call with
-    args = [];
-    ret = RBool;
+    args = []; ret = RBool;
     shortdesc = "does the server support the FUA flag";
     longdesc = "\
 Returns true if the server supports the FUA flag on
@@ -348,8 +345,7 @@ if we have not connected to and completed the handshake with the server.";
 
   "rotational", {
     default_call with
-    args = [];
-    ret = RBool;
+    args = []; ret = RBool;
     shortdesc = "is the NBD disk rotational (like a disk)";
     longdesc = "\
 Returns true if the disk exposed over NBD is rotational
@@ -361,8 +357,7 @@ to and completed the handshake with the server.";
 
   "can_trim", {
     default_call with
-    args = [];
-    ret = RBool;
+    args = []; ret = RBool;
     shortdesc = "does the server support the trim command";
     longdesc = "\
 Returns true if the server supports the trim command
@@ -373,8 +368,7 @@ connected to and completed the handshake with the server.";
 
   "can_zero", {
     default_call with
-    args = [];
-    ret = RBool;
+    args = []; ret = RBool;
     shortdesc = "does the server support the zero command";
     longdesc = "\
 Returns true if the server supports the zero command
@@ -385,8 +379,7 @@ connected to and completed the handshake with the server.";
 
   "can_multi_conn", {
     default_call with
-    args = [];
-    ret = RBool;
+    args = []; ret = RBool;
     shortdesc = "does the server support multi-conn";
     longdesc = "\
 Returns true if the server supports multi-conn
@@ -397,8 +390,7 @@ connected to and completed the handshake with the server.";
 
   "get_size", {
     default_call with
-    args = [];
-    ret = RInt64;
+    args = []; ret = RInt64;
     shortdesc = "return the export size";
     longdesc = "\
 Returns the size in bytes of the NBD export.  Can return an
@@ -445,8 +437,7 @@ ready connection, picked in a round-robin manner.";
 
   "shutdown", {
     default_call with
-    args = [];
-    ret = RErr;
+    args = []; ret = RErr;
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
 Issue the disconnect command to the NBD server.  This is
@@ -457,8 +448,7 @@ the connection (see C<nbd_close>).";
 
   "flush", {
     default_call with
-    args = [];
-    ret = RErr;
+    args = []; ret = RErr;
     shortdesc = "flushing pending write requests";
     longdesc = "\
 Issue the flush command to the NBD server.  The function should
@@ -511,8 +501,7 @@ ready connection, picked in a round-robin manner.";
 
   "poll", {
     default_call with
-    args = [ Int "timeout" ];
-    ret = RErr;
+    args = [ Int "timeout" ]; ret = RErr;
     shortdesc = "poll the handle once";
     longdesc = "\
 This is a simple implementation of L<poll(2)> which is used
@@ -530,8 +519,7 @@ main loop, rather than being intended as something you would use.";
 let connection_calls = [
   "aio_connect", {
     default_call with
-    args = [ SockAddrAndLen ("addr", "addrlen") ];
-    ret = RErr;
+    args = [ SockAddrAndLen ("addr", "addrlen") ]; ret = RErr;
     shortdesc = "connect to the NBD server";
     longdesc = "\
 Begin connecting to the NBD server.  You can check if the
@@ -567,8 +555,7 @@ completed.";
 
   "aio_disconnect", {
     default_call with
-    args = [];
-    ret = RErr;
+    args = []; ret = RErr;
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
 Issue the disconnect command to the NBD server.  This is
@@ -579,8 +566,7 @@ C<nbd_aio_is_closed> to become true on the connection.";
 
   "aio_flush", {
     default_call with
-    args = [];
-    ret = RInt64;
+    args = []; ret = RInt64;
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
 Issue the flush command to the NBD server.  This returns the
@@ -616,8 +602,7 @@ completed.";
 
   "aio_get_fd", {
     default_call with
-    args = [];
-    ret = RFd;
+    args = []; ret = RFd;
     shortdesc = "return file descriptor associated with this connection";
     longdesc = "\
 Return the underlying file descriptor associated with this
@@ -629,8 +614,7 @@ Do not do anything else with the file descriptor.";
 
   "aio_get_direction", {
     default_call with
-    args = [];
-    ret = RErr;
+    args = []; ret = RErr;
     shortdesc = "return the read or write direction";
     longdesc = "\
 Return the current direction of this connection, which means
@@ -666,8 +650,7 @@ notification.
 
   "aio_notify_read", {
     default_call with
-    args = [];
-    ret = RErr;
+    args = []; ret = RErr;
     shortdesc = "notify that the connection is readable";
     longdesc = "\
 Send notification to the state machine that the connection
@@ -678,8 +661,7 @@ connection is readable.";
 
   "aio_notify_write", {
     default_call with
-    args = [];
-    ret = RErr;
+    args = []; ret = RErr;
     shortdesc = "notify that the connection is writable";
     longdesc = "\
 Send notification to the state machine that the connection
@@ -690,8 +672,7 @@ connection is writable.";
 
   "aio_is_ready", {
     default_call with
-    args = [];
-    ret = RBool;
+    args = []; ret = RBool;
     shortdesc = "check if the connection is in the ready state";
     longdesc = "\
 Return true if this connection is connected to the NBD server,
@@ -702,8 +683,7 @@ issue commands.";
 
   "aio_is_dead", {
     default_call with
-    args = [];
-    ret = RBool;
+    args = []; ret = RBool;
     shortdesc = "check if the connection is dead";
     longdesc = "\
 Return true if the connection has encountered a fatal
@@ -714,8 +694,7 @@ the dead state.";
 
   "aio_is_closed", {
     default_call with
-    args = [];
-    ret = RBool;
+    args = []; ret = RBool;
     shortdesc = "check if the connection is closed";
     longdesc = "\
 Return true if the connection has closed.  There is no way to
@@ -725,8 +704,7 @@ connection object or close the whole handle.";
 
   "aio_command_completed", {
     default_call with
-    args = [Int64 "handle"];
-    ret = RBool;
+    args = [Int64 "handle"]; ret = RBool;
     shortdesc = "check if the command completed";
     longdesc = "\
 Return true if the command completed.  If this function returns
@@ -741,8 +719,7 @@ as returned by a call such as C<nbd_aio_pread>.";
 
   "connection_state", {
     default_call with
-    args = [];
-    ret = RConstString;
+    args = []; ret = RConstString;
     shortdesc = "return a descriptive string for the state of the connection";
     longdesc = "\
 Returns a descriptive string for the state of the connection.  This
