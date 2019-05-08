@@ -35,6 +35,7 @@ libnbd_la_SOURCES = \
 	create.c \
 	connect.c \
 	disconnect.c \
+	flags.c \
 	internal.h \
 	nbd-protocol.h \
 	poll.c \

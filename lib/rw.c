@@ -165,8 +165,19 @@ nbd_unlocked_aio_pwrite (struct nbd_connection *conn, const void *buf,
 {
   struct command_in_flight *cmd;
 
+  if (nbd_unlocked_read_only (conn->h) == 1) {
+    set_error (EINVAL, "server does not support write operations");
+    return -1;
+  }
+
   if ((flags & ~LIBNBD_CMD_FLAG_FUA) != 0) {
     set_error (EINVAL, "nbd_aio_pwrite: invalid flag: %" PRIu32, flags);
+    return -1;
+  }
+
+  if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
+      nbd_unlocked_can_fua (conn->h) != 1) {
+    set_error (EINVAL, "server does not support the FUA flag");
     return -1;
   }
 

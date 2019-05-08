@@ -312,6 +312,100 @@ begins connecting all of the connections, and returns as soon as
 any one of them is connected.";
   };
 
+  "read_only", {
+    default_call with
+    args = [];
+    ret = RBool;
+    shortdesc = "the NBD export is read-only";
+    longdesc = "\
+Returns true if the NBD export is read-only; writes and
+write-like operations will fail.  Can return an error if we have not
+connected to and completed the handshake with the server.";
+  };
+
+  "can_flush", {
+    default_call with
+    args = [];
+    ret = RBool;
+    shortdesc = "does the server support the flush command";
+    longdesc = "\
+Returns true if the server supports the flush command
+(see C<nbd_flush>, C<nbd_aio_flush>).  Returns false if
+the server does not.  Can return an error if we have not
+connected to and completed the handshake with the server.";
+  };
+
+  "can_fua", {
+    default_call with
+    args = [];
+    ret = RBool;
+    shortdesc = "does the server support the FUA flag";
+    longdesc = "\
+Returns true if the server supports the FUA flag on
+certain commands (see C<nbd_pwrite>).  Can return an error
+if we have not connected to and completed the handshake with the server.";
+  };
+
+  "rotational", {
+    default_call with
+    args = [];
+    ret = RBool;
+    shortdesc = "is the NBD disk rotational (like a disk)";
+    longdesc = "\
+Returns true if the disk exposed over NBD is rotational
+(like a traditional floppy or hard disk).  Returns false if
+the disk has no penalty for random access (like an SSD or
+RAM disk).  Can return an error if we have not connected
+to and completed the handshake with the server.";
+  };
+
+  "can_trim", {
+    default_call with
+    args = [];
+    ret = RBool;
+    shortdesc = "does the server support the trim command";
+    longdesc = "\
+Returns true if the server supports the trim command
+(see C<nbd_trim>, C<nbd_aio_trim>).  Returns false if
+the server does not.  Can return an error if we have not
+connected to and completed the handshake with the server.";
+  };
+
+  "can_zero", {
+    default_call with
+    args = [];
+    ret = RBool;
+    shortdesc = "does the server support the zero command";
+    longdesc = "\
+Returns true if the server supports the zero command
+(see C<nbd_zero>, C<nbd_aio_zero>).  Returns false if
+the server does not.  Can return an error if we have not
+connected to and completed the handshake with the server.";
+  };
+
+  "can_multi_conn", {
+    default_call with
+    args = [];
+    ret = RBool;
+    shortdesc = "does the server support multi-conn";
+    longdesc = "\
+Returns true if the server supports multi-conn
+(see C<nbd_set_multi_conn>).  Returns false if
+the server does not.  Can return an error if we have not
+connected to and completed the handshake with the server.";
+  };
+
+  "get_size", {
+    default_call with
+    args = [];
+    ret = RInt64;
+    shortdesc = "return the export size";
+    longdesc = "\
+Returns the size in bytes of the NBD export.  Can return an
+error if we have not connected to and completed the handshake
+with the server.";
+  };
+
   "pread", {
     default_call with
     args = [ BytesOut ("buf", "count"); UInt64 "offset" ];
