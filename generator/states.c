@@ -31,6 +31,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 #include <errno.h>
 #include <assert.h>
 #include <sys/types.h>
@@ -125,6 +126,54 @@ send_from_wbuf (struct nbd_connection *conn)
   }
   return 0;
 
+ CONNECT_COMMAND:
+  int sv[2];
+  pid_t pid;
+
+  assert (conn->fd == -1);
+  assert (conn->command);
+  if (socketpair (AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0,
+                  sv) == -1) {
+    SET_NEXT_STATE (%DEAD);
+    set_error (errno, "socketpair");
+    return -1;
+  }
+
+  pid = fork ();
+  if (pid == -1) {
+    SET_NEXT_STATE (%DEAD);
+    set_error (errno, "fork");
+    close (sv[0]);
+    close (sv[1]);
+    return -1;
+  }
+  if (pid == 0) {         /* child - run command */
+    close (0);
+    close (1);
+    close (sv[0]);
+    dup2 (sv[1], 0);
+    dup2 (sv[1], 1);
+    close (sv[1]);
+
+    /* Restore SIGPIPE back to SIG_DFL, since shell can't undo SIG_IGN */
+    signal (SIGPIPE, SIG_DFL);
+
+    system (conn->command);
+    perror (conn->command);
+    _exit (EXIT_FAILURE);
+  }
+
+  /* Parent. */
+  conn->pid = pid;
+  conn->fd = sv[0];
+  close (sv[1]);
+
+  /* The sockets are connected already, we can jump directly to
+   * receiving the server magic.
+   */
+  SET_NEXT_STATE (%PREPARE_FOR_MAGIC);
+  return 0;
+
  CONNECTING:
   int status;
   socklen_t len = sizeof status;
@@ -136,9 +185,7 @@ send_from_wbuf (struct nbd_connection *conn)
   }
   /* This checks the status of the original connect call. */
   if (status == 0) {
-    conn->rbuf = &conn->sbuf;
-    conn->rlen = 16;
-    SET_NEXT_STATE (%RECV_MAGIC);
+    SET_NEXT_STATE (%PREPARE_FOR_MAGIC);
     return 0;
   }
   else {
@@ -146,6 +193,12 @@ send_from_wbuf (struct nbd_connection *conn)
     set_error (status, "connect");
     return -1;
   }
+
+ PREPARE_FOR_MAGIC:
+  conn->rbuf = &conn->sbuf;
+  conn->rlen = 16;
+  SET_NEXT_STATE (%RECV_MAGIC);
+  return 0;
 
  RECV_MAGIC:
   switch (recv_into_rbuf (conn)) {

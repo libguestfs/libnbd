@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "internal.h"
 
@@ -37,6 +39,7 @@ create_conn (struct nbd_handle *h)
   conn->id = h->unique++;
   conn->state = STATE_CREATED;
   conn->fd = -1;
+  conn->pid = -1;
   conn->h = h;
 
   if (nbd_internal_run (h, conn, cmd_create) == -1) {
@@ -64,8 +67,11 @@ close_conn (struct nbd_connection *conn)
   free_cmd_list (conn->cmds_to_issue);
   free_cmd_list (conn->cmds_in_flight);
   free_cmd_list (conn->cmds_done);
+  free (conn->command);
   if (conn->fd >= 0)
     close (conn->fd);
+  if (conn->pid >= 0) /* XXX kill it? */
+    waitpid (conn->pid, NULL, 0);
   free (conn);
 }
 

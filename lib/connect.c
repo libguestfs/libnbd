@@ -32,6 +32,32 @@
 
 #include "internal.h"
 
+static int
+wait_one_connected (struct nbd_handle *h)
+{
+  size_t i;
+
+  for (;;) {
+    bool connected = false;
+
+    /* Are any connected? */
+    for (i = 0; i < h->multi_conn; ++i) {
+      if (nbd_unlocked_aio_is_ready (h->conns[i])) {
+        connected = true;
+        break;
+      }
+    }
+
+    if (connected)
+      break;
+
+    if (nbd_unlocked_poll (h, -1) == -1)
+      return -1;
+  }
+
+  return 0;
+}
+
 /* For all connections in the CREATED state, start connecting them to
  * a Unix domain socket.  Wait until at least one is in the READY
  * state.
@@ -64,25 +90,24 @@ nbd_unlocked_connect_unix (struct nbd_handle *h, const char *sockpath)
     return -1;
   }
 
-  for (;;) {
-    bool connected = false;
+  return wait_one_connected (h);
+}
 
-    /* Are any connected? */
-    for (i = 0; i < h->multi_conn; ++i) {
-      if (nbd_unlocked_aio_is_ready (h->conns[i])) {
-        connected = true;
-        break;
-      }
-    }
-
-    if (connected)
-      break;
-
-    if (nbd_unlocked_poll (h, -1) == -1)
-      return -1;
+/* Connect to a local command.  Multi-conn doesn't make much sense
+ * here, should it be an error?
+ */
+int
+nbd_unlocked_connect_command (struct nbd_handle *h, const char *command)
+{
+  if (h->conns[0]->state != STATE_CREATED) {
+    set_error (0, "nbd_connect_command: first connection in this handle is not in the created state, this is likely to be caused by a programming error in the calling program");
+    return -1;
   }
 
-  return 0;
+  if (nbd_unlocked_aio_connect_command (h->conns[0], command) == -1)
+    return -1;
+
+  return wait_one_connected (h);
 }
 
 int
@@ -93,4 +118,19 @@ nbd_unlocked_aio_connect (struct nbd_connection *conn,
   conn->connaddrlen = len;
 
   return nbd_internal_run (conn->h, conn, cmd_connect);
+}
+
+int
+nbd_unlocked_aio_connect_command (struct nbd_connection *conn,
+                                  const char *command)
+{
+  if (conn->command)
+    free (conn->command);
+  conn->command = strdup (command);
+  if (!conn->command) {
+    set_error (errno, "strdup");
+    return -1;
+  }
+
+  return nbd_internal_run (conn->h, conn, cmd_connect_command);
 }

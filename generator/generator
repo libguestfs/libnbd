@@ -71,6 +71,7 @@ type external_event =
   | NotifyWrite                 (* fd becomes ready to write *)
   | CmdCreate                   (* [nbd_create] function called *)
   | CmdConnect                  (* [nbd_aio_connect] function called *)
+  | CmdConnectCommand           (* [nbd_aio_connect_command] *)
   | CmdIssue                    (* issuing an NBD command *)
 
 type state = {
@@ -95,7 +96,8 @@ let states = [
     default_state with
     comment = "Connection after being initially created, idle and not connected";
     external_events = [ CmdCreate, "";
-                        CmdConnect, "CONNECT" ];
+                        CmdConnect, "CONNECT";
+                        CmdConnectCommand, "CONNECT_COMMAND" ];
   };
 
   "CONNECT", {
@@ -104,10 +106,22 @@ let states = [
     external_events = [ NotifyWrite, "CONNECTING" ];
   };
 
+  "CONNECT_COMMAND", {
+    default_state with
+    comment = "Connect to a subprocess";
+    external_events = [];
+  };
+
   "CONNECTING", {
     default_state with
     comment = "Connecting to the remote server";
     external_events = [ NotifyWrite, "" ];
+  };
+
+  "PREPARE_FOR_MAGIC", {
+    default_state with
+    comment = "Prepare to receive the magic identification from remote";
+    external_events = [];
   };
 
   "RECV_MAGIC", {
@@ -310,6 +324,16 @@ to an NBD server running on the same machine.  This call returns
 when the connection has been made.  If multi-conn is enabled, this
 begins connecting all of the connections, and returns as soon as
 any one of them is connected.";
+  };
+
+  "connect_command", {
+    default_call with
+    args = [ String "command" ]; ret = RErr;
+    shortdesc = "connect to NBD server command";
+    longdesc = "\
+Run the C<command> as a subprocess and connect to it over
+stdin/stdout.  This is for use with NBD servers which can
+behave like inetd clients, such as C<nbdkit --single>.";
   };
 
   "read_only", {
@@ -525,6 +549,17 @@ let connection_calls = [
 Begin connecting to the NBD server.  You can check if the
 connection has connected to the server and completed the NBD
 handshake by calling C<nbd_aio_is_ready> on the connection.";
+  };
+
+  "aio_connect_command", {
+    default_call with
+    args = [ String "command" ]; ret = RErr;
+    shortdesc = "connect to the NBD server";
+    longdesc = "\
+Run the C<command> as a subprocess and begin connecting to it over
+stdin/stdout.  You can check if the connection has connected to
+the server and completed the NBD handshake by calling
+C<nbd_aio_is_ready> on the connection.";
   };
 
   "aio_pread", {
@@ -827,6 +862,7 @@ let string_of_external_event = function
   | NotifyWrite -> "NotifyWrite"
   | CmdCreate -> "CmdCreate"
   | CmdConnect -> "CmdConnect"
+  | CmdConnectCommand -> "CmdConnectCommand"
   | CmdIssue -> "CmdIssue"
 
 let c_string_of_external_event = function
@@ -834,6 +870,7 @@ let c_string_of_external_event = function
   | NotifyWrite -> "notify_write"
   | CmdCreate -> "cmd_create"
   | CmdConnect -> "cmd_connect"
+  | CmdConnectCommand -> "cmd_connect_command"
   | CmdIssue -> "cmd_issue"
 
 let state_machine_prologue =
@@ -1075,7 +1112,7 @@ let generate_lib_states_c () =
           match e with
           | NotifyRead ->  pr "    r |= LIBNBD_AIO_DIRECTION_READ;\n"
           | NotifyWrite -> pr "    r |= LIBNBD_AIO_DIRECTION_WRITE;\n"
-          | CmdCreate | CmdConnect | CmdIssue -> ()
+          | CmdCreate | CmdConnect | CmdConnectCommand | CmdIssue -> ()
       ) external_events;
       pr "    break;\n";
   ) states;

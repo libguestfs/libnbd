@@ -19,6 +19,8 @@
 #ifndef LIBNBD_INTERNAL_H
 #define LIBNBD_INTERNAL_H
 
+#include <sys/types.h>
+
 #include <pthread.h>
 
 #include "libnbd.h"
@@ -38,6 +40,7 @@ enum external_event {
   notify_write,
   cmd_create,
   cmd_connect,
+  cmd_connect_command,
   cmd_issue,
 };
 
@@ -116,6 +119,14 @@ struct nbd_connection {
   /* When connecting, this stores the socket address. */
   struct sockaddr_storage connaddr;
   socklen_t connaddrlen;
+
+  /* When connecting to a local command, this points to the command
+   * name.  A local copy is taken to simplify callers.  The PID is the
+   * PID of the subprocess so we can wait on it when the connection is
+   * closed.
+   */
+  char *command;
+  pid_t pid;
 
   /* Global flags from the server. */
   uint16_t gflags;
