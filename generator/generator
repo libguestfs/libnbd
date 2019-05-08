@@ -467,6 +467,48 @@ committed to permanent storage on the server.  Note this will
 return an error if C<nbd_can_flush> is false.";
   };
 
+  "trim", {
+    default_call with
+    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags" ];
+    ret = RErr;
+    shortdesc = "send trim to the NBD server";
+    longdesc = "\
+Issue a trim command to the NBD server, which if supported
+by the server causes a hole to be punched in the backing
+store starting at C<offset> and ending at C<offset> + C<count> - 1.
+The call returns when the command has been acknowledged by the server,
+or there is an error.
+
+The C<flags> parameter may be C<0> for no flags, or may contain
+C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
+return until the data has been committed to permanent storage
+(if that is supported - some servers cannot do this).
+
+If multi-conn is enabled, the command is issued on the next
+ready connection, picked in a round-robin manner.";
+  };
+
+  "zero", {
+    default_call with
+    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags" ];
+    ret = RErr;
+    shortdesc = "send write zeroes to the NBD server";
+    longdesc = "\
+Issue a write zeroes command to the NBD server, which if supported
+by the server causes a zeroes to be written efficiently
+starting at C<offset> and ending at C<offset> + C<count> - 1.
+The call returns when the command has been acknowledged by the server,
+or there is an error.
+
+The C<flags> parameter may be C<0> for no flags, or may contain
+C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
+return until the data has been committed to permanent storage
+(if that is supported - some servers cannot do this).
+
+If multi-conn is enabled, the command is issued on the next
+ready connection, picked in a round-robin manner.";
+  };
+
   "poll", {
     default_call with
     args = [ Int "timeout" ];
@@ -544,6 +586,32 @@ C<nbd_aio_is_closed> to become true on the connection.";
 Issue the flush command to the NBD server.  This returns the
 unique 64 bit handle for this command.  To check if the command
 completed, call C<nbd_aio_command_completed>.";
+  };
+
+  "aio_trim", {
+    default_call with
+    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags" ];
+    ret = RInt64;
+    shortdesc = "send trim to the NBD server";
+    longdesc = "\
+Issue a trim command to the NBD server.  This returns the
+unique 64 bit handle for this command.  To check if the command
+completed, call C<nbd_aio_command_completed>.  Note that
+you must ensure C<buf> is valid until the command has
+completed.";
+  };
+
+  "aio_zero", {
+    default_call with
+    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags" ];
+    ret = RInt64;
+    shortdesc = "send write zeroes to the NBD server";
+    longdesc = "\
+Issue a write zeroes command to the NBD server.  This returns the
+unique 64 bit handle for this command.  To check if the command
+completed, call C<nbd_aio_command_completed>.  Note that
+you must ensure C<buf> is valid until the command has
+completed.";
   };
 
   "aio_get_fd", {

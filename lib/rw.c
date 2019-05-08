@@ -136,17 +136,86 @@ nbd_unlocked_flush (struct nbd_handle *h)
   return r == -1 ? -1 : 0;
 }
 
+/* Issue a trim command on any connection and wait for the reply. */
+int
+nbd_unlocked_trim (struct nbd_handle *h,
+                   uint64_t count, uint64_t offset, uint32_t flags)
+{
+  struct nbd_connection *conn;
+  int64_t ch;
+  int r;
+
+  conn = pick_connection (h, "nbd_trim");
+  if (h == NULL)
+    return -1;
+
+  ch = nbd_unlocked_aio_trim (conn, count, offset, flags);
+  if (ch == -1)
+    return -1;
+
+  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
+    if (nbd_unlocked_poll (h, -1) == -1)
+      return -1;
+  }
+
+  return r == -1 ? -1 : 0;
+}
+
+/* Issue a zero command on any connection and wait for the reply. */
+int
+nbd_unlocked_zero (struct nbd_handle *h,
+                   uint64_t count, uint64_t offset, uint32_t flags)
+{
+  struct nbd_connection *conn;
+  int64_t ch;
+  int r;
+
+  conn = pick_connection (h, "nbd_zero");
+  if (h == NULL)
+    return -1;
+
+  ch = nbd_unlocked_aio_zero (conn, count, offset, flags);
+  if (ch == -1)
+    return -1;
+
+  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
+    if (nbd_unlocked_poll (h, -1) == -1)
+      return -1;
+  }
+
+  return r == -1 ? -1 : 0;
+}
+
 static struct command_in_flight *
 command_common (struct nbd_connection *conn,
                 uint16_t flags, uint16_t type,
-                uint64_t offset, uint32_t count, void *data)
+                uint64_t offset, uint64_t count, void *data)
 {
   struct command_in_flight *cmd;
 
-  if (count > MAX_REQUEST_SIZE) {
-    set_error (ERANGE, "request too large: maximum request size is %d",
-               MAX_REQUEST_SIZE);
-    return NULL;
+  switch (type) {
+    /* Commands which send or receive data are limited to MAX_REQUEST_SIZE. */
+  case NBD_CMD_READ:
+  case NBD_CMD_WRITE:
+    if (count > MAX_REQUEST_SIZE) {
+      set_error (ERANGE, "request too large: maximum request size is %d",
+                 MAX_REQUEST_SIZE);
+      return NULL;
+    }
+    break;
+
+    /* Other commands are currently limited by the 32 bit field in the
+     * command structure on the wire, but in future we hope to support
+     * 64 bit values here with a change to the NBD protocol which is
+     * being discussed upstream.
+     */
+  default:
+    if (count > UINT32_MAX) {
+      set_error (ERANGE, "request too large: maximum request size is %" PRIu32,
+                 UINT32_MAX);
+      return NULL;
+    }
+    break;
   }
 
   cmd = malloc (sizeof *cmd);
@@ -226,6 +295,80 @@ nbd_unlocked_aio_flush (struct nbd_connection *conn)
   }
 
   cmd = command_common (conn, 0, NBD_CMD_FLUSH, 0, 0, NULL);
+  if (!cmd)
+    return -1;
+  if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)
+    return -1;
+
+  return cmd->handle;
+}
+
+int64_t
+nbd_unlocked_aio_trim (struct nbd_connection *conn,
+                       uint64_t count, uint64_t offset,
+                       uint32_t flags)
+{
+  struct command_in_flight *cmd;
+
+  if (nbd_unlocked_read_only (conn->h) == 1) {
+    set_error (EINVAL, "server does not support write operations");
+    return -1;
+  }
+
+  if ((flags & ~LIBNBD_CMD_FLAG_FUA) != 0) {
+    set_error (EINVAL, "nbd_aio_trim: invalid flag: %" PRIu32, flags);
+    return -1;
+  }
+
+  if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
+      nbd_unlocked_can_fua (conn->h) != 1) {
+    set_error (EINVAL, "server does not support the FUA flag");
+    return -1;
+  }
+
+  if (count == 0) {             /* NBD protocol forbids this. */
+    set_error (EINVAL, "nbd_aio_trim: count cannot be 0");
+    return -1;
+  }
+
+  cmd = command_common (conn, flags, NBD_CMD_TRIM, offset, count, NULL);
+  if (!cmd)
+    return -1;
+  if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)
+    return -1;
+
+  return cmd->handle;
+}
+
+int64_t
+nbd_unlocked_aio_zero (struct nbd_connection *conn,
+                       uint64_t count, uint64_t offset,
+                       uint32_t flags)
+{
+  struct command_in_flight *cmd;
+
+  if (nbd_unlocked_read_only (conn->h) == 1) {
+    set_error (EINVAL, "server does not support write operations");
+    return -1;
+  }
+
+  if ((flags & ~LIBNBD_CMD_FLAG_FUA) != 0) {
+    set_error (EINVAL, "nbd_aio_zero: invalid flag: %" PRIu32, flags);
+    return -1;
+  }
+
+  if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
+      nbd_unlocked_can_fua (conn->h) != 1) {
+    set_error (EINVAL, "server does not support the FUA flag");
+    return -1;
+  }
+
+  if (count == 0) {             /* NBD protocol forbids this. */
+    set_error (EINVAL, "nbd_aio_trim: count cannot be 0");
+    return -1;
+  }
+
+  cmd = command_common (conn, flags, NBD_CMD_WRITE_ZEROES, offset, count, NULL);
   if (!cmd)
     return -1;
   if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)
