@@ -59,15 +59,27 @@ if test "x$gcc_warnings" = "xyes"; then
     AC_SUBST([WARNINGS_CFLAGS])
 fi
 
-dnl nbdkit development package is only needed to run the test suite.
-PKG_CHECK_MODULES([NBDKIT], [nbdkit >= 1.12], [
-    AC_SUBST([NBDKIT_CFLAGS])
-    AC_SUBST([NBDKIT_LIBS])
-    have_nbdkit=yes
-    ], [
-    AC_MSG_WARN([nbdkit development package is not installed, tests will be disabled])
+dnl nbdkit, nbdkit-sh-plugin and development headers are only needed
+dnl to run the test suite.
+AC_CHECK_PROG([NBDKIT], [nbdkit], [nbdkit])
+AS_IF([test "x$NBDKIT" != "x"], [
+    PKG_CHECK_MODULES([NBDKIT], [nbdkit >= 1.12], [
+        AC_SUBST([NBDKIT_CFLAGS])
+        AC_SUBST([NBDKIT_LIBS])
+        have_nbdkit_devel=yes
+        ], [
+        AC_MSG_WARN([nbdkit development package is not installed, tests will be disabled])
+    ])
+
+    AC_MSG_CHECKING([for nbdkit-sh-plugin])
+    AS_IF([$NBDKIT sh --version >&AS_MESSAGE_LOG_FD 2>&1], [
+        AC_MSG_RESULT([yes])
+        have_nbdkit_sh_plugin=yes
+    ],[
+        AC_MSG_RESULT([no])
+]   )
 ])
-AM_CONDITIONAL([HAVE_NBDKIT], [test "x$have_nbdkit" = "xyes"])
+AM_CONDITIONAL([HAVE_NBDKIT], [test "x$NBDKIT" != "x" && test "x$have_nbdkit_devel" = "xyes" && test "x$have_nbdkit_sh_plugin" = "xyes"])
 
 dnl Produce output files.
 AC_CONFIG_HEADERS([config.h])
