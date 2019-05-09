@@ -93,6 +93,31 @@ nbd_unlocked_connect_unix (struct nbd_handle *h, const char *sockpath)
   return wait_one_connected (h);
 }
 
+/* Connect to a TCP port. */
+int
+nbd_unlocked_connect_tcp (struct nbd_handle *h,
+                          const char *hostname, const char *port)
+{
+  size_t i;
+  bool started;
+
+  started = false;
+  for (i = 0; i < h->multi_conn; ++i) {
+    if (h->conns[i]->state == STATE_CREATED) {
+      if (nbd_unlocked_aio_connect_tcp (h->conns[i], hostname, port) == -1)
+        return -1;
+      started = true;
+    }
+  }
+
+  if (!started) {
+    set_error (0, "nbd_connect_tcp: no connections in this handle were in the created state, this is likely to be caused by a programming error in the calling program");
+    return -1;
+  }
+
+  return wait_one_connected (h);
+}
+
 /* Connect to a local command.  Multi-conn doesn't make much sense
  * here, should it be an error?
  */
@@ -118,6 +143,28 @@ nbd_unlocked_aio_connect (struct nbd_connection *conn,
   conn->connaddrlen = len;
 
   return nbd_internal_run (conn->h, conn, cmd_connect_sockaddr);
+}
+
+int
+nbd_unlocked_aio_connect_tcp (struct nbd_connection *conn,
+                              const char *hostname, const char *port)
+{
+  if (conn->hostname)
+    free (conn->hostname);
+  conn->hostname = strdup (hostname);
+  if (!conn->hostname) {
+    set_error (errno, "strdup");
+    return -1;
+  }
+  if (conn->port)
+    free (conn->port);
+  conn->port = strdup (port);
+  if (!conn->port) {
+    set_error (errno, "strdup");
+    return -1;
+  }
+
+  return nbd_internal_run (conn->h, conn, cmd_connect_tcp);
 }
 
 int

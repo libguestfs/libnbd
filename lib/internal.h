@@ -19,6 +19,7 @@
 #ifndef LIBNBD_INTERNAL_H
 #define LIBNBD_INTERNAL_H
 
+#include <netdb.h>
 #include <sys/types.h>
 
 #include <pthread.h>
@@ -117,6 +118,11 @@ struct nbd_connection {
    */
   char *command;
   pid_t pid;
+
+  /* When connecting to TCP ports, these fields are used. */
+  char *hostname, *port;
+  struct addrinfo hints;
+  struct addrinfo *result, *rp;
 
   /* Global flags from the server. */
   uint16_t gflags;

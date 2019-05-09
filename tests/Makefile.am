@@ -15,7 +15,9 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-CLEANFILES = *~
+CLEANFILES = \
+	*~ \
+	connect-tcp.pid
 
 if HAVE_NBDKIT
 
@@ -36,7 +38,8 @@ check_PROGRAMS = \
 	can-not-trim-flag \
 	can-zero-flag \
 	can-multi-conn-flag \
-	can-not-multi-conn-flag
+	can-not-multi-conn-flag \
+	connect-tcp
 
 # Make sure that $srcdir is available to tests.
 TESTS_ENVIRONMENT = srcdir=$(srcdir)
@@ -55,7 +58,8 @@ TESTS = \
 	can-not-trim-flag \
 	can-zero-flag \
 	can-multi-conn-flag \
-	can-not-multi-conn-flag
+	can-not-multi-conn-flag \
+	connect-tcp
 
 get_size_SOURCES = get-size.c
 get_size_CPPFLAGS = -I$(top_srcdir)/include
@@ -139,5 +143,10 @@ can_not_multi_conn_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_multi_conn -Dvalue=false
 can_not_multi_conn_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_multi_conn_flag_LDADD = $(top_builddir)/lib/libnbd.la
+
+connect_tcp_SOURCES = connect-tcp.c
+connect_tcp_CPPFLAGS = -I$(top_srcdir)/include
+connect_tcp_CFLAGS = $(WARNINGS_CFLAGS)
+connect_tcp_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_NBDKIT

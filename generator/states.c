@@ -34,6 +34,9 @@
 #include <signal.h>
 #include <errno.h>
 #include <assert.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -126,6 +129,115 @@ send_from_wbuf (struct nbd_connection *conn)
   }
   return 0;
 
+ CONNECTING:
+  int status;
+  socklen_t len = sizeof status;
+
+  if (getsockopt (conn->fd, SOL_SOCKET, SO_ERROR, &status, &len) == -1) {
+    SET_NEXT_STATE (%DEAD);
+    set_error (errno, "getsockopt: SO_ERROR");
+    return -1;
+  }
+  /* This checks the status of the original connect call. */
+  if (status == 0) {
+    SET_NEXT_STATE (%PREPARE_FOR_MAGIC);
+    return 0;
+  }
+  else {
+    SET_NEXT_STATE (%DEAD);
+    set_error (status, "connect");
+    return -1;
+  }
+
+ CONNECT_TCP:
+  int r;
+
+  assert (conn->hostname != NULL);
+  assert (conn->port != NULL);
+
+  if (conn->result) {
+    freeaddrinfo (conn->result);
+    conn->result = NULL;
+  }
+
+  memset (&conn->hints, 0, sizeof conn->hints);
+  conn->hints.ai_family = AF_UNSPEC;
+  conn->hints.ai_socktype = SOCK_STREAM;
+  conn->hints.ai_flags = 0;
+  conn->hints.ai_protocol = 0;
+
+  /* XXX Unfortunately getaddrinfo blocks.  getaddrinfo_a isn't
+   * portable and in any case isn't an alternative because it can't be
+   * integrated into a main loop.
+   */
+  r = getaddrinfo (conn->hostname, conn->port, &conn->hints, &conn->result);
+  if (r != 0) {
+    SET_NEXT_STATE (%CREATED);
+    set_error (0, "getaddrinfo: %s:%s: %s",
+               conn->hostname, conn->port, gai_strerror (r));
+    return -1;
+  }
+
+  conn->rp = conn->result;
+  SET_NEXT_STATE (%CONNECT_TCP_CONNECT);
+  return 0;
+
+ CONNECT_TCP_CONNECT:
+  assert (conn->fd == -1);
+
+  if (conn->rp == NULL) {
+    /* We tried all the results from getaddrinfo without success.
+     * Save errno from most recent connect(2) call. XXX
+     */
+    SET_NEXT_STATE (%CREATED);
+    set_error (0, "connect: %s:%s: could not connect to remote host",
+               conn->hostname, conn->port);
+    return -1;
+  }
+
+  conn->fd = socket (conn->rp->ai_family,
+                     conn->rp->ai_socktype|SOCK_NONBLOCK|SOCK_CLOEXEC,
+                     conn->rp->ai_protocol);
+  if (conn->fd == -1) {
+    SET_NEXT_STATE (%CONNECT_TCP_NEXT);
+    return 0;
+  }
+  if (connect (conn->fd, conn->rp->ai_addr, conn->rp->ai_addrlen) == -1) {
+    if (errno != EINPROGRESS) {
+      SET_NEXT_STATE (%CONNECT_TCP_NEXT);
+      return 0;
+    }
+  }
+
+  SET_NEXT_STATE (%CONNECT_TCP_CONNECTING);
+  return 0;
+
+ CONNECT_TCP_CONNECTING:
+  int status;
+  socklen_t len = sizeof status;
+
+  if (getsockopt (conn->fd, SOL_SOCKET, SO_ERROR, &status, &len) == -1) {
+    SET_NEXT_STATE (%DEAD);
+    set_error (errno, "getsockopt: SO_ERROR");
+    return -1;
+  }
+  /* This checks the status of the original connect call. */
+  if (status == 0)
+    SET_NEXT_STATE (%PREPARE_FOR_MAGIC);
+  else
+    SET_NEXT_STATE (%CONNECT_TCP_NEXT);
+  return 0;
+
+ CONNECT_TCP_NEXT:
+  if (conn->fd >= 0) {
+    close (conn->fd);
+    conn->fd = -1;
+  }
+  if (conn->rp)
+    conn->rp = conn->rp->ai_next;
+  SET_NEXT_STATE (%CONNECT_TCP_CONNECT);
+  return 0;
+
  CONNECT_COMMAND:
   int sv[2];
   pid_t pid;
@@ -174,26 +286,6 @@ send_from_wbuf (struct nbd_connection *conn)
    */
   SET_NEXT_STATE (%PREPARE_FOR_MAGIC);
   return 0;
-
- CONNECTING:
-  int status;
-  socklen_t len = sizeof status;
-
-  if (getsockopt (conn->fd, SOL_SOCKET, SO_ERROR, &status, &len) == -1) {
-    SET_NEXT_STATE (%DEAD);
-    set_error (errno, "getsockopt: SO_ERROR");
-    return -1;
-  }
-  /* This checks the status of the original connect call. */
-  if (status == 0) {
-    SET_NEXT_STATE (%PREPARE_FOR_MAGIC);
-    return 0;
-  }
-  else {
-    SET_NEXT_STATE (%DEAD);
-    set_error (status, "connect");
-    return -1;
-  }
 
  PREPARE_FOR_MAGIC:
   conn->rbuf = &conn->sbuf;

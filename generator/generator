@@ -71,6 +71,7 @@ type external_event =
   | NotifyWrite                 (* fd becomes ready to write *)
   | CmdCreate                   (* [nbd_create] function called *)
   | CmdConnectSockAddr          (* [nbd_aio_connect] function called *)
+  | CmdConnectTCP               (* [nbd_aio_connect_tcp] *)
   | CmdConnectCommand           (* [nbd_aio_connect_command] *)
   | CmdIssue                    (* issuing an NBD command *)
 
@@ -97,6 +98,7 @@ let states = [
     comment = "Connection after being initially created, idle and not connected";
     external_events = [ CmdCreate, "";
                         CmdConnectSockAddr, "CONNECT";
+                        CmdConnectTCP, "CONNECT_TCP";
                         CmdConnectCommand, "CONNECT_COMMAND" ];
   };
 
@@ -106,16 +108,40 @@ let states = [
     external_events = [ NotifyWrite, "CONNECTING" ];
   };
 
-  "CONNECT_COMMAND", {
-    default_state with
-    comment = "Connect to a subprocess";
-    external_events = [];
-  };
-
   "CONNECTING", {
     default_state with
     comment = "Connecting to the remote server";
     external_events = [ NotifyWrite, "" ];
+  };
+
+  "CONNECT_TCP", {
+    default_state with
+    comment = "Connect to a remote TCP server";
+    external_events = [];
+  };
+
+  "CONNECT_TCP_CONNECT", {
+    default_state with
+    comment = "Initial call to connect(2) on a TCP socket";
+    external_events = [ NotifyWrite, "CONNECT_TCP_CONNECTING" ];
+  };
+
+  "CONNECT_TCP_CONNECTING", {
+    default_state with
+    comment = "Connecting to the remote server over a TCP socket";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  "CONNECT_TCP_NEXT", {
+    default_state with
+    comment = "Connecting to the next address over a TCP socket";
+    external_events = [];
+  };
+
+  "CONNECT_COMMAND", {
+    default_state with
+    comment = "Connect to a subprocess";
+    external_events = [];
   };
 
   "PREPARE_FOR_MAGIC", {
@@ -323,6 +349,20 @@ Connect (synchronously) over the named Unix domain socket (C<sockpath>)
 to an NBD server running on the same machine.  This call returns
 when the connection has been made.  If multi-conn is enabled, this
 begins connecting all of the connections, and returns as soon as
+any one of them is connected.";
+  };
+
+  "connect_tcp", {
+    default_call with
+    args = [ String "hostname"; String "port" ]; ret = RErr;
+    shortdesc = "connect to NBD server over a TCP port";
+    longdesc = "\
+Connect (synchronously) to the NBD server listening on
+C<hostname:port>.  The C<port> may be a port name such
+as C<\"nbd\">, or it may be a port number as a string
+such as C<\"10809\">.  This call returns when the connection
+has been made.  If multi-conn is enabled, this begins connecting
+all of the connections, and returns as soon as
 any one of them is connected.";
   };
 
@@ -549,6 +589,17 @@ let connection_calls = [
 Begin connecting to the NBD server.  You can check if the
 connection has connected to the server and completed the NBD
 handshake by calling C<nbd_aio_is_ready> on the connection.";
+  };
+
+  "aio_connect_tcp", {
+    default_call with
+    args = [ String "hostname"; String "port" ]; ret = RErr;
+    shortdesc = "connect to the NBD server over a TCP port";
+    longdesc = "\
+Begin connecting to the NBD server listening on C<hostname:port>.
+You can check if the connection has connected to the server and
+completed the NBD handshake by calling C<nbd_aio_is_ready> on
+the connection.";
   };
 
   "aio_connect_command", {
@@ -859,13 +910,14 @@ let output_to filename k =
 
 let all_external_events =
   [NotifyRead; NotifyWrite;
-   CmdCreate; CmdConnectSockAddr; CmdConnectCommand; CmdIssue]
+   CmdCreate; CmdConnectSockAddr; CmdConnectTCP; CmdConnectCommand; CmdIssue]
 
 let string_of_external_event = function
   | NotifyRead -> "NotifyRead"
   | NotifyWrite -> "NotifyWrite"
   | CmdCreate -> "CmdCreate"
   | CmdConnectSockAddr -> "CmdConnectSockAddr"
+  | CmdConnectTCP -> "CmdConnectTCP"
   | CmdConnectCommand -> "CmdConnectCommand"
   | CmdIssue -> "CmdIssue"
 
@@ -874,6 +926,7 @@ let c_string_of_external_event = function
   | NotifyWrite -> "notify_write"
   | CmdCreate -> "cmd_create"
   | CmdConnectSockAddr -> "cmd_connect_sockaddr"
+  | CmdConnectTCP -> "cmd_connect_tcp"
   | CmdConnectCommand -> "cmd_connect_command"
   | CmdIssue -> "cmd_issue"
 
@@ -1123,7 +1176,7 @@ let generate_lib_states_c () =
           match e with
           | NotifyRead ->  pr "    r |= LIBNBD_AIO_DIRECTION_READ;\n"
           | NotifyWrite -> pr "    r |= LIBNBD_AIO_DIRECTION_WRITE;\n"
-          | CmdCreate | CmdConnectSockAddr | CmdConnectCommand
+          | CmdCreate | CmdConnectSockAddr | CmdConnectTCP | CmdConnectCommand
           | CmdIssue -> ()
       ) external_events;
       pr "    break;\n";

@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <netdb.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -68,6 +69,10 @@ close_conn (struct nbd_connection *conn)
   free_cmd_list (conn->cmds_in_flight);
   free_cmd_list (conn->cmds_done);
   free (conn->command);
+  free (conn->hostname);
+  free (conn->port);
+  if (conn->result)
+    freeaddrinfo (conn->result);
   if (conn->fd >= 0)
     close (conn->fd);
   if (conn->pid >= 0) /* XXX kill it? */
