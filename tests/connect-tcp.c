@@ -37,6 +37,8 @@ main (int argc, char *argv[])
   char port_str[16];
   size_t i;
 
+  unlink (PIDFILE);
+
   /* Pick a port at random, hope it's free. */
   srand (time (NULL));
   port = 32768 + (rand () & 32767);
