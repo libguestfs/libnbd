@@ -17,7 +17,9 @@
 
 CLEANFILES = \
 	*~ \
-	connect-tcp.pid
+	connect-tcp.pid \
+	connect-unix.pid \
+	connect-unix.sock
 
 if HAVE_NBDKIT
 
@@ -39,6 +41,7 @@ check_PROGRAMS = \
 	can-zero-flag \
 	can-multi-conn-flag \
 	can-not-multi-conn-flag \
+	connect-unix \
 	connect-tcp
 
 # Make sure that $srcdir is available to tests.
@@ -59,6 +62,7 @@ TESTS = \
 	can-zero-flag \
 	can-multi-conn-flag \
 	can-not-multi-conn-flag \
+	connect-unix \
 	connect-tcp
 
 get_size_SOURCES = get-size.c
@@ -143,6 +147,11 @@ can_not_multi_conn_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_multi_conn -Dvalue=false
 can_not_multi_conn_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_multi_conn_flag_LDADD = $(top_builddir)/lib/libnbd.la
+
+connect_unix_SOURCES = connect-unix.c
+connect_unix_CPPFLAGS = -I$(top_srcdir)/include
+connect_unix_CFLAGS = $(WARNINGS_CFLAGS)
+connect_unix_LDADD = $(top_builddir)/lib/libnbd.la
 
 connect_tcp_SOURCES = connect-tcp.c
 connect_tcp_CPPFLAGS = -I$(top_srcdir)/include
