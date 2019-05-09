@@ -158,7 +158,8 @@ send_from_wbuf (struct nbd_connection *conn)
     /* Restore SIGPIPE back to SIG_DFL, since shell can't undo SIG_IGN */
     signal (SIGPIPE, SIG_DFL);
 
-    system (conn->command);
+    if (system (conn->command) == 0)
+      _exit (EXIT_SUCCESS);
     perror (conn->command);
     _exit (EXIT_FAILURE);
   }
