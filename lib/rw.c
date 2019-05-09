@@ -72,7 +72,7 @@ nbd_unlocked_pread (struct nbd_handle *h, void *buf,
   int r;
 
   conn = pick_connection (h, "nbd_pread");
-  if (h == NULL)
+  if (conn == NULL)
     return -1;
 
   ch = nbd_unlocked_aio_pread (conn, buf, count, offset);
@@ -97,7 +97,7 @@ nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
   int r;
 
   conn = pick_connection (h, "nbd_pwrite");
-  if (h == NULL)
+  if (conn == NULL)
     return -1;
 
   ch = nbd_unlocked_aio_pwrite (conn, buf, count, offset, flags);
@@ -121,7 +121,7 @@ nbd_unlocked_flush (struct nbd_handle *h)
   int r;
 
   conn = pick_connection (h, "nbd_flush");
-  if (h == NULL)
+  if (conn == NULL)
     return -1;
 
   ch = nbd_unlocked_aio_flush (conn);
@@ -146,7 +146,7 @@ nbd_unlocked_trim (struct nbd_handle *h,
   int r;
 
   conn = pick_connection (h, "nbd_trim");
-  if (h == NULL)
+  if (conn == NULL)
     return -1;
 
   ch = nbd_unlocked_aio_trim (conn, count, offset, flags);
@@ -171,7 +171,7 @@ nbd_unlocked_zero (struct nbd_handle *h,
   int r;
 
   conn = pick_connection (h, "nbd_zero");
-  if (h == NULL)
+  if (conn == NULL)
     return -1;
 
   ch = nbd_unlocked_aio_zero (conn, count, offset, flags);
