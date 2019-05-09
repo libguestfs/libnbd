@@ -16,43 +16,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* Test connecting over a Unix domain socket. */
+/* Deliberately provoke some errors and check the error messages from
+ * nbd_get_error etc look reasonable.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
+#include <string.h>
+#include <errno.h>
 
 #include <libnbd.h>
-
-#define SOCKET "connect-unix.sock"
-#define PIDFILE "connect-unix.pid"
 
 int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
-  char cmd[80];
-  size_t i;
-
-  unlink (SOCKET);
-  unlink (PIDFILE);
-
-  snprintf (cmd, sizeof cmd,
-            "nbdkit -f -U %s -P %s --exit-with-parent null &",
-            SOCKET, PIDFILE);
-  if (system (cmd) != 0) {
-    fprintf (stderr, "%s: could not run: %s", argv[0], cmd);
-    exit (EXIT_FAILURE);
-  }
-
-  /* Wait for nbdkit to start listening. */
-  for (i = 0; i < 60; ++i) {
-    if (access (PIDFILE, F_OK) == 0)
-      break;
-    sleep (1);
-  }
-  unlink (PIDFILE);
+  const char *msg;
+  int errnum;
 
   nbd = nbd_create ();
   if (nbd == NULL) {
@@ -60,17 +40,31 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  if (nbd_connect_unix (nbd, SOCKET) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
+  /* Issue a connected command when not connected. */
+  if (nbd_pread (nbd, NULL, 0, 0) != -1) {
+    fprintf (stderr, "%s: test failed: "
+             "nbd_pread did not fail on non-connected handle\n",
+             argv[0]);
+    exit (EXIT_FAILURE);
+  }
+  msg = nbd_get_error ();
+  errnum = nbd_get_errno ();
+  printf ("error: \"%s\"\n", msg);
+  printf ("errno: %d (%s)\n", errnum, strerror (errnum));
+  if (strncmp (msg, "nbd_pread: ", strlen ("nbd_pread: ")) != 0) {
+    fprintf (stderr, "%s: test failed: missing context prefix: %s\n",
+             argv[0], msg);
+    exit (EXIT_FAILURE);
+  }
+  if (errnum != ENOTCONN) {
+    fprintf (stderr, "%s: test failed: "
+             "expected errno = ENOTCONN, but got %d\n",
+             argv[0], errnum);
     exit (EXIT_FAILURE);
   }
 
-  if (nbd_shutdown (nbd) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
+  /* XXX Test some more stuff here. */
 
   nbd_close (nbd);
-  unlink (SOCKET);
   exit (EXIT_SUCCESS);
 }

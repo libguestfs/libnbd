@@ -31,17 +31,17 @@ main (int argc, char *argv[])
 
   nbd = nbd_create ();
   if (nbd == NULL) {
-    perror ("nbd_create");
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
   if (nbd_connect_command (nbd,
                            "nbdkit -s --exit-with-parent -v null") == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   if ((r = nbd_read_only (nbd)) == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
@@ -52,7 +52,7 @@ main (int argc, char *argv[])
   }
 
   if (nbd_shutdown (nbd) == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 

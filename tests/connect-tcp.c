@@ -62,17 +62,17 @@ main (int argc, char *argv[])
 
   nbd = nbd_create ();
   if (nbd == NULL) {
-    perror ("nbd_create");
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   if (nbd_connect_tcp (nbd, "localhost", port_str) == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   if (nbd_shutdown (nbd) == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 

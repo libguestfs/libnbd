@@ -86,7 +86,7 @@ nbd_unlocked_connect_unix (struct nbd_handle *h, const char *sockpath)
   }
 
   if (!started) {
-    set_error (0, "nbd_connect_unix: no connections in this handle were in the created state, this is likely to be caused by a programming error in the calling program");
+    set_error (0, "no connections in this handle were in the created state, this is likely to be caused by a programming error in the calling program");
     return -1;
   }
 
@@ -111,7 +111,7 @@ nbd_unlocked_connect_tcp (struct nbd_handle *h,
   }
 
   if (!started) {
-    set_error (0, "nbd_connect_tcp: no connections in this handle were in the created state, this is likely to be caused by a programming error in the calling program");
+    set_error (0, "no connections in this handle were in the created state, this is likely to be caused by a programming error in the calling program");
     return -1;
   }
 
@@ -125,7 +125,7 @@ int
 nbd_unlocked_connect_command (struct nbd_handle *h, const char *command)
 {
   if (h->conns[0]->state != STATE_CREATED) {
-    set_error (0, "nbd_connect_command: first connection in this handle is not in the created state, this is likely to be caused by a programming error in the calling program");
+    set_error (0, "first connection in this handle is not in the created state, this is likely to be caused by a programming error in the calling program");
     return -1;
   }
 

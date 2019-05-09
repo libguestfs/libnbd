@@ -35,17 +35,17 @@ main (int argc, char *argv[])
 
   nbd = nbd_create ();
   if (nbd == NULL) {
-    perror ("nbd_create");
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
   if (nbd_connect_unix (nbd, argv[1]) == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   exportsize = nbd_get_size (nbd);
   if (exportsize == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
   assert (exportsize >= sizeof buf);
@@ -63,7 +63,7 @@ main (int argc, char *argv[])
     offset = rand () % (exportsize - sizeof buf);
 
     if (nbd_pwrite (nbd, buf, sizeof buf, offset, 0) == -1) {
-      /* XXX PRINT ERROR */
+      fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
   }
@@ -72,19 +72,19 @@ main (int argc, char *argv[])
   for (i = 0; i < 1000; ++i) {
     offset = rand () % (exportsize - sizeof buf);
     if (nbd_pread (nbd, buf, sizeof buf, offset) == -1) {
-      /* XXX PRINT ERROR */
+      fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
 
     offset = rand () % (exportsize - sizeof buf);
     if (nbd_pwrite (nbd, buf, sizeof buf, offset, 0) == -1) {
-      /* XXX PRINT ERROR */
+      fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
   }
 
   if (nbd_shutdown (nbd) == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 

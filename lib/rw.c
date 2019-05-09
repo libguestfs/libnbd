@@ -33,7 +33,7 @@
  * suitable connections.
  */
 static struct nbd_connection *
-pick_connection (struct nbd_handle *h, const char *op)
+pick_connection (struct nbd_handle *h)
 {
   size_t i, j;
   struct nbd_connection *conn = NULL;
@@ -58,8 +58,7 @@ pick_connection (struct nbd_handle *h, const char *op)
   }
 
   if (conn == NULL) {
-    set_error (error, "%s: no connection(s) are ready to issue commands",
-               op);
+    set_error (error, "no connection(s) are ready to issue commands");
     return NULL;
   }
 
@@ -75,7 +74,7 @@ nbd_unlocked_pread (struct nbd_handle *h, void *buf,
   int64_t ch;
   int r;
 
-  conn = pick_connection (h, "nbd_pread");
+  conn = pick_connection (h);
   if (conn == NULL)
     return -1;
 
@@ -100,7 +99,7 @@ nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
   int64_t ch;
   int r;
 
-  conn = pick_connection (h, "nbd_pwrite");
+  conn = pick_connection (h);
   if (conn == NULL)
     return -1;
 
@@ -124,7 +123,7 @@ nbd_unlocked_flush (struct nbd_handle *h)
   int64_t ch;
   int r;
 
-  conn = pick_connection (h, "nbd_flush");
+  conn = pick_connection (h);
   if (conn == NULL)
     return -1;
 
@@ -149,7 +148,7 @@ nbd_unlocked_trim (struct nbd_handle *h,
   int64_t ch;
   int r;
 
-  conn = pick_connection (h, "nbd_trim");
+  conn = pick_connection (h);
   if (conn == NULL)
     return -1;
 
@@ -174,7 +173,7 @@ nbd_unlocked_zero (struct nbd_handle *h,
   int64_t ch;
   int r;
 
-  conn = pick_connection (h, "nbd_zero");
+  conn = pick_connection (h);
   if (conn == NULL)
     return -1;
 
@@ -268,7 +267,7 @@ nbd_unlocked_aio_pwrite (struct nbd_connection *conn, const void *buf,
   }
 
   if ((flags & ~LIBNBD_CMD_FLAG_FUA) != 0) {
-    set_error (EINVAL, "nbd_aio_pwrite: invalid flag: %" PRIu32, flags);
+    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
     return -1;
   }
 
@@ -320,7 +319,7 @@ nbd_unlocked_aio_trim (struct nbd_connection *conn,
   }
 
   if ((flags & ~LIBNBD_CMD_FLAG_FUA) != 0) {
-    set_error (EINVAL, "nbd_aio_trim: invalid flag: %" PRIu32, flags);
+    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
     return -1;
   }
 
@@ -331,7 +330,7 @@ nbd_unlocked_aio_trim (struct nbd_connection *conn,
   }
 
   if (count == 0) {             /* NBD protocol forbids this. */
-    set_error (EINVAL, "nbd_aio_trim: count cannot be 0");
+    set_error (EINVAL, "count cannot be 0");
     return -1;
   }
 
@@ -357,7 +356,7 @@ nbd_unlocked_aio_zero (struct nbd_connection *conn,
   }
 
   if ((flags & ~LIBNBD_CMD_FLAG_FUA) != 0) {
-    set_error (EINVAL, "nbd_aio_zero: invalid flag: %" PRIu32, flags);
+    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
     return -1;
   }
 
@@ -368,7 +367,7 @@ nbd_unlocked_aio_zero (struct nbd_connection *conn,
   }
 
   if (count == 0) {             /* NBD protocol forbids this. */
-    set_error (EINVAL, "nbd_aio_trim: count cannot be 0");
+    set_error (EINVAL, "count cannot be 0");
     return -1;
   }
 

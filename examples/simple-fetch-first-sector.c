@@ -30,21 +30,21 @@ main (int argc, char *argv[])
 
   nbd = nbd_create ();
   if (nbd == NULL) {
-    perror ("nbd_create");
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
   if (nbd_connect_unix (nbd, argv[1]) == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   if (nbd_pread (nbd, buf, sizeof buf, 0) == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   if (nbd_shutdown (nbd) == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 

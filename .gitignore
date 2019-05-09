@@ -54,6 +54,7 @@ Makefile.in
 /tests/can-zero-flag
 /tests/connect-tcp
 /tests/connect-unix
+/tests/errors
 /tests/get-size
 /tests/is-rotational-flag
 /tests/is-not-rotational-flag

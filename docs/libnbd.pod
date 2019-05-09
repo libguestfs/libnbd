@@ -84,11 +84,11 @@ Create a handle and connect to the server:
  
  nbd = nbd_create ();
  if (!nbd) {
-   perror ("nbd_create");
+   fprintf (stderr, "%s\n", nbd_get_error ());
    exit (EXIT_FAILURE);
  }
  if (nbd_connect_tcp (nbd, "server.example.com", "nbd") == -1) {
-   fprintf (stderr, "connect: %s\n", nbd_get_error (nbd));
+   fprintf (stderr, "%s\n", nbd_get_error ());
    exit (EXIT_FAILURE);
  }
 
@@ -97,7 +97,7 @@ Read the first sector (512 bytes) from the NBD export:
  char buf[512];
  
  if (nbd_pread (nbd, buf, sizeof buf, 0) == -1) {
-   fprintf (stderr, "read: %s\n", nbd_get_error (nbd));
+   fprintf (stderr, "%s\n", nbd_get_error ());
    exit (EXIT_FAILURE);
  }
 
@@ -131,7 +131,7 @@ object:
  
  nbd = nbd_create ();
  if (nbd == NULL) {
-   perror ("nbd_create");
+   fprintf (stderr, "%s\n", nbd_get_error ());
    exit (EXIT_FAILURE);
  }
  conn = nbd_get_connection (nbd, 0);
@@ -147,12 +147,12 @@ until the connection becomes ready:
  /* some code to set up addr,
     then ... */
  if (nbd_aio_connect (conn, &addr, len) == -1) {
-   fprintf (stderr, "connect: %s\n", nbd_get_error (nbd));
+   fprintf (stderr, "%s\n", nbd_get_error ());
    exit (EXIT_FAILURE);
  }
  while (!nbd_aio_is_ready (conn)) {
    if (nbd_poll (h, -1) == -1) {
-     fprintf (stderr, "poll: %s\n", nbd_get_error (nbd));
+     fprintf (stderr, "%s\n", nbd_get_error ());
      exit (EXIT_FAILURE);
    }
  }

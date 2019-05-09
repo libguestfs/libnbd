@@ -27,6 +27,7 @@ EXTRA_DIST = \
 	eflags-plugin.sh
 
 check_PROGRAMS = \
+	errors \
 	get-size \
 	read-only-flag \
 	read-write-flag \
@@ -48,6 +49,7 @@ check_PROGRAMS = \
 TESTS_ENVIRONMENT = srcdir=$(srcdir)
 
 TESTS = \
+	errors \
 	get-size \
 	read-only-flag \
 	read-write-flag \
@@ -64,6 +66,11 @@ TESTS = \
 	can-not-multi-conn-flag \
 	connect-unix \
 	connect-tcp
+
+errors_SOURCES = errors.c
+errors_CPPFLAGS = -I$(top_srcdir)/include
+errors_CFLAGS = $(WARNINGS_CFLAGS)
+errors_LDADD = $(top_builddir)/lib/libnbd.la
 
 get_size_SOURCES = get-size.c
 get_size_CPPFLAGS = -I$(top_srcdir)/include

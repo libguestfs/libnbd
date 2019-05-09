@@ -19,6 +19,7 @@
 #ifndef LIBNBD_INTERNAL_H
 #define LIBNBD_INTERNAL_H
 
+#include <string.h>
 #include <netdb.h>
 #include <sys/types.h>
 
@@ -152,9 +153,23 @@ struct command_in_flight {
 #define debug(fs, ...) fprintf (stderr, fs "\n", ##__VA_ARGS__)
 
 /* errors.c */
-/* XXX */
-#include <string.h>
-#define set_error(errno, fs, ...) do { fprintf (stderr, "libnbd: " fs, ##__VA_ARGS__); if (errno) fprintf (stderr, ": %s", strerror (errno)); fprintf (stderr, "\n"); } while (0)
+extern void nbd_internal_reset_error (const char *context);
+extern const char *nbd_internal_get_error_context (void);
+extern void nbd_internal_set_last_error (int errnum, char *error);
+#define set_error(errnum, fs, ...)                                      \
+  do {                                                                  \
+    const char *_context =                                              \
+      nbd_internal_get_error_context () ? : "unknown";                  \
+    char *_errp;                                                        \
+    int _r;                                                             \
+    if ((errnum) == 0)                                                  \
+      _r = asprintf (&_errp, "%s: " fs, _context, ##__VA_ARGS__);       \
+    else                                                                \
+      _r = asprintf (&_errp, "%s: " fs ": %s",                          \
+                     _context, ##__VA_ARGS__, strerror ((errnum)));     \
+    if (_r >= 0)                                                        \
+      nbd_internal_set_last_error ((errnum), _errp);                    \
+  } while (0)
 
 /* protocol.c */
 extern int nbd_internal_errno_of_nbd_error (uint32_t error);

@@ -80,23 +80,23 @@ main (int argc, char *argv[])
 
   nbd = nbd_create ();
   if (nbd == NULL) {
-    perror ("nbd_create");
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
   if (nbd_set_multi_conn (nbd, NR_MULTI_CONN) == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   /* Connect all connections synchronously as this is simpler. */
   if (nbd_connect_unix (nbd, argv[1]) == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   exportsize = nbd_get_size (nbd);
   if (exportsize == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
@@ -147,7 +147,7 @@ main (int argc, char *argv[])
   }
 
   if (nbd_shutdown (nbd) == -1) {
-    /* XXX PRINT ERROR */
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
@@ -233,7 +233,7 @@ start_thread (void *arg)
       else
         handle = nbd_aio_pread (conn, buf, sizeof buf, offset);
       if (handle == -1) {
-        /* XXX PRINT ERROR */
+        fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
       }
       handles[in_flight] = handle;
@@ -247,7 +247,7 @@ start_thread (void *arg)
     for (j = 0; j < in_flight; ++j) {
       r = nbd_aio_command_completed (conn, handles[j]);
       if (r == -1) {
-        /* XXX PRINT ERROR */
+        fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
       }
       if (r) {

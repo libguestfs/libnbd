@@ -1236,6 +1236,8 @@ let generate_lib_libnbd_syms () =
   pr "    nbd_create;\n";
   pr "    nbd_close;\n";
   pr "    nbd_get_connection;\n";
+  pr "    nbd_get_errno;\n";
+  pr "    nbd_get_error;\n";
   pr "    nbd_connection_close;\n";
   List.iter (fun (name, _) -> pr "    nbd_%s;\n" name) handle_calls;
   List.iter (fun (name, _) -> pr "    nbd_%s;\n" name) connection_calls;
@@ -1302,6 +1304,8 @@ let generate_include_libnbd_h () =
   pr "\n";
   pr "extern struct nbd_handle *nbd_create (void);\n";
   pr "extern void nbd_close (struct nbd_handle *h);\n";
+  pr "extern const char *nbd_get_error (void);\n";
+  pr "extern int nbd_get_errno (void);\n";
   pr "\n";
   List.iter (
     fun (name, { args; ret }) -> print_extern name "handle" args ret
@@ -1373,6 +1377,7 @@ let generate_lib_api_c () =
     );
     pr "\n";
     pr "  pthread_mutex_lock (&%s);\n" lock;
+    pr "  nbd_internal_reset_error (\"nbd_%s\");\n" name;
     pr "  ret = nbd_unlocked_%s (%s" name hname;
     let argnames = List.flatten (List.map name_of_arg args) in
     List.iter (pr ", %s") argnames;

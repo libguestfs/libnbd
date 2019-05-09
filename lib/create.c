@@ -87,17 +87,28 @@ nbd_create (void)
   struct nbd_connection *conn;
 
   h = calloc (1, sizeof *h);
-  if (h == NULL) goto error1;
+  if (h == NULL) {
+    set_error (errno, "calloc");
+    goto error1;
+  }
 
   errno = pthread_mutex_init (&h->lock, NULL);
-  if (errno != 0)
+  if (errno != 0) {
+    set_error (errno, "pthread_mutex_init");
     goto error1;
+  }
 
   h->export = strdup ("");
-  if (h->export == NULL) goto error2;
+  if (h->export == NULL) {
+    set_error (errno, "strdup");
+    goto error2;
+  }
 
   h->conns = malloc (sizeof (struct nbd_connection *));
-  if (h->conns == NULL) goto error2;
+  if (h->conns == NULL) {
+    set_error (errno, "malloc");
+    goto error2;
+  }
 
   /* Handles are created with a single connection. */
   conn = create_conn (h);
@@ -137,9 +148,10 @@ nbd_get_connection (struct nbd_handle *h, unsigned i)
   struct nbd_connection *conn;
 
   pthread_mutex_lock (&h->lock);
+  nbd_internal_reset_error ("nbd_get_connection");
 
   if (i >= h->multi_conn) {
-    set_error (0, "nbd_get_connection: %u > number of connections", i);
+    set_error (0, "%u > number of connections", i);
     pthread_mutex_unlock (&h->lock);
     return NULL;
   }
@@ -160,6 +172,7 @@ nbd_connection_close (struct nbd_connection *conn)
 
   h = conn->h;
   pthread_mutex_lock (&h->lock);
+  nbd_internal_reset_error ("nbd_connection_close");
 
   /* We have to find the connection in the list of connections of the
    * parent handle, so we can drop the old pointer and create a new
