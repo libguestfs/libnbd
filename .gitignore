@@ -43,4 +43,17 @@ Makefile.in
 /missing
 /stamp-h1
 /test-driver
+/tests/can-flush-flag
+/tests/can-not-flush-flag
+/tests/can-fua-flag
+/tests/can-not-fua-flag
+/tests/can-multi-conn-flag
+/tests/can-not-multi-conn-flag
+/tests/can-trim-flag
+/tests/can-not-trim-flag
+/tests/can-zero-flag
 /tests/get-size
+/tests/is-rotational-flag
+/tests/is-not-rotational-flag
+/tests/read-only-flag
+/tests/read-write-flag
