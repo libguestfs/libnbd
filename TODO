@@ -1,0 +1,17 @@
+Interop testing with qemu-nbd, nbd-server.
+
+Implement nbd_connect + systemd socket activation.
+
+PHASES of the connection:
+ - created
+ - connecting (includes handshaking)
+ - ready
+ - dead
+ - closed (group with dead?)
+ - some sort of "running" state
+
+ * Maybe have a set of flags, eg. nbd_aio_is (DEAD|CLOSED)?
+
+Look at structured reads
+
+Block status
