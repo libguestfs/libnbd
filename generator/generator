@@ -857,6 +857,10 @@ let output_to filename k =
 
 (* Implement state machine. *)
 
+let all_external_events =
+  [NotifyRead; NotifyWrite;
+   CmdCreate; CmdConnect; CmdConnectCommand; CmdIssue]
+
 let string_of_external_event = function
   | NotifyRead -> "NotifyRead"
   | NotifyWrite -> "NotifyWrite"
@@ -990,6 +994,13 @@ let generate_lib_states_h () =
       pr "  STATE_%s,\n" name;
       pr "\n";
   ) states;
+  pr "};\n";
+  pr "\n";
+  pr "/* These correspond to the external events in generator/generator. */\n";
+  pr "enum external_event {\n";
+  List.iter (
+    fun e -> pr "  %s,\n" (c_string_of_external_event e)
+  ) all_external_events;
   pr "};\n"
 
 let generate_lib_states_c () =

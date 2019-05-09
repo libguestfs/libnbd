@@ -34,16 +34,6 @@
  */
 #define MAX_REQUEST_SIZE (64 * 1024 * 1024)
 
-/* These correspond to the external events in generator/generator. */
-enum external_event {
-  notify_read,
-  notify_write,
-  cmd_create,
-  cmd_connect,
-  cmd_connect_command,
-  cmd_issue,
-};
-
 struct nbd_handle {
   /* Lock protecting concurrent access to either this handle or the
    * connections owned by the handle.
