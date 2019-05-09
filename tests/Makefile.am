@@ -45,8 +45,8 @@ check_PROGRAMS = \
 	connect-unix \
 	connect-tcp
 
-# Make sure that $srcdir is available to tests.
-TESTS_ENVIRONMENT = srcdir=$(srcdir)
+# Make sure that $srcdir is available to tests and enable debug in all tests.
+TESTS_ENVIRONMENT = srcdir=$(srcdir) LIBNBD_DEBUG=1
 
 TESTS = \
 	errors \

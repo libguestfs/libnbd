@@ -34,6 +34,7 @@ libnbd_la_SOURCES = \
 	api.c \
 	create.c \
 	connect.c \
+	debug.c \
 	disconnect.c \
 	errors.c \
 	flags.c \

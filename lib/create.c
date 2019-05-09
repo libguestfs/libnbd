@@ -85,6 +85,7 @@ nbd_create (void)
 {
   struct nbd_handle *h;
   struct nbd_connection *conn;
+  const char *s;
 
   h = calloc (1, sizeof *h);
   if (h == NULL) {
@@ -117,6 +118,10 @@ nbd_create (void)
   h->conns[0] = conn;
   h->multi_conn = 1;
   h->unique = 1;
+
+  s = getenv ("LIBNBD_DEBUG");
+  h->debug = s && strcmp (s, "1") == 0;
+
   return h;
 
  error2:

@@ -19,6 +19,7 @@
 #ifndef LIBNBD_INTERNAL_H
 #define LIBNBD_INTERNAL_H
 
+#include <stdbool.h>
 #include <string.h>
 #include <netdb.h>
 #include <sys/types.h>
@@ -61,6 +62,11 @@ struct nbd_handle {
   uint16_t eflags;
 
   int64_t unique;               /* Used for generating handle numbers. */
+
+  /* For debugging. */
+  bool debug;
+  int64_t debug_id;
+  void (*debug_fn) (int64_t, const char *, const char *);
 };
 
 /* This corresponds to a single socket connection to a remote server.
@@ -149,8 +155,12 @@ struct command_in_flight {
 };
 
 /* debug.c */
-/* XXX */
-#define debug(fs, ...) fprintf (stderr, fs "\n", ##__VA_ARGS__)
+extern void nbd_internal_debug (struct nbd_handle *h, const char *fs, ...);
+#define debug(h, fs, ...)                               \
+  do {                                                  \
+    if ((h)->debug)                                     \
+      nbd_internal_debug ((h), (fs), ##__VA_ARGS__);    \
+  } while (0)
 
 /* errors.c */
 extern void nbd_internal_reset_error (const char *context);

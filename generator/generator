@@ -304,9 +304,11 @@ type call = {
   longdesc : string;       (* long description *)
 }
 and arg =
+| Bool of string           (* bool *)
 | BytesIn of string * string (* byte array + size passed in to the function *)
 | BytesOut of string * string(* byte array + size specified by caller,
                               written by the function *)
+| Callback of string * arg list (* callback function returning void *)
 | Int of string            (* small int *)
 | Int64 of string          (* 64 bit signed int *)
 | Path of string           (* filename or path *)
@@ -327,6 +329,43 @@ let default_call = { args = []; ret = RErr; is_locked = true;
 
 (* Calls on [nbd_handle *nbd] *)
 let handle_calls = [
+  "set_debug", {
+    default_call with
+    args = [ Bool "debug" ]; ret = RErr;
+    shortdesc = "set or clear the debug flag";
+    longdesc = "\
+Set or clear the debug flag.  When debugging is enabled,
+debugging messages from the library are printed to stderr,
+unless a debugging callback has been defined too
+(see C<nbd_set_debug_callback>) in which case they are
+sent to that function.  This flag defaults to false on
+newly created handles, except if C<LIBNBD_DEBUG=1> is
+set in the environment in which case it defaults to true.";
+  };
+
+  "get_debug", {
+    default_call with
+    args = []; ret = RBool;
+    shortdesc = "return the state of the debug flag";
+    longdesc = "\
+Return the state of the debug flag on this handle.";
+  };
+
+  "set_debug_callback", {
+    default_call with
+    args = [ Int64 "id";
+             Callback ("debug_fn", [Int64 "id"; String "context"; String "msg"]) ];
+    ret = RErr;
+    shortdesc = "set the debug callback";
+    longdesc = "\
+Set the debug callback.  This function is called when the library
+emits debug messages, when debugging is enabled on a handle.  The
+callback parameters are C<id> passed to this function, the
+name of the libnbd function emitting the debug message (C<context>),
+and the message itself (C<msg>).  If no debug callback is set on
+a handle then messages are printed on C<stderr>.";
+  };
+
   "set_multi_conn", {
     default_call with
     args = [ UInt "multi_conn" ]; ret = RErr;
@@ -1090,7 +1129,7 @@ let generate_lib_states_c () =
       pr "\n";
       pr "  r = _enter_STATE_%s (h, conn, &next_state, blocked);\n" name;
       pr "  if (conn->state != next_state) {\n";
-      pr "    debug (\"conn %%\" PRIi64 \": transition: %%s -> %%s\",\n";
+      pr "    debug (h, \"conn %%\" PRIi64 \": transition: %%s -> %%s\",\n";
       pr "           conn->id, \"%s\",\n" name;
       pr "           nbd_internal_state_short_string (next_state));\n";
       pr "    conn->state = next_state;\n";
@@ -1122,7 +1161,7 @@ let generate_lib_states_c () =
             pr "    case %s:\n" (c_string_of_external_event e);
             if next_state <> "" then (
               pr "      conn->state = STATE_%s;\n" next_state;
-              pr "      debug (\"conn %%\" PRIi64 \": event %%s: %%s -> %%s\",\n";
+              pr "      debug (h, \"conn %%\" PRIi64 \": event %%s: %%s -> %%s\",\n";
               pr "             conn->id, \"%s\", \"%s\", \"%s\");\n"
                  (string_of_external_event e) name next_state;
             );
@@ -1247,8 +1286,10 @@ let generate_lib_libnbd_syms () =
   pr "};\n"
 
 let name_of_arg = function
+| Bool n -> [n]
 | BytesIn (n, len) -> [n; len]
 | BytesOut (n, len) -> [n; len]
+| Callback (n, _) -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
 | Path n -> [n]
@@ -1257,6 +1298,39 @@ let name_of_arg = function
 | UInt n -> [n]
 | UInt32 n -> [n]
 | UInt64 n -> [n]
+
+let rec print_c_arg_list ?handle args =
+  pr "(";
+  let comma = ref false in
+  (match handle with
+   | None -> ()
+   | Some (htype, hname) ->
+      comma := true;
+      pr "struct nbd_%s *" htype;
+      match hname with
+      | None -> ()
+      | Some hname -> pr "%s" hname
+  );
+  List.iter (
+    fun arg ->
+      if !comma then pr ", ";
+      comma := true;
+      match arg with
+      | Bool n -> pr "bool %s" n
+      | BytesIn (n, len) -> pr "const void *%s, size_t %s" n len
+      | BytesOut (n, len) -> pr "void *%s, size_t %s" n len
+      | Callback (n, args) -> pr "void (*%s) " n; print_c_arg_list args
+      | Int n -> pr "int %s" n
+      | Int64 n -> pr "int64_t %s" n
+      | Path n
+      | String n -> pr "const char *%s" n
+      | SockAddrAndLen (n, len) ->
+         pr "const struct sockaddr *%s, socklen_t %s" n len
+      | UInt n -> pr "unsigned %s" n
+      | UInt32 n -> pr "uint32_t %s" n
+      | UInt64 n -> pr "uint64_t %s" n
+  ) args;
+  pr ")"
 
 let print_extern name htype args ret =
   pr "extern ";
@@ -1267,22 +1341,9 @@ let print_extern name htype args ret =
    | RConstString -> pr "const char *"
    | RInt64 -> pr "int64_t "
   );
-  pr "nbd_%s (struct nbd_%s *" name htype;
-  List.iter (
-    function
-    | BytesIn (n, len) -> pr ", const void *%s, size_t %s" n len
-    | BytesOut (n, len) -> pr ", void *%s, size_t %s" n len
-    | Int n -> pr ", int %s" n
-    | Int64 n -> pr ", int64_t %s" n
-    | Path n
-    | String n -> pr ", const char *%s" n
-    | SockAddrAndLen (n, len) ->
-       pr ", const struct sockaddr *%s, socklen_t %s" n len
-    | UInt n -> pr ", unsigned %s" n
-    | UInt32 n -> pr ", uint32_t %s" n
-    | UInt64 n -> pr ", uint64_t %s" n
-  ) args;
-  pr ");\n"
+  pr "nbd_%s " name;
+  print_c_arg_list ~handle:(htype, None) args;
+  pr ";\n"
 
 let generate_include_libnbd_h () =
   generate_header CStyle;
@@ -1290,6 +1351,7 @@ let generate_include_libnbd_h () =
   pr "#ifndef LIBNBD_H\n";
   pr "#define LIBNBD_H\n";
   pr "\n";
+  pr "#include <stdbool.h>\n";
   pr "#include <stdint.h>\n";
   pr "#include <sys/socket.h>\n";
   pr "\n";
@@ -1351,22 +1413,9 @@ let generate_lib_api_c () =
      | RConstString -> pr "const char *\n"
      | RInt64 -> pr "int64_t\n"
     );
-    pr "nbd_%s (struct nbd_%s *%s" name htype hname;
-    List.iter (
-      function
-      | BytesIn (n, len) -> pr ", const void *%s, size_t %s" n len
-      | BytesOut (n, len) -> pr ", void *%s, size_t %s" n len
-      | Int n -> pr ", int %s" n
-      | Int64 n -> pr ", int64_t %s" n
-      | Path n
-      | String n -> pr ", const char *%s" n
-      | SockAddrAndLen (n, len) ->
-         pr ", const struct sockaddr *%s, socklen_t %s" n len
-      | UInt n -> pr ", unsigned %s" n
-      | UInt32 n -> pr ", uint32_t %s" n
-      | UInt64 n -> pr ", uint64_t %s" n
-    ) args;
-    pr ")\n";
+    pr "nbd_%s " name;
+    print_c_arg_list ~handle:(htype, Some hname) args;
+    pr "\n";
     pr "{\n";
     (match ret with
      | RBool
