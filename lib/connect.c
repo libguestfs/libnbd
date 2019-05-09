@@ -117,7 +117,7 @@ nbd_unlocked_aio_connect (struct nbd_connection *conn,
   memcpy (&conn->connaddr, addr, len);
   conn->connaddrlen = len;
 
-  return nbd_internal_run (conn->h, conn, cmd_connect);
+  return nbd_internal_run (conn->h, conn, cmd_connect_sockaddr);
 }
 
 int

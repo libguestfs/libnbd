@@ -70,7 +70,7 @@ type external_event =
   | NotifyRead                  (* fd becomes ready to read *)
   | NotifyWrite                 (* fd becomes ready to write *)
   | CmdCreate                   (* [nbd_create] function called *)
-  | CmdConnect                  (* [nbd_aio_connect] function called *)
+  | CmdConnectSockAddr          (* [nbd_aio_connect] function called *)
   | CmdConnectCommand           (* [nbd_aio_connect_command] *)
   | CmdIssue                    (* issuing an NBD command *)
 
@@ -96,7 +96,7 @@ let states = [
     default_state with
     comment = "Connection after being initially created, idle and not connected";
     external_events = [ CmdCreate, "";
-                        CmdConnect, "CONNECT";
+                        CmdConnectSockAddr, "CONNECT";
                         CmdConnectCommand, "CONNECT_COMMAND" ];
   };
 
@@ -859,13 +859,13 @@ let output_to filename k =
 
 let all_external_events =
   [NotifyRead; NotifyWrite;
-   CmdCreate; CmdConnect; CmdConnectCommand; CmdIssue]
+   CmdCreate; CmdConnectSockAddr; CmdConnectCommand; CmdIssue]
 
 let string_of_external_event = function
   | NotifyRead -> "NotifyRead"
   | NotifyWrite -> "NotifyWrite"
   | CmdCreate -> "CmdCreate"
-  | CmdConnect -> "CmdConnect"
+  | CmdConnectSockAddr -> "CmdConnectSockAddr"
   | CmdConnectCommand -> "CmdConnectCommand"
   | CmdIssue -> "CmdIssue"
 
@@ -873,7 +873,7 @@ let c_string_of_external_event = function
   | NotifyRead -> "notify_read"
   | NotifyWrite -> "notify_write"
   | CmdCreate -> "cmd_create"
-  | CmdConnect -> "cmd_connect"
+  | CmdConnectSockAddr -> "cmd_connect_sockaddr"
   | CmdConnectCommand -> "cmd_connect_command"
   | CmdIssue -> "cmd_issue"
 
@@ -1123,7 +1123,8 @@ let generate_lib_states_c () =
           match e with
           | NotifyRead ->  pr "    r |= LIBNBD_AIO_DIRECTION_READ;\n"
           | NotifyWrite -> pr "    r |= LIBNBD_AIO_DIRECTION_WRITE;\n"
-          | CmdCreate | CmdConnect | CmdConnectCommand | CmdIssue -> ()
+          | CmdCreate | CmdConnectSockAddr | CmdConnectCommand
+          | CmdIssue -> ()
       ) external_events;
       pr "    break;\n";
   ) states;
