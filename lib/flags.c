@@ -56,7 +56,7 @@ nbd_unlocked_can_fua (struct nbd_handle *h)
 }
 
 int
-nbd_unlocked_rotational (struct nbd_handle *h)
+nbd_unlocked_is_rotational (struct nbd_handle *h)
 {
   return get_flag (h, NBD_FLAG_ROTATIONAL);
 }

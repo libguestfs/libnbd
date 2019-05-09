@@ -367,7 +367,7 @@ certain commands (see C<nbd_pwrite>).  Can return an error
 if we have not connected to and completed the handshake with the server.";
   };
 
-  "rotational", {
+  "is_rotational", {
     default_call with
     args = []; ret = RBool;
     shortdesc = "is the NBD disk rotational (like a disk)";
