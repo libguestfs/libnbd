@@ -12,6 +12,26 @@ PHASES of the connection:
 
  * Maybe have a set of flags, eg. nbd_aio_is (DEAD|CLOSED)?
 
-Look at structured reads
+Look at structured reads.
 
-Block status
+Block status.
+
+Python bindings and other languages.
+
+Standalone shell.
+
+Example code integrating with glib2, APR pollset (and others?).
+
+GnuTLS support using X.509 certificates.
+
+GnuTLS using PSK.
+
+Old-style protocol.
+
+NBD_OPT_INFO mode (like qemu-nbd -L).
+
+NBD resize extension.
+
+NBD_INFO_BLOCK_SIZE.
+
+NBD_CMD_CACHE.
