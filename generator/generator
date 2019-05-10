@@ -1461,6 +1461,418 @@ let generate_lib_api_c () =
 
 (*----------------------------------------------------------------------*)
 
+(* Python bindings. *)
+
+let generate_python_methods_h () =
+  generate_header CStyle;
+
+  pr "#ifndef LIBNBD_METHODS_H\n";
+  pr "#define LIBNBD_METHODS_H\n";
+  pr "\n";
+  pr "#define PY_SSIZE_T_CLEAN 1\n";
+  pr "#include <Python.h>\n";
+  pr "\n";
+  pr "#include <assert.h>\n";
+  pr "\n";
+  pr "\
+static inline struct nbd_handle *
+get_handle (PyObject *obj)
+{
+  assert (obj);
+  assert (obj != Py_None);
+  return (struct nbd_handle *) PyCapsule_GetPointer(obj, \"nbd_handle\");
+}
+
+static inline struct nbd_connection *
+get_connection (PyObject *obj)
+{
+  assert (obj);
+  assert (obj != Py_None);
+  return (struct nbd_connection *) PyCapsule_GetPointer(obj, \"nbd_connection\");
+}
+";
+
+  List.iter (
+    fun name ->
+      pr "extern PyObject *nbd_internal_py_%s (PyObject *self, PyObject *args);\n"
+         name;
+  ) ([ "create"; "close"; "get_connection"; "connection_close" ] @
+       List.map fst (handle_calls @ connection_calls));
+
+  pr "\n";
+  pr "#endif /* LIBNBD_METHODS_H */\n"
+
+let generate_python_libnbdmod_c () =
+  generate_header CStyle;
+
+  pr "#include <config.h>\n";
+  pr "\n";
+  pr "#define PY_SSIZE_T_CLEAN 1\n";
+  pr "#include <Python.h>\n";
+  pr "\n";
+  pr "#include <stdio.h>\n";
+  pr "#include <stdlib.h>\n";
+  pr "#include <assert.h>\n";
+  pr "\n";
+  pr "#include <libnbd.h>\n";
+  pr "\n";
+  pr "#include \"methods.h\"\n";
+  pr "\n";
+  pr "static PyMethodDef methods[] = {\n";
+  List.iter (
+    fun name ->
+      pr "  { (char *) \"%s\", nbd_internal_py_%s, METH_VARARGS, NULL },\n"
+         name name;
+  ) ([ "create"; "close"; "get_connection"; "connection_close" ] @
+       List.map fst (handle_calls @ connection_calls));
+  pr "  { NULL, NULL, 0, NULL }\n";
+  pr "};\n";
+  pr "\n";
+  pr "\
+static struct PyModuleDef moduledef = {
+  PyModuleDef_HEAD_INIT,
+  \"libnbdmod\",           /* m_name */
+  \"libnbd module\",       /* m_doc */
+  -1,                    /* m_size */
+  methods,               /* m_methods */
+  NULL,                  /* m_reload */
+  NULL,                  /* m_traverse */
+  NULL,                  /* m_clear */
+  NULL,                  /* m_free */
+};
+
+static PyObject *
+moduleinit (void)
+{
+  return PyModule_Create (&moduledef);
+}
+
+extern PyMODINIT_FUNC PyInit_libnbdmod (void);
+
+PyMODINIT_FUNC
+PyInit_libnbdmod (void)
+{
+  return moduleinit ();
+}
+"
+
+let print_python_binding name { args; ret } htype hname =
+  pr "PyObject *\n";
+  pr "nbd_internal_py_%s (PyObject *self, PyObject *args)\n" name;
+  pr "{\n";
+  pr "  PyObject *py_%s;\n" hname;
+  pr "  struct nbd_%s *%s;\n" htype hname;
+  (match ret with
+   | RBool -> pr "  int ret;\n"
+   | RConstString -> pr "  const char *ret;\n"
+   | RErr -> pr "  int ret;\n"
+   | RFd -> pr "  int ret;\n"
+   | RInt64 -> pr "  int64_t ret;\n"
+  );
+  pr "  PyObject *py_ret;\n";
+  List.iter (
+    function
+    | Bool n -> pr "  int %s;\n" n
+    | BytesIn (n, _) -> pr "  Py_buffer %s;\n" n
+    | BytesOut (n, count) ->
+       pr "  char *%s;\n" n;
+       pr "  Py_ssize_t %s;\n" count
+    | Callback (n, _) -> pr "  PyObject *%s;\n" n
+    | Int n -> pr "  int %s;\n" n
+    | Int64 n ->
+       pr "  int64_t %s_i64;\n" n;
+       pr "  long long %s; /* really int64_t */\n" n
+    | Path n -> pr "  char *%s;\n" n
+    | SockAddrAndLen (n, _) ->
+       pr "  /* XXX Complicated - Python uses a tuple of different\n";
+       pr "   * lengths for the different socket types.\n";
+       pr "   */\n";
+       pr "  PyObject *%s;\n" n
+    | String n -> pr "  const char *%s;\n" n
+    | UInt n -> pr "  unsigned int %s;\n" n
+    | UInt32 n ->
+       pr "  uint32_t %s_u32;\n" n;
+       pr "  unsigned int %s; /* really uint32_t */\n" n
+    | UInt64 n ->
+       pr "  uint64_t %s_u64;\n" n;
+       pr "  unsigned long long %s; /* really uint64_t */\n" n
+  ) args;
+  pr "\n";
+
+  (* Parse the Python parameters. *)
+  pr "  if (!PyArg_ParseTuple (args, (char *) \"O\"";
+  List.iter (
+    function
+    | Bool n -> pr " \"b\""
+    | BytesIn (n, _) -> pr " \"y*\""
+    | BytesOut (_, count) -> pr " \"n\""
+    | Callback (n, _) -> pr " \"O\""
+    | Int n -> pr " \"i\""
+    | Int64 n -> pr " \"L\""
+    | Path n -> pr " \"O&\""
+    | SockAddrAndLen (n, _) -> pr " \"O\""
+    | String n -> pr " \"s\""
+    | UInt n -> pr " \"I\""
+    | UInt32 n -> pr " \"I\""
+    | UInt64 n -> pr " \"K\""
+  ) args;
+  pr "\n";
+  pr "                         \":nbd_%s\",\n" name;
+  pr "                         &py_%s" hname;
+  List.iter (
+    function
+    | Bool n -> pr ", &%s" n
+    | BytesIn (n, _) -> pr ", &%s" n
+    | BytesOut (_, count) -> pr ", &%s" count
+    | Callback (n, _) -> pr ", &%s" n
+    | Int n -> pr ", &%s" n
+    | Int64 n -> pr ", &%s" n
+    | Path n -> pr ", PyUnicode_FSConverter, &%s" n
+    | SockAddrAndLen (n, _) -> pr ", &%s" n
+    | String n -> pr ", &%s" n
+    | UInt n -> pr ", &%s" n
+    | UInt32 n -> pr ", &%s" n
+    | UInt64 n -> pr ", &%s" n
+  ) args;
+  pr "))\n";
+  pr "    return NULL;\n";
+
+  (* Call the underlying C function. *)
+  pr "  %s = get_%s (py_%s);\n" hname htype hname;
+  List.iter (
+    function
+    | Bool _ -> ()
+    | BytesIn _ ->
+       if htype = "connection" then
+         (* The AIO pread/pwrite calls require a buffer which
+          * persists for as long as the command is running, which
+          * is at least after this function returns.  So we need
+          * a way to allocate one of those and pass it to the
+          * function from Python and free it later.
+          *)
+         pr "  abort (); /* XXX BytesIn not implemented for AIO */\n"
+    | BytesOut (n, count) ->
+       if htype = "connection" then
+         pr "  abort (); /* XXX BytesOut not implemented for AIO */\n"
+       else
+         pr "  %s = malloc (%s);\n" n count
+    | Callback _ ->
+       pr "  abort (); /* XXX Callback not implemented */\n";
+    | Int _ -> ()
+    | Int64 n -> pr "  %s_i64 = %s;\n" n n
+    | Path _ -> ()
+    | SockAddrAndLen _ ->
+       pr "  abort (); /* XXX SockAddrAndLen not implemented */\n";
+    | String _ -> ()
+    | UInt _ -> ()
+    | UInt32 n -> pr "  %s_u32 = %s;\n" n n
+    | UInt64 n -> pr "  %s_u64 = %s;\n" n n
+  ) args;
+  pr "  ret = nbd_%s (%s" name hname;
+  List.iter (
+    function
+    | Bool n -> pr ", %s" n
+    | BytesIn (n, _) -> pr ", %s.buf, %s.len" n n
+    | BytesOut (n, count) -> pr ", %s, %s" n count
+    | Callback (n, _) -> pr ", /* XXX */ (void *) %s" n
+    | Int n -> pr ", %s" n
+    | Int64 n -> pr ", %s_i64" n
+    | Path n -> pr ", %s" n
+    | SockAddrAndLen (n, _) -> pr ", /* XXX */ (void *) %s, 0" n
+    | String n -> pr ", %s" n
+    | UInt n -> pr ", %s" n
+    | UInt32 n -> pr ", %s_u32" n
+    | UInt64 n -> pr ", %s_u64" n
+  ) args;
+  pr ");\n";
+  (match ret with
+   | RBool | RErr | RFd | RInt64 -> pr "  if (ret == -1) {\n";
+   | RConstString -> pr "  if (ret == NULL) {\n";
+  );
+  pr "    PyErr_SetString (PyExc_RuntimeError, nbd_get_error ());\n";
+  pr "    py_ret = NULL;\n";
+  pr "    goto out;\n";
+  pr "  }\n";
+
+  (* Convert the result back to a Python object and return it. *)
+  let use_ret = ref true in
+  List.iter (
+    function
+    | BytesOut (n, count) ->
+       pr "  py_ret = PyBytes_FromStringAndSize (%s, %s);\n" n count;
+       use_ret := false
+    | Bool _
+    | BytesIn _
+    | Callback _
+    | Int _
+    | Int64 _
+    | Path _
+    | SockAddrAndLen _
+    | String _
+    | UInt _
+    | UInt32 _
+    | UInt64 _ -> ()
+  ) args;
+  if !use_ret then (
+    match ret with
+    | RBool ->
+       pr "  py_ret = ret ? Py_True : Py_False;\n";
+       pr "  Py_INCREF (py_ret);\n"
+    | RConstString ->
+       pr "  py_ret = PyUnicode_FromString (ret);\n"
+    | RErr ->
+       pr "  py_ret = Py_None;\n";
+       pr "  Py_INCREF (py_ret);\n"
+    | RFd ->
+       pr "  py_ret = PyLong_FromLong (ret);\n"
+    | RInt64 ->
+       pr "  py_ret = PyLong_FromLongLong (ret);\n"
+  );
+
+  pr "\n";
+  pr " out:\n";
+  List.iter (
+    function
+    | Bool _ -> ()
+    | BytesIn (n, _) -> pr "  PyBuffer_Release (&%s);\n" n
+    | BytesOut _ -> ()
+    | Callback _ -> ()
+    | Int _ -> ()
+    | Int64 _ -> ()
+    | Path n -> pr "  free (%s);\n" n
+    | SockAddrAndLen _ -> ()
+    | String n -> ()
+    | UInt _ -> ()
+    | UInt32 _ -> ()
+    | UInt64 _ -> ()
+  ) args;
+  pr "  return py_ret;\n";
+  pr "}\n";
+  pr "\n"
+
+let generate_python_methods_c () =
+  generate_header CStyle;
+
+  pr "#define PY_SSIZE_T_CLEAN 1\n";
+  pr "#include <Python.h>\n";
+  pr "\n";
+  pr "#include <stdio.h>\n";
+  pr "#include <stdlib.h>\n";
+  pr "\n";
+  pr "#include <libnbd.h>\n";
+  pr "\n";
+  pr "#include <methods.h>\n";
+  pr "\n";
+  List.iter (
+    fun (name, fn) ->
+      print_python_binding name fn "handle" "h"
+  ) handle_calls;
+  List.iter (
+    fun (name, fn) ->
+      print_python_binding name fn "connection" "conn"
+  ) connection_calls
+
+let generate_python_nbd_py () =
+  generate_header HashStyle;
+
+  pr "\
+\"\"\"Python bindings for libnbd
+
+import nbd
+h = nbd.NBD ()
+h.connect_tcp (\"localhost\", \"nbd\")
+buf = h.pread (512, 0)
+
+Read the libnbd(3) man page to find out how to use the API.
+\"\"\"
+
+import libnbdmod
+
+class NBD (object):
+    def __init__ (self):
+        \"\"\"Create a new NBD handle\"\"\"
+        self._o = libnbdmod.create ()
+
+    def __del__ (self):
+        \"\"\"Close the NBD handle and all connections\"\"\"
+        libnbdmod.close (self._o)
+
+    def get_connection (self, i):
+        \"\"\"Get the i'th connection associated with the handle\"\"\"
+        return NBDConnection (self, i)
+
+";
+
+  List.iter (
+    fun (name, { args; shortdesc }) ->
+      let args = List.map (
+                     function
+                     | Bool n -> n
+                     | BytesIn (n, _) -> n
+                     | BytesOut (_, count) -> count
+                     | Callback (n, _) -> n
+                     | Int n -> n
+                     | Int64 n -> n
+                     | Path n -> n
+                     | SockAddrAndLen (n, _) -> n
+                     | String n -> n
+                     | UInt n -> n
+                     | UInt32 n -> n
+                     | UInt64 n -> n
+                   ) args in
+      let args = List.map ((^) ", ") args in
+      let args = String.concat "" args in
+      pr "    def %s (self%s):\n" name args;
+      pr "        \"\"\"%s\"\"\"\n" shortdesc;
+      pr "        return libnbdmod.%s (self._o%s)\n" name args;
+      pr "\n"
+  ) handle_calls;
+
+  pr "\
+class NBDConnection (object):
+    def __init__ (self, h, i):
+        \"\"\"Get the i'th connection associated with the handle\"\"\"
+        self._o = libnbdmod.get_connection (h, i)
+
+    # Note there is intentionally no __del__ method.
+    def close (self):
+        \"\"\"Close this connection.  The i'th connection slot in
+        the handle is reopened with a freshly created connection.
+
+        The underlying C object is freed when you call this, so
+        you must not call any other methods on the connection
+        afterwards.
+        \"\"\"
+        libnbdmod.connection_close (self._o)
+";
+
+  List.iter (
+    fun (name, { args; shortdesc }) ->
+      let args = List.map (
+                     function
+                     | Bool n -> n
+                     | BytesIn (n, _) -> n
+                     | BytesOut (_, count) -> count
+                     | Callback (n, _) -> n
+                     | Int n -> n
+                     | Int64 n -> n
+                     | Path n -> n
+                     | SockAddrAndLen (n, _) -> n
+                     | String n -> n
+                     | UInt n -> n
+                     | UInt32 n -> n
+                     | UInt64 n -> n
+                   ) args in
+      let args = List.map ((^) ", ") args in
+      let args = String.concat "" args in
+      pr "    def %s (self%s):\n" name args;
+      pr "        \"\"\"%s\"\"\"\n" shortdesc;
+      pr "        return libnbdmod.%s (self._o%s)\n" name args;
+      pr "\n"
+  ) connection_calls
+
+(*----------------------------------------------------------------------*)
+
 (* Write the output files. *)
 let () =
   output_to "lib/states.h" generate_lib_states_h;
@@ -1468,4 +1880,8 @@ let () =
   output_to "lib/libnbd.syms" generate_lib_libnbd_syms;
   output_to "include/libnbd.h" generate_include_libnbd_h;
   output_to "lib/unlocked.h" generate_lib_unlocked_h;
-  output_to "lib/api.c" generate_lib_api_c
+  output_to "lib/api.c" generate_lib_api_c;
+  output_to "python/methods.h" generate_python_methods_h;
+  output_to "python/libnbdmod.c" generate_python_libnbdmod_c;
+  output_to "python/methods.c" generate_python_methods_c;
+  output_to "python/nbd.py" generate_python_nbd_py
