@@ -4,7 +4,26 @@ libnbd - network block device (NBD) client library in userspace
 
 =head1 SYNOPSIS
 
+ #include <libnbd.h>
+ 
+ struct nbd_handle *nbd;
+ char buf[512];
+ 
+ nbd = nbd_create ();
+ if (nbd == NULL) {
+  error:
+   fprintf (stderr, "%s\n", nbd_get_error ());
+   exit (EXIT_FAILURE);
+ }
+ if (nbd_connect_tcp (nbd, "server.example.com", "nbd") == -1)
+   goto error;
+ if (nbd_pread (nbd, buf, sizeof buf, 0) == -1)
+   goto error;
+ nbd_close (nbd);
 
+ cc prog.c -o prog -lnbd
+or:
+ cc prog.c -o prog `pkg-config libnbd --cflags --libs`
 
 =head1 DESCRIPTION
 
@@ -35,7 +54,7 @@ C<nbd_create> (or its equivalent in other languages):
  
  nbd = nbd_create ();
 
-This creates and returns a handle I<and> (implicitly) a single
+This creates and returns a handle I<and> creates (implicitly) a single
 connection object.  The single connection stored in the handle can be
 returned by calling:
 
@@ -43,7 +62,7 @@ returned by calling:
  
  conn = nbd_get_connection (nbd, 0);
 
-NBD supports "multi-conn", which means multiple connections can be
+NBD supports “multi-conn”, which means multiple connections can be
 made to the same server for higher performance.  By calling:
 
  nbd_set_multi_conn (nbd, 4);
@@ -63,17 +82,18 @@ idle and ready to issue commands, or busy sending or receiving
 commands.
 
 There are two levels of API available.  A simple high level
-synchronous API lets you tell the handle to "connect", "read",
-"write", etc. and each of these functions will run to completion
-before returning, using any available connection object to do the
-work.  A more complicated low level asynchronous API is also available
-where you can control each connection separately and integrate with
-L<poll(2)> or another main loop.
+synchronous API lets you give the handle high level instructions like
+“connect to the server”, “read a block”, “write a block”, etc.  Each
+of these functions will run to completion before returning, using any
+available connection object to do the work.  A more complicated low
+level non-blocking asynchronous API is also available where you can
+control each connection separately and integrate with L<poll(2)> or
+another main loop.
 
 You can freely mix the two APIs on the same handle.  You can also call
 APIs on a single handle from multiple threads.
 
-=head1 USING THE SYNCHRONOUS ("HIGH LEVEL") API
+=head1 USING THE SYNCHRONOUS (“HIGH LEVEL”) API
 
 This is the simplest way to use the API, with the possible drawback
 that each libnbd function blocks until it is finished.
@@ -105,18 +125,19 @@ Close the handle:
 
  nbd_close (nbd);
 
-If you use multiple threads and enable multi-conn on the handle then
-commands will be sent to the server in parallel on the different
-connections.
+You can call the high level API from multiple threads, but each libnbd
+API call takes a lock on the handle and so commands will not run in
+parallel (even if you have enabled multi-conn).
 
-=head1 USING THE ASYNCHRONOUS ("LOW LEVEL") API
+=head1 USING THE ASYNCHRONOUS (“LOW LEVEL”) API
 
 The low level API is useful if you want to use libnbd in non-blocking
-code or if you need more control especially over issuing multiple
-commands on a single connection or multi-conn.
+code; or if you want to issue commands in parallel from multiple
+threads; or if you need more control especially over having multiple
+commands in-flight on a single connection or multi-conn.
 
 To use the low level API you will need to integrate with L<poll(2)> or
-another "main loop" such as the GLib main event loop.  A simple
+another “main loop” such as the GLib main event loop.  A simple
 implementation using L<poll(2)> is available called C<nbd_poll>, and
 it is also useful to examine how this is implemented (F<lib/poll.c> in
 the libnbd source code) because that will tell you how to integrate
@@ -157,18 +178,153 @@ until the connection becomes ready:
    }
  }
 
+For almost all high level synchronous calls (eg. C<nbd_pread>) there
+is a low level asynchronous equivalent (eg. C<nbd_aio_pread>).
 
+=head1 ERROR HANDLING
 
+When any API call returns an error (C<-1> or C<NULL> depending on the
+API), an error message and sometimes an errno value are available.
+You can retrieve the error message and/or errno of the most recently
+failed call using C<nbd_get_error> and C<nbd_get_errno>.  For example:
 
+ if (nbd_connect_tcp (nbd, "remote", "nbd") == -1) {
+   fprintf (stderr,
+            "failed to connect to remote server: %s (errno = %d)\n",
+            nbd_get_error (), nbd_get_errno ());
+ }
 
+These functions use thread-local storage to return the most recent
+error in the current thread.  This is why you don't need to pass the
+handle to these calls.  They even work if C<nbd_create> returns
+C<NULL> when there is no handle at all.
 
+For this reason you cannot call them from a different thread.  You
+should call them immediately after the failed API call, from the same
+thread.  Furthermore the error string returned by C<nbd_get_error> is
+only valid until the next libnbd API call in the current thread, so if
+you need to keep the string you must copy it (eg. using L<strdup(3)>).
 
+Even when a call returns an error, C<nbd_get_errno> might return C<0>.
+This means no additional errno information is available for this
+error.
 
+=head1 DEBUGGING MESSAGES
+
+Libnbd can print lots of debugging messages, useful if you have a
+problem with the library.  Either enable debugging after creating the
+handle:
+
+ nbd = nbd_create ();
+ nbd_set_debug (nbd, true);
+
+or set the C<LIBNBD_DEBUG=1> environment variable which will enable
+debugging by default on all new handles.
+
+Debugging messages are sent to stderr by default, but you can redirect
+them to a logging system using C<nbd_set_debug_callback>.
+
+=head1 CONNECTING TO LOCAL OR REMOTE NBD SERVERS
+
+There are several ways to connect to NBD servers, and you can even run
+a server from libnbd.  Normally you would connect to a server which is
+already running, over a local Unix domain socket or a remote TCP
+connection.  The high level API calls are:
+
+ nbd_connect_unix (nbd, "socket");
+ nbd_connect_tcp (nbd, "localhost", "nbd");
+
+For C<nbd_connect_tcp> the third parameter is the port name or number,
+which can either be a name from F</etc/services> or the port number as
+a string (eg. C<"10809">).
+
+Some NBD servers — notably L<nbdkit(1)> with the C<-s> parameter — can
+also accept a single NBD connection on stdin/stdout.  You can run
+these servers as a subprocess of your main program.  This example
+creates a 1G writable RAM disk for testing which is discarded as soon
+as the libnbd handle is closed:
+
+ nbd_connect_command (nbd, "nbdkit -s memory 1G");
+
+=head1 EXPORTS AND FLAGS
+
+It is possible for NBD servers to serve different content on different
+“exports”.  For this you must pass the right export name to the
+server.  Call this API before connecting:
+
+ nbd_set_export_name (nbd, "/export");
+
+Note that some servers (like L<nbdkit(1)>) ignore this, and others
+(like L<qemu-nbd(8)>) require it to be set correctly but cannot serve
+different content.
+
+After connecting the server will send back a set of flags describing
+the export, such as whether it is writable and if it can support flush
+to permanent storage.  These flags can be accessed from libnbd using
+APIs such as:
+
+ int is_read_only = nbd_read_only (nbd);
+ int can_flush = nbd_can_flush (nbd);
+
+(and several more, see L<libnbd-api(3)>).
+
+To get the size of the export in bytes, use:
+
+ int64_t size = nbd_get_size (nbd);
+
+=head1 DATA COMMANDS
+
+You can read and write data from the NBD server using C<pread> and
+C<pwrite> or their asynchronous equivalents.
+
+Some servers also support:
+
+=over 4
+
+=item trim/discard
+
+If C<nbd_can_trim> return true, C<nbd_trim> can be used to “punch
+holes” in the backing storage of the disk on the server.  Normally
+(although not in every case) the holes read back as zeroes but take up
+no space.
+
+=item zeroing
+
+If C<nbd_can_zero> returns true, C<nbd_zero> can be used to
+efficiently zero parts of the disk without having to send large
+amounts of zero bytes over the network (as would be necessary if using
+C<nbd_pwrite>).
+
+This is slightly different from trimming because the backing storage
+is still allocated.  For some storage types this can make future
+writes more efficient and/or less likely to fail because of out of
+space errors.
+
+=item flushing
+
+Some servers can commit data to permanent storage and tell you that
+this has happened reliably.  There are two export flags associated
+with this: C<nbd_can_flush> and C<nbd_can_fua>.
+
+The C<nbd_flush> call (available if C<nbd_can_flush> returns true)
+flushes all pending writes to disk and does not complete until that
+operation has finished.  It is similar to using L<sync(2)> on POSIX
+systems.
+
+A more efficient way to achieve this is to set the C<NBD_CMD_FLAG_FUA>
+on write-like calls (like write, trim and zero).  This flag means the
+call will not complete until committed to permanent storage, but it
+does not involve flushing the entire disk.
+
+=back
 
 =head1 SEE ALSO
 
+L<libnbd-api(3)>,
 L<nbdkit(1)>,
-L<qemu(1)>.
+L<nbd-server(1)>,
+L<qemu(1)>,
+L<qemu-nbd(8)>.
 
 =head1 AUTHORS
 
