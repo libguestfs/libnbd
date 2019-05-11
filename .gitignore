@@ -6,6 +6,8 @@
 *.pyc
 *.trs
 
+/libnbd-*.tar.gz
+
 /local*
 
 .deps
