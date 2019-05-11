@@ -19,6 +19,9 @@ include $(top_srcdir)/common-rules.mk
 
 ACLOCAL_AMFLAGS = -I m4
 
+EXTRA_DIST = \
+	html/pod.css
+
 SUBDIRS = \
 	generator \
 	include \

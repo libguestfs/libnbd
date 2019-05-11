@@ -81,6 +81,24 @@ AS_IF([test "x$NBDKIT" != "x"], [
 ])
 AM_CONDITIONAL([HAVE_NBDKIT], [test "x$NBDKIT" != "x" && test "x$have_nbdkit_devel" = "xyes" && test "x$have_nbdkit_sh_plugin" = "xyes"])
 
+dnl Check we have enough to run podwrapper.
+AC_CHECK_PROG([PERL],[perl],[perl],[no])
+AS_IF([test "x$PERL" != "xno"],[
+    AC_MSG_CHECKING([if we have perl Pod::Man and Pod::Simple])
+    AS_IF([$PERL -MPod::Man -MPod::Simple -e 1 >&AS_MESSAGE_LOG_FD 2>&1],[
+        enable_pod=yes
+    ],[
+        enable_pod=no
+    ])
+    AC_MSG_RESULT([$enable_pod])
+])
+AM_CONDITIONAL([HAVE_POD],
+               [test "x$PERL" != "xno" && test "x$enable_pod" = "xyes"])
+
+dnl Define the path to the podwrapper program.
+PODWRAPPER="$PERL $(pwd)/podwrapper.pl"
+AC_SUBST([PODWRAPPER])
+
 dnl Python, optional for the Python bindings and shell.
 PYTHON_PREFIX=
 PYTHON_VERSION=
@@ -156,6 +174,8 @@ AM_CONDITIONAL([HAVE_PYTHON],
 dnl Produce output files.
 AC_CONFIG_HEADERS([config.h])
 
+AC_CONFIG_FILES([podwrapper.pl],
+                [chmod +x,-w podwrapper.pl])
 AC_CONFIG_FILES([python/run-python-tests],
                 [chmod +x,-w python/run-python-tests])
 AC_CONFIG_FILES([run],

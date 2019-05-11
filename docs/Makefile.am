@@ -19,3 +19,16 @@ include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
 	libnbd.pod
+
+if HAVE_POD
+
+man_MANS = \
+	libnbd.3
+CLEANFILES += $(man_MANS)
+
+libnbd.3: libnbd.pod
+	$(PODWRAPPER) --section=3 --man $@ \
+	    --html $(top_builddir)/html/$@.html \
+	    $<
+
+endif HAVE_POD
