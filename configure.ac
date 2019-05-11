@@ -189,6 +189,7 @@ AC_CONFIG_FILES([Makefile
                  generator/Makefile
                  include/Makefile
                  lib/Makefile
+                 lib/libnbd.pc
                  python/Makefile
                  sh/Makefile
                  tests/Makefile])

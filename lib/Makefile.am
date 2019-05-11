@@ -57,3 +57,8 @@ libnbd_la_LDFLAGS = \
 	$(PTHREAD_LIBS) \
 	-Wl,--version-script=$(srcdir)/libnbd.syms \
 	-version-info 0:0:0
+
+# pkg-config / pkgconf
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libnbd.pc
