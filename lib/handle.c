@@ -246,3 +246,9 @@ nbd_unlocked_set_multi_conn (struct nbd_handle *h, unsigned multi_conn)
   h->multi_conn = multi_conn;
   return 0;
 }
+
+int
+nbd_unlocked_get_multi_conn (struct nbd_handle *h)
+{
+  return h->multi_conn;
+}

@@ -381,6 +381,15 @@ will provide increments in performance.  Some servers do not
 support this feature and will return an error on connection.";
   };
 
+  "get_multi_conn", {
+    default_call with
+    args = []; ret = RInt;
+    shortdesc = "get the multi-conn setting";
+    longdesc = "\
+Get the multi-conn setting for this handle.  This is always E<ge> 1,
+where 1 means multi-conn is not enabled.";
+  };
+
   "connect_unix", {
     default_call with
     args = [ Path "sockpath" ]; ret = RErr;

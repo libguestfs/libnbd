@@ -34,12 +34,12 @@ BUILT_SOURCES = $(generator_built)
 libnbd_la_SOURCES = \
 	aio.c \
 	api.c \
-	create.c \
 	connect.c \
 	debug.c \
 	disconnect.c \
 	errors.c \
 	flags.c \
+	handle.c \
 	internal.h \
 	nbd-protocol.h \
 	poll.c \
