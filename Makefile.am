@@ -20,6 +20,7 @@ include $(top_srcdir)/common-rules.mk
 ACLOCAL_AMFLAGS = -I m4
 
 EXTRA_DIST = \
+	.gitignore \
 	html/pod.css
 
 SUBDIRS = \
