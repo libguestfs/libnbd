@@ -99,8 +99,8 @@ nbd_create (void)
     goto error1;
   }
 
-  h->export = strdup ("");
-  if (h->export == NULL) {
+  h->export_name = strdup ("");
+  if (h->export_name == NULL) {
     set_error (errno, "strdup");
     goto error2;
   }
@@ -128,7 +128,7 @@ nbd_create (void)
   pthread_mutex_destroy (&h->lock);
  error1:
   if (h) {
-    free (h->export);
+    free (h->export_name);
     free (h->conns);
     free (h);
   }
@@ -142,7 +142,7 @@ nbd_close (struct nbd_handle *h)
 
   for (i = 0; i < h->multi_conn; ++i)
     close_conn (h->conns[i]);
-  free (h->export);
+  free (h->export_name);
   pthread_mutex_destroy (&h->lock);
   free (h);
 }
@@ -251,4 +251,33 @@ int
 nbd_unlocked_get_multi_conn (struct nbd_handle *h)
 {
   return h->multi_conn;
+}
+
+int
+nbd_unlocked_set_export_name (struct nbd_handle *h, const char *export_name)
+{
+  char *new_name;
+
+  new_name = strdup (h->export_name);
+  if (!new_name) {
+    set_error (errno, "strdup");
+    return -1;
+  }
+
+  free (h->export_name);
+  h->export_name = new_name;
+  return 0;
+}
+
+char *
+nbd_unlocked_get_export_name (struct nbd_handle *h)
+{
+  char *copy = strdup (h->export_name);
+
+  if (!copy) {
+    set_error (errno, "strdup");
+    return NULL;
+  }
+
+  return copy;
 }

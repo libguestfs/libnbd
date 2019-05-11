@@ -368,6 +368,26 @@ and the message itself (C<msg>).  If no debug callback is set on
 a handle then messages are printed on C<stderr>.";
   };
 
+  "set_export_name", {
+    default_call with
+    args = [ String "export_name" ]; ret = RErr;
+    shortdesc = "set the export name";
+    longdesc = "\
+For servers which require an export name or can serve different
+content on different exports, set the C<export_name> to
+connect to.  This is only relevant for the newstyle protocol,
+and you must set this before connecting.  The default is to
+use the empty string.";
+  };
+
+  "get_export_name", {
+    default_call with
+    args = []; ret = RString;
+    shortdesc = "get the export name";
+    longdesc = "\
+Get the export name associated with the handle.";
+  };
+
   "set_multi_conn", {
     default_call with
     args = [ UInt "multi_conn" ]; ret = RErr;

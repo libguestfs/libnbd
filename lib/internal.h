@@ -51,7 +51,7 @@ struct nbd_handle {
   struct nbd_connection **conns;
   unsigned multi_conn;
 
-  char *export;                 /* Export name, never NULL. */
+  char *export_name;            /* Export name, never NULL. */
 
   /* Export size and per-export flags, received during handshake.  NB:
    * These are *both* *only* valid if eflags != 0.  This is because

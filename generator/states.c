@@ -357,14 +357,14 @@ send_from_wbuf (struct nbd_connection *conn)
   conn->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   conn->sbuf.option.option = htobe32 (NBD_OPT_GO);
   conn->sbuf.option.optlen =
-    htobe32 (/* exportnamelen */ 4 + strlen (h->export) + /* nrinfos */ 2);
+    htobe32 (/* exportnamelen */ 4 + strlen (h->export_name) + /* nrinfos */ 2);
   conn->wbuf = &conn->sbuf;
   conn->wlen = sizeof (conn->sbuf.option);
   SET_NEXT_STATE (%SEND_NEWSTYLE_OPT_GO);
   return 0;
 
  SEND_NEWSTYLE_OPT_GO:
-  const uint32_t exportnamelen = strlen (h->export);
+  const uint32_t exportnamelen = strlen (h->export_name);
 
   switch (send_from_wbuf (conn)) {
   case -1: SET_NEXT_STATE (%DEAD); return -1;
@@ -380,8 +380,8 @@ send_from_wbuf (struct nbd_connection *conn)
   switch (send_from_wbuf (conn)) {
   case -1: SET_NEXT_STATE (%DEAD); return -1;
   case 0:
-    conn->wbuf = h->export;
-    conn->wlen = strlen (h->export);
+    conn->wbuf = h->export_name;
+    conn->wlen = strlen (h->export_name);
     SET_NEXT_STATE (%SEND_NEWSTYLE_OPT_GO_EXPORT);
   }
   return 0;
