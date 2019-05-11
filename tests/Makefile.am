@@ -21,10 +21,10 @@ CLEANFILES = \
 	connect-unix.pid \
 	connect-unix.sock
 
-if HAVE_NBDKIT
-
 EXTRA_DIST = \
 	eflags-plugin.sh
+
+if HAVE_NBDKIT
 
 check_PROGRAMS = \
 	errors \
