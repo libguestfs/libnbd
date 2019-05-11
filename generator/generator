@@ -1788,6 +1788,12 @@ Read the libnbd(3) man page to find out how to use the API.
 
 import libnbdmod
 
+AIO_DIRECTION_READ  = 1
+AIO_DIRECTION_WRITE = 2
+AIO_DIRECTION_BOTH  = 3
+
+CMD_FLAG_FUA = 1<<0
+
 class NBD (object):
     def __init__ (self):
         \"\"\"Create a new NBD handle\"\"\"
