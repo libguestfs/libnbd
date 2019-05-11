@@ -324,6 +324,7 @@ and ret =
 | RFd                      (* return a file descriptor, or error *)
 | RInt                     (* return a small int, -1 = error *)
 | RInt64                   (* 64 bit int, -1 = error *)
+| RString                  (* return a newly allocated string, caller frees *)
 
 let default_call = { args = []; ret = RErr; is_locked = true;
                      shortdesc = ""; longdesc = "" }
@@ -1342,6 +1343,7 @@ let print_extern name htype args ret =
    | RInt -> pr "int "
    | RConstString -> pr "const char *"
    | RInt64 -> pr "int64_t "
+   | RString -> pr "char *"
   );
   pr "nbd_%s " name;
   print_c_arg_list ~handle:(htype, None) args;
@@ -1415,6 +1417,7 @@ let generate_lib_api_c () =
      | RInt -> pr "int\n"
      | RConstString -> pr "const char *\n"
      | RInt64 -> pr "int64_t\n"
+     | RString -> pr "char *\n"
     );
     pr "nbd_%s " name;
     print_c_arg_list ~handle:(htype, Some hname) args;
@@ -1427,6 +1430,7 @@ let generate_lib_api_c () =
      | RInt -> pr "  int ret;\n"
      | RConstString -> pr "  const char *ret;\n"
      | RInt64 -> pr "  int64_t ret;\n"
+     | RString -> pr "  char *ret;\n"
     );
     pr "\n";
     pr "  pthread_mutex_lock (&%s);\n" lock;
@@ -1573,6 +1577,7 @@ let print_python_binding name { args; ret } htype hname =
    | RInt -> pr "  int ret;\n"
    | RConstString -> pr "  const char *ret;\n"
    | RInt64 -> pr "  int64_t ret;\n"
+   | RString -> pr "  char *ret;\n";
   );
   pr "  PyObject *py_ret;\n";
   List.iter (
@@ -1692,7 +1697,7 @@ let print_python_binding name { args; ret } htype hname =
   pr ");\n";
   (match ret with
    | RBool | RErr | RFd | RInt | RInt64 -> pr "  if (ret == -1) {\n";
-   | RConstString -> pr "  if (ret == NULL) {\n";
+   | RConstString | RString -> pr "  if (ret == NULL) {\n";
   );
   pr "    PyErr_SetString (PyExc_RuntimeError, nbd_get_error ());\n";
   pr "    py_ret = NULL;\n";
@@ -1733,6 +1738,9 @@ let print_python_binding name { args; ret } htype hname =
        pr "  py_ret = PyLong_FromLong (ret);\n"
     | RInt64 ->
        pr "  py_ret = PyLong_FromLongLong (ret);\n"
+    | RString ->
+       pr "  py_ret = PyUnicode_FromString (ret);\n";
+       pr "  free (ret);\n"
   );
 
   pr "\n";
