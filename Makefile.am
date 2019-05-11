@@ -47,3 +47,12 @@ maintainer-check-extra-dist:
 	@[ ! -s comm-out ]
 	@rm tarfiles gitfiles comm-out
 	@echo PASS: EXTRA_DIST tests
+
+# Commit everything in the current directory and set the commit
+# message to the current version number.
+maintainer-commit:
+	git commit -a -m "Version $(VERSION)."
+
+# Tag HEAD with the current version.
+maintainer-tag:
+	git tag -a v$(VERSION) -m "Version $(VERSION)." -f
