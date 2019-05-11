@@ -16,9 +16,7 @@ Look at structured reads.
 
 Block status.
 
-Python bindings and other languages.
-
-Standalone shell.
+Bindings in other languages.
 
 Example code integrating with glib2, APR pollset (and others?).
 

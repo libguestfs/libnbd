@@ -23,7 +23,7 @@
 # With this script you can run libnbd programs without needing to
 # install libnbd first.  You just have to do for example:
 #
-#   ./run nbdsh [args ...]
+#   ./run nbdsh
 #
 # or:
 #

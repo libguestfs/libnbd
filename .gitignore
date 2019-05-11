@@ -48,6 +48,7 @@ Makefile.in
 /python/nbd.py
 /python/run-python-tests
 /run
+/sh/nbdsh
 /stamp-h1
 /test-driver
 /tests/can-flush-flag

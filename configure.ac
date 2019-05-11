@@ -160,12 +160,15 @@ AC_CONFIG_FILES([python/run-python-tests],
                 [chmod +x,-w python/run-python-tests])
 AC_CONFIG_FILES([run],
                 [chmod +x,-w run])
+AC_CONFIG_FILES([sh/nbdsh],
+                [chmod +x,-w sh/nbdsh])
 
 AC_CONFIG_FILES([Makefile
                  examples/Makefile
                  include/Makefile
                  lib/Makefile
                  python/Makefile
+                 sh/Makefile
                  tests/Makefile])
 
 AC_OUTPUT

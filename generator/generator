@@ -1875,7 +1875,33 @@ class NBDConnection (object):
       pr "        \"\"\"%s\"\"\"\n" shortdesc;
       pr "        return libnbdmod.%s (self._o%s)\n" name args;
       pr "\n"
-  ) connection_calls
+  ) connection_calls;
+
+  (* For nbdsh. *)
+  pr "\
+if __name__ == \"__main__\":
+    import nbd
+    import code
+    import sys
+
+    h = nbd.NBD ()
+    sys.ps1 = \"nbd> \"
+
+    banner = '''
+Welcome to nbdsh, the shell for interacting with
+Network Block Device (NBD) servers.
+
+The ‘nbd’ module has already been imported and there
+is an open NBD handle called ‘h’.
+
+h.connect_tcp (\"remote\", \"10809\")   # Connect to a remote server.
+h.get_size ()                       # Get size of the remote disk.
+buf = h.pread (512, 0)              # Read the first sector.
+exit() or Ctrl-D                    # Quit the shell
+'''
+
+    code.interact (banner = banner, local = locals(), exitmsg = '')
+"
 
 (*----------------------------------------------------------------------*)
 
