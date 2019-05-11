@@ -83,6 +83,10 @@ AM_CONDITIONAL([HAVE_NBDKIT], [test "x$NBDKIT" != "x" && test "x$have_nbdkit_dev
 
 dnl Produce output files.
 AC_CONFIG_HEADERS([config.h])
+
+AC_CONFIG_FILES([run],
+                [chmod +x,-w run])
+
 AC_CONFIG_FILES([Makefile
                  examples/Makefile
                  include/Makefile

@@ -1,0 +1,86 @@
+#!/bin/bash -
+# libnbd 'run' programs locally script
+# Copyright (C) 2011-2019 Red Hat Inc.
+#
+# @configure_input@
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+#----------------------------------------------------------------------
+
+# With this script you can run libnbd programs without needing to
+# install libnbd first.  You just have to do for example:
+#
+#   ./run nbdsh [args ...]
+#
+# or:
+#
+#   ./run /path/to/my/libnbd/program
+#
+# or:
+#
+#   ./run python
+#   >>> import nbd    # locally-compiled nbd module
+#
+# This works for any C program and most non-C bindings.
+
+#----------------------------------------------------------------------
+
+# Function to intelligently prepend a path to an environment variable.
+# See http://stackoverflow.com/a/9631350
+prepend()
+{
+    eval $1="$2\${$1:+:\$$1}"
+}
+
+# Source and build directories (absolute paths so this works from any
+# directory).
+s="$(cd @abs_srcdir@ && pwd)"
+b="$(cd @abs_builddir@ && pwd)"
+
+# Set the PATH to contain all libnbd binaries.
+prepend PATH "$b/sh"
+export PATH
+
+# Set LD_LIBRARY_PATH and DYLD_LIBRARY_PATH to contain library.
+prepend LD_LIBRARY_PATH "$b/lib/.libs"
+prepend DYLD_LIBRARY_PATH "$b/lib/.libs"
+export LD_LIBRARY_PATH
+export DYLD_LIBRARY_PATH
+
+# For Python.
+export PYTHON="@PYTHON@"
+prepend PYTHONPATH "$b/python/.libs"
+prepend PYTHONPATH "$b/python"
+prepend PYTHONPATH "$s/python"
+export PYTHONPATH
+
+# This is a cheap way to find some use-after-free and uninitialized
+# read problems when using glibc.
+random_val="$(@AWK@ 'BEGIN{srand(); print 1+int(255*rand())}' < /dev/null)"
+export MALLOC_PERTURB_=$random_val
+
+# Do we have libtool?  If we have it then we can use it to make
+# running valgrind simpler.  However don't depend on it.
+if libtool --help >/dev/null 2>&1; then
+    libtool="libtool --mode=execute"
+fi
+
+# Avoid GNOME keyring stupidity
+export GNOME_KEYRING_CONTROL=
+export GNOME_KEYRING_PID=
+
+# Run the program.
+exec $libtool "$@"
