@@ -15,20 +15,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-include $(top_srcdir)/subdir-rules.mk
+# subdir-rules.mk is included only in subdirectories.
+# common-rules.mk is included in every Makefile.am.
 
-EXTRA_DIST = \
-	$(BUILT_SOURCES)
-
-if HAVE_PYTHON
-
-bin_SCRIPTS = nbdsh
-
-if HAVE_NBDKIT
-
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 $(top_builddir)/run
-TESTS =
-
-endif HAVE_NBDKIT
-
-endif HAVE_PYTHON
+include $(top_srcdir)/common-rules.mk
