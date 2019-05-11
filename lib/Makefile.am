@@ -17,17 +17,19 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
-BUILT_SOURCES = \
+generator_built = \
 	api.c \
 	states.c \
 	states.h \
 	unlocked.h
 
 EXTRA_DIST = \
-	$(BUILT_SOURCES) \
+	$(generator_built) \
 	libnbd.syms
 
 lib_LTLIBRARIES = libnbd.la
+
+BUILT_SOURCES = $(generator_built)
 
 libnbd_la_SOURCES = \
 	aio.c \

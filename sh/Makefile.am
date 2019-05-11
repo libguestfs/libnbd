@@ -17,9 +17,6 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
-EXTRA_DIST = \
-	$(BUILT_SOURCES)
-
 if HAVE_PYTHON
 
 bin_SCRIPTS = nbdsh

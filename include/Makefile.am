@@ -17,8 +17,11 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
-BUILT_SOURCES = \
-	libnbd.h
+generator_built = libnbd.h
+
+EXTRA_DIST = $(generator_built)
+
+BUILT_SOURCES = $(generator_built)
 
 include_HEADERS = \
 	libnbd.h

@@ -19,3 +19,8 @@
 # subdir-rules.mk is included only in subdirectories.
 
 CLEANFILES = *~
+
+$(generator_built): $(top_builddir)/generator/stamp-generator
+
+$(top_builddir)/generator/stamp-generator: $(top_builddir)/generator/generator
+	$(MAKE) -C $(top_builddir)/generator stamp-generator

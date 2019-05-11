@@ -22,14 +22,14 @@ CLEANFILES += *.pyc
 clean-local:
 	-rm -rf __pycache__
 
-BUILT_SOURCES = \
+generator_built = \
 	libnbdmod.c \
 	methods.c \
 	methods.h \
 	nbd.py
 
 EXTRA_DIST = \
-	$(BUILT_SOURCES) \
+	$(generator_built) \
 	t/*.py
 
 if HAVE_PYTHON
@@ -38,6 +38,8 @@ pythondir = $(PYTHON_INSTALLDIR)
 python_DATA = nbd.py
 
 python_LTLIBRARIES = libnbdmod.la
+
+BUILT_SOURCES = $(generator_built)
 
 libnbdmod_la_SOURCES = \
 	handle.c \
