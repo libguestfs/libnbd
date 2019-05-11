@@ -320,8 +320,9 @@ and arg =
 and ret =
 | RBool                    (* return a boolean, or error *)
 | RConstString             (* return a const string, NULL for error *)
-| RErr                     (* return a small int, -1 = error *)
+| RErr                     (* return 0 = ok, -1 = error *)
 | RFd                      (* return a file descriptor, or error *)
+| RInt                     (* return a small int, -1 = error *)
 | RInt64                   (* 64 bit int, -1 = error *)
 
 let default_call = { args = []; ret = RErr; is_locked = true;
@@ -1337,7 +1338,8 @@ let print_extern name htype args ret =
   (match ret with
    | RBool
    | RErr
-   | RFd -> pr "int "
+   | RFd
+   | RInt -> pr "int "
    | RConstString -> pr "const char *"
    | RInt64 -> pr "int64_t "
   );
@@ -1409,7 +1411,8 @@ let generate_lib_api_c () =
     (match ret with
      | RBool
      | RErr
-     | RFd -> pr "int\n"
+     | RFd
+     | RInt -> pr "int\n"
      | RConstString -> pr "const char *\n"
      | RInt64 -> pr "int64_t\n"
     );
@@ -1420,7 +1423,8 @@ let generate_lib_api_c () =
     (match ret with
      | RBool
      | RErr
-     | RFd -> pr "  int ret;\n"
+     | RFd
+     | RInt -> pr "  int ret;\n"
      | RConstString -> pr "  const char *ret;\n"
      | RInt64 -> pr "  int64_t ret;\n"
     );
@@ -1563,10 +1567,11 @@ let print_python_binding name { args; ret } htype hname =
   pr "  PyObject *py_%s;\n" hname;
   pr "  struct nbd_%s *%s;\n" htype hname;
   (match ret with
-   | RBool -> pr "  int ret;\n"
+   | RBool
+   | RErr
+   | RFd
+   | RInt -> pr "  int ret;\n"
    | RConstString -> pr "  const char *ret;\n"
-   | RErr -> pr "  int ret;\n"
-   | RFd -> pr "  int ret;\n"
    | RInt64 -> pr "  int64_t ret;\n"
   );
   pr "  PyObject *py_ret;\n";
@@ -1686,7 +1691,7 @@ let print_python_binding name { args; ret } htype hname =
   ) args;
   pr ");\n";
   (match ret with
-   | RBool | RErr | RFd | RInt64 -> pr "  if (ret == -1) {\n";
+   | RBool | RErr | RFd | RInt | RInt64 -> pr "  if (ret == -1) {\n";
    | RConstString -> pr "  if (ret == NULL) {\n";
   );
   pr "    PyErr_SetString (PyExc_RuntimeError, nbd_get_error ());\n";
@@ -1723,7 +1728,8 @@ let print_python_binding name { args; ret } htype hname =
     | RErr ->
        pr "  py_ret = Py_None;\n";
        pr "  Py_INCREF (py_ret);\n"
-    | RFd ->
+    | RFd
+    | RInt ->
        pr "  py_ret = PyLong_FromLong (ret);\n"
     | RInt64 ->
        pr "  py_ret = PyLong_FromLongLong (ret);\n"
