@@ -458,6 +458,8 @@ send_from_wbuf (struct nbd_connection *conn)
       if (be16toh (conn->sbuf.or.payload.export.info) == NBD_INFO_EXPORT) {
         conn->h->exportsize = be64toh (conn->sbuf.or.payload.export.exportsize);
         conn->h->eflags = be16toh (conn->sbuf.or.payload.export.eflags);
+        debug (conn->h, "exportsize: %" PRIu64 " eflags: 0x%" PRIx16,
+               conn->h->exportsize, conn->h->eflags);
         if (conn->h->eflags == 0) {
           SET_NEXT_STATE (%DEAD);
           set_error (EINVAL, "handshake: invalid eflags == 0 from server");
