@@ -597,7 +597,7 @@ the connection (see C<nbd_close>).";
     shortdesc = "flushing pending write requests";
     longdesc = "\
 Issue the flush command to the NBD server.  The function should
-return until all write commands which have completed have been
+return when all write commands which have completed have been
 committed to permanent storage on the server.  Note this will
 return an error if C<nbd_can_flush> is false.";
   };
