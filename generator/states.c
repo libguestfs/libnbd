@@ -416,7 +416,7 @@ send_from_wbuf (struct nbd_connection *conn)
 
  RECV_NEWSTYLE_OPT_GO_REPLY:
   uint32_t len;
-  const size_t maxpayload = sizeof (conn->sbuf.or.payload);
+  const size_t maxpayload = sizeof conn->sbuf.or.payload;
 
   switch (recv_into_rbuf (conn)) {
   case -1: SET_NEXT_STATE (%DEAD); return -1;
@@ -446,6 +446,7 @@ send_from_wbuf (struct nbd_connection *conn)
   uint32_t option;
   uint32_t reply;
   uint32_t len;
+  const size_t maxpayload = sizeof conn->sbuf.or.payload;
 
   magic = be64toh (conn->sbuf.or.option_reply.magic);
   option = be32toh (conn->sbuf.or.option_reply.option);
@@ -461,16 +462,19 @@ send_from_wbuf (struct nbd_connection *conn)
     SET_NEXT_STATE (%READY);
     return 0;
   case NBD_REP_INFO:
-    if (len >= sizeof (conn->sbuf.or.payload.export)) {
-      if (be16toh (conn->sbuf.or.payload.export.info) == NBD_INFO_EXPORT) {
-        conn->h->exportsize = be64toh (conn->sbuf.or.payload.export.exportsize);
-        conn->h->eflags = be16toh (conn->sbuf.or.payload.export.eflags);
-        debug (conn->h, "exportsize: %" PRIu64 " eflags: 0x%" PRIx16,
-               conn->h->exportsize, conn->h->eflags);
-        if (conn->h->eflags == 0) {
-          SET_NEXT_STATE (%DEAD);
-          set_error (EINVAL, "handshake: invalid eflags == 0 from server");
-          return -1;
+    if (len <= maxpayload /* see RECV_NEWSTYLE_OPT_GO_REPLY */) {
+      if (len >= sizeof conn->sbuf.or.payload.export) {
+        if (be16toh (conn->sbuf.or.payload.export.info) == NBD_INFO_EXPORT) {
+          conn->h->exportsize =
+            be64toh (conn->sbuf.or.payload.export.exportsize);
+          conn->h->eflags = be16toh (conn->sbuf.or.payload.export.eflags);
+          debug (conn->h, "exportsize: %" PRIu64 " eflags: 0x%" PRIx16,
+                 conn->h->exportsize, conn->h->eflags);
+          if (conn->h->eflags == 0) {
+            SET_NEXT_STATE (%DEAD);
+            set_error (EINVAL, "handshake: invalid eflags == 0 from server");
+            return -1;
+          }
         }
       }
     }
