@@ -23,7 +23,7 @@ EXTRA_DIST = \
 	generator \
 	states.c
 
-stamp-generator: generator
+stamp-generator: generator states.c
 #	We must run this from the source directory since these
 #	files are distributed in the tarball.
 	rm -f $@
