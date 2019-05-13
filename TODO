@@ -1,5 +1,13 @@
 Interop testing with qemu-nbd, nbd-server.
 
+GnuTLS support using X.509 certificates.
+
+GnuTLS using PSK.
+
+Look at structured reads.
+
+Block status.
+
 Implement nbd_connect + systemd socket activation.
 
 PHASES of the connection:
@@ -12,17 +20,11 @@ PHASES of the connection:
 
  * Maybe have a set of flags, eg. nbd_aio_is (DEAD|CLOSED)?
 
-Look at structured reads.
-
-Block status.
-
 Bindings in other languages.
 
 Example code integrating with glib2, APR pollset (and others?).
 
-GnuTLS support using X.509 certificates.
-
-GnuTLS using PSK.
+Example command line utils to copy in/out (like qemu-img convert).
 
 Old-style protocol.
 
