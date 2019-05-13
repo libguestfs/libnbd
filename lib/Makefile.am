@@ -47,7 +47,8 @@ libnbd_la_SOURCES = \
 	rw.c \
 	states.c \
 	states.h \
-	unlocked.h
+	unlocked.h \
+	utils.c
 libnbd_la_CPPFLAGS = \
 	-I$(top_srcdir)/include
 libnbd_la_CFLAGS = \

@@ -42,6 +42,9 @@
 
 #include "internal.h"
 
+/* Uncomment this to dump received protocol packets to stderr. */
+/*#define DUMP_PACKETS 1*/
+
 static int
 recv_into_rbuf (struct nbd_connection *conn)
 {
@@ -76,6 +79,10 @@ recv_into_rbuf (struct nbd_connection *conn)
     set_error (0, "recv: server disconnected unexpectedly");
     return -1;
   }
+#ifdef DUMP_PACKETS
+  if (conn->rbuf != NULL)
+    nbd_internal_hexdump (conn->rbuf, r, stderr);
+#endif
   if (conn->rbuf)
     conn->rbuf += r;
   conn->rlen -= r;
