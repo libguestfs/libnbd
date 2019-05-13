@@ -35,6 +35,7 @@ libnbd_la_SOURCES = \
 	aio.c \
 	api.c \
 	connect.c \
+	crypto.c \
 	debug.c \
 	disconnect.c \
 	errors.c \

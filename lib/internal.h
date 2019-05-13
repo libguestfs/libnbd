@@ -55,6 +55,12 @@ struct nbd_handle {
 
   char *export_name;            /* Export name, never NULL. */
 
+  /* TLS settings. */
+  int tls;                      /* 0 = disable, 1 = enable, 2 = require */
+  char *tls_certificates;       /* Certs dir, NULL = use default path */
+  char *tls_username;           /* Username, NULL = use current username */
+  char *tls_psk_file;           /* PSK filename, NULL = no PSK */
+
   /* Export size and per-export flags, received during handshake.  NB:
    * These are *both* *only* valid if eflags != 0.  This is because
    * all servers should set NBD_FLAG_HAS_FLAGS, so eflags should

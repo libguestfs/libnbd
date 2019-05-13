@@ -117,6 +117,7 @@ nbd_create (void)
   h->conns[0] = conn;
   h->multi_conn = 1;
   h->unique = 1;
+  h->tls_verify_peer = true;
 
   s = getenv ("LIBNBD_DEBUG");
   h->debug = s && strcmp (s, "1") == 0;

@@ -410,6 +410,133 @@ Get the multi-conn setting for this handle.  This is always E<ge> 1,
 where 1 means multi-conn is not enabled.";
   };
 
+  "set_tls", {
+    default_call with
+    args = [Int "tls"]; ret = RErr;
+    shortdesc = "Enable or require TLS (authentication and encryption)";
+    longdesc = "\
+Enable or require TLS (authenticated and encrypted connections) to the
+NBD server.  The possible settings are:
+
+=over 4
+
+=item C<tls=0>
+
+Disable TLS.  (The default setting)
+
+=item C<tls=1>
+
+Enable TLS if possible.  In some cases this will fall back
+to an unencrypted and/or unauthenticated connection if
+TLS could not be established.  However some servers will
+drop the connection if TLS fails so fallback may not be
+possible.
+
+=item C<tls=2>
+
+Require an encrypted and authenticated TLS connection.
+Always fail to connect if the connection is not encrypted
+and authenticated.
+
+=back
+
+As well as calling this you may also need to supply
+the path to the certificates directory (C<nbd_set_tls_certificates>),
+the username (C<nbd_set_tls_username>) and/or
+the Pre-Shared Keys (PSK) file (C<nbd_set_tls_psk_file>).
+
+For more information see L<libnbd-tls(3)>.";
+  };
+
+  "get_tls", {
+    default_call with
+    args = []; ret = RInt;
+    shortdesc = "Get the current TLS setting";
+    longdesc = "\
+Get the current TLS setting.  See C<nbd_set_tls>.";
+  };
+
+  "set_tls_certificates", {
+    default_call with
+    args = [Path "dir"]; ret = RErr;
+    shortdesc = "set the path to the TLS certificates directory";
+    longdesc = "\
+Set the path to the TLS certificates directory.  If not
+set and TLS is used then a compiled in default is used.
+For root this is C</etc/pki/libnbd/>.  For non-root this is
+C<$HOME/.pki/libnbd> and C<$HOME/.config/pki/libnbd>.";
+  };
+
+(* Can't implement this because we need a way to return string that
+   can be NULL.
+  "get_tls_certificates", {
+    default_call with
+    args = []; ret = RString;
+    shortdesc = "Get the current TLS certificates directory";
+    longdesc = "\
+Get the current TLS directory.  See C<nbd_set_tls_certificates>.";
+  };
+*)
+
+  "set_tls_verify_peer", {
+    default_call with
+    args = [Bool "verify"]; ret = RErr;
+    shortdesc = "set whether we verify the identity of the server";
+    longdesc = "\
+Set this flag to control whether libnbd will verify the identity
+of the server from the server's certificate and the certificate
+authority.  This defaults to true when connecting to TCP servers
+using TLS certificate authentication, and false otherwise.";
+  };
+
+  "get_tls_verify_peer", {
+    default_call with
+    args = []; ret = RBool;
+    shortdesc = "get whether we verify the identity of the server";
+    longdesc = "\
+Get the verify peer flag.";
+  };
+
+  "set_tls_username", {
+    default_call with
+    args = [String "username"]; ret = RErr;
+    shortdesc = "set the TLS username";
+    longdesc = "\
+Set the TLS client username.  This is used
+if authenticating with PSK over TLS is enabled.
+If not set then the local username is used.";
+  };
+
+  "get_tls_username", {
+    default_call with
+    args = []; ret = RString;
+    shortdesc = "Get the current TLS username";
+    longdesc = "\
+Get the current TLS username.  See C<nbd_set_tls_username>.";
+  };
+
+  "set_tls_psk_file", {
+    default_call with
+    args = [Path "filename"]; ret = RErr;
+    shortdesc = "set the TLS Pre-Shared Keys (PSK) filename";
+    longdesc = "\
+Set the TLS Pre-Shared Keys (PSK) filename.  This is used
+if trying to authenticate to the server using with a pre-shared
+key.  There is no default so if this is not set then PSK
+authentication cannot be used to connect to the server.";
+  };
+
+(* Can't implement this because we need a way to return string that
+   can be NULL.
+  "get_tls_psk_file", {
+    default_call with
+    args = []; ret = RString;
+    shortdesc = "Get the current TLS PSK filename";
+    longdesc = "\
+Get the current TLS PSK filename.  See C<nbd_set_tls_psk_file>.";
+  };
+*)
+
   "connect_unix", {
     default_call with
     args = [ Path "sockpath" ]; ret = RErr;
