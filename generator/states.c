@@ -68,11 +68,11 @@ recv_into_rbuf (struct nbd_connection *conn)
     rlen = conn->rlen > sizeof buf ? sizeof buf : conn->rlen;
   }
 
-  r = recv (conn->fd, rbuf, rlen, 0);
+  r = conn->sock->ops->recv (conn->sock, rbuf, rlen);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK)
       return 1;                 /* more data */
-    set_error (errno, "recv");
+    /* sock->ops->recv called set_error already. */
     return -1;
   }
   if (r == 0) {
@@ -99,11 +99,11 @@ send_from_wbuf (struct nbd_connection *conn)
 
   if (conn->wlen == 0)
     return 0;                   /* move to next state */
-  r = send (conn->fd, conn->wbuf, conn->wlen, 0);
+  r = conn->sock->ops->send (conn->sock, conn->wbuf, conn->wlen);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK)
       return 0;                 /* more data */
-    set_error (errno, "send");
+    /* sock->ops->send called set_error already. */
     return -1;
   }
   conn->wbuf += r;
@@ -118,15 +118,22 @@ send_from_wbuf (struct nbd_connection *conn)
 
 /* STATE MACHINE */ {
  CONNECT:
-  assert (conn->fd == -1);
-  conn->fd = socket (AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
-  if (conn->fd == -1) {
+  int fd;
+
+  assert (!conn->sock);
+  fd = socket (AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
+  if (fd == -1) {
     SET_NEXT_STATE (%DEAD);
     set_error (errno, "socket");
     return -1;
   }
+  conn->sock = nbd_internal_socket_create (fd);
+  if (!conn->sock) {
+    SET_NEXT_STATE (%DEAD);
+    return -1;
+  }
 
-  if (connect (conn->fd, (struct sockaddr *) &conn->connaddr,
+  if (connect (fd, (struct sockaddr *) &conn->connaddr,
                conn->connaddrlen) == -1) {
     if (errno != EINPROGRESS) {
       SET_NEXT_STATE (%DEAD);
@@ -140,7 +147,8 @@ send_from_wbuf (struct nbd_connection *conn)
   int status;
   socklen_t len = sizeof status;
 
-  if (getsockopt (conn->fd, SOL_SOCKET, SO_ERROR, &status, &len) == -1) {
+  if (getsockopt (conn->sock->ops->get_fd (conn->sock),
+                  SOL_SOCKET, SO_ERROR, &status, &len) == -1) {
     SET_NEXT_STATE (%DEAD);
     set_error (errno, "getsockopt: SO_ERROR");
     return -1;
@@ -190,7 +198,9 @@ send_from_wbuf (struct nbd_connection *conn)
   return 0;
 
  CONNECT_TCP_CONNECT:
-  assert (conn->fd == -1);
+  int fd;
+
+  assert (!conn->sock);
 
   if (conn->rp == NULL) {
     /* We tried all the results from getaddrinfo without success.
@@ -202,14 +212,19 @@ send_from_wbuf (struct nbd_connection *conn)
     return -1;
   }
 
-  conn->fd = socket (conn->rp->ai_family,
-                     conn->rp->ai_socktype|SOCK_NONBLOCK|SOCK_CLOEXEC,
-                     conn->rp->ai_protocol);
-  if (conn->fd == -1) {
+  fd = socket (conn->rp->ai_family,
+               conn->rp->ai_socktype|SOCK_NONBLOCK|SOCK_CLOEXEC,
+               conn->rp->ai_protocol);
+  if (fd == -1) {
     SET_NEXT_STATE (%CONNECT_TCP_NEXT);
     return 0;
   }
-  if (connect (conn->fd, conn->rp->ai_addr, conn->rp->ai_addrlen) == -1) {
+  conn->sock = nbd_internal_socket_create (fd);
+  if (!conn->sock) {
+    SET_NEXT_STATE (%DEAD);
+    return -1;
+  }
+  if (connect (fd, conn->rp->ai_addr, conn->rp->ai_addrlen) == -1) {
     if (errno != EINPROGRESS) {
       SET_NEXT_STATE (%CONNECT_TCP_NEXT);
       return 0;
@@ -223,7 +238,8 @@ send_from_wbuf (struct nbd_connection *conn)
   int status;
   socklen_t len = sizeof status;
 
-  if (getsockopt (conn->fd, SOL_SOCKET, SO_ERROR, &status, &len) == -1) {
+  if (getsockopt (conn->sock->ops->get_fd (conn->sock),
+                  SOL_SOCKET, SO_ERROR, &status, &len) == -1) {
     SET_NEXT_STATE (%DEAD);
     set_error (errno, "getsockopt: SO_ERROR");
     return -1;
@@ -236,9 +252,9 @@ send_from_wbuf (struct nbd_connection *conn)
   return 0;
 
  CONNECT_TCP_NEXT:
-  if (conn->fd >= 0) {
-    close (conn->fd);
-    conn->fd = -1;
+  if (conn->sock) {
+    conn->sock->ops->close (conn->sock);
+    conn->sock = NULL;
   }
   if (conn->rp)
     conn->rp = conn->rp->ai_next;
@@ -249,7 +265,7 @@ send_from_wbuf (struct nbd_connection *conn)
   int sv[2];
   pid_t pid;
 
-  assert (conn->fd == -1);
+  assert (!conn->sock);
   assert (conn->command);
   if (socketpair (AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0,
                   sv) == -1) {
@@ -285,7 +301,11 @@ send_from_wbuf (struct nbd_connection *conn)
 
   /* Parent. */
   conn->pid = pid;
-  conn->fd = sv[0];
+  conn->sock = nbd_internal_socket_create (sv[0]);
+  if (!conn->sock) {
+    SET_NEXT_STATE (%DEAD);
+    return -1;
+  }
   close (sv[1]);
 
   /* The sockets are connected already, we can jump directly to
@@ -550,11 +570,15 @@ send_from_wbuf (struct nbd_connection *conn)
    * However recv_into_rbuf will fail in this case, so test it as a
    * special case.
    */
-  ssize_t r;
-  char c;
+  int eof;
 
-  r = recv (conn->fd, &c, 1, MSG_PEEK);
-  if (r == 0) {
+  eof = conn->sock->ops->is_eof (conn->sock);
+  if (eof == -1) {
+    SET_NEXT_STATE (%DEAD);
+    /* sock->ops->is_eof called set_error already. */
+    return -1;
+  }
+  if (eof) {
     SET_NEXT_STATE (%CLOSED);
     return 0;
   }
@@ -635,16 +659,16 @@ send_from_wbuf (struct nbd_connection *conn)
   return 0;
 
  DEAD:
-  if (conn->fd >= 0) {
-    close (conn->fd);
-    conn->fd = -1;
+  if (conn->sock) {
+    conn->sock->ops->close (conn->sock);
+    conn->sock = NULL;
   }
   return 0;
 
  CLOSED:
-  if (conn->fd >= 0) {
-    close (conn->fd);
-    conn->fd = -1;
+  if (conn->sock) {
+    conn->sock->ops->close (conn->sock);
+    conn->sock = NULL;
   }
   return 0;
 

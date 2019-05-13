@@ -28,7 +28,7 @@
 int
 nbd_unlocked_aio_get_fd (struct nbd_connection *conn)
 {
-  return conn->fd;
+  return conn->sock->ops->get_fd (conn->sock);
 }
 
 int

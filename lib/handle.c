@@ -39,7 +39,6 @@ create_conn (struct nbd_handle *h)
 
   conn->id = h->unique++;
   conn->state = STATE_CREATED;
-  conn->fd = -1;
   conn->pid = -1;
   conn->h = h;
 
@@ -73,8 +72,8 @@ close_conn (struct nbd_connection *conn)
   free (conn->port);
   if (conn->result)
     freeaddrinfo (conn->result);
-  if (conn->fd >= 0)
-    close (conn->fd);
+  if (conn->sock)
+    conn->sock->ops->close (conn->sock);
   if (conn->pid >= 0) /* XXX kill it? */
     waitpid (conn->pid, NULL, 0);
   free (conn);

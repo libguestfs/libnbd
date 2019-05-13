@@ -37,6 +37,8 @@
  */
 #define MAX_REQUEST_SIZE (64 * 1024 * 1024)
 
+struct socket;
+
 struct nbd_handle {
   /* Lock protecting concurrent access to either this handle or the
    * connections owned by the handle.
@@ -82,7 +84,9 @@ struct nbd_connection {
   int64_t id;
 
   enum state state;             /* State machine. */
-  int fd;                       /* Socket. */
+
+  /* The socket or a wrapper if using GnuTLS. */
+  struct socket *sock;
 
   /* Generic way to read into a buffer - set rbuf to point to a
    * buffer, rlen to the amount of data you expect, and in the state
@@ -143,6 +147,21 @@ struct nbd_connection {
   struct command_in_flight *cmds_to_issue, *cmds_in_flight, *cmds_done;
 };
 
+struct socket_ops {
+  ssize_t (*recv) (struct socket *sock, void *buf, size_t len);
+  ssize_t (*send) (struct socket *sock, const void *buf, size_t len);
+  int (*is_eof) (struct socket *sock);
+  int (*get_fd) (struct socket *sock);
+  int (*close) (struct socket *sock);
+};
+
+struct socket {
+  union {
+    int fd;
+  } u;
+  const struct socket_ops *ops;
+};
+
 struct command_in_flight {
   struct command_in_flight *next;
   uint16_t flags;
@@ -184,6 +203,9 @@ extern void nbd_internal_set_last_error (int errnum, char *error);
 /* protocol.c */
 extern int nbd_internal_errno_of_nbd_error (uint32_t error);
 extern const char *nbd_internal_name_of_nbd_cmd (uint16_t type);
+
+/* socket.c */
+struct socket *nbd_internal_socket_create (int fd);
 
 /* states.c */
 extern int nbd_internal_run (struct nbd_handle *h, struct nbd_connection *conn,

@@ -45,6 +45,7 @@ libnbd_la_SOURCES = \
 	poll.c \
 	protocol.c \
 	rw.c \
+	socket.c \
 	states.c \
 	states.h \
 	unlocked.h \
