@@ -258,7 +258,7 @@ nbd_unlocked_set_export_name (struct nbd_handle *h, const char *export_name)
 {
   char *new_name;
 
-  new_name = strdup (h->export_name);
+  new_name = strdup (export_name);
   if (!new_name) {
     set_error (errno, "strdup");
     return -1;
