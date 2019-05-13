@@ -31,7 +31,8 @@ SUBDIRS = \
 	examples \
 	tests \
 	python \
-	sh
+	sh \
+	interop
 
 # Check no files are missing from EXTRA_DIST rules, and that all
 # generated files have been included in the tarball.  (Note you must

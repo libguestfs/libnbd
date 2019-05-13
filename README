@@ -20,6 +20,9 @@ Optional:
  * The nbdkit command, nbdkit-sh-plugin and nbdkit development headers
    are recommended as they are needed to run the test suite.
 
+ * nbd-server and qemu-nbd if you want to do interoperability testing
+   against these servers.
+
  * Perl Pod::Man and Pod::Simple to generate the documentation.
 
  * Python >= 3.3 to build the Python 3 bindings and NBD shell (nbdsh).

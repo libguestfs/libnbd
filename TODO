@@ -1,5 +1,3 @@
-Interop testing with qemu-nbd, nbd-server.
-
 GnuTLS support using X.509 certificates.
 
 GnuTLS using PSK.

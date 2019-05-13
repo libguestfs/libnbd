@@ -33,6 +33,8 @@ Makefile.in
 /generator/stamp-generator
 /html/*.?.html
 /include/libnbd.h
+/interop/interop-nbd-server
+/interop/interop-qemu-nbd
 /lib/api.c
 /lib/libnbd.pc
 /lib/libnbd.syms

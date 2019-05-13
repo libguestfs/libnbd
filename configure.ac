@@ -81,6 +81,12 @@ AS_IF([test "x$NBDKIT" != "x"], [
 ])
 AM_CONDITIONAL([HAVE_NBDKIT], [test "x$NBDKIT" != "x" && test "x$have_nbdkit_devel" = "xyes" && test "x$have_nbdkit_sh_plugin" = "xyes"])
 
+dnl nbd-server and qemu-nbd for interop testing.
+AC_CHECK_PROG([NBD_SERVER], [nbd-server], [nbd-server])
+AM_CONDITIONAL([HAVE_NBD_SERVER], [test "x$NBD_SERVER" != "x"])
+AC_CHECK_PROG([QEMU_NBD], [qemu-nbd], [qemu-nbd])
+AM_CONDITIONAL([HAVE_QEMU_NBD], [test "x$QEMU_NBD" != "x"])
+
 dnl Check we have enough to run podwrapper.
 AC_CHECK_PROG([PERL],[perl],[perl],[no])
 AS_IF([test "x$PERL" != "xno"],[
@@ -188,6 +194,7 @@ AC_CONFIG_FILES([Makefile
                  examples/Makefile
                  generator/Makefile
                  include/Makefile
+                 interop/Makefile
                  lib/Makefile
                  lib/libnbd.pc
                  python/Makefile
