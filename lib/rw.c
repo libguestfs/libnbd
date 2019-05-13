@@ -164,6 +164,31 @@ nbd_unlocked_trim (struct nbd_handle *h,
   return r == -1 ? -1 : 0;
 }
 
+/* Issue a cache command on any connection and wait for the reply. */
+int
+nbd_unlocked_cache (struct nbd_handle *h,
+                    uint64_t count, uint64_t offset)
+{
+  struct nbd_connection *conn;
+  int64_t ch;
+  int r;
+
+  conn = pick_connection (h);
+  if (conn == NULL)
+    return -1;
+
+  ch = nbd_unlocked_aio_cache (conn, count, offset);
+  if (ch == -1)
+    return -1;
+
+  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
+    if (nbd_unlocked_poll (h, -1) == -1)
+      return -1;
+  }
+
+  return r == -1 ? -1 : 0;
+}
+
 /* Issue a zero command on any connection and wait for the reply. */
 int
 nbd_unlocked_zero (struct nbd_handle *h,
@@ -335,6 +360,30 @@ nbd_unlocked_aio_trim (struct nbd_connection *conn,
   }
 
   cmd = command_common (conn, flags, NBD_CMD_TRIM, offset, count, NULL);
+  if (!cmd)
+    return -1;
+  if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)
+    return -1;
+
+  return cmd->handle;
+}
+
+int64_t
+nbd_unlocked_aio_cache (struct nbd_connection *conn,
+                        uint64_t count, uint64_t offset)
+{
+  struct command_in_flight *cmd;
+
+  /* Actually according to the NBD protocol document, servers do exist
+   * that support NBD_CMD_CACHE but don't advertize the
+   * NBD_FLAG_SEND_CACHE bit, but we ignore those.
+   */
+  if (nbd_unlocked_can_cache (conn->h) != 1) {
+    set_error (EINVAL, "server does not support cache operations");
+    return -1;
+  }
+
+  cmd = command_common (conn, 0, NBD_CMD_CACHE, offset, count, NULL);
   if (!cmd)
     return -1;
   if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)

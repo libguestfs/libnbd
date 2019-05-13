@@ -45,6 +45,8 @@ check_PROGRAMS = \
 	can-not-multi-conn-flag \
 	connect-unix \
 	connect-tcp
+#	can-cache-flag
+#	can-not-cache-flag
 
 # Make sure that $srcdir is available to tests.
 # Enable debug in all tests.
@@ -69,6 +71,8 @@ TESTS = \
 	can-not-multi-conn-flag \
 	connect-unix \
 	connect-tcp
+#	can-cache-flag
+#	can-not-cache-flag
 
 errors_SOURCES = errors.c
 errors_CPPFLAGS = -I$(top_srcdir)/include
@@ -157,6 +161,19 @@ can_not_multi_conn_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_multi_conn -Dvalue=false
 can_not_multi_conn_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_multi_conn_flag_LDADD = $(top_builddir)/lib/libnbd.la
+
+# Waiting for nbdkit to add support for can_cache.
+#can_cache_flag_SOURCES = eflags.c
+#can_cache_flag_CPPFLAGS = \
+#	-I$(top_srcdir)/include -Dflag=can_cache -Dvalue=native
+#can_cache_flag_CFLAGS = $(WARNINGS_CFLAGS)
+#can_cache_flag_LDADD = $(top_builddir)/lib/libnbd.la
+#
+#can_not_cache_flag_SOURCES = eflags.c
+#can_not_cache_flag_CPPFLAGS = \
+#	-I$(top_srcdir)/include -Dflag=can_cache -Dvalue=none
+#can_not_cache_flag_CFLAGS = $(WARNINGS_CFLAGS)
+#can_not_cache_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 connect_unix_SOURCES = connect-unix.c
 connect_unix_CPPFLAGS = -I$(top_srcdir)/include

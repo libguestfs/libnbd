@@ -522,6 +522,17 @@ the server does not.  Can return an error if we have not
 connected to and completed the handshake with the server.";
   };
 
+  "can_cache", {
+    default_call with
+    args = []; ret = RBool;
+    shortdesc = "does the server support the cache command";
+    longdesc = "\
+Returns true if the server supports the cache command
+(see C<nbd_cache>, C<nbd_aio_cache>).  Returns false if
+the server does not.  Can return an error if we have not
+connected to and completed the handshake with the server.";
+  };
+
   "get_size", {
     default_call with
     args = []; ret = RInt64;
@@ -610,6 +621,20 @@ return until the data has been committed to permanent storage
 
 If multi-conn is enabled, the command is issued on the next
 ready connection, picked in a round-robin manner.";
+  };
+
+  "cache", {
+    default_call with
+    args = [ UInt64 "count"; UInt64 "offset" ];
+    ret = RErr;
+    shortdesc = "send cache (prefetch) to the NBD server";
+    longdesc = "\
+Issue the cache (prefetch) command to the NBD server, which
+if supported by the server causes data to be prefetched
+into faster storage by the server, speeding up a subsequent
+C<nbd_pread> call.  The server can also silently ignore
+this command.  Note this will return an error if
+C<nbd_can_cache> is false.";
   };
 
   "zero", {
@@ -741,6 +766,17 @@ unique 64 bit handle for this command.  To check if the command
 completed, call C<nbd_aio_command_completed>.  Note that
 you must ensure C<buf> is valid until the command has
 completed.";
+  };
+
+  "aio_cache", {
+    default_call with
+    args = [ UInt64 "count"; UInt64 "offset" ];
+    ret = RInt64;
+    shortdesc = "send cache (prefetch) to the NBD server";
+    longdesc = "\
+Issue the cache (prefetch) command to the NBD server.  This
+returns the unique 64 bit handle for this command.  To check
+if the command completed, call C<nbd_aio_command_completed>.  ";
   };
 
   "aio_zero", {

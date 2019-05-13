@@ -79,6 +79,12 @@ nbd_unlocked_can_multi_conn (struct nbd_handle *h)
   return get_flag (h, NBD_FLAG_CAN_MULTI_CONN);
 }
 
+int
+nbd_unlocked_can_cache (struct nbd_handle *h)
+{
+  return get_flag (h, NBD_FLAG_SEND_CACHE);
+}
+
 int64_t
 nbd_unlocked_get_size (struct nbd_handle *h)
 {

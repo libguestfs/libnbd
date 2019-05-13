@@ -52,6 +52,7 @@ nbd_internal_name_of_nbd_cmd (uint16_t type)
   case NBD_CMD_DISC: return "disconnect";
   case NBD_CMD_FLUSH: return "flush";
   case NBD_CMD_TRIM: return "trim";
+  case NBD_CMD_CACHE: return "cache";
   case NBD_CMD_WRITE_ZEROES: return "write-zeroes";
   case NBD_CMD_BLOCK_STATUS: return "block-status";
   default: return "UNKNOWN!";
