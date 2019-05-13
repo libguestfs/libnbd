@@ -763,9 +763,7 @@ completed, call C<nbd_aio_command_completed>.";
     longdesc = "\
 Issue a trim command to the NBD server.  This returns the
 unique 64 bit handle for this command.  To check if the command
-completed, call C<nbd_aio_command_completed>.  Note that
-you must ensure C<buf> is valid until the command has
-completed.";
+completed, call C<nbd_aio_command_completed>.";
   };
 
   "aio_cache", {
@@ -787,9 +785,7 @@ if the command completed, call C<nbd_aio_command_completed>.  ";
     longdesc = "\
 Issue a write zeroes command to the NBD server.  This returns the
 unique 64 bit handle for this command.  To check if the command
-completed, call C<nbd_aio_command_completed>.  Note that
-you must ensure C<buf> is valid until the command has
-completed.";
+completed, call C<nbd_aio_command_completed>.";
   };
 
   "aio_get_fd", {
