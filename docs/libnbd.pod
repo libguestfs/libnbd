@@ -343,6 +343,84 @@ to prefetch.
 
 =back
 
+=head1 ENCRYPTION AND AUTHENTICATION
+
+The NBD protocol and libnbd supports TLS (sometimes incorrectly called
+“SSL”) for encryption of the data stream and authentication of clients
+and servers.  Libnbd defaults to TLS I<disabled> for maximum
+interoperability.  To enable it on a handle you must call
+C<nbd_set_tls> before connecting:
+
+ nbd_set_tls (nbd, 1);   // to allow TLS, but fall back to unencrypted
+ nbd_set_tls (nbd, 2);   // to require TLS, and fail otherwise
+
+It may also be necessary to verify that the server’s identity is
+correct.  For some servers it may be necessary to verify to the server
+that the client is permitted to connect.  This can be done using
+either X.509 certificates, or TLS Pre-Shared Keys (PSK).  Certificates
+are more secure.  PSK is far more convenient, but you must have an
+existing secure channel to distribute the keys.
+
+=head2 Setting up X.509 using system certificate authorities (CAs)
+
+This is the default if you don’t call any other C<nbd_set_tls_*>
+functions.  In this case the server must have a public (eg. HTTPS)
+certificate which can be verified against the CAs registered on your
+system (eg. under F</etc/pki>).
+
+To disable server name verification — which opens you up to a potential
+Man-In-The-Middle (MITM) attack — use:
+
+ nbd_set_tls_verify_peer (nbd, false);
+
+=head2 Setting up an X.509 certificate authority (CA)
+
+You can set up your own CA and register clients and servers with it,
+issuing client and server certificates which will reliably
+authenticate your clients and servers to each other.
+
+Doing this is described in detail in the L<nbdkit-tls(1)> manual.  The
+only differences for libnbd are:
+
+=over 4
+
+=item *
+
+Non-root certificates must be placed in C<$HOME/.pki/libnbd/> or
+C<$HOME/.config/pki/libnbd/>
+
+=item *
+
+Libnbd reads F<client-cert.pem> and F<client-key.pem> (instead of
+F<server-cert.pem> and F<server-key.pem>).
+
+=back
+
+Once you have set up the directory containing the certificates, call:
+
+ nbd_set_tls_certificates (nbd, "/path/to/directory");
+
+=head2 Setting up Pre-Shared Keys (PSK)
+
+TLS Pre-Shared Keys are a much more convenient method of setting up
+TLS, and more appropriate for NBD, but you should have an existing
+secure method available to distribute the keys.  They are therefore
+ideal if you want to set up an NBD service as an adjunct to an
+existing secure REST API.
+
+Use L<psktool(1)> to create a file of C<username:key> pairs:
+
+ psktool -u username -p keys.psk
+
+and pass this path to libnbd:
+
+ nbd_set_tls_psk_file (nbd, "keys.psk");
+
+If necessary you may need to set the client username (otherwise libnbd
+will use your login name):
+
+ nbd_set_tls_username (nbd, "username");
+
 =head1 SEE ALSO
 
 L<libnbd-api(3)>,

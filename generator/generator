@@ -481,7 +481,7 @@ the path to the certificates directory (C<nbd_set_tls_certificates>),
 the username (C<nbd_set_tls_username>) and/or
 the Pre-Shared Keys (PSK) file (C<nbd_set_tls_psk_file>).
 
-For more information see L<libnbd-tls(3)>.";
+For more information see L<libnbd(3)/ENCRYPTION AND AUTHENTICATION>.";
   };
 
   "get_tls", {
