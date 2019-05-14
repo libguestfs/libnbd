@@ -1,9 +1,3 @@
-Look at structured reads.
-
-Block status.
-
-Implement nbd_connect + systemd socket activation.
-
 PHASES of the connection:
  - created
  - connecting (includes handshaking)
@@ -11,8 +5,11 @@ PHASES of the connection:
  - dead
  - closed (group with dead?)
  - some sort of "running" state
+ - HIERARCHICAL?  or GROUPED?
 
- * Maybe have a set of flags, eg. nbd_aio_is (DEAD|CLOSED)?
+Look at structured reads.
+
+Block status.
 
 Bindings in other languages.
 
@@ -31,3 +28,5 @@ NBD_INFO_BLOCK_SIZE.
 NBD_CMD_CACHE.
 
 TLS should properly shut down the session (calling gnutls_bye).
+
+Implement nbd_connect + systemd socket activation.
