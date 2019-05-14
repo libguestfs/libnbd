@@ -52,22 +52,6 @@ socket_send (struct socket *sock, const void *buf, size_t len)
 }
 
 static int
-socket_is_eof (struct socket *sock)
-{
-  char c;
-  ssize_t r;
-
-  r = recv (sock->u.fd, &c, 1, MSG_PEEK);
-  if (r == -1) {
-    if (errno == EAGAIN || errno == EWOULDBLOCK)
-      return 0;
-    set_error (errno, "recv");
-    return -1;
-  }
-  return r == 0; /* true if EOF */
-}
-
-static int
 socket_get_fd (struct socket *sock)
 {
   return sock->u.fd;
@@ -85,7 +69,6 @@ socket_close (struct socket *sock)
 static struct socket_ops socket_ops = {
   recv: socket_recv,
   send: socket_send,
-  is_eof: socket_is_eof,
   get_fd: socket_get_fd,
   close: socket_close,
 };

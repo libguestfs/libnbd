@@ -570,21 +570,28 @@ send_from_wbuf (struct nbd_connection *conn)
    * However recv_into_rbuf will fail in this case, so test it as a
    * special case.
    */
-  int eof;
+  ssize_t r;
 
-  eof = conn->sock->ops->is_eof (conn->sock);
-  if (eof == -1) {
+  conn->rbuf = &conn->sbuf;
+  conn->rlen = sizeof conn->sbuf.simple_reply;
+
+  r = conn->sock->ops->recv (conn->sock, conn->rbuf, conn->rlen);
+  if (r == -1) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      SET_NEXT_STATE (%RECV_REPLY);
+      return 0;
+    }
     SET_NEXT_STATE (%DEAD);
-    /* sock->ops->is_eof called set_error already. */
+    /* sock->ops->recv called set_error already. */
     return -1;
   }
-  if (eof) {
+  if (r == 0) {
     SET_NEXT_STATE (%CLOSED);
     return 0;
   }
 
-  conn->rbuf = &conn->sbuf;
-  conn->rlen = sizeof (conn->sbuf.simple_reply);
+  conn->rbuf += r;
+  conn->rlen -= r;
   SET_NEXT_STATE (%RECV_REPLY);
   return 0;
 

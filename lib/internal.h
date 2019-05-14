@@ -150,7 +150,6 @@ struct nbd_connection {
 struct socket_ops {
   ssize_t (*recv) (struct socket *sock, void *buf, size_t len);
   ssize_t (*send) (struct socket *sock, const void *buf, size_t len);
-  int (*is_eof) (struct socket *sock);
   int (*get_fd) (struct socket *sock);
   int (*close) (struct socket *sock);
 };
