@@ -1,7 +1,3 @@
-GnuTLS support using X.509 certificates.
-
-GnuTLS using PSK.
-
 Look at structured reads.
 
 Block status.
@@ -33,3 +29,5 @@ NBD resize extension.
 NBD_INFO_BLOCK_SIZE.
 
 NBD_CMD_CACHE.
+
+TLS should properly shut down the session (calling gnutls_bye).
