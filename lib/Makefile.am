@@ -52,10 +52,14 @@ libnbd_la_SOURCES = \
 	unlocked.h \
 	utils.c
 libnbd_la_CPPFLAGS = \
-	-I$(top_srcdir)/include
+	-I$(top_srcdir)/include \
+	-Dsysconfdir=\"$(sysconfdir)\"
 libnbd_la_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
-	$(PTHREAD_CFLAGS)
+	$(PTHREAD_CFLAGS) \
+	$(GNUTLS_CFLAGS)
+libnbd_la_LIBADD = \
+	$(GNUTLS_LIBS)
 libnbd_la_LDFLAGS = \
 	$(PTHREAD_LIBS) \
 	-Wl,--version-script=$(srcdir)/libnbd.syms \

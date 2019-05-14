@@ -27,6 +27,8 @@ EXTRA_DIST = \
 
 if HAVE_NBDKIT
 
+check_DATA =
+
 check_PROGRAMS = \
 	errors \
 	get-size \
@@ -184,5 +186,52 @@ connect_tcp_SOURCES = connect-tcp.c
 connect_tcp_CPPFLAGS = -I$(top_srcdir)/include
 connect_tcp_CFLAGS = $(WARNINGS_CFLAGS)
 connect_tcp_LDADD = $(top_builddir)/lib/libnbd.la
+
+# Testing TLS support.
+if HAVE_GNUTLS
+
+if HAVE_CERTTOOL
+check_PROGRAMS += connect-tls-certs
+check_DATA += pki/stamp-pki
+TESTS += connect-tls-certs
+
+connect_tls_certs_SOURCES = connect-tls.c
+connect_tls_certs_CPPFLAGS = -I$(top_srcdir)/include -DCERTS=1
+connect_tls_certs_CFLAGS = $(WARNINGS_CFLAGS)
+connect_tls_certs_LDADD = $(top_builddir)/lib/libnbd.la
+
+pki/stamp-pki: $(srcdir)/make-pki.sh
+	rm -rf pki pki-t
+	SRCDIR=$(srcdir) CERTTOOL=$(CERTTOOL) $(srcdir)/make-pki.sh pki-t
+	mv pki-t pki
+	touch pki/stamp-pki
+
+endif HAVE_CERTTOOL
+
+if HAVE_PSKTOOL
+check_PROGRAMS += connect-tls-psk
+check_DATA += keys.psk
+TESTS += connect-tls-psk
+
+connect_tls_psk_SOURCES = connect-tls.c
+connect_tls_psk_CPPFLAGS = -I$(top_srcdir)/include -DPSK=1
+connect_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
+connect_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
+
+keys.psk:
+	rm -f $@ $@-t
+	$(PSKTOOL) -u $(LOGNAME) -p $@-t
+	mv $@-t $@
+
+endif HAVE_PSKTOOL
+
+endif HAVE_GNUTLS
+
+# Keys are expensive to recreate, so only delete them when we do
+# ‘make distclean’.
+DISTCLEANFILES = keys.psk
+distclean-local: distclean-local-tls
+distclean-local-tls:
+	rm -rf pki
 
 endif HAVE_NBDKIT

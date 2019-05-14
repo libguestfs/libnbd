@@ -13,6 +13,9 @@ Requirements:
 
 Optional:
 
+ * GnuTLS is recommended for TLS support.  If not available then TLS
+   support will be disabled in the library.
+
  * ocaml is required to run the generator, which is needed for
    building from git.  However it is not needed if building from
    tarballs, so this is classified as an optional dependency.
@@ -26,3 +29,5 @@ Optional:
  * Perl Pod::Man and Pod::Simple to generate the documentation.
 
  * Python >= 3.3 to build the Python 3 bindings and NBD shell (nbdsh).
+
+ * psktool and certtool (part of GnuTLS) for testing TLS support.

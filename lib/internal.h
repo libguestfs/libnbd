@@ -58,6 +58,7 @@ struct nbd_handle {
   /* TLS settings. */
   int tls;                      /* 0 = disable, 1 = enable, 2 = require */
   char *tls_certificates;       /* Certs dir, NULL = use default path */
+  bool tls_verify_peer;         /* Verify the peer certificate. */
   char *tls_username;           /* Username, NULL = use current username */
   char *tls_psk_file;           /* PSK filename, NULL = no PSK */
 
@@ -163,6 +164,15 @@ struct socket_ops {
 struct socket {
   union {
     int fd;
+    struct {
+      /* These are ‘void *’ so that we don't need to include gnutls
+       * headers from this file.
+       */
+      void *session;            /* really gnutls_session_t */
+      void *pskcreds;           /* really gnutls_psk_client_credentials_t */
+      void *xcreds;             /* really gnutls_certificate_credentials_t */
+      struct socket *oldsock;
+    } tls;
   } u;
   const struct socket_ops *ops;
 };
@@ -177,6 +187,11 @@ struct command_in_flight {
   void *data;
   uint32_t error;
 };
+
+/* crypto.c */
+extern struct socket *nbd_internal_crypto_create_session (struct nbd_connection *, struct socket *oldsock);
+extern bool nbd_internal_crypto_is_reading (struct nbd_connection *);
+extern int nbd_internal_crypto_handshake (struct nbd_connection *);
 
 /* debug.c */
 extern void nbd_internal_debug (struct nbd_handle *h, const char *fs, ...);

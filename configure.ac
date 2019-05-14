@@ -59,6 +59,36 @@ if test "x$gcc_warnings" = "xyes"; then
     AC_SUBST([WARNINGS_CFLAGS])
 fi
 
+dnl Check for GnuTLS (optional, for TLS support).
+PKG_CHECK_MODULES([GNUTLS], [gnutls >= 3.3.0], [
+    AC_SUBST([GNUTLS_CFLAGS])
+    AC_SUBST([GNUTLS_LIBS])
+    AC_DEFINE([HAVE_GNUTLS],[1],[gnutls found at compile time.])
+], [
+    AC_MSG_WARN([gnutls not found or < 3.3.0, TLS support will be disabled.])
+])
+AM_CONDITIONAL([HAVE_GNUTLS], [test "x$GNUTLS_LIBS" != "x"])
+
+AS_IF([test "$GNUTLS_LIBS" != ""],[
+    AC_MSG_CHECKING([for default TLS session priority string])
+    AC_ARG_WITH([tls-priority],
+        [AS_HELP_STRING([--with-tls-priority],
+                        [default TLS session priority string @<:@default=NORMAL@:>@])],
+        [tls_priority=$withval],
+        [tls_priority=NORMAL])
+    AC_MSG_RESULT([$tls_priority])
+    AC_DEFINE_UNQUOTED([TLS_PRIORITY],["$tls_priority"],
+                       [Default TLS session priority string])
+])
+
+dnl certtool (part of GnuTLS) for testing TLS with certificates.
+AC_CHECK_PROG([CERTTOOL], [certtool], [certtool])
+AM_CONDITIONAL([HAVE_CERTTOOL], [test "x$CERTTOOL" != "x"])
+
+dnl psktool (part of GnuTLS) for testing Pre-Shared Keys (PSK).
+AC_CHECK_PROG([PSKTOOL], [psktool], [psktool])
+AM_CONDITIONAL([HAVE_PSKTOOL], [test "x$PSKTOOL" != "x"])
+
 dnl nbdkit, nbdkit-sh-plugin and development headers are only needed
 dnl to run the test suite.
 AC_CHECK_PROG([NBDKIT], [nbdkit], [nbdkit])

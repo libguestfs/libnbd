@@ -178,6 +178,42 @@ let states = [
     external_events = [ NotifyWrite, "" ];
   };
 
+  "TRY_NEWSTYLE_OPT_STARTTLS", {
+    default_state with
+    comment = "Try to send newstyle NBD_OPT_STARTTLS to upgrade to TLS";
+    external_events = [];
+  };
+
+  "SEND_NEWSTYLE_OPT_STARTTLS", {
+    default_state with
+    comment = "Send newstyle NBD_OPT_STARTTLS to upgrade to TLS";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  "RECV_NEWSTYLE_OPT_STARTTLS_REPLY", {
+    default_state with
+    comment = "Receive newstyle NBD_OPT_STARTTLS reply";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "CHECK_NEWSTYLE_OPT_STARTTLS_REPLY", {
+    default_state with
+    comment = "Check newstyle NBD_OPT_STARTTLS reply";
+    external_events = [];
+  };
+
+  "TLS_HANDSHAKE_READ", {
+    default_state with
+    comment = "TLS handshake (reading)";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "TLS_HANDSHAKE_WRITE", {
+    default_state with
+    comment = "TLS handshake (writing)";
+    external_events = [ NotifyWrite, "" ];
+  };
+
   "TRY_NEWSTYLE_OPT_GO", {
     default_state with
     comment = "Try to send newstyle NBD_OPT_GO to end handshake";
