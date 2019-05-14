@@ -420,8 +420,11 @@ will use your login name):
 =head1 SEE ALSO
 
 L<libnbd-api(3)>,
+L<certtool(1)>,
 L<nbdkit(1)>,
+L<nbdkit-tls(1)>,
 L<nbd-server(1)>,
+L<psktool(1)>,
 L<qemu(1)>,
 L<qemu-nbd(8)>.
 
