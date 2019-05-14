@@ -9,16 +9,12 @@ libnbd - network block device (NBD) client library in userspace
  struct nbd_handle *nbd;
  char buf[512];
  
- nbd = nbd_create ();
- if (nbd == NULL) {
-  error:
+ if ((nbd = nbd_create ()) == NULL ||
+     nbd_connect_tcp (nbd, "server.example.com", "nbd") == -1 ||
+     nbd_pread (nbd, buf, sizeof buf, 0) == -1)
    fprintf (stderr, "%s\n", nbd_get_error ());
    exit (EXIT_FAILURE);
  }
- if (nbd_connect_tcp (nbd, "server.example.com", "nbd") == -1)
-   goto error;
- if (nbd_pread (nbd, buf, sizeof buf, 0) == -1)
-   goto error;
  nbd_close (nbd);
 
  cc prog.c -o prog -lnbd
