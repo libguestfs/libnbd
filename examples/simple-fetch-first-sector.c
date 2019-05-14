@@ -7,8 +7,8 @@
  *
  * This will read the first sector (512 bytes) from the NBD server and
  * write it to the local file 'sector'.  nbdkit-pattern-plugin
- * contains a simple regular which you can use to check the data read
- * is correct.
+ * contains a simple regular pattern which you can use to check the
+ * data read is correct.
  */
 
 #include <stdio.h>
