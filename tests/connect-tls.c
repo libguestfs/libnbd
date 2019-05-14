@@ -75,13 +75,13 @@ main (int argc, char *argv[])
   /* Run nbdkit as a subprocess. */
   snprintf (cmd, sizeof cmd,
             "nbdkit -s --exit-with-parent"
-            " --tls=require"
+            " --tls=require --tls-verify-peer"
             " pattern size=1M"
 #if CERTS
-            " --tls-certificates=%s --tls-verify-peer",
+            " --tls-certificates=%s",
             path
 #elif PSK
-            " --tls-psk=%s --tls-verify-peer",
+            " --tls-psk=%s",
             path
 #endif
             );
