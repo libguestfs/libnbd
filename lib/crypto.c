@@ -449,11 +449,14 @@ set_up_certificate_credentials (struct nbd_connection *conn,
         goto found_certificates;
     }
   }
-  set_error (EINVAL,
-             "TLS requested, "
-             "but certificates directory nor PSK was specified, "
-             "this is probably a programming error in your application");
-  goto error;
+
+  /* As a last resort, try to use the system CAs. */
+  err = gnutls_certificate_set_x509_system_trust (ret);
+  if (err < 0) {
+    set_error (0, "gnutls_certificate_set_x509_system_trust: %s",
+               gnutls_strerror (err));
+    goto error;
+  }
 
  found_certificates:
   if (conn->hostname && conn->h->tls_verify_peer)

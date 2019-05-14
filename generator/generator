@@ -500,7 +500,9 @@ Get the current TLS setting.  See C<nbd_set_tls>.";
 Set the path to the TLS certificates directory.  If not
 set and TLS is used then a compiled in default is used.
 For root this is C</etc/pki/libnbd/>.  For non-root this is
-C<$HOME/.pki/libnbd> and C<$HOME/.config/pki/libnbd>.";
+C<$HOME/.pki/libnbd> and C<$HOME/.config/pki/libnbd>.  If
+none of these directories can be found then the system
+trusted CAs are used.";
   };
 
 (* Can't implement this because we need a way to return string that
