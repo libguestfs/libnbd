@@ -335,6 +335,12 @@ on write-like calls (like write, trim and zero).  This flag means the
 call will not complete until committed to permanent storage, but it
 does not involve flushing the entire disk.
 
+=item prefetching
+
+Some servers can prefetch data, making subsequent reads faster.  The
+C<nbd_cache> call (availableif C<nbd_can_cache> returns true) is used
+to prefetch.
+
 =back
 
 =head1 SEE ALSO
