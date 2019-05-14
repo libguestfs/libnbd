@@ -1254,6 +1254,8 @@ let generate_lib_states_c () =
       pr "      r = enter_STATE_%s (h, conn, &blocked);\n" name;
       pr "      break;\n"
   ) states;
+  pr "    default:\n";
+  pr "      abort (); /* Should never happen, but keeps GCC happy. */\n";
   pr "    }\n";
   pr "\n";
   pr "    if (r == -1) return -1;\n";
