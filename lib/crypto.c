@@ -547,14 +547,24 @@ int
 nbd_internal_crypto_handshake (struct nbd_connection *conn)
 {
   int err;
+  gnutls_handshake_description_t in, out;
+  const gnutls_session_t session = conn->sock->u.tls.session;
 
-  assert (conn->sock->u.tls.session);
-  err = gnutls_handshake (conn->sock->u.tls.session);
+  assert (session);
+  err = gnutls_handshake (session);
   if (err == 0)
     return 0;
   if (!gnutls_error_is_fatal (err))
     return 1;
-  set_error (0, "gnutls_handshake: %s", gnutls_strerror (err));
+
+  /* Get some additional debug information about where in the
+   * handshake protocol it failed.  You have to look up these codes in
+   * <gnutls/gnutls.h>.
+   */
+  in = gnutls_handshake_get_last_in (session);
+  out = gnutls_handshake_get_last_out (session);
+  set_error (0, "gnutls_handshake: %s (%d/%d)",
+             gnutls_strerror (err), (int) in, (int) out);
   return -1;
 }
 
