@@ -66,6 +66,7 @@ nbd_unlocked_set_tls_certificates (struct nbd_handle *h, const char *dir)
     set_error (errno, "strdup");
     return -1;
   }
+  free (h->tls_certificates);
   h->tls_certificates = new_dir;
   return 0;
 }
@@ -93,6 +94,7 @@ nbd_unlocked_set_tls_username (struct nbd_handle *h, const char *username)
     set_error (errno, "strdup");
     return -1;
   }
+  free (h->tls_username);
   h->tls_username = new_user;
   return 0;
 }
@@ -135,6 +137,7 @@ nbd_unlocked_set_tls_psk_file (struct nbd_handle *h, const char *filename)
     set_error (errno, "strdup");
     return -1;
   }
+  free (h->tls_psk_file);
   h->tls_psk_file = new_file;
   return 0;
 }

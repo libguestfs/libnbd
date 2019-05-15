@@ -142,7 +142,11 @@ nbd_close (struct nbd_handle *h)
 
   for (i = 0; i < h->multi_conn; ++i)
     close_conn (h->conns[i]);
+  free (h->conns);
   free (h->export_name);
+  free (h->tls_certificates);
+  free (h->tls_username);
+  free (h->tls_psk_file);
   pthread_mutex_destroy (&h->lock);
   free (h);
 }
