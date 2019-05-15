@@ -1,17 +1,56 @@
-NBD client library in userspace
+NBD — Network Block Device — is a protocol for accessing Block Devices
+(hard disks and disk-like things) over a Network.
+
+This is the NBD client library in userspace, a simple library for
+writing NBD clients.
+
+The key features are:
+
+ * Synchronous and asynchronous APIs, both for ease of use and for
+   writing non-blocking, multithreaded clients.
+
+ * High performance.
+
+ * Minimal dependencies for the basic library.
+
+ * Well-documented, stable API.
+
+ * Bindings in several programming languages.
+
+For documentation, see the ‘docs/’ and ‘examples/’ subdirectories.
+
+
+LICENSE
+=======
+
+The software is copyright © Red Hat Inc. and licensed under the GNU
+Lesser General Public License version 2 or above (LGPLv2+).  See
+‘LICENSE’ for details.
+
+
+BUILDING FROM SOURCE
+====================
 
 To build from git:
 
   autoreconf -i
-  ./generator/generator
   ./configure
   make
   make check
-  make check-valgrind  # optionally
+
+To build from tarball:
+
+  ./configure
+  make
+  make check
+
+To run the tests under valgrind:
+
+  make check-valgrind
 
 Requirements:
 
- * Probably only a C compiler is required.
+ * Only a C compiler, make, shell are required.
 
 Optional:
 
@@ -35,3 +74,38 @@ Optional:
  * psktool and certtool (part of GnuTLS) for testing TLS support.
 
  * valgrind if you want to run the tests under valgrind.
+
+
+DOWNLOAD TARBALLS
+=================
+
+Tarballs are available from:
+http://libguestfs.org/download/libnbd
+
+
+DEVELOPERS
+==========
+
+Install the valgrind program and development headers.
+
+Use:
+
+    ./configure --enable-gcc-warnings
+
+When testing use:
+
+    make check
+    make check-valgrind
+
+For development ideas, see the TODO file.
+
+The upstream git repository is:
+https://github.com/libguestfs/libnbd
+
+Please send patches to the libguestfs mailing list:
+https://www.redhat.com/mailman/listinfo/libguestfs
+
+For further information, see:
+http://libguestfs.org/
+https://github.com/NetworkBlockDevice/nbd/blob/master/doc/proto.md
+https://github.com/libguestfs/nbdkit
