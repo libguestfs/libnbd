@@ -46,6 +46,7 @@ main (int argc, char *argv[])
   char cmd[256];
 #endif
   int64_t actual_size;
+  char buf[512];
   int r = -1;
 
   /* Create a large sparse temporary file. */
@@ -139,7 +140,12 @@ main (int argc, char *argv[])
     goto out;
   }
 
-  /* XXX In future test other operations here like reading and writing. */
+  if (nbd_pread (nbd, buf, sizeof buf, 0) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    goto out;
+  }
+
+  /* XXX In future test more operations here. */
 
 #if !CERTS && !PSK
   /* XXX qemu doesn't shut down the connection nicely (using
