@@ -44,11 +44,8 @@ check_PROGRAMS += \
 	interop-qemu-nbd-tls-psk
 TESTS += \
 	interop-qemu-nbd \
-	interop-qemu-nbd-tls-certs
-
-# This runs fine, but fails during disconnect, apparently because
-# qemu-nbd doesn't shut down the TLS connection?  Needs investigation XXX
-#	interop-qemu-nbd-tls-psk
+	interop-qemu-nbd-tls-certs \
+	interop-qemu-nbd-tls-psk
 
 interop_qemu_nbd_SOURCES = interop.c
 interop_qemu_nbd_CPPFLAGS = \

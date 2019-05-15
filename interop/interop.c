@@ -141,10 +141,19 @@ main (int argc, char *argv[])
 
   /* XXX In future test other operations here like reading and writing. */
 
+#if !CERTS && !PSK
+  /* XXX qemu doesn't shut down the connection nicely (using
+   * gnutls_bye) and because of this the following call will fail
+   * with:
+   *
+   * nbd_shutdown: gnutls_record_recv: The TLS connection was
+   * non-properly terminated.
+   */
   if (nbd_shutdown (nbd) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto out;
   }
+#endif
 
   nbd_close (nbd);
 
