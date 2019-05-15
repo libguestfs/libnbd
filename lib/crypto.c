@@ -402,7 +402,7 @@ load_certificates (const char *path, gnutls_certificate_credentials_t *ret)
 
 static gnutls_certificate_credentials_t
 set_up_certificate_credentials (struct nbd_connection *conn,
-                                gnutls_session_t session)
+                                gnutls_session_t session, bool *is_error)
 {
   int err;
   gnutls_certificate_credentials_t ret = NULL;
@@ -450,13 +450,9 @@ set_up_certificate_credentials (struct nbd_connection *conn,
     }
   }
 
-  /* As a last resort, try to use the system CAs. */
-  err = gnutls_certificate_set_x509_system_trust (ret);
-  if (err < 0) {
-    set_error (0, "gnutls_certificate_set_x509_system_trust: %s",
-               gnutls_strerror (err));
-    goto error;
-  }
+  /* Not found. */
+  free (path);
+  return NULL;
 
  found_certificates:
   if (conn->hostname && conn->h->tls_verify_peer)
@@ -474,7 +470,45 @@ set_up_certificate_credentials (struct nbd_connection *conn,
  error:
   gnutls_certificate_free_credentials (ret);
   free (path);
+  *is_error = true;
   return NULL;
+}
+
+static gnutls_certificate_credentials_t
+set_up_system_CA (struct nbd_connection *conn, gnutls_session_t session)
+{
+  int err;
+  gnutls_certificate_credentials_t ret = NULL;
+
+  err = gnutls_priority_set_direct (session, TLS_PRIORITY, NULL);
+  if (err < 0) {
+    set_error (0, "gnutls_priority_set_direct: %s", gnutls_strerror (err));
+    return NULL;
+  }
+
+  err = gnutls_certificate_allocate_credentials (&ret);
+  if (err < 0) {
+    set_error (0, "gnutls_certificate_allocate_credentials: %s",
+               gnutls_strerror (err));
+    return NULL;
+  }
+
+  err = gnutls_certificate_set_x509_system_trust (ret);
+  if (err < 0) {
+    set_error (0, "gnutls_certificate_set_x509_system_trust: %s",
+               gnutls_strerror (err));
+    gnutls_certificate_free_credentials (ret);
+    return NULL;
+  }
+
+  err = gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, ret);
+  if (err < 0) {
+    set_error (0, "gnutls_credentials_set: %s", gnutls_strerror (err));
+    gnutls_certificate_free_credentials (ret);
+    return NULL;
+  }
+
+  return ret;
 }
 
 /* Called from the state machine after receiving an ACK from
@@ -517,8 +551,19 @@ nbd_internal_crypto_create_session (struct nbd_connection *conn,
     }
   }
   else {
-    xcreds = set_up_certificate_credentials (conn, session);
+    bool is_error = false;
+
+    xcreds = set_up_certificate_credentials (conn, session, &is_error);
     if (xcreds == NULL) {
+      if (!is_error) {
+        /* Fallback case: use system CA. */
+        xcreds = set_up_system_CA (conn, session);
+        if (xcreds == NULL)
+          is_error = true;
+      }
+    }
+
+    if (is_error) {
       gnutls_deinit (session);
       return NULL;
     }
