@@ -462,6 +462,12 @@ set_up_certificate_credentials (struct nbd_connection *conn,
   if (conn->hostname && conn->h->tls_verify_peer)
     gnutls_session_set_verify_cert (session, conn->hostname, 0);
 
+  err = gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, ret);
+  if (err < 0) {
+    set_error (0, "gnutls_credentials_set: %s", gnutls_strerror (err));
+    goto error;
+  }
+
   free (path);
   return ret;
 
