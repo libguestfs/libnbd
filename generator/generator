@@ -296,7 +296,7 @@ let states = [
   "PREPARE_FOR_REPLY", {
     default_state with
     comment = "Prepare to receive a reply from the remote server";
-    external_events = [];
+    external_events = [ NotifyRead, "" ];
   };
 
   "RECV_REPLY", {

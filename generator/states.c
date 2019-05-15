@@ -717,12 +717,17 @@ send_from_wbuf (struct nbd_connection *conn)
 
   r = conn->sock->ops->recv (conn->sock, conn->rbuf, conn->rlen);
   if (r == -1) {
-    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-      SET_NEXT_STATE (%RECV_REPLY);
+    /* This should never happen because when we enter this state we
+     * should have notification that the socket is ready to read.
+     * However if for some reason it does happen, ignore it - we will
+     * reenter this same state again next time the socket is ready to
+     * read.
+     */
+    if (errno == EAGAIN || errno == EWOULDBLOCK)
       return 0;
-    }
-    SET_NEXT_STATE (%DEAD);
+
     /* sock->ops->recv called set_error already. */
+    SET_NEXT_STATE (%DEAD);
     return -1;
   }
   if (r == 0) {
