@@ -40,7 +40,7 @@ main (int argc, char *argv[])
   unlink (PIDFILE);
 
   /* Pick a port at random, hope it's free. */
-  srand (time (NULL));
+  srand (time (NULL) + getpid ());
   port = 32768 + (rand () & 32767);
 
   snprintf (port_str, sizeof port_str, "%d", port);
