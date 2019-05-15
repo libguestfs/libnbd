@@ -52,8 +52,9 @@ check_PROGRAMS = \
 
 # Make sure that $srcdir is available to tests.
 # Enable debug in all tests.
+TESTS_ENVIRONMENT = srcdir=$(srcdir) LIBNBD_DEBUG=1
 # Use the ./run script so we're always using the local library and tools.
-TESTS_ENVIRONMENT = srcdir=$(srcdir) LIBNBD_DEBUG=1 $(top_builddir)/run
+LOG_COMPILER = $(top_builddir)/run
 
 TESTS = \
 	errors \
@@ -235,3 +236,6 @@ distclean-local-tls:
 	rm -rf pki
 
 endif HAVE_NBDKIT
+
+check-valgrind:
+	LIBNBD_VALGRIND=1 $(MAKE) check

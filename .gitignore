@@ -83,3 +83,4 @@ Makefile.in
 /tests/pki/
 /tests/read-only-flag
 /tests/read-write-flag
+/valgrind/suppressions

@@ -6,6 +6,8 @@ To build from git:
   ./generator/generator
   ./configure
   make
+  make check
+  make check-valgrind  # optionally
 
 Requirements:
 
@@ -31,3 +33,5 @@ Optional:
  * Python >= 3.3 to build the Python 3 bindings and NBD shell (nbdsh).
 
  * psktool and certtool (part of GnuTLS) for testing TLS support.
+
+ * valgrind if you want to run the tests under valgrind.

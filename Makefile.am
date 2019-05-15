@@ -29,6 +29,7 @@ SUBDIRS = \
 	lib \
 	docs \
 	examples \
+	valgrind \
 	tests \
 	python \
 	sh \
@@ -48,6 +49,14 @@ maintainer-check-extra-dist:
 	@[ ! -s comm-out ]
 	@rm tarfiles gitfiles comm-out
 	@echo PASS: EXTRA_DIST tests
+
+check-valgrind:
+	@for d in tests interop; do \
+	    $(MAKE) -C $$d check-valgrind || exit 1; \
+	done
+
+#----------------------------------------------------------------------
+# Maintainers only!
 
 # Commit everything in the current directory and set the commit
 # message to the current version number.

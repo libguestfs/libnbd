@@ -17,7 +17,8 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 $(top_builddir)/run
+TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
+LOG_COMPILER = $(top_builddir)/run
 check_PROGRAMS =
 TESTS =
 
@@ -82,3 +83,6 @@ interop_qemu_nbd_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
 interop_qemu_nbd_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_QEMU_NBD
+
+check-valgrind:
+	LIBNBD_VALGRIND=1 $(MAKE) check

@@ -17,51 +17,16 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
-CLEANFILES += *.pyc
+suppressions_files = $(wildcard $(srcdir)/*.suppressions)
 
-clean-local:
-	-rm -rf __pycache__
+EXTRA_DIST = $(suppressions_files)
 
-generator_built = \
-	libnbdmod.c \
-	methods.c \
-	methods.h \
-	nbd.py
+noinst_DATA = suppressions
 
-EXTRA_DIST = \
-	$(generator_built) \
-	t/*.py
+suppressions: $(suppressions_files)
+	rm -f $@ $@-t
+	cat $^ > $@-t
+	mv $@-t $@
+	chmod 0444 $@
 
-if HAVE_PYTHON
-
-pythondir = $(PYTHON_INSTALLDIR)
-python_DATA = nbd.py
-
-python_LTLIBRARIES = libnbdmod.la
-
-BUILT_SOURCES = $(generator_built)
-
-libnbdmod_la_SOURCES = \
-	handle.c \
-	libnbdmod.c \
-	methods.c \
-	methods.h
-libnbdmod_la_CPPFLAGS = \
-	$(PYTHON_CFLAGS) \
-	-I$(top_srcdir)/include
-libnbdmod_la_CFLAGS = \
-	$(WARNINGS_CFLAGS)
-libnbdmod_la_LIBADD = \
-	$(top_builddir)/lib/libnbd.la
-libnbdmod_la_LDFLAGS = \
-	-avoid-version -shared -module -shrext $(PYTHON_EXT_SUFFIX)
-
-if HAVE_NBDKIT
-
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
-LOG_COMPILER = $(top_builddir)/run
-TESTS = run-python-tests
-
-endif HAVE_NBDKIT
-
-endif HAVE_PYTHON
+DISTCLEANFILES = suppressions

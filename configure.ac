@@ -229,6 +229,7 @@ AC_CONFIG_FILES([Makefile
                  lib/libnbd.pc
                  python/Makefile
                  sh/Makefile
-                 tests/Makefile])
+                 tests/Makefile
+                 valgrind/Makefile])
 
 AC_OUTPUT
