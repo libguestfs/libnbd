@@ -68,6 +68,28 @@ main (int argc, char *argv[])
     goto out;
   }
 
+#if CERTS || PSK
+  /* Require TLS on the handle and fail if not available or if the
+   * handshake fails.
+   */
+  if (nbd_set_tls (nbd, 2) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+#endif
+
+#if CERTS
+  if (nbd_set_tls_certificates (nbd, "../tests/pki") == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+#elif PSK
+  if (nbd_set_tls_psk_file (nbd, "../tests/keys.psk") == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+#endif
+
 #ifdef SERVE_OVER_TCP
   /* Pick a port at random, hope it's free. */
   srand (time (NULL) + getpid ());

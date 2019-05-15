@@ -35,6 +35,8 @@ Makefile.in
 /include/libnbd.h
 /interop/interop-nbd-server
 /interop/interop-qemu-nbd
+/interop/interop-qemu-nbd-tls-certs
+/interop/interop-qemu-nbd-tls-psk
 /lib/api.c
 /lib/libnbd.pc
 /lib/libnbd.syms

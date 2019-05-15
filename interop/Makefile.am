@@ -38,8 +38,17 @@ endif HAVE_NBD_SERVER
 
 if HAVE_QEMU_NBD
 
-check_PROGRAMS += interop-qemu-nbd
-TESTS += interop-qemu-nbd
+check_PROGRAMS += \
+	interop-qemu-nbd \
+	interop-qemu-nbd-tls-certs \
+	interop-qemu-nbd-tls-psk
+TESTS += \
+	interop-qemu-nbd \
+	interop-qemu-nbd-tls-certs
+
+# This runs fine, but fails during disconnect, apparently because
+# qemu-nbd doesn't shut down the TLS connection?  Needs investigation XXX
+#	interop-qemu-nbd-tls-psk
 
 interop_qemu_nbd_SOURCES = interop.c
 interop_qemu_nbd_CPPFLAGS = \
@@ -50,5 +59,29 @@ interop_qemu_nbd_CPPFLAGS = \
 	-DEXPORT_NAME='"/"'
 interop_qemu_nbd_CFLAGS = $(WARNINGS_CFLAGS)
 interop_qemu_nbd_LDADD = $(top_builddir)/lib/libnbd.la
+
+# qemu-nbd requires absolute path to dir
+interop_qemu_nbd_tls_certs_SOURCES = interop.c
+interop_qemu_nbd_tls_certs_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVE_OVER_TCP=1 \
+	-DSERVER=\"$(QEMU_NBD)\" \
+	-DSERVER_PARAMS='"--object", "tls-creds-x509,id=tls0,endpoint=server,dir=$(abs_top_builddir)/tests/pki", "--tls-creds", "tls0", "-f", "raw", "-x", "/", "-p", port_str, tmpfile' \
+	-DEXPORT_NAME='"/"' \
+	-DCERTS=1
+interop_qemu_nbd_tls_certs_CFLAGS = $(WARNINGS_CFLAGS)
+interop_qemu_nbd_tls_certs_LDADD = $(top_builddir)/lib/libnbd.la
+
+# qemu-nbd requires absolute path to dir
+interop_qemu_nbd_tls_psk_SOURCES = interop.c
+interop_qemu_nbd_tls_psk_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVE_OVER_TCP=1 \
+	-DSERVER=\"$(QEMU_NBD)\" \
+	-DSERVER_PARAMS='"--object", "tls-creds-psk,id=tls0,endpoint=server,dir=$(abs_top_builddir)/tests", "--tls-creds", "tls0", "-f", "raw", "-x", "/", "-p", port_str, tmpfile' \
+	-DEXPORT_NAME='"/"' \
+	-DPSK=1
+interop_qemu_nbd_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
+interop_qemu_nbd_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_QEMU_NBD
