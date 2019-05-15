@@ -32,19 +32,8 @@ int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
-  const char *srcdir;
-  char path[256], cmd[512], buf[512];
+  char cmd[128], buf[512];
   int64_t actual_size;
-
-  srcdir = getenv ("srcdir");
-  if (!srcdir)
-    srcdir = ".";
-
-#if CERTS
-  snprintf (path, sizeof path, "%s/pki", srcdir);
-#elif PSK
-  snprintf (path, sizeof path, "%s/keys.psk", srcdir);
-#endif
 
   nbd = nbd_create ();
   if (nbd == NULL) {
@@ -61,12 +50,12 @@ main (int argc, char *argv[])
   }
 
 #if CERTS
-  if (nbd_set_tls_certificates (nbd, path) == -1) {
+  if (nbd_set_tls_certificates (nbd, "pki") == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 #elif PSK
-  if (nbd_set_tls_psk_file (nbd, path) == -1) {
+  if (nbd_set_tls_psk_file (nbd, "keys.psk") == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -76,14 +65,12 @@ main (int argc, char *argv[])
   snprintf (cmd, sizeof cmd,
             "nbdkit -s --exit-with-parent"
             " --tls=require --tls-verify-peer"
-            " pattern size=1M"
 #if CERTS
-            " --tls-certificates=%s",
-            path
+            " --tls-certificates=pki"
 #elif PSK
-            " --tls-psk=%s",
-            path
+            " --tls-psk=keys.psk"
 #endif
+            " pattern size=1M"
             );
 
   if (nbd_connect_command (nbd, cmd) == -1) {
