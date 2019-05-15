@@ -492,6 +492,17 @@ nbd_internal_crypto_create_session (struct nbd_connection *conn,
     return NULL;
   }
 
+  /* If we have the server name, pass SNI. */
+  if (conn->hostname) {
+    err = gnutls_server_name_set (session, GNUTLS_NAME_DNS,
+                                  conn->hostname, strlen (conn->hostname));
+    if (err < 0) {
+      set_error (errno, "gnutls_server_name_set: %s", gnutls_strerror (err));
+      gnutls_deinit (session);
+      return NULL;
+    }
+  }
+
   if (conn->h->tls_psk_file) {
     pskcreds = set_up_psk_credentials (conn, session);
     if (pskcreds == NULL) {
