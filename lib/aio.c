@@ -28,6 +28,10 @@
 int
 nbd_unlocked_aio_get_fd (struct nbd_connection *conn)
 {
+  if (!conn->sock) {
+    set_error (EINVAL, "connection is not in a connected state");
+    return -1;
+  }
   return conn->sock->ops->get_fd (conn->sock);
 }
 
