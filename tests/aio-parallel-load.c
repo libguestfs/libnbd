@@ -284,7 +284,6 @@ start_thread (void *arg)
         goto error;
       }
       handles[in_flight] = handle;
-      i--;
       in_flight++;
       if (in_flight > status->most_in_flight)
         status->most_in_flight = in_flight;
@@ -300,7 +299,6 @@ start_thread (void *arg)
       if (r) {
         memmove (&handles[i], &handles[i+1],
                  sizeof (handles[0]) * (in_flight - i - 1));
-        i--;
         in_flight--;
         status->requests++;
       }
