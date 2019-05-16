@@ -214,6 +214,36 @@ let states = [
     external_events = [ NotifyWrite, "" ];
   };
 
+  "TRY_NEWSTYLE_OPT_STRUCTURED_REPLY", {
+    default_state with
+    comment = "Try to negotiate newstyle NBD_OPT_STRUCTURED_REPLY";
+    external_events = [];
+  };
+
+  "SEND_NEWSTYLE_OPT_STRUCTURED_REPLY", {
+    default_state with
+    comment = "Send newstyle NBD_OPT_STRUCTURED_REPLY negotiation request";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  "RECV_NEWSTYLE_OPT_STRUCTURED_REPLY", {
+    default_state with
+    comment = "Receive newstyle NBD_OPT_STRUCTURED_REPLY option reply";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "SKIP_NEWSTYLE_OPT_STRUCTURED_REPLY_PAYLOAD", {
+    default_state with
+    comment = "Skip newstyle NBD_OPT_STRUCTURED_REPLY reply payload";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "CHECK_NEWSTYLE_OPT_STRUCTURED_REPLY", {
+    default_state with
+    comment = "Check newstyle NBD_OPT_STRUCTURED_REPLY option reply";
+    external_events = [];
+  };
+
   "TRY_NEWSTYLE_OPT_GO", {
     default_state with
     comment = "Try to send newstyle NBD_OPT_GO to end handshake";
@@ -305,9 +335,63 @@ let states = [
     external_events = [ NotifyRead, "" ];
   };
 
-  "RECV_READ_PAYLOAD", {
+  "CHECK_SIMPLE_OR_STRUCTURED_REPLY", {
     default_state with
-    comment = "Receiving the read payload from the remote server";
+    comment = "Check if the reply is a simple or structured reply";
+    external_events = [];
+  };
+
+  "CHECK_SIMPLE_REPLY", {
+    default_state with
+    comment = "Parse a simple reply from the server";
+    external_events = [];
+  };
+
+  "RECV_SIMPLE_READ_PAYLOAD", {
+    default_state with
+    comment = "Receiving the read payload for a simple reply";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "RECV_STRUCTURED_REPLY_REMAINDER", {
+    default_state with
+    comment = "Receiving the remaining part of a structured reply";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "CHECK_STRUCTURED_REPLY", {
+    default_state with
+    comment = "Parse a structured reply from the server";
+    external_events = [];
+  };
+
+  "RECV_STRUCTURED_REPLY_ERROR", {
+    default_state with
+    comment = "Receive a structured reply error header";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "RECV_STRUCTURED_REPLY_ERROR_MESSAGE", {
+    default_state with
+    comment = "Receive a structured reply error message";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "RECV_STRUCTURED_REPLY_OFFSET_DATA", {
+    default_state with
+    comment = "Receive a structured reply offset-data header";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "RECV_STRUCTURED_REPLY_OFFSET_DATA_DATA", {
+    default_state with
+    comment = "Receive a structured reply offset-data block of data";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  "RECV_STRUCTURED_REPLY_OFFSET_HOLE", {
+    default_state with
+    comment = "Receive a structured reply offset-hole header";
     external_events = [ NotifyRead, "" ];
   };
 

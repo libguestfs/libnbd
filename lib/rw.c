@@ -246,9 +246,9 @@ command_common (struct nbd_connection *conn,
     break;
   }
 
-  cmd = malloc (sizeof *cmd);
+  cmd = calloc (1, sizeof *cmd);
   if (cmd == NULL) {
-    set_error (errno, "malloc");
+    set_error (errno, "calloc");
     return NULL;
   }
   cmd->flags = flags;

@@ -185,6 +185,11 @@ struct nbd_structured_reply_offset_data {
   /* Followed by data. */
 } __attribute__((packed));
 
+struct nbd_structured_reply_offset_hole {
+  uint64_t offset;
+  uint32_t length;              /* Length of hole. */
+} __attribute__((packed));
+
 struct nbd_structured_reply_error {
   uint32_t error;               /* NBD_E* error number */
   uint16_t len;                 /* Length of human readable error. */

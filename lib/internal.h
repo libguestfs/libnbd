@@ -92,6 +92,8 @@ struct nbd_connection {
 
   enum state state;             /* State machine. */
 
+  bool structured_replies;      /* If we negotiated NBD_OPT_STRUCTURED_REPLY */
+
   /* The socket or a wrapper if using GnuTLS. */
   struct socket *sock;
 
@@ -120,6 +122,14 @@ struct nbd_connection {
     } or;
     struct nbd_request request;
     struct nbd_simple_reply simple_reply;
+    struct {
+      struct nbd_structured_reply structured_reply;
+      union {
+        struct nbd_structured_reply_offset_data offset_data;
+        struct nbd_structured_reply_offset_hole offset_hole;
+        struct nbd_structured_reply_error error;
+      } payload;
+    } sr;
     uint32_t cflags;
     uint32_t len;
     uint16_t nrinfos;

@@ -373,20 +373,13 @@ send_from_wbuf (struct nbd_connection *conn)
   switch (send_from_wbuf (conn)) {
   case -1: SET_NEXT_STATE (%DEAD); return -1;
   case 0:
-    /* Start sending options.  NBD_OPT_STARTTLS must be sent first,
-     * NBD_OPT_GO must be sent last.
-     */
-    if (h->tls) {
+    /* Start sending options.  NBD_OPT_STARTTLS must be sent first. */
+    if (h->tls)
       SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_STARTTLS);
-    }
-    else {
-      // SET_NEXT_STATE (%-TRY_NEWSTYLE_OPT_STRUCTURED_REPLY);
-      SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_GO);
-    }
+    else
+      SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_STRUCTURED_REPLY);
   }
   return 0;
-
-  // TRY_NEWSTYLE_OPT_STRUCTURED_REPLY:
 
  TRY_NEWSTYLE_OPT_STARTTLS:
   conn->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
@@ -462,8 +455,7 @@ send_from_wbuf (struct nbd_connection *conn)
     debug (conn->h,
            "server refused TLS (%s), continuing with unencrypted connection",
            reply == NBD_REP_ERR_POLICY ? "policy" : "not supported");
-    // SET_NEXT_STATE (%-TRY_NEWSTYLE_OPT_STRUCTURED_REPLY);
-    SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_GO);
+    SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_STRUCTURED_REPLY);
     return 0;
   }
   return 0;
@@ -481,8 +473,7 @@ send_from_wbuf (struct nbd_connection *conn)
     nbd_internal_crypto_debug_tls_enabled (conn);
 
     /* Continue with option negotiation. */
-    // SET_NEXT_STATE (%-TRY_NEWSTYLE_OPT_STRUCTURED_REPLY);
-    SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_GO);
+    SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_STRUCTURED_REPLY);
     return 0;
   }
   /* Continue handshake. */
@@ -505,8 +496,7 @@ send_from_wbuf (struct nbd_connection *conn)
     debug (conn->h, "connection is using TLS");
 
     /* Continue with option negotiation. */
-    // SET_NEXT_STATE (%-TRY_NEWSTYLE_OPT_STRUCTURED_REPLY);
-    SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_GO);
+    SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_STRUCTURED_REPLY);
     return 0;
   }
   /* Continue handshake. */
@@ -516,13 +506,81 @@ send_from_wbuf (struct nbd_connection *conn)
     SET_NEXT_STATE (%TLS_HANDSHAKE_WRITE);
   return 0;
 
+ TRY_NEWSTYLE_OPT_STRUCTURED_REPLY:
+  conn->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
+  conn->sbuf.option.option = htobe32 (NBD_OPT_STRUCTURED_REPLY);
+  conn->sbuf.option.optlen = htobe32 (0);
+  conn->wbuf = &conn->sbuf;
+  conn->wlen = sizeof conn->sbuf.option;
+  SET_NEXT_STATE (%SEND_NEWSTYLE_OPT_STRUCTURED_REPLY);
+  return 0;
+
+ SEND_NEWSTYLE_OPT_STRUCTURED_REPLY:
+  switch (send_from_wbuf (conn)) {
+  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case 0:
+    conn->rbuf = &conn->sbuf;
+    conn->rlen = sizeof conn->sbuf.or.option_reply;
+    SET_NEXT_STATE (%RECV_NEWSTYLE_OPT_STRUCTURED_REPLY);
+  }
+  return 0;
+
+ RECV_NEWSTYLE_OPT_STRUCTURED_REPLY:
+  uint32_t len;
+
+  switch (recv_into_rbuf (conn)) {
+  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case 0:
+    /* Discard the payload if there is one. */
+    len = be32toh (conn->sbuf.or.option_reply.replylen);
+    conn->rbuf = NULL;
+    conn->rlen = len;
+    SET_NEXT_STATE (%SKIP_NEWSTYLE_OPT_STRUCTURED_REPLY_PAYLOAD);
+  }
+  return 0;
+
+ SKIP_NEWSTYLE_OPT_STRUCTURED_REPLY_PAYLOAD:
+  switch (recv_into_rbuf (conn)) {
+  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case 0:  SET_NEXT_STATE (%CHECK_NEWSTYLE_OPT_STRUCTURED_REPLY);
+  }
+  return 0;
+
+ CHECK_NEWSTYLE_OPT_STRUCTURED_REPLY:
+  uint64_t magic;
+  uint32_t option;
+  uint32_t reply;
+
+  magic = be64toh (conn->sbuf.or.option_reply.magic);
+  option = be32toh (conn->sbuf.or.option_reply.option);
+  reply = be32toh (conn->sbuf.or.option_reply.reply);
+  if (magic != NBD_REP_MAGIC || option != NBD_OPT_STRUCTURED_REPLY) {
+    SET_NEXT_STATE (%DEAD);
+    set_error (0, "handshake: invalid option reply magic or option");
+    return -1;
+  }
+  switch (reply) {
+  case NBD_REP_ACK:
+    debug (conn->h, "negotiated structured replies on this connection");
+    conn->structured_replies = true;
+    break;
+  default:
+    debug (conn->h, "structured replies are not supported by this server");
+    conn->structured_replies = false;
+    break;
+  }
+
+  /* Next option. */
+  SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_GO);
+  return 0;
+
  TRY_NEWSTYLE_OPT_GO:
   conn->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   conn->sbuf.option.option = htobe32 (NBD_OPT_GO);
   conn->sbuf.option.optlen =
     htobe32 (/* exportnamelen */ 4 + strlen (h->export_name) + /* nrinfos */ 2);
   conn->wbuf = &conn->sbuf;
-  conn->wlen = sizeof (conn->sbuf.option);
+  conn->wlen = sizeof conn->sbuf.option;
   SET_NEXT_STATE (%SEND_NEWSTYLE_OPT_GO);
   return 0;
 
@@ -565,7 +623,7 @@ send_from_wbuf (struct nbd_connection *conn)
   case -1: SET_NEXT_STATE (%DEAD); return -1;
   case 0:
     conn->rbuf = &conn->sbuf;
-    conn->rlen = sizeof (conn->sbuf.or.option_reply);
+    conn->rlen = sizeof conn->sbuf.or.option_reply;
     SET_NEXT_STATE (%RECV_NEWSTYLE_OPT_GO_REPLY);
   }
   return 0;
@@ -708,6 +766,10 @@ send_from_wbuf (struct nbd_connection *conn)
    */
   ssize_t r;
 
+  /* We read all replies initially as if they are simple replies, but
+   * check the magic in CHECK_SIMPLE_OR_STRUCTURED_REPLY below.
+   * This works because the structured_reply header is larger.
+   */
   conn->rbuf = &conn->sbuf;
   conn->rlen = sizeof conn->sbuf.simple_reply;
 
@@ -737,60 +799,358 @@ send_from_wbuf (struct nbd_connection *conn)
   return 0;
 
  RECV_REPLY:
-  struct command_in_flight *cmd;
-
   switch (recv_into_rbuf (conn)) {
   case -1: SET_NEXT_STATE (%DEAD); return -1;
-  case 0:
-    conn->sbuf.simple_reply.magic = be32toh (conn->sbuf.simple_reply.magic);
-    conn->sbuf.simple_reply.error = be32toh (conn->sbuf.simple_reply.error);
-    conn->sbuf.simple_reply.handle = be64toh (conn->sbuf.simple_reply.handle);
-
-    if (conn->sbuf.simple_reply.magic != NBD_SIMPLE_REPLY_MAGIC) {
-      SET_NEXT_STATE (%DEAD); /* We've probably lost synchronization. */
-      set_error (0, "handshake: invalid reply magic");
-      return -1;
-    }
-
-    /* Find the command amongst the commands in flight. */
-    for (cmd = conn->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
-      if (cmd->handle == conn->sbuf.simple_reply.handle)
-        break;
-    }
-    if (cmd == NULL) {
-      SET_NEXT_STATE (%READY);
-      set_error (0, "handshake: no matching handle found for server reply, this is probably a bug in the server");
-      return -1;
-    }
-
-    cmd->error = conn->sbuf.simple_reply.error;
-    if (cmd->error == 0 && cmd->type == NBD_CMD_READ) {
-      conn->rbuf = cmd->data;
-      conn->rlen = cmd->count;
-      SET_NEXT_STATE (%RECV_READ_PAYLOAD);
-    }
-    else {
-      SET_NEXT_STATE (%FINISH_COMMAND);
-    }
+  case 0: SET_NEXT_STATE (%CHECK_SIMPLE_OR_STRUCTURED_REPLY);
   }
   return 0;
 
- RECV_READ_PAYLOAD:
+ CHECK_SIMPLE_OR_STRUCTURED_REPLY:
+  uint32_t magic;
+
+  magic = be32toh (conn->sbuf.simple_reply.magic);
+  if (magic == NBD_SIMPLE_REPLY_MAGIC) {
+    SET_NEXT_STATE (%CHECK_SIMPLE_REPLY);
+    return 0;
+  }
+  else if (magic == NBD_STRUCTURED_REPLY_MAGIC) {
+    /* We only read the simple_reply.  The structured_reply is longer,
+     * so read the remaining part.
+     */
+    conn->rbuf = &conn->sbuf;
+    conn->rbuf += sizeof conn->sbuf.simple_reply;
+    conn->rlen = sizeof conn->sbuf.sr.structured_reply;
+    conn->rlen -= sizeof conn->sbuf.simple_reply;
+    SET_NEXT_STATE (%RECV_STRUCTURED_REPLY_REMAINDER);
+    return 0;
+  }
+  else {
+    SET_NEXT_STATE (%DEAD); /* We've probably lost synchronization. */
+    set_error (0, "invalid reply magic");
+    return -1;
+  }
+
+ CHECK_SIMPLE_REPLY:
+  struct command_in_flight *cmd;
+  uint32_t error;
+  uint64_t handle;
+
+  error = be32toh (conn->sbuf.simple_reply.error);
+  handle = be64toh (conn->sbuf.simple_reply.handle);
+
+  /* Find the command amongst the commands in flight. */
+  for (cmd = conn->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
+    if (cmd->handle == handle)
+      break;
+  }
+  if (cmd == NULL) {
+    SET_NEXT_STATE (%READY);
+    set_error (0, "no matching handle found for server reply, "
+               "this is probably a bug in the server");
+    return -1;
+  }
+
+  cmd->error = error;
+  if (cmd->error == 0 && cmd->type == NBD_CMD_READ) {
+    conn->rbuf = cmd->data;
+    conn->rlen = cmd->count;
+    SET_NEXT_STATE (%RECV_SIMPLE_READ_PAYLOAD);
+  }
+  else {
+    SET_NEXT_STATE (%FINISH_COMMAND);
+  }
+  return 0;
+
+ RECV_SIMPLE_READ_PAYLOAD:
   switch (recv_into_rbuf (conn)) {
   case -1: SET_NEXT_STATE (%DEAD); return -1;
   case 0:  SET_NEXT_STATE (%FINISH_COMMAND);
   }
   return 0;
 
+ RECV_STRUCTURED_REPLY_REMAINDER:
+  switch (recv_into_rbuf (conn)) {
+  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case 0:  SET_NEXT_STATE (%CHECK_STRUCTURED_REPLY);
+  }
+  return 0;
+
+ CHECK_STRUCTURED_REPLY:
+  struct command_in_flight *cmd;
+  uint16_t flags, type;
+  uint64_t handle;
+  uint32_t length;
+
+  flags = be16toh (conn->sbuf.sr.structured_reply.flags);
+  type = be16toh (conn->sbuf.sr.structured_reply.type);
+  handle = be64toh (conn->sbuf.sr.structured_reply.handle);
+  length = be32toh (conn->sbuf.sr.structured_reply.length);
+
+  /* Find the command amongst the commands in flight. */
+  for (cmd = conn->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
+    if (cmd->handle == handle)
+      break;
+  }
+  if (cmd == NULL) {
+    /* Unlike for simple replies, this is difficult to recover from.  We
+     * would need an extra state to read and ignore length bytes. XXX
+     */
+    SET_NEXT_STATE (%DEAD);
+    set_error (0, "no matching handle found for server reply, "
+               "this is probably a bug in the server");
+    return -1;
+  }
+
+  if (NBD_REPLY_TYPE_IS_ERR (type)) {
+    if (length < sizeof conn->sbuf.sr.payload.error) {
+      SET_NEXT_STATE (%DEAD);
+      set_error (0, "too short length in structured reply error");
+      return -1;
+    }
+    conn->rbuf = &conn->sbuf.sr.payload.error;
+    conn->rlen = sizeof conn->sbuf.sr.payload.error;
+    SET_NEXT_STATE (%RECV_STRUCTURED_REPLY_ERROR);
+    return 0;
+  }
+  else if (type == NBD_REPLY_TYPE_NONE) {
+    if (length != 0) {
+      SET_NEXT_STATE (%DEAD);
+      set_error (0, "invalid length in NBD_REPLY_TYPE_NONE");
+      return -1;
+    }
+    if (!(flags & NBD_REPLY_FLAG_DONE)) {
+      SET_NEXT_STATE (%DEAD);
+      set_error (0, "NBD_REPLY_FLAG_DONE must be set in NBD_REPLY_TYPE_NONE");
+      return -1;
+    }
+    SET_NEXT_STATE (%FINISH_COMMAND);
+    return 0;
+  }
+  else if (type == NBD_REPLY_TYPE_OFFSET_DATA) {
+    if (length < sizeof conn->sbuf.sr.payload.offset_data) {
+      SET_NEXT_STATE (%DEAD);
+      set_error (0, "too short length in NBD_REPLY_TYPE_OFFSET_DATA");
+      return -1;
+    }
+    conn->rbuf = &conn->sbuf.sr.payload.offset_data;
+    conn->rlen = sizeof conn->sbuf.sr.payload.offset_data;
+    SET_NEXT_STATE (%RECV_STRUCTURED_REPLY_OFFSET_DATA);
+    return 0;
+  }
+  else if (type == NBD_REPLY_TYPE_OFFSET_HOLE) {
+    if (length != 12) {
+      SET_NEXT_STATE (%DEAD);
+      set_error (0, "invalid length in NBD_REPLY_TYPE_NONE");
+      return -1;
+    }
+    conn->rbuf = &conn->sbuf.sr.payload.offset_hole;
+    conn->rlen = sizeof conn->sbuf.sr.payload.offset_hole;
+    SET_NEXT_STATE (%RECV_STRUCTURED_REPLY_OFFSET_HOLE);
+    return 0;
+  }
+  else if (type == NBD_REPLY_TYPE_BLOCK_STATUS) {
+    /* XXX Not implemented yet. */
+    SET_NEXT_STATE (%DEAD);
+    set_error (0, "NBD_REPLY_TYPE_BLOCK_STATUS not implemented");
+    return -1;
+  }
+  else {
+    SET_NEXT_STATE (%DEAD);
+    set_error (0, "unknown structured reply type (%" PRIu16 ")", type);
+    return -1;
+  }
+
+ RECV_STRUCTURED_REPLY_ERROR:
+  switch (recv_into_rbuf (conn)) {
+  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case 0:
+    /* We skip the human readable error for now. XXX */
+    conn->rbuf = NULL;
+    conn->rlen = be16toh (conn->sbuf.sr.payload.error.len);
+    SET_NEXT_STATE (%RECV_STRUCTURED_REPLY_ERROR_MESSAGE);
+  }
+  return 0;
+
+ RECV_STRUCTURED_REPLY_ERROR_MESSAGE:
+  struct command_in_flight *cmd;
+  uint16_t flags;
+  uint64_t handle;
+  uint32_t error;
+
+  switch (recv_into_rbuf (conn)) {
+  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case 0:
+    flags = be16toh (conn->sbuf.sr.structured_reply.flags);
+    handle = be64toh (conn->sbuf.sr.structured_reply.handle);
+    error = be32toh (conn->sbuf.sr.payload.error.error);
+
+    /* Find the command amongst the commands in flight. */
+    for (cmd = conn->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
+      if (cmd->handle == handle)
+        break;
+    }
+    assert (cmd); /* guaranteed by CHECK_STRUCTURED_REPLY */
+
+    cmd->error = error;
+
+    if (flags & NBD_REPLY_FLAG_DONE)
+      SET_NEXT_STATE (%FINISH_COMMAND);
+    else
+      SET_NEXT_STATE (%READY);
+  }
+  return 0;
+
+ RECV_STRUCTURED_REPLY_OFFSET_DATA:
+  struct command_in_flight *cmd;
+  uint64_t handle;
+  uint64_t offset;
+  uint32_t length;
+
+  switch (recv_into_rbuf (conn)) {
+  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case 0:
+    handle = be64toh (conn->sbuf.sr.structured_reply.handle);
+    length = be32toh (conn->sbuf.sr.structured_reply.length);
+    offset = be64toh (conn->sbuf.sr.payload.offset_data.offset);
+
+    /* Find the command amongst the commands in flight. */
+    for (cmd = conn->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
+      if (cmd->handle == handle)
+        break;
+    }
+    assert (cmd); /* guaranteed by CHECK_STRUCTURED_REPLY */
+
+    /* Length of the data following. */
+    length -= 8;
+
+    /* Is the data within bounds? */
+    if (offset < cmd->offset) {
+      SET_NEXT_STATE (%DEAD);
+      set_error (0, "offset of reply is out of bounds, "
+                 "offset=%" PRIu64 ", cmd->offset=%" PRIu64 ", "
+                 "this is likely to be a bug in the server",
+                 offset, cmd->offset);
+      return -1;
+    }
+    /* Now this is the byte offset in the read buffer. */
+    offset -= cmd->offset;
+
+    if (offset + length > cmd->count) {
+      SET_NEXT_STATE (%DEAD);
+      set_error (0, "offset/length of reply is out of bounds, "
+                 "offset=%" PRIu64 ", length=%" PRIu32 ", "
+                 "cmd->count=%" PRIu32 ", "
+                 "this is likely to be a bug in the server",
+                 offset, length, cmd->count);
+      return -1;
+    }
+
+    if (cmd->data == NULL) {
+      SET_NEXT_STATE (%DEAD);
+      set_error (0, "invalid command for receiving offset-data chunk, "
+                 "cmd->type=%" PRIu16 ", "
+                 "this is likely to be a bug in the server",
+                 cmd->type);
+      return -1;
+    }
+
+    /* Set up to receive the data directly to the user buffer. */
+    conn->rbuf = cmd->data + offset;
+    conn->rlen = length;
+    SET_NEXT_STATE (%RECV_STRUCTURED_REPLY_OFFSET_DATA_DATA);
+  }
+  return 0;
+
+ RECV_STRUCTURED_REPLY_OFFSET_DATA_DATA:
+  uint16_t flags;
+
+  switch (recv_into_rbuf (conn)) {
+  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case 0:
+    flags = be16toh (conn->sbuf.sr.structured_reply.flags);
+
+    if (flags & NBD_REPLY_FLAG_DONE)
+      SET_NEXT_STATE (%FINISH_COMMAND);
+    else
+      SET_NEXT_STATE (%READY);
+  }
+  return 0;
+
+ RECV_STRUCTURED_REPLY_OFFSET_HOLE:
+  struct command_in_flight *cmd;
+  uint64_t handle;
+  uint16_t flags;
+  uint64_t offset;
+  uint32_t length;
+
+  switch (recv_into_rbuf (conn)) {
+  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case 0:
+    handle = be64toh (conn->sbuf.sr.structured_reply.handle);
+    flags = be16toh (conn->sbuf.sr.structured_reply.flags);
+    offset = be64toh (conn->sbuf.sr.payload.offset_hole.offset);
+    length = be32toh (conn->sbuf.sr.payload.offset_hole.length);
+
+    /* Find the command amongst the commands in flight. */
+    for (cmd = conn->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
+      if (cmd->handle == handle)
+        break;
+    }
+    assert (cmd); /* guaranteed by CHECK_STRUCTURED_REPLY */
+
+    /* Is the data within bounds? */
+    if (offset < cmd->offset) {
+      SET_NEXT_STATE (%DEAD);
+      set_error (0, "offset of reply is out of bounds, "
+                 "offset=%" PRIu64 ", cmd->offset=%" PRIu64 ", "
+                 "this is likely to be a bug in the server",
+                 offset, cmd->offset);
+      return -1;
+    }
+    /* Now this is the byte offset in the read buffer. */
+    offset -= cmd->offset;
+
+    if (offset + length > cmd->count) {
+      SET_NEXT_STATE (%DEAD);
+      set_error (0, "offset/length of reply is out of bounds, "
+                 "offset=%" PRIu64 ", length=%" PRIu32 ", "
+                 "cmd->count=%" PRIu32 ", "
+                 "this is likely to be a bug in the server",
+                 offset, length, cmd->count);
+      return -1;
+    }
+
+    if (cmd->data == NULL) {
+      SET_NEXT_STATE (%DEAD);
+      set_error (0, "invalid command for receiving offset-hole chunk, "
+                 "cmd->type=%" PRIu16 ", "
+                 "this is likely to be a bug in the server",
+                 cmd->type);
+      return -1;
+    }
+
+    memset (cmd->data + offset, 0, length);
+
+    if (flags & NBD_REPLY_FLAG_DONE)
+      SET_NEXT_STATE (%FINISH_COMMAND);
+    else
+      SET_NEXT_STATE (%READY);
+  }
+  return 0;
+
  FINISH_COMMAND:
   struct command_in_flight *prev_cmd, *cmd;
+  uint64_t handle;
 
-  conn->sbuf.simple_reply.handle = conn->sbuf.simple_reply.handle;
+  /* NB: This works for both simple and structured replies because the
+   * handle is stored at the same offset.
+   */
+  handle = be64toh (conn->sbuf.simple_reply.handle);
   /* Find the command amongst the commands in flight. */
   for (cmd = conn->cmds_in_flight, prev_cmd = NULL;
        cmd != NULL;
        prev_cmd = cmd, cmd = cmd->next) {
-    if (cmd->handle == conn->sbuf.simple_reply.handle)
+    if (cmd->handle == handle)
       break;
   }
   assert (cmd != NULL);
