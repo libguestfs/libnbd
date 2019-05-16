@@ -26,6 +26,8 @@ EXTRA_DIST = \
 	eflags-plugin.sh \
 	aio-random-load.sh \
 	aio-random-load-tls.sh
+	synch-parallel.sh \
+	synch-parallel-tls.sh
 
 if HAVE_NBDKIT
 
@@ -49,7 +51,8 @@ check_PROGRAMS = \
 	can-not-multi-conn-flag \
 	connect-unix \
 	connect-tcp \
-	aio-random-load
+	aio-random-load \
+	synch-parallel
 #	can-cache-flag
 #	can-not-cache-flag
 
@@ -77,7 +80,8 @@ TESTS = \
 	can-not-multi-conn-flag \
 	connect-unix \
 	connect-tcp \
-	aio-random-load.sh
+	aio-random-load.sh \
+	synch-parallel.sh
 #	can-cache-flag
 #	can-not-cache-flag
 
@@ -197,6 +201,11 @@ aio_random_load_CPPFLAGS = -I$(top_srcdir)/include
 aio_random_load_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
 aio_random_load_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
 
+synch_parallel_SOURCES = synch-parallel.c
+synch_parallel_CPPFLAGS = -I$(top_srcdir)/include
+synch_parallel_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
+synch_parallel_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
+
 # Testing TLS support.
 if HAVE_GNUTLS
 
@@ -219,27 +228,36 @@ pki/stamp-pki: $(srcdir)/make-pki.sh
 endif HAVE_CERTTOOL
 
 if HAVE_PSKTOOL
-check_PROGRAMS += connect-tls-psk
+
+check_PROGRAMS += \
+	connect-tls-psk \
+	aio-random-load-tls \
+	synch-parallel-tls
+TESTS += \
+	connect-tls-psk \
+	aio-random-load-tls.sh \
+	synch-parallel-tls.sh
 check_DATA += keys.psk
-TESTS += connect-tls-psk
 
 connect_tls_psk_SOURCES = connect-tls.c
 connect_tls_psk_CPPFLAGS = -I$(top_srcdir)/include -DPSK=1
 connect_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
 connect_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
 
-keys.psk:
-	rm -f $@ $@-t
-	$(PSKTOOL) -u $(LOGNAME) -p $@-t
-	mv $@-t $@
-
-check_PROGRAMS += aio-random-load-tls
-TESTS += aio-random-load-tls.sh
-
 aio_random_load_tls_SOURCES = aio-random-load.c
 aio_random_load_tls_CPPFLAGS = -I$(top_srcdir)/include -DTLS=1
 aio_random_load_tls_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
 aio_random_load_tls_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
+
+synch_parallel_tls_SOURCES = synch-parallel.c
+synch_parallel_tls_CPPFLAGS = -I$(top_srcdir)/include -DTLS=1
+synch_parallel_tls_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
+synch_parallel_tls_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
+
+keys.psk:
+	rm -f $@ $@-t
+	$(PSKTOOL) -u $(LOGNAME) -p $@-t
+	mv $@-t $@
 
 endif HAVE_PSKTOOL
 

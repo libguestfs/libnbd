@@ -86,4 +86,6 @@ Makefile.in
 /tests/pki/
 /tests/read-only-flag
 /tests/read-write-flag
+/tests/synch-parallel
+/tests/synch-parallel-tls
 /valgrind/suppressions
