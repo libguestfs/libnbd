@@ -184,11 +184,6 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  if (nbd_shutdown (nbd) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
   nbd_close (nbd);
 
   /* Print some stats. */
