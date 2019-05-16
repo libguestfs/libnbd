@@ -33,9 +33,6 @@
 
 #include <libnbd.h>
 
-#define XSTR(x) #x
-#define STR(x) XSTR(x)
-
 /* Size of the RAM disk in bytes. */
 static int64_t exportsize;
 
