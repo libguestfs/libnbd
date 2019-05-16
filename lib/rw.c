@@ -258,6 +258,17 @@ command_common (struct nbd_connection *conn,
   cmd->count = count;
   cmd->data = data;
 
+  /* If structured replies were negotiated then we trust the server to
+   * send back sufficient data to cover the whole buffer.  It's tricky
+   * to check this, so an easier thing is simply to zero the buffer
+   * ahead of time which avoids any security problems.  I measured the
+   * overhead of this and for non-TLS there is no measurable overhead
+   * in the highly intensive loopback case.  For TLS we get a
+   * performance gain, go figure.
+   */
+  if (conn->structured_replies && cmd->data && type == NBD_CMD_READ)
+    memset (cmd->data, 0, cmd->count);
+
   cmd->next = conn->cmds_to_issue;
   conn->cmds_to_issue = cmd;
 
