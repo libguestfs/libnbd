@@ -23,7 +23,9 @@ CLEANFILES += \
 	connect-unix.sock
 
 EXTRA_DIST = \
-	eflags-plugin.sh
+	eflags-plugin.sh \
+	aio-random-load.sh \
+	aio-random-load-tls.sh
 
 if HAVE_NBDKIT
 
@@ -46,7 +48,8 @@ check_PROGRAMS = \
 	can-multi-conn-flag \
 	can-not-multi-conn-flag \
 	connect-unix \
-	connect-tcp
+	connect-tcp \
+	aio-random-load
 #	can-cache-flag
 #	can-not-cache-flag
 
@@ -73,7 +76,8 @@ TESTS = \
 	can-multi-conn-flag \
 	can-not-multi-conn-flag \
 	connect-unix \
-	connect-tcp
+	connect-tcp \
+	aio-random-load.sh
 #	can-cache-flag
 #	can-not-cache-flag
 
@@ -188,6 +192,11 @@ connect_tcp_CPPFLAGS = -I$(top_srcdir)/include
 connect_tcp_CFLAGS = $(WARNINGS_CFLAGS)
 connect_tcp_LDADD = $(top_builddir)/lib/libnbd.la
 
+aio_random_load_SOURCES = aio-random-load.c
+aio_random_load_CPPFLAGS = -I$(top_srcdir)/include
+aio_random_load_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
+aio_random_load_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
+
 # Testing TLS support.
 if HAVE_GNUTLS
 
@@ -223,6 +232,14 @@ keys.psk:
 	rm -f $@ $@-t
 	$(PSKTOOL) -u $(LOGNAME) -p $@-t
 	mv $@-t $@
+
+check_PROGRAMS += aio-random-load-tls
+TESTS += aio-random-load-tls.sh
+
+aio_random_load_tls_SOURCES = aio-random-load.c
+aio_random_load_tls_CPPFLAGS = -I$(top_srcdir)/include -DTLS=1
+aio_random_load_tls_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
+aio_random_load_tls_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
 
 endif HAVE_PSKTOOL
 
