@@ -24,8 +24,8 @@ CLEANFILES += \
 
 EXTRA_DIST = \
 	eflags-plugin.sh \
-	aio-random-load.sh \
-	aio-random-load-tls.sh
+	aio-parallel-load.sh \
+	aio-parallel-load-tls.sh
 	synch-parallel.sh \
 	synch-parallel-tls.sh
 
@@ -51,7 +51,7 @@ check_PROGRAMS = \
 	can-not-multi-conn-flag \
 	connect-unix \
 	connect-tcp \
-	aio-random-load \
+	aio-parallel-load \
 	synch-parallel
 #	can-cache-flag
 #	can-not-cache-flag
@@ -80,7 +80,7 @@ TESTS = \
 	can-not-multi-conn-flag \
 	connect-unix \
 	connect-tcp \
-	aio-random-load.sh \
+	aio-parallel-load.sh \
 	synch-parallel.sh
 #	can-cache-flag
 #	can-not-cache-flag
@@ -196,10 +196,10 @@ connect_tcp_CPPFLAGS = -I$(top_srcdir)/include
 connect_tcp_CFLAGS = $(WARNINGS_CFLAGS)
 connect_tcp_LDADD = $(top_builddir)/lib/libnbd.la
 
-aio_random_load_SOURCES = aio-random-load.c
-aio_random_load_CPPFLAGS = -I$(top_srcdir)/include
-aio_random_load_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
-aio_random_load_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
+aio_parallel_load_SOURCES = aio-parallel-load.c
+aio_parallel_load_CPPFLAGS = -I$(top_srcdir)/include
+aio_parallel_load_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
+aio_parallel_load_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
 
 synch_parallel_SOURCES = synch-parallel.c
 synch_parallel_CPPFLAGS = -I$(top_srcdir)/include
@@ -231,11 +231,11 @@ if HAVE_PSKTOOL
 
 check_PROGRAMS += \
 	connect-tls-psk \
-	aio-random-load-tls \
+	aio-parallel-load-tls \
 	synch-parallel-tls
 TESTS += \
 	connect-tls-psk \
-	aio-random-load-tls.sh \
+	aio-parallel-load-tls.sh \
 	synch-parallel-tls.sh
 check_DATA += keys.psk
 
@@ -244,10 +244,10 @@ connect_tls_psk_CPPFLAGS = -I$(top_srcdir)/include -DPSK=1
 connect_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
 connect_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
 
-aio_random_load_tls_SOURCES = aio-random-load.c
-aio_random_load_tls_CPPFLAGS = -I$(top_srcdir)/include -DTLS=1
-aio_random_load_tls_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
-aio_random_load_tls_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
+aio_parallel_load_tls_SOURCES = aio-parallel-load.c
+aio_parallel_load_tls_CPPFLAGS = -I$(top_srcdir)/include -DTLS=1
+aio_parallel_load_tls_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
+aio_parallel_load_tls_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
 
 synch_parallel_tls_SOURCES = synch-parallel.c
 synch_parallel_tls_CPPFLAGS = -I$(top_srcdir)/include -DTLS=1

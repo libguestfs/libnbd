@@ -63,8 +63,8 @@ Makefile.in
 /sh/nbdsh
 /stamp-h1
 /test-driver
-/tests/aio-random-load
-/tests/aio-random-load-tls
+/tests/aio-parallel-load
+/tests/aio-parallel-load-tls
 /tests/can-flush-flag
 /tests/can-not-flush-flag
 /tests/can-fua-flag

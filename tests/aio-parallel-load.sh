@@ -19,4 +19,4 @@
 # Test AIO random load.
 
 nbdkit -U - memory size=64M \
-       --run './aio-random-load $unixsocket'
+       --run './aio-parallel-load $unixsocket'
