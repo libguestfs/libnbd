@@ -30,7 +30,8 @@ with open (datafile, "wb") as f:
     f.truncate (512)
 
 h = nbd.NBD ()
-h.connect_command ("nbdkit -s --exit-with-parent -v file %s" % datafile)
+h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
+                    "file", datafile])
 h.pwrite (buf1, 0, nbd.CMD_FLAG_FUA)
 buf2 = h.pread (512, 0)
 

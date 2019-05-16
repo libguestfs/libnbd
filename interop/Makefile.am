@@ -30,7 +30,8 @@ TESTS += interop-nbd-server
 interop_nbd_server_SOURCES = interop.c
 interop_nbd_server_CPPFLAGS = \
 	-I$(top_srcdir)/include \
-	-DSERVER='"$(NBD_SERVER) -d -C /dev/null 0 %s", tmpfile' \
+	-DSERVER=\"$(NBD_SERVER)\" \
+	-DSERVER_PARAMS='"-d", "-C", "/dev/null", "0", tmpfile' \
 	-DEXPORT_NAME='""'
 interop_nbd_server_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbd_server_LDADD = $(top_builddir)/lib/libnbd.la

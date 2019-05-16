@@ -32,18 +32,23 @@ int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
-  char cmd[80];
+  pid_t pid;
   size_t i;
 
   unlink (SOCKET);
   unlink (PIDFILE);
 
-  snprintf (cmd, sizeof cmd,
-            "nbdkit -f -U %s -P %s --exit-with-parent null &",
-            SOCKET, PIDFILE);
-  if (system (cmd) != 0) {
-    fprintf (stderr, "%s: could not run: %s", argv[0], cmd);
+  pid = fork ();
+  if (pid == -1) {
+    perror ("fork");
     exit (EXIT_FAILURE);
+  }
+  if (pid == 0) {
+    execlp ("nbdkit",
+            "nbdkit", "-f", "-U", SOCKET, "-P", PIDFILE,
+            "--exit-with-parent", "null", NULL);
+    perror ("nbdkit");
+    _exit (EXIT_FAILURE);
   }
 
   /* Wait for nbdkit to start listening. */

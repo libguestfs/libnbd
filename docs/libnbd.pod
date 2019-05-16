@@ -259,7 +259,8 @@ these servers as a subprocess of your main program.  This example
 creates a 1G writable RAM disk for testing which is discarded as soon
 as the libnbd handle is closed:
 
- nbd_connect_command (nbd, "nbdkit -s memory 1G");
+ char *argv[] = { "nbdkit", "-s", "memory", "1G", NULL };
+ nbd_connect_command (nbd, argv);
 
 =head1 EXPORTS AND FLAGS
 

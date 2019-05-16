@@ -350,6 +350,7 @@ and arg =
 | Path of string           (* filename or path *)
 | SockAddrAndLen of string * string (* struct sockaddr * + socklen_t *)
 | String of string         (* string *)
+| StringList of string     (* argv-style NULL-terminated array of strings *)
 | UInt of string           (* small unsigned int *)
 | UInt32 of string         (* 32 bit unsigned int *)
 | UInt64 of string         (* 64 bit unsigned int *)
@@ -603,10 +604,10 @@ any one of them is connected.";
 
   "connect_command", {
     default_call with
-    args = [ String "command" ]; ret = RErr;
+    args = [ StringList "argv" ]; ret = RErr;
     shortdesc = "connect to NBD server command";
     longdesc = "\
-Run the C<command> as a subprocess and connect to it over
+Run the command as a subprocess and connect to it over
 stdin/stdout.  This is for use with NBD servers which can
 behave like inetd clients, such as C<nbdkit --single>.";
   };
@@ -864,10 +865,10 @@ the connection.";
 
   "aio_connect_command", {
     default_call with
-    args = [ String "command" ]; ret = RErr;
+    args = [ StringList "argv" ]; ret = RErr;
     shortdesc = "connect to the NBD server";
     longdesc = "\
-Run the C<command> as a subprocess and begin connecting to it over
+Run the command as a subprocess and begin connecting to it over
 stdin/stdout.  You can check if the connection has connected to
 the server and completed the NBD handshake by calling
 C<nbd_aio_is_ready> on the connection.";
@@ -1525,6 +1526,7 @@ let name_of_arg = function
 | Path n -> [n]
 | SockAddrAndLen (n, len) -> [n; len]
 | String n -> [n]
+| StringList n -> [n]
 | UInt n -> [n]
 | UInt32 n -> [n]
 | UInt64 n -> [n]
@@ -1554,6 +1556,7 @@ let rec print_c_arg_list ?handle args =
       | Int64 n -> pr "int64_t %s" n
       | Path n
       | String n -> pr "const char *%s" n
+      | StringList n -> pr "char **%s" n
       | SockAddrAndLen (n, len) ->
          pr "const struct sockaddr *%s, socklen_t %s" n len
       | UInt n -> pr "unsigned %s" n
@@ -1711,6 +1714,9 @@ let generate_python_methods_h () =
   pr "#include <assert.h>\n";
   pr "\n";
   pr "\
+extern char **nbd_internal_py_get_string_list (PyObject *);
+extern void nbd_internal_py_free_string_list (char **);
+
 static inline struct nbd_handle *
 get_handle (PyObject *obj)
 {
@@ -1820,13 +1826,16 @@ let print_python_binding name { args; ret } htype hname =
     | Int64 n ->
        pr "  int64_t %s_i64;\n" n;
        pr "  long long %s; /* really int64_t */\n" n
-    | Path n -> pr "  char *%s;\n" n
+    | Path n -> pr "  char *%s = NULL;\n" n
     | SockAddrAndLen (n, _) ->
        pr "  /* XXX Complicated - Python uses a tuple of different\n";
        pr "   * lengths for the different socket types.\n";
        pr "   */\n";
        pr "  PyObject *%s;\n" n
     | String n -> pr "  const char *%s;\n" n
+    | StringList n ->
+       pr "  PyObject *py_%s;\n" n;
+       pr "  char **%s = NULL;\n" n
     | UInt n -> pr "  unsigned int %s;\n" n
     | UInt32 n ->
        pr "  uint32_t %s_u32;\n" n;
@@ -1850,6 +1859,7 @@ let print_python_binding name { args; ret } htype hname =
     | Path n -> pr " \"O&\""
     | SockAddrAndLen (n, _) -> pr " \"O\""
     | String n -> pr " \"s\""
+    | StringList n -> pr " \"O\""
     | UInt n -> pr " \"I\""
     | UInt32 n -> pr " \"I\""
     | UInt64 n -> pr " \"K\""
@@ -1868,6 +1878,7 @@ let print_python_binding name { args; ret } htype hname =
     | Path n -> pr ", PyUnicode_FSConverter, &%s" n
     | SockAddrAndLen (n, _) -> pr ", &%s" n
     | String n -> pr ", &%s" n
+    | StringList n -> pr ", &py_%s" n
     | UInt n -> pr ", &%s" n
     | UInt32 n -> pr ", &%s" n
     | UInt64 n -> pr ", &%s" n
@@ -1902,6 +1913,9 @@ let print_python_binding name { args; ret } htype hname =
     | SockAddrAndLen _ ->
        pr "  abort (); /* XXX SockAddrAndLen not implemented */\n";
     | String _ -> ()
+    | StringList n ->
+       pr "  %s = nbd_internal_py_get_string_list (py_%s);\n" n n;
+       pr "  if (!%s) { py_ret = NULL; goto out; }\n" n
     | UInt _ -> ()
     | UInt32 n -> pr "  %s_u32 = %s;\n" n n
     | UInt64 n -> pr "  %s_u64 = %s;\n" n n
@@ -1918,6 +1932,7 @@ let print_python_binding name { args; ret } htype hname =
     | Path n -> pr ", %s" n
     | SockAddrAndLen (n, _) -> pr ", /* XXX */ (void *) %s, 0" n
     | String n -> pr ", %s" n
+    | StringList n -> pr ", %s" n
     | UInt n -> pr ", %s" n
     | UInt32 n -> pr ", %s_u32" n
     | UInt64 n -> pr ", %s_u64" n
@@ -1947,6 +1962,7 @@ let print_python_binding name { args; ret } htype hname =
     | Path _
     | SockAddrAndLen _
     | String _
+    | StringList _
     | UInt _
     | UInt32 _
     | UInt64 _ -> ()
@@ -1984,6 +2000,7 @@ let print_python_binding name { args; ret } htype hname =
     | Path n -> pr "  free (%s);\n" n
     | SockAddrAndLen _ -> ()
     | String n -> ()
+    | StringList n -> pr "  nbd_internal_py_free_string_list (%s);\n" n
     | UInt _ -> ()
     | UInt32 _ -> ()
     | UInt64 _ -> ()
@@ -2064,6 +2081,7 @@ class NBD (object):
                      | Path n -> n
                      | SockAddrAndLen (n, _) -> n
                      | String n -> n
+                     | StringList n -> n
                      | UInt n -> n
                      | UInt32 n -> n
                      | UInt64 n -> n
@@ -2107,6 +2125,7 @@ class NBDConnection (object):
                      | Path n -> n
                      | SockAddrAndLen (n, _) -> n
                      | String n -> n
+                     | StringList n -> n
                      | UInt n -> n
                      | UInt32 n -> n
                      | UInt64 n -> n

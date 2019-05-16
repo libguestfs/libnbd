@@ -42,34 +42,37 @@ int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
-  char cmd[256];
   int r, expected;
+  char plugin_path[256];
+  char key_param[32];
 
-  snprintf (cmd, sizeof cmd,
-            "nbdkit -s --exit-with-parent -v "
-            "sh %s/eflags-plugin.sh "
-            "key=%s print=%s rc=%d",
-            getenv ("srcdir") ? : ".",
-            STR (flag),
+  snprintf (plugin_path, sizeof plugin_path, "%s/eflags-plugin.sh",
+            getenv ("srcdir") ? : ".");
+  snprintf (key_param, sizeof key_param, "key=%s", STR (flag));
+
+  char *args[] =
+    { "nbdkit", "-s", "--exit-with-parent", "-v",
+      "sh", plugin_path,
+      key_param,
 #if value == true
-            "", 0
+      "print=", "rc=0",
 #elif value == false
-            "", 3
+      "print=", "rc=3",
 #elif value == native
-            "native", 0
+      "print=native", "rc=0",
 #elif value == none
-            "none", 0
+      "print=none", "rc=0",
 #else
 #error "unknown value"
 #endif
-            );
+      NULL };
 
   nbd = nbd_create ();
   if (nbd == NULL) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if (nbd_connect_command (nbd, cmd) == -1) {
+  if (nbd_connect_command (nbd, args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

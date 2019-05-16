@@ -32,7 +32,7 @@ int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
-  char cmd[128], buf[512];
+  char buf[512];
   int64_t actual_size;
 
   nbd = nbd_create ();
@@ -62,18 +62,16 @@ main (int argc, char *argv[])
 #endif
 
   /* Run nbdkit as a subprocess. */
-  snprintf (cmd, sizeof cmd,
-            "nbdkit -s --exit-with-parent"
-            " --tls=require --tls-verify-peer"
+  char *args[] = { "nbdkit", "-s", "--exit-with-parent",
+                   "--tls=require", "--tls-verify-peer",
 #if CERTS
-            " --tls-certificates=pki"
+                   "--tls-certificates=pki",
 #elif PSK
-            " --tls-psk=keys.psk"
+                   "--tls-psk=keys.psk",
 #endif
-            " pattern size=1M"
-            );
+                   "pattern", "size=1M", NULL };
 
-  if (nbd_connect_command (nbd, cmd) == -1) {
+  if (nbd_connect_command (nbd, args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

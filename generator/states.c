@@ -262,11 +262,12 @@ send_from_wbuf (struct nbd_connection *conn)
   return 0;
 
  CONNECT_COMMAND:
-  int sv[2], r;
+  int sv[2];
   pid_t pid;
 
   assert (!conn->sock);
-  assert (conn->command);
+  assert (conn->argv);
+  assert (conn->argv[0]);
   if (socketpair (AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0,
                   sv) == -1) {
     SET_NEXT_STATE (%DEAD);
@@ -290,16 +291,11 @@ send_from_wbuf (struct nbd_connection *conn)
     dup2 (sv[1], 1);
     close (sv[1]);
 
-    /* Restore SIGPIPE back to SIG_DFL, since shell can't undo SIG_IGN */
+    /* Restore SIGPIPE back to SIG_DFL. */
     signal (SIGPIPE, SIG_DFL);
 
-    r = system (conn->command);
-    if (r == -1) {
-      perror (conn->command);
-      _exit (EXIT_FAILURE);
-    }
-    if (WIFEXITED (r))
-      _exit (WEXITSTATUS (r));
+    execvp (conn->argv[0], conn->argv);
+    perror (conn->argv[0]);
     _exit (EXIT_FAILURE);
   }
 

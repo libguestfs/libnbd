@@ -42,8 +42,6 @@ main (int argc, char *argv[])
   int port;
   char port_str[16];
   pid_t pid = -1;
-#else
-  char cmd[256];
 #endif
   int64_t actual_size;
   char buf[512];
@@ -121,8 +119,8 @@ main (int argc, char *argv[])
 
 #else /* !SERVE_OVER_TCP */
 
-  snprintf (cmd, sizeof cmd, SERVER);
-  if (nbd_connect_command (nbd, cmd) == -1) {
+  char *args[] = { SERVER, SERVER_PARAMS, NULL };
+  if (nbd_connect_command (nbd, args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto out;
   }

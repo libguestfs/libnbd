@@ -18,7 +18,8 @@
 import nbd
 
 h = nbd.NBD ()
-h.connect_command ("nbdkit -s --exit-with-parent -v pattern size=512")
+h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
+                    "pattern", "size=512"])
 buf = h.pread (512, 0)
 
 print ("%r" % buf)

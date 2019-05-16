@@ -28,14 +28,15 @@ main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
   int r;
+  char *args[] = { "nbdkit", "-s", "--exit-with-parent", "-r", "-v", "null",
+                   NULL };
 
   nbd = nbd_create ();
   if (nbd == NULL) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if (nbd_connect_command (nbd,
-                           "nbdkit -s --exit-with-parent -r -v null") == -1) {
+  if (nbd_connect_command (nbd, args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

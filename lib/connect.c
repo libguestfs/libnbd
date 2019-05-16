@@ -122,14 +122,14 @@ nbd_unlocked_connect_tcp (struct nbd_handle *h,
  * here, should it be an error?
  */
 int
-nbd_unlocked_connect_command (struct nbd_handle *h, const char *command)
+nbd_unlocked_connect_command (struct nbd_handle *h, char **argv)
 {
   if (h->conns[0]->state != STATE_CREATED) {
     set_error (0, "first connection in this handle is not in the created state, this is likely to be caused by a programming error in the calling program");
     return -1;
   }
 
-  if (nbd_unlocked_aio_connect_command (h->conns[0], command) == -1)
+  if (nbd_unlocked_aio_connect_command (h->conns[0], argv) == -1)
     return -1;
 
   return wait_one_connected (h);
@@ -169,15 +169,19 @@ nbd_unlocked_aio_connect_tcp (struct nbd_connection *conn,
 
 int
 nbd_unlocked_aio_connect_command (struct nbd_connection *conn,
-                                  const char *command)
+                                  char **argv)
 {
-  if (conn->command)
-    free (conn->command);
-  conn->command = strdup (command);
-  if (!conn->command) {
-    set_error (errno, "strdup");
+  char **copy;
+
+  copy = nbd_internal_copy_string_list (argv);
+  if (!copy) {
+    set_error (errno, "copy_string_list");
     return -1;
   }
+
+  if (conn->argv)
+    nbd_internal_free_string_list (conn->argv);
+  conn->argv = copy;
 
   return nbd_internal_run (conn->h, conn, cmd_connect_command);
 }

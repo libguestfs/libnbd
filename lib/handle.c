@@ -67,7 +67,7 @@ close_conn (struct nbd_connection *conn)
   free_cmd_list (conn->cmds_to_issue);
   free_cmd_list (conn->cmds_in_flight);
   free_cmd_list (conn->cmds_done);
-  free (conn->command);
+  nbd_internal_free_string_list (conn->argv);
   free (conn->hostname);
   free (conn->port);
   if (conn->result)

@@ -33,8 +33,8 @@ main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
   int port;
-  char cmd[80];
   char port_str[16];
+  pid_t pid;
   size_t i;
 
   unlink (PIDFILE);
@@ -44,12 +44,18 @@ main (int argc, char *argv[])
   port = 32768 + (rand () & 32767);
 
   snprintf (port_str, sizeof port_str, "%d", port);
-  snprintf (cmd, sizeof cmd,
-            "nbdkit -f -p %d -P %s --exit-with-parent null &",
-            port, PIDFILE);
-  if (system (cmd) != 0) {
-    fprintf (stderr, "%s: could not run: %s", argv[0], cmd);
+
+  pid = fork ();
+  if (pid == -1) {
+    perror ("fork");
     exit (EXIT_FAILURE);
+  }
+  if (pid == 0) {
+    execlp ("nbdkit",
+            "nbdkit", "-f", "-p", port_str, "-P", PIDFILE,
+            "--exit-with-parent", "null", NULL);
+    perror ("nbdkit");
+    _exit (EXIT_FAILURE);
   }
 
   /* Wait for nbdkit to start listening. */

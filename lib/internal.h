@@ -129,12 +129,12 @@ struct nbd_connection {
   struct sockaddr_storage connaddr;
   socklen_t connaddrlen;
 
-  /* When connecting to a local command, this points to the command
-   * name.  A local copy is taken to simplify callers.  The PID is the
-   * PID of the subprocess so we can wait on it when the connection is
+  /* When connecting to a local command, this points to the argv.  A
+   * local copy is taken to simplify callers.  The PID is the PID of
+   * the subprocess so we can wait on it when the connection is
    * closed.
    */
-  char *command;
+  char **argv;
   pid_t pid;
 
   /* When connecting to TCP ports, these fields are used. */
@@ -234,5 +234,8 @@ extern const char *nbd_internal_state_short_string (enum state state);
 
 /* utils.c */
 extern void nbd_internal_hexdump (const void *data, size_t len, FILE *fp);
+extern size_t nbd_internal_string_list_length (char **argv);
+extern char **nbd_internal_copy_string_list (char **argv);
+extern void nbd_internal_free_string_list (char **argv);
 
 #endif /* LIBNBD_INTERNAL_H */

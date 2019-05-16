@@ -45,7 +45,8 @@ libnbdmod_la_SOURCES = \
 	handle.c \
 	libnbdmod.c \
 	methods.c \
-	methods.h
+	methods.h \
+	utils.c
 libnbdmod_la_CPPFLAGS = \
 	$(PYTHON_CFLAGS) \
 	-I$(top_srcdir)/include

@@ -48,3 +48,51 @@ nbd_internal_hexdump (const void *data, size_t len, FILE *fp)
     fprintf (fp, "|\n");
   }
 }
+
+size_t
+nbd_internal_string_list_length (char **argv)
+{
+  size_t ret;
+
+  for (ret = 0; argv[ret] != NULL; ++ret)
+    ;
+  return ret;
+}
+
+char **
+nbd_internal_copy_string_list (char **argv)
+{
+  size_t i, j, n;
+  char **ret;
+
+  n = nbd_internal_string_list_length (argv);
+  ret = calloc (n+1, sizeof (char *));
+  if (!ret)
+    return NULL;
+
+  for (i = 0; i < n; ++i) {
+    ret[i] = strdup (argv[i]);
+    if (ret[i] == NULL) {
+      for (j = 0; j < i; ++j)
+        free (ret[j]);
+      free (ret);
+      return NULL;
+    }
+  }
+  ret[n] = NULL;
+
+  return ret;
+}
+
+void
+nbd_internal_free_string_list (char **argv)
+{
+  size_t i;
+
+  if (!argv)
+    return;
+
+  for (i = 0; argv[i] != NULL; ++i)
+    free (argv[i]);
+  free (argv);
+}
