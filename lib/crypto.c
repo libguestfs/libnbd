@@ -633,6 +633,31 @@ nbd_internal_crypto_handshake (struct nbd_connection *conn)
   return -1;
 }
 
+/* The state machine calls this when TLS has definitely been enabled
+ * on the connection (after the handshake), and we use it to print
+ * useful debugging information.
+ */
+void
+nbd_internal_crypto_debug_tls_enabled (struct nbd_connection *conn)
+{
+  if (conn->h->debug) {
+    const gnutls_session_t session = conn->sock->u.tls.session;
+    const gnutls_cipher_algorithm_t cipher = gnutls_cipher_get (session);
+    const gnutls_kx_algorithm_t kx = gnutls_kx_get (session);
+    const gnutls_mac_algorithm_t mac = gnutls_mac_get (session);
+
+    debug (conn->h,
+           "connection is using TLS: "
+           "cipher %s (%zu bits) key exchange %s mac %s (%zu bits)",
+           gnutls_cipher_get_name (cipher),
+           8 * gnutls_cipher_get_key_size (cipher),
+           gnutls_kx_get_name (kx),
+           gnutls_mac_get_name (mac),
+           8 * gnutls_mac_get_key_size (mac)
+           );
+  }
+}
+
 #else /* !HAVE_GNUTLS */
 
 /* These functions should never be called from the state machine if
@@ -652,6 +677,12 @@ nbd_internal_crypto_is_reading (struct nbd_connection *conn)
 
 int
 nbd_internal_crypto_handshake (struct nbd_connection *conn)
+{
+  abort ();
+}
+
+void
+nbd_internal_crypto_debug_tls_enabled (struct nbd_connection *conn)
 {
   abort ();
 }

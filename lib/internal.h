@@ -192,6 +192,7 @@ struct command_in_flight {
 extern struct socket *nbd_internal_crypto_create_session (struct nbd_connection *, struct socket *oldsock);
 extern bool nbd_internal_crypto_is_reading (struct nbd_connection *);
 extern int nbd_internal_crypto_handshake (struct nbd_connection *);
+extern void nbd_internal_crypto_debug_tls_enabled (struct nbd_connection *);
 
 /* debug.c */
 extern void nbd_internal_debug (struct nbd_handle *h, const char *fs, ...);

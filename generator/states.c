@@ -478,7 +478,7 @@ send_from_wbuf (struct nbd_connection *conn)
   }
   if (r == 0) {
     /* Finished handshake. */
-    debug (conn->h, "connection is using TLS");
+    nbd_internal_crypto_debug_tls_enabled (conn);
 
     /* Continue with option negotiation. */
     // SET_NEXT_STATE (%-TRY_NEWSTYLE_OPT_STRUCTURED_REPLY);
