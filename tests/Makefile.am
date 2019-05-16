@@ -24,6 +24,8 @@ CLEANFILES += \
 
 EXTRA_DIST = \
 	eflags-plugin.sh \
+	aio-parallel.sh \
+	aio-parallel-tls.sh
 	aio-parallel-load.sh \
 	aio-parallel-load-tls.sh
 	synch-parallel.sh \
@@ -51,6 +53,7 @@ check_PROGRAMS = \
 	can-not-multi-conn-flag \
 	connect-unix \
 	connect-tcp \
+	aio-parallel \
 	aio-parallel-load \
 	synch-parallel
 #	can-cache-flag
@@ -80,6 +83,7 @@ TESTS = \
 	can-not-multi-conn-flag \
 	connect-unix \
 	connect-tcp \
+	aio-parallel.sh \
 	aio-parallel-load.sh \
 	synch-parallel.sh
 #	can-cache-flag
@@ -196,6 +200,11 @@ connect_tcp_CPPFLAGS = -I$(top_srcdir)/include
 connect_tcp_CFLAGS = $(WARNINGS_CFLAGS)
 connect_tcp_LDADD = $(top_builddir)/lib/libnbd.la
 
+aio_parallel_SOURCES = aio-parallel.c
+aio_parallel_CPPFLAGS = -I$(top_srcdir)/include
+aio_parallel_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
+aio_parallel_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
+
 aio_parallel_load_SOURCES = aio-parallel-load.c
 aio_parallel_load_CPPFLAGS = -I$(top_srcdir)/include
 aio_parallel_load_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
@@ -231,10 +240,12 @@ if HAVE_PSKTOOL
 
 check_PROGRAMS += \
 	connect-tls-psk \
+	aio-parallel-tls \
 	aio-parallel-load-tls \
 	synch-parallel-tls
 TESTS += \
 	connect-tls-psk \
+	aio-parallel-tls.sh \
 	aio-parallel-load-tls.sh \
 	synch-parallel-tls.sh
 check_DATA += keys.psk
@@ -243,6 +254,11 @@ connect_tls_psk_SOURCES = connect-tls.c
 connect_tls_psk_CPPFLAGS = -I$(top_srcdir)/include -DPSK=1
 connect_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
 connect_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
+
+aio_parallel_tls_SOURCES = aio-parallel.c
+aio_parallel_tls_CPPFLAGS = -I$(top_srcdir)/include -DTLS=1
+aio_parallel_tls_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
+aio_parallel_tls_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
 
 aio_parallel_load_tls_SOURCES = aio-parallel-load.c
 aio_parallel_load_tls_CPPFLAGS = -I$(top_srcdir)/include -DTLS=1
