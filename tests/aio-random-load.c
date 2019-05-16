@@ -208,7 +208,7 @@ main (int argc, char *argv[])
   printf ("max requests in flight: %u\n",
           most_in_flight);
 
-  exit (EXIT_SUCCESS);
+  exit (errors == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 static void *
