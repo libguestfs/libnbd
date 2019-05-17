@@ -27,5 +27,5 @@ stamp-generator: generator states.c
 #	We must run this from the source directory since these
 #	files are distributed in the tarball.
 	rm -f $@
-	cd $(top_srcdir) && generator/generator
+	cd $(top_srcdir) && OCAMLRUNPARAM=b generator/generator
 	touch $@
