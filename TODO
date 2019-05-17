@@ -12,8 +12,6 @@ NBD resize extension.
 
 NBD_INFO_BLOCK_SIZE.
 
-NBD_CMD_CACHE.
-
 TLS should properly shut down the session (calling gnutls_bye).
 
 Implement nbd_connect + systemd socket activation.
