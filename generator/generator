@@ -148,59 +148,14 @@ let rec state_machine = [
     name = "START";
     comment = "Connection after being initially created";
     external_events = [ CmdCreate, "";
-                        CmdConnectSockAddr, "CONNECT";
-                        CmdConnectTCP, "CONNECT_TCP";
-                        CmdConnectCommand, "CONNECT_COMMAND" ];
+                        CmdConnectSockAddr, "CONNECT.START";
+                        CmdConnectTCP, "CONNECT_TCP.START";
+                        CmdConnectCommand, "CONNECT_COMMAND.START" ];
   };
 
-  State {
-    default_state with
-    name = "CONNECT";
-    comment = "Initial call to connect(2) on the socket";
-    external_events = [ NotifyWrite, "CONNECTING" ];
-  };
-
-  State {
-    default_state with
-    name = "CONNECTING";
-    comment = "Connecting to the remote server";
-    external_events = [ NotifyWrite, "" ];
-  };
-
-  State {
-    default_state with
-    name = "CONNECT_TCP";
-    comment = "Connect to a remote TCP server";
-    external_events = [];
-  };
-
-  State {
-    default_state with
-    name = "CONNECT_TCP_CONNECT";
-    comment = "Initial call to connect(2) on a TCP socket";
-    external_events = [ NotifyWrite, "CONNECT_TCP_CONNECTING" ];
-  };
-
-  State {
-    default_state with
-    name = "CONNECT_TCP_CONNECTING";
-    comment = "Connecting to the remote server over a TCP socket";
-    external_events = [ NotifyWrite, "" ];
-  };
-
-  State {
-    default_state with
-    name = "CONNECT_TCP_NEXT";
-    comment = "Connecting to the next address over a TCP socket";
-    external_events = [];
-  };
-
-  State {
-    default_state with
-    name = "CONNECT_COMMAND";
-    comment = "Connect to a subprocess";
-    external_events = [];
-  };
+  Group ("CONNECT", connect_state_machine);
+  Group ("CONNECT_TCP", connect_tcp_state_machine);
+  Group ("CONNECT_COMMAND", connect_command_state_machine);
 
   Group ("MAGIC", magic_state_machine);
   Group ("OLDSTYLE", oldstyle_state_machine);
@@ -227,6 +182,64 @@ let rec state_machine = [
     default_state with
     name = "CLOSED";
     comment = "Connection is closed";
+  };
+]
+
+(* State machine implementing [nbd_aio_connect] and Unix domain sockets. *)
+and connect_state_machine = [
+  State {
+    default_state with
+    name = "START";
+    comment = "Initial call to connect(2) on the socket";
+    external_events = [ NotifyWrite, "CONNECTING" ];
+  };
+
+  State {
+    default_state with
+    name = "CONNECTING";
+    comment = "Connecting to the remote server";
+    external_events = [ NotifyWrite, "" ];
+  };
+]
+
+(* State machine implementing [nbd_aio_connect_tcp]. *)
+and connect_tcp_state_machine = [
+  State {
+    default_state with
+    name = "START";
+    comment = "Connect to a remote TCP server";
+    external_events = [];
+  };
+
+  State {
+    default_state with
+    name = "CONNECT";
+    comment = "Initial call to connect(2) on a TCP socket";
+    external_events = [ NotifyWrite, "CONNECTING" ];
+  };
+
+  State {
+    default_state with
+    name = "CONNECTING";
+    comment = "Connecting to the remote server over a TCP socket";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  State {
+    default_state with
+    name = "NEXT_ADDRESS";
+    comment = "Connecting to the next address over a TCP socket";
+    external_events = [];
+  };
+]
+
+(* State machine implementing [nbd_aio_connect_command]. *)
+and connect_command_state_machine = [
+  State {
+    default_state with
+    name = "START";
+    comment = "Connect to a subprocess";
+    external_events = [];
   };
 ]
 

@@ -23,6 +23,7 @@ DISTCLEANFILES = stamp-generator
 # and output to lib/states.c.
 states_code = \
 	states.c \
+	states-connect.c \
 	states-issue-command.c \
 	states-magic.c \
 	states-newstyle-opt-go.c \
