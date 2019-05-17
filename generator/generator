@@ -39,10 +39,10 @@ open Printf
  * Each state has some associated C code which is called when
  * the state is entered, or when the state is re-entered because
  * of an external event.  That code is not in this file, it's
- * in [generator/states.c].
+ * in [generator/states*.c].
  *
  * The handle usually contains one connection, but might have more
- * if multi-conn is enabled.  Each connection starts in the CREATED
+ * if multi-conn is enabled.  Each connection starts in the START
  * state.  A connection can move between states for one of two
  * reasons: Either the C code associated with the state moves
  * to another state (eg. move to the DEAD state because a system call
@@ -64,6 +64,15 @@ open Printf
  * When the external event happens the state machine restarts,
  * either in the same state ([""]) or the new state associated
  * with the external event.
+ *
+ * States can be grouped hierarchically.  States can be referred
+ * to by an absolute path from the top level, such as ".DEAD",
+ * or by a relative path from the current level, such as "CONNECT"
+ * (another state at the same level), "REPLY.START" (a state in
+ * a sub-group), or "^FINISH_COMMAND" (a state in the level above
+ * the current one).  When entering a group you must enter at the
+ * START state.  When leaving a group and going to a higher level
+ * in the state tree there is no restriction on the next state.
  *)
 
 type external_event =
@@ -76,6 +85,12 @@ type external_event =
   | CmdIssue                    (* issuing an NBD command *)
 
 type state = {
+  (* The state name (without prefix).  If this has the special name
+   * "START" then it is the start state of the current group.  Each
+   * group can only have one start state.
+   *)
+  name : string;
+
   comment : string;             (* comment about the state *)
 
   (* Possible transitions from this state to a next state.  The
@@ -83,224 +98,334 @@ type state = {
    * internal transitions are parsed out of the C code.
    *)
   external_events : (external_event * string) list;
-  mutable internal_transitions : string list;
 
-  (* The C code implementing this state. *)
-  mutable code : string;
+  (* After flattening the state machine, the generator fills
+   * in the extra fields in [state.parsed].
+   *)
+  mutable parsed : parsed_state;
 }
 
-let default_state = { comment = ""; external_events = [];
-                      internal_transitions = []; code = "" }
+and parsed_state = {
+  (* The hierarchy group prefix.  For states in the top level
+   * state machine this is an empty list.  For states in the
+   * next level down this is a single element, and so on.
+   *)
+  prefix : string list;
 
-let states = [
-  "CREATED", {
+  (* Hierarchical state name, like "NEWSTYLE.OPT_STARTTLS.CHECK_REPLY"
+   * for use in debug messages etc.
+   *)
+  display_name : string;
+
+  (* The STATE_* enum used in the generated C code. *)
+  state_enum : string;
+
+  (* The C code implementing this state. *)
+  code : string;
+
+  (* Internal transitions, parsed out of the C code. *)
+  internal_transitions : state list;
+
+  (* External events after resolving them to the destination states. *)
+  events : (external_event * state) list;
+}
+
+let default_state = { name = ""; comment = ""; external_events = [];
+                      parsed = { prefix = []; display_name = "";
+                                 state_enum = ""; code = "";
+                                 internal_transitions = []; events = [] } }
+
+(* The type of the hierarchical state machine. *)
+type state_machine = state_group list
+and state_group =
+  | Group of string * state_machine (* string is name/prefix of the group *)
+  | State of state
+
+(* Top level state machine. *)
+let rec state_machine = [
+  State {
     default_state with
-    comment = "Connection after being initially created, idle and not connected";
+    name = "START";
+    comment = "Connection after being initially created";
     external_events = [ CmdCreate, "";
                         CmdConnectSockAddr, "CONNECT";
                         CmdConnectTCP, "CONNECT_TCP";
                         CmdConnectCommand, "CONNECT_COMMAND" ];
   };
 
-  "CONNECT", {
+  State {
     default_state with
+    name = "CONNECT";
     comment = "Initial call to connect(2) on the socket";
     external_events = [ NotifyWrite, "CONNECTING" ];
   };
 
-  "CONNECTING", {
+  State {
     default_state with
+    name = "CONNECTING";
     comment = "Connecting to the remote server";
     external_events = [ NotifyWrite, "" ];
   };
 
-  "CONNECT_TCP", {
+  State {
     default_state with
+    name = "CONNECT_TCP";
     comment = "Connect to a remote TCP server";
     external_events = [];
   };
 
-  "CONNECT_TCP_CONNECT", {
+  State {
     default_state with
+    name = "CONNECT_TCP_CONNECT";
     comment = "Initial call to connect(2) on a TCP socket";
     external_events = [ NotifyWrite, "CONNECT_TCP_CONNECTING" ];
   };
 
-  "CONNECT_TCP_CONNECTING", {
+  State {
     default_state with
+    name = "CONNECT_TCP_CONNECTING";
     comment = "Connecting to the remote server over a TCP socket";
     external_events = [ NotifyWrite, "" ];
   };
 
-  "CONNECT_TCP_NEXT", {
+  State {
     default_state with
+    name = "CONNECT_TCP_NEXT";
     comment = "Connecting to the next address over a TCP socket";
     external_events = [];
   };
 
-  "CONNECT_COMMAND", {
+  State {
     default_state with
+    name = "CONNECT_COMMAND";
     comment = "Connect to a subprocess";
     external_events = [];
   };
 
-  "PREPARE_FOR_MAGIC", {
+  Group ("MAGIC", magic_state_machine);
+  Group ("NEWSTYLE", newstyle_state_machine);
+
+  State {
     default_state with
+    name = "READY";
+    comment = "Connection is ready to process NBD commands";
+    external_events = [ CmdIssue, "ISSUE_COMMAND.START";
+                        NotifyRead, "REPLY.START" ];
+  };
+
+  Group ("ISSUE_COMMAND", issue_command_state_machine);
+  Group ("REPLY", reply_state_machine);
+
+  State {
+    default_state with
+    name = "DEAD";
+    comment = "Connection is in an unrecoverable error state, can only be closed";
+  };
+
+  State {
+    default_state with
+    name = "CLOSED";
+    comment = "Connection is closed";
+  };
+]
+
+(* Parse initial magic string from the server. *)
+and magic_state_machine = [
+  State {
+    default_state with
+    name = "START";
     comment = "Prepare to receive the magic identification from remote";
     external_events = [];
   };
 
-  "RECV_MAGIC", {
+  State {
     default_state with
+    name = "RECV_MAGIC";
     comment = "Receive initial magic identification from remote";
     external_events = [ NotifyRead, "" ];
   };
 
-  "CHECK_MAGIC", {
+  State {
     default_state with
+    name = "CHECK_MAGIC";
     comment = "Check magic and version sent by remote";
   };
+]
 
-  "RECV_NEWSTYLE_GFLAGS", {
+(* Fixed newstyle handshake. *)
+and newstyle_state_machine = [
+  State {
     default_state with
+    name = "START";
     comment = "Receive newstyle gflags from remote";
     external_events = [ NotifyRead, "" ];
   };
 
-  "CHECK_NEWSTYLE_GFLAGS", {
+  State {
     default_state with
+    name = "CHECK_GFLAGS";
     comment = "Check global flags sent by remote";
   };
 
-  "SEND_NEWSTYLE_CFLAGS", {
+  State {
     default_state with
+    name = "SEND_CFLAGS";
     comment = "Send newstyle client flags to remote";
     external_events = [ NotifyWrite, "" ];
   };
 
-  "TRY_NEWSTYLE_OPT_STARTTLS", {
+  Group ("OPT_STARTTLS", newstyle_opt_starttls_state_machine);
+  Group ("OPT_STRUCTURED_REPLY", newstyle_opt_structured_reply_state_machine);
+  Group ("OPT_GO", newstyle_opt_go_state_machine);
+]
+
+(* Fixed newstyle NBD_OPT_STARTTLS option. *)
+and newstyle_opt_starttls_state_machine = [
+  State {
     default_state with
+    name = "START";
     comment = "Try to send newstyle NBD_OPT_STARTTLS to upgrade to TLS";
     external_events = [];
   };
 
-  "SEND_NEWSTYLE_OPT_STARTTLS", {
+  State {
     default_state with
+    name = "SEND";
     comment = "Send newstyle NBD_OPT_STARTTLS to upgrade to TLS";
     external_events = [ NotifyWrite, "" ];
   };
 
-  "RECV_NEWSTYLE_OPT_STARTTLS_REPLY", {
+  State {
     default_state with
+    name = "RECV_REPLY";
     comment = "Receive newstyle NBD_OPT_STARTTLS reply";
     external_events = [ NotifyRead, "" ];
   };
 
-  "CHECK_NEWSTYLE_OPT_STARTTLS_REPLY", {
+  State {
     default_state with
+    name = "CHECK_REPLY";
     comment = "Check newstyle NBD_OPT_STARTTLS reply";
     external_events = [];
   };
 
-  "TLS_HANDSHAKE_READ", {
+  State {
     default_state with
+    name = "TLS_HANDSHAKE_READ";
     comment = "TLS handshake (reading)";
     external_events = [ NotifyRead, "" ];
   };
 
-  "TLS_HANDSHAKE_WRITE", {
+  State {
     default_state with
+    name = "TLS_HANDSHAKE_WRITE";
     comment = "TLS handshake (writing)";
     external_events = [ NotifyWrite, "" ];
   };
+]
 
-  "TRY_NEWSTYLE_OPT_STRUCTURED_REPLY", {
+(* Fixed newstyle NBD_OPT_STRUCTURED_REPLY option. *)
+and newstyle_opt_structured_reply_state_machine = [
+  State {
     default_state with
+    name = "START";
     comment = "Try to negotiate newstyle NBD_OPT_STRUCTURED_REPLY";
     external_events = [];
   };
 
-  "SEND_NEWSTYLE_OPT_STRUCTURED_REPLY", {
+  State {
     default_state with
+    name = "SEND";
     comment = "Send newstyle NBD_OPT_STRUCTURED_REPLY negotiation request";
     external_events = [ NotifyWrite, "" ];
   };
 
-  "RECV_NEWSTYLE_OPT_STRUCTURED_REPLY", {
+  State {
     default_state with
+    name = "RECV_REPLY";
     comment = "Receive newstyle NBD_OPT_STRUCTURED_REPLY option reply";
     external_events = [ NotifyRead, "" ];
   };
 
-  "SKIP_NEWSTYLE_OPT_STRUCTURED_REPLY_PAYLOAD", {
+  State {
     default_state with
+    name = "SKIP_REPLY_PAYLOAD";
     comment = "Skip newstyle NBD_OPT_STRUCTURED_REPLY reply payload";
     external_events = [ NotifyRead, "" ];
   };
 
-  "CHECK_NEWSTYLE_OPT_STRUCTURED_REPLY", {
+  State {
     default_state with
+    name = "CHECK_REPLY";
     comment = "Check newstyle NBD_OPT_STRUCTURED_REPLY option reply";
     external_events = [];
   };
+]
 
-  "TRY_NEWSTYLE_OPT_GO", {
+(* Fixed newstyle NBD_OPT_GO option. *)
+and newstyle_opt_go_state_machine = [
+  State {
     default_state with
+    name = "START";
     comment = "Try to send newstyle NBD_OPT_GO to end handshake";
     external_events = [];
   };
 
-  "SEND_NEWSTYLE_OPT_GO", {
+  State {
     default_state with
+    name = "SEND";
     comment = "Send newstyle NBD_OPT_GO to end handshake";
     external_events = [ NotifyWrite, "" ];
   };
 
-  "SEND_NEWSTYLE_OPT_GO_EXPORTNAMELEN", {
+  State {
     default_state with
+    name = "SEND_EXPORTNAMELEN";
     comment = "Send newstyle NBD_OPT_GO export name length";
     external_events = [ NotifyWrite, "" ];
   };
 
-  "SEND_NEWSTYLE_OPT_GO_EXPORT", {
+  State {
     default_state with
+    name = "SEND_EXPORT";
     comment = "Send newstyle NBD_OPT_GO export name";
     external_events = [ NotifyWrite, "" ];
   };
 
-  "SEND_NEWSTYLE_OPT_GO_NRINFOS", {
+  State {
     default_state with
+    name = "SEND_NRINFOS";
     comment = "Send newstyle NBD_OPT_GO number of infos";
     external_events = [ NotifyWrite, "" ];
   };
 
-  "RECV_NEWSTYLE_OPT_GO_REPLY", {
+  State {
     default_state with
+    name = "RECV_REPLY";
     comment = "Receive newstyle NBD_OPT_GO reply";
     external_events = [ NotifyRead, "" ];
   };
 
-  "RECV_NEWSTYLE_OPT_GO_REPLY_PAYLOAD", {
+  State {
     default_state with
+    name = "RECV_REPLY_PAYLOAD";
     comment = "Receive newstyle NBD_OPT_GO reply payload";
     external_events = [ NotifyRead, "" ];
   };
 
-  "CHECK_NEWSTYLE_OPT_GO_REPLY", {
+  State {
     default_state with
+    name = "CHECK_REPLY";
     comment = "Check newstyle NBD_OPT_GO reply";
     external_events = [];
   };
+]
 
-  "READY", {
+(* Sending a command to the server. *)
+and issue_command_state_machine = [
+  State {
     default_state with
-    comment = "Connection is ready to process NBD commands";
-    external_events = [ CmdIssue, "ISSUE_COMMAND";
-                        NotifyRead, "PREPARE_FOR_REPLY" ];
-  };
-
-  "ISSUE_COMMAND", {
-    default_state with
+    name = "START";
     (* XXX There's a possible deadlock here if a server cannot
      * handle multiple requests pipelined on a single connection.
      * We could try to issue a command and block, but reads might
@@ -311,104 +436,121 @@ let states = [
     external_events = [];
   };
 
-  "SEND_REQUEST", {
+  State {
     default_state with
+    name = "SEND_REQUEST";
     comment = "Sending a request to the remote server";
     external_events = [ NotifyWrite, "" ];
   };
 
-  "SEND_WRITE_PAYLOAD", {
+  State {
     default_state with
+    name = "SEND_WRITE_PAYLOAD";
     comment = "Sending the write payload to the remote server";
     external_events = [ NotifyWrite, "" ];
   };
+]
 
-  "PREPARE_FOR_REPLY", {
+(* Receiving a reply from the server. *)
+and reply_state_machine = [
+  State {
     default_state with
+    name = "START";
     comment = "Prepare to receive a reply from the remote server";
     external_events = [ NotifyRead, "" ];
   };
 
-  "RECV_REPLY", {
+  State {
     default_state with
+    name = "RECV_REPLY";
     comment = "Receive a reply from the remote server";
     external_events = [ NotifyRead, "" ];
   };
 
-  "CHECK_SIMPLE_OR_STRUCTURED_REPLY", {
+  State {
     default_state with
+    name = "CHECK_SIMPLE_OR_STRUCTURED_REPLY";
     comment = "Check if the reply is a simple or structured reply";
     external_events = [];
   };
 
-  "CHECK_SIMPLE_REPLY", {
+  Group ("SIMPLE_REPLY", simple_reply_state_machine);
+  Group ("STRUCTURED_REPLY", structured_reply_state_machine);
+
+  State {
     default_state with
+    name = "FINISH_COMMAND";
+    comment = "Finish receiving a command";
+    external_events = [];
+  };
+]
+
+(* Receiving a simple reply from the server. *)
+and simple_reply_state_machine = [
+  State {
+    default_state with
+    name = "START";
     comment = "Parse a simple reply from the server";
     external_events = [];
   };
 
-  "RECV_SIMPLE_READ_PAYLOAD", {
+  State {
     default_state with
+    name = "RECV_READ_PAYLOAD";
     comment = "Receiving the read payload for a simple reply";
     external_events = [ NotifyRead, "" ];
   };
+]
 
-  "RECV_STRUCTURED_REPLY_REMAINDER", {
+(* Receiving a structured reply from the server. *)
+and structured_reply_state_machine = [
+  State {
     default_state with
+    name = "START";
     comment = "Receiving the remaining part of a structured reply";
     external_events = [ NotifyRead, "" ];
   };
 
-  "CHECK_STRUCTURED_REPLY", {
+  State {
     default_state with
+    name = "CHECK";
     comment = "Parse a structured reply from the server";
     external_events = [];
   };
 
-  "RECV_STRUCTURED_REPLY_ERROR", {
+  State {
     default_state with
+    name = "RECV_ERROR";
     comment = "Receive a structured reply error header";
     external_events = [ NotifyRead, "" ];
   };
 
-  "RECV_STRUCTURED_REPLY_ERROR_MESSAGE", {
+  State {
     default_state with
+    name = "RECV_ERROR_MESSAGE";
     comment = "Receive a structured reply error message";
     external_events = [ NotifyRead, "" ];
   };
 
-  "RECV_STRUCTURED_REPLY_OFFSET_DATA", {
+  State {
     default_state with
+    name = "RECV_OFFSET_DATA";
     comment = "Receive a structured reply offset-data header";
     external_events = [ NotifyRead, "" ];
   };
 
-  "RECV_STRUCTURED_REPLY_OFFSET_DATA_DATA", {
+  State {
     default_state with
+    name = "RECV_OFFSET_DATA_DATA";
     comment = "Receive a structured reply offset-data block of data";
     external_events = [ NotifyRead, "" ];
   };
 
-  "RECV_STRUCTURED_REPLY_OFFSET_HOLE", {
+  State {
     default_state with
+    name = "RECV_OFFSET_HOLE";
     comment = "Receive a structured reply offset-hole header";
     external_events = [ NotifyRead, "" ];
-  };
-
-  "FINISH_COMMAND", {
-    default_state with
-    comment = "Finish receiving a command";
-    external_events = [];
-  };
-
-  "DEAD", {
-    default_state with
-    comment = "Connection is in an unrecoverable error state, can only be closed";
-  };
-
-  "CLOSED", {
-    default_state with
-    comment = "Connection is closed";
   };
 ]
 
@@ -1282,6 +1424,99 @@ let c_string_of_external_event = function
   | CmdConnectCommand -> "cmd_connect_command"
   | CmdIssue -> "cmd_issue"
 
+(* Find a state in the state machine hierarchy by path.  The [path]
+ * parameter is a list like [["READY"]] or [["MAGIC"; "START"]].
+ *)
+let find_state path =
+  let rec find sm = function
+    | [] -> raise Not_found
+    | [n] ->
+       (* Find a state leaf node. *)
+       let rec loop = function
+         | [] -> raise Not_found
+         | State ({ name } as ret) :: _ when n = name -> ret
+         | _ :: rest -> loop rest
+       in
+       loop sm
+    | g :: path ->
+       (* Find a state machine group. *)
+       let rec loop = function
+         | [] -> raise Not_found
+         | Group (name, group) :: _ when g = name -> find group path
+         | _ :: rest -> loop rest
+       in
+       loop sm
+  in
+  try (find state_machine path : state)
+  with Not_found ->
+       failwithf "find_state: ‘%s’ not found" (String.concat "." path)
+
+let dot_rex = Str.regexp "\\."
+
+(* Resolve a stringified path to a state.
+ *
+ * [prefix] parameter is the current prefix.  We resolve paths
+ * relative to this.
+ *
+ * Stringified paths can be:
+ * ["STATE"] => state relative to current level
+ * ["GROUP.STATE"] => state below group at current level (to any depth)
+ * [".TOP"] => state at the top level
+ * ["^UP"] => state at a level above this one
+ *)
+let rec resolve_state prefix str =
+  let len = String.length str in
+  if len >= 1 && String.sub str 0 1 = "." then
+    resolve_state [] (String.sub str 1 (len-1))
+  else if len >= 1 && String.sub str 0 1 = "^" then (
+    let parent =
+      match List.rev prefix with
+      | [] -> failwithf "resolve_state: %s (^) used from top level group" str
+      | _ :: rest -> List.rev rest in
+    resolve_state parent (String.sub str 1 (len-1))
+  )
+  else (
+    let path = Str.split_delim dot_rex str in
+    find_state (prefix @ path)
+  )
+
+(* Flatten the state machine hierarchy.  This sets the [parsed.prefix],
+ * [parsed.state_enum], [parsed.events] fields in the state.
+ *)
+let states : state list =
+  let rec flatten prefix = function
+    | [] -> []
+    | State st :: rest ->
+       st.parsed <-
+         { st.parsed with
+           prefix = prefix;
+           display_name = (
+             match prefix with
+             | [] -> st.name
+             | prefix -> String.concat "." prefix ^ "." ^ st.name
+           );
+           state_enum = (
+             let path = String.concat "" (List.map ((^) "_") prefix) in
+             "STATE" ^ path ^ "_" ^ st.name
+           );
+           events = (
+             List.map (
+               fun (ev, str) ->
+                 (* In external_events,
+                  * special string [""] means current state.
+                  *)
+                 if str = "" then ev, st
+                 else ev, resolve_state prefix str
+             ) st.external_events
+           )
+         };
+       st :: flatten prefix rest
+    | Group (name, group) :: rest ->
+       let states = flatten (prefix @ [name]) group in
+       states @ flatten prefix rest
+  in
+  flatten [] state_machine
+
 let state_machine_prologue =
   let chan = open_in "generator/states.c" in
   let lines = ref [] in
@@ -1312,7 +1547,7 @@ let state_machine_prologue =
 
     let statecodes = ref [] in
     let curr_state = ref None in
-    let rex = Str.regexp "^ \\([A-Z0-9][A-Z0-9_]*\\):$" in
+    let rex = Str.regexp "^ \\([A-Z0-9][A-Z0-9_\\.]*\\):$" in
     List.iter (
       fun line ->
         if Str.string_match rex line 0 then ( (* new case *)
@@ -1336,55 +1571,58 @@ let state_machine_prologue =
 
     prologue, statecodes in
 
-  (* Check there are no code fragments which don't correspond
-   * to a known state in the states table.
-   *)
-  List.iter (
-    fun (name, _) ->
-      if not (List.mem_assoc name states) then
-        failwithf "generator/states.c: unknown state: %s" name
-  ) statecodes;
+  (* Resolve the state names in the code to paths. *)
+  let statecodes =
+    List.map (
+      fun (name, code) ->
+        let path = Str.split_delim dot_rex name in
+        let state = find_state path in
+        state, code
+    ) statecodes in
 
   (* Parse the state code fragments to get internal state
    * transitions, marked by "%STATE".
    *)
-  let rex = Str.regexp "%\\([A-Z0-9][A-Z0-9_]*\\)" in
+  let rex = Str.regexp "%\\([\\^\\.]*[A-Z0-9][A-Z0-9_\\.]*\\)" in
   List.iter (
-    fun (name, code) ->
+    fun (state, code) ->
       let code = Str.full_split rex code in
       let code =
         List.map (
           function
-          | Str.Delim name ->
-             Str.Delim (String.sub name 1 (String.length name - 1))
+          | Str.Delim str ->
+             Str.Delim (String.sub str 1 (String.length str - 1))
           | (Str.Text _) as c -> c
       ) code in
-      (* Check all the next states exist. *)
-      List.iter (
-        function
-        | Str.Delim name ->
-           if not (List.mem_assoc name states) then
-             failwithf "generator/states.c: unknown next state: %%%s" name
-        | Str.Text _ -> ()
-      ) code;
 
       (* Create the list of internal transitions. *)
-      let state = List.assoc name states in
-      state.internal_transitions <- (
-        filter_map (function Str.Delim name -> Some name | Str.Text _ -> None)
-                   code
-      );
+      state.parsed <-
+        { state.parsed with
+          internal_transitions = (
+            filter_map (
+              function
+              | Str.Delim str ->
+                 let next_state = resolve_state state.parsed.prefix str in
+                 Some next_state
+              | Str.Text _ -> None
+            ) code
+        )
+        };
 
       (* Create the final C code fragment. *)
-      state.code <- (
-        String.concat "" (
-          List.map (
-            function
-            | Str.Delim name -> "STATE_" ^ name
-            | Str.Text text -> text
-          ) code
-        )
-      );
+      state.parsed <-
+        { state.parsed with
+          code =
+            String.concat "" (
+              List.map (
+                function
+                | Str.Delim str ->
+                   let next_state = resolve_state state.parsed.prefix str in
+                   next_state.parsed.state_enum
+                | Str.Text text -> text
+                ) code
+            )
+        }
   ) statecodes;
 
   prologue
@@ -1394,9 +1632,9 @@ let generate_lib_states_h () =
   generate_header ~extra_sources:["generator/states.c"] CStyle;
   pr "enum state {\n";
   List.iter (
-    fun (name, { comment }) ->
-      pr "  /* %s */\n" comment;
-      pr "  STATE_%s,\n" name;
+    fun ({ comment; parsed = { display_name; state_enum } }) ->
+      pr "  /* %s: %s */\n" display_name comment;
+      pr "  %s,\n" state_enum;
       pr "\n";
   ) states;
   pr "};\n";
@@ -1418,10 +1656,10 @@ let generate_lib_states_c () =
 
   (* The state machine C code fragments. *)
   List.iter (
-    fun (name, { comment; code }) ->
-      pr "/* %s */\n" comment;
+    fun ({ comment; parsed = { display_name; state_enum; code } }) ->
+      pr "/* %s: %s */\n" display_name comment;
       pr "static int\n";
-      pr "_enter_STATE_%s (struct nbd_handle *h,\n" name;
+      pr "_enter_%s (struct nbd_handle *h,\n" state_enum;
       pr "             struct nbd_connection *conn,\n";
       pr "             enum state *next_state,\n";
       pr "             bool *blocked)\n";
@@ -1433,17 +1671,17 @@ let generate_lib_states_c () =
       pr "}\n";
       pr "\n";
       pr "static int\n";
-      pr "enter_STATE_%s (struct nbd_handle *h, struct nbd_connection *conn,\n"
-         name;
+      pr "enter_%s (struct nbd_handle *h, struct nbd_connection *conn,\n"
+         state_enum;
       pr "            bool *blocked)\n";
       pr "{\n";
       pr "  int r;\n";
-      pr "  enum state next_state = STATE_%s;\n" name;
+      pr "  enum state next_state = %s;\n" state_enum;
       pr "\n";
-      pr "  r = _enter_STATE_%s (h, conn, &next_state, blocked);\n" name;
+      pr "  r = _enter_%s (h, conn, &next_state, blocked);\n" state_enum;
       pr "  if (conn->state != next_state) {\n";
       pr "    debug (h, \"conn %%\" PRIi64 \": transition: %%s -> %%s\",\n";
-      pr "           conn->id, \"%s\",\n" name;
+      pr "           conn->id, \"%s\",\n" display_name;
       pr "           nbd_internal_state_short_string (next_state));\n";
       pr "    conn->state = next_state;\n";
       pr "  }\n";
@@ -1464,22 +1702,23 @@ let generate_lib_states_c () =
   pr "  switch (conn->state)\n";
   pr "  {\n";
   List.iter (
-    fun (name, { external_events }) ->
-      pr "  case STATE_%s:\n" name;
-      if external_events <> [] then (
+    fun ({ parsed = { display_name; state_enum; events } } as state) ->
+      pr "  case %s:\n" state_enum;
+      if events <> [] then (
         pr "    switch (ev)\n";
         pr "    {\n";
         List.iter (
           fun (e, next_state) ->
             pr "    case %s:\n" (c_string_of_external_event e);
-            if next_state <> "" then (
-              pr "      conn->state = STATE_%s;\n" next_state;
+            if state != next_state then (
+              pr "      conn->state = %s;\n" next_state.parsed.state_enum;
               pr "      debug (h, \"conn %%\" PRIi64 \": event %%s: %%s -> %%s\",\n";
               pr "             conn->id, \"%s\", \"%s\", \"%s\");\n"
-                 (string_of_external_event e) name next_state;
+                 (string_of_external_event e)
+                 display_name next_state.parsed.display_name;
             );
             pr "      goto ok;\n";
-        ) external_events;
+        ) events;
         pr "    default: ; /* nothing, silence GCC warning */\n";
         pr "    }\n";
       );
@@ -1499,9 +1738,9 @@ let generate_lib_states_c () =
   pr "    switch (conn->state)\n";
   pr "    {\n";
   List.iter (
-    fun (name, _) ->
-      pr "    case STATE_%s:\n" name;
-      pr "      r = enter_STATE_%s (h, conn, &blocked);\n" name;
+    fun { parsed = { state_enum } } ->
+      pr "    case %s:\n" state_enum;
+      pr "      r = enter_%s (h, conn, &blocked);\n" state_enum;
       pr "      break;\n"
   ) states;
   pr "    default:\n";
@@ -1523,8 +1762,8 @@ let generate_lib_states_c () =
   pr "  switch (conn->state)\n";
   pr "  {\n";
   List.iter (
-    fun (name, { external_events }) ->
-      pr "  case STATE_%s:\n" name;
+    fun ({ parsed = { state_enum; events } }) ->
+      pr "  case %s:\n" state_enum;
       List.iter (
         fun (e, _) ->
           match e with
@@ -1532,7 +1771,7 @@ let generate_lib_states_c () =
           | NotifyWrite -> pr "    r |= LIBNBD_AIO_DIRECTION_WRITE;\n"
           | CmdCreate | CmdConnectSockAddr | CmdConnectTCP | CmdConnectCommand
           | CmdIssue -> ()
-      ) external_events;
+      ) events;
       pr "    break;\n";
   ) states;
   pr "  }\n";
@@ -1548,9 +1787,9 @@ let generate_lib_states_c () =
   pr "  switch (state)\n";
   pr "  {\n";
   List.iter (
-    fun (name, { comment }) ->
-      pr "  case STATE_%s:\n" name;
-      pr "    return \"%s\";\n" name
+    fun ({ parsed = { display_name; state_enum } }) ->
+      pr "  case %s:\n" state_enum;
+      pr "    return \"%s\";\n" display_name
   ) states;
   pr "  }\n";
   pr "\n";
@@ -1567,9 +1806,9 @@ let generate_lib_states_c () =
   pr "  switch (conn->state)\n";
   pr "  {\n";
   List.iter (
-    fun (name, { comment }) ->
-      pr "  case STATE_%s:\n" name;
-      pr "    return \"%s\" \": \"\n" name;
+    fun ({ comment; parsed = { display_name; state_enum } }) ->
+      pr "  case %s:\n" state_enum;
+      pr "    return \"%s\" \": \"\n" display_name;
       pr "           \"%s\";\n" comment;
       pr "\n";
   ) states;

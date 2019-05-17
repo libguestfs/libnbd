@@ -123,20 +123,20 @@ send_from_wbuf (struct nbd_connection *conn)
   assert (!conn->sock);
   fd = socket (AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
   if (fd == -1) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (errno, "socket");
     return -1;
   }
   conn->sock = nbd_internal_socket_create (fd);
   if (!conn->sock) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     return -1;
   }
 
   if (connect (fd, (struct sockaddr *) &conn->connaddr,
                conn->connaddrlen) == -1) {
     if (errno != EINPROGRESS) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       set_error (errno, "connect");
       return -1;
     }
@@ -149,17 +149,17 @@ send_from_wbuf (struct nbd_connection *conn)
 
   if (getsockopt (conn->sock->ops->get_fd (conn->sock),
                   SOL_SOCKET, SO_ERROR, &status, &len) == -1) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (errno, "getsockopt: SO_ERROR");
     return -1;
   }
   /* This checks the status of the original connect call. */
   if (status == 0) {
-    SET_NEXT_STATE (%PREPARE_FOR_MAGIC);
+    SET_NEXT_STATE (%MAGIC.START);
     return 0;
   }
   else {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (status, "connect");
     return -1;
   }
@@ -187,7 +187,7 @@ send_from_wbuf (struct nbd_connection *conn)
    */
   r = getaddrinfo (conn->hostname, conn->port, &conn->hints, &conn->result);
   if (r != 0) {
-    SET_NEXT_STATE (%CREATED);
+    SET_NEXT_STATE (%START);
     set_error (0, "getaddrinfo: %s:%s: %s",
                conn->hostname, conn->port, gai_strerror (r));
     return -1;
@@ -206,7 +206,7 @@ send_from_wbuf (struct nbd_connection *conn)
     /* We tried all the results from getaddrinfo without success.
      * Save errno from most recent connect(2) call. XXX
      */
-    SET_NEXT_STATE (%CREATED);
+    SET_NEXT_STATE (%START);
     set_error (0, "connect: %s:%s: could not connect to remote host",
                conn->hostname, conn->port);
     return -1;
@@ -221,7 +221,7 @@ send_from_wbuf (struct nbd_connection *conn)
   }
   conn->sock = nbd_internal_socket_create (fd);
   if (!conn->sock) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     return -1;
   }
   if (connect (fd, conn->rp->ai_addr, conn->rp->ai_addrlen) == -1) {
@@ -240,13 +240,13 @@ send_from_wbuf (struct nbd_connection *conn)
 
   if (getsockopt (conn->sock->ops->get_fd (conn->sock),
                   SOL_SOCKET, SO_ERROR, &status, &len) == -1) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (errno, "getsockopt: SO_ERROR");
     return -1;
   }
   /* This checks the status of the original connect call. */
   if (status == 0)
-    SET_NEXT_STATE (%PREPARE_FOR_MAGIC);
+    SET_NEXT_STATE (%MAGIC.START);
   else
     SET_NEXT_STATE (%CONNECT_TCP_NEXT);
   return 0;
@@ -270,14 +270,14 @@ send_from_wbuf (struct nbd_connection *conn)
   assert (conn->argv[0]);
   if (socketpair (AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0,
                   sv) == -1) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (errno, "socketpair");
     return -1;
   }
 
   pid = fork ();
   if (pid == -1) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (errno, "fork");
     close (sv[0]);
     close (sv[1]);
@@ -303,7 +303,7 @@ send_from_wbuf (struct nbd_connection *conn)
   conn->pid = pid;
   conn->sock = nbd_internal_socket_create (sv[0]);
   if (!conn->sock) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     return -1;
   }
   close (sv[1]);
@@ -311,53 +311,53 @@ send_from_wbuf (struct nbd_connection *conn)
   /* The sockets are connected already, we can jump directly to
    * receiving the server magic.
    */
-  SET_NEXT_STATE (%PREPARE_FOR_MAGIC);
+  SET_NEXT_STATE (%MAGIC.START);
   return 0;
 
- PREPARE_FOR_MAGIC:
+ MAGIC.START:
   conn->rbuf = &conn->sbuf;
   conn->rlen = 16;
   SET_NEXT_STATE (%RECV_MAGIC);
   return 0;
 
- RECV_MAGIC:
+ MAGIC.RECV_MAGIC:
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:  SET_NEXT_STATE (%CHECK_MAGIC);
   }
   return 0;
 
- CHECK_MAGIC:
+ MAGIC.CHECK_MAGIC:
   if (strncmp (conn->sbuf.handshake.nbdmagic, "NBDMAGIC", 8) != 0) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: server did not send expected NBD magic");
     return -1;
   }
   /* XXX Only handle fixed newstyle servers for now. */
   conn->sbuf.handshake.version = be64toh (conn->sbuf.handshake.version);
   if (conn->sbuf.handshake.version != NBD_NEW_VERSION) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: server is not a fixed newstyle NBD server");
     return -1;
   }
   conn->rbuf = &conn->gflags;
   conn->rlen = 2;
-  SET_NEXT_STATE (%RECV_NEWSTYLE_GFLAGS);
+  SET_NEXT_STATE (%.NEWSTYLE.START);
   return 0;
 
- RECV_NEWSTYLE_GFLAGS:
+ NEWSTYLE.START:
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
-  case 0:  SET_NEXT_STATE (%CHECK_NEWSTYLE_GFLAGS);
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 0:  SET_NEXT_STATE (%CHECK_GFLAGS);
   }
   return 0;
 
- CHECK_NEWSTYLE_GFLAGS:
+ NEWSTYLE.CHECK_GFLAGS:
   uint32_t cflags;
 
   conn->gflags = be16toh (conn->gflags);
   if ((conn->gflags & NBD_FLAG_FIXED_NEWSTYLE) == 0) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: server is not a fixed newstyle NBD server");
     return -1;
   }
@@ -366,48 +366,48 @@ send_from_wbuf (struct nbd_connection *conn)
   conn->sbuf.cflags = htobe32 (cflags);
   conn->wbuf = &conn->sbuf;
   conn->wlen = 4;
-  SET_NEXT_STATE (%SEND_NEWSTYLE_CFLAGS);
+  SET_NEXT_STATE (%SEND_CFLAGS);
   return 0;
 
- SEND_NEWSTYLE_CFLAGS:
+ NEWSTYLE.SEND_CFLAGS:
   switch (send_from_wbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     /* Start sending options.  NBD_OPT_STARTTLS must be sent first. */
     if (h->tls)
-      SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_STARTTLS);
+      SET_NEXT_STATE (%OPT_STARTTLS.START);
     else
-      SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_STRUCTURED_REPLY);
+      SET_NEXT_STATE (%OPT_STRUCTURED_REPLY.START);
   }
   return 0;
 
- TRY_NEWSTYLE_OPT_STARTTLS:
+ NEWSTYLE.OPT_STARTTLS.START:
   conn->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   conn->sbuf.option.option = htobe32 (NBD_OPT_STARTTLS);
   conn->sbuf.option.optlen = 0;
   conn->wbuf = &conn->sbuf;
   conn->wlen = sizeof (conn->sbuf.option);
-  SET_NEXT_STATE (%SEND_NEWSTYLE_OPT_STARTTLS);
+  SET_NEXT_STATE (%SEND);
   return 0;
 
- SEND_NEWSTYLE_OPT_STARTTLS:
+ NEWSTYLE.OPT_STARTTLS.SEND:
   switch (send_from_wbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     conn->rbuf = &conn->sbuf;
     conn->rlen = sizeof (conn->sbuf.or.option_reply);
-    SET_NEXT_STATE (%RECV_NEWSTYLE_OPT_STARTTLS_REPLY);
+    SET_NEXT_STATE (%RECV_REPLY);
   }
   return 0;
 
- RECV_NEWSTYLE_OPT_STARTTLS_REPLY:
+ NEWSTYLE.OPT_STARTTLS.RECV_REPLY:
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
-  case 0: SET_NEXT_STATE (%CHECK_NEWSTYLE_OPT_STARTTLS_REPLY);
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 0: SET_NEXT_STATE (%CHECK_REPLY);
   }
   return 0;
 
- CHECK_NEWSTYLE_OPT_STARTTLS_REPLY:
+ NEWSTYLE.OPT_STARTTLS.CHECK_REPLY:
   uint64_t magic;
   uint32_t option;
   uint32_t reply;
@@ -419,7 +419,7 @@ send_from_wbuf (struct nbd_connection *conn)
   reply = be32toh (conn->sbuf.or.option_reply.reply);
   len = be32toh (conn->sbuf.or.option_reply.replylen);
   if (magic != NBD_REP_MAGIC || option != NBD_OPT_STARTTLS || len != 0) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: invalid option reply magic, option or length");
     return -1;
   }
@@ -427,7 +427,7 @@ send_from_wbuf (struct nbd_connection *conn)
   case NBD_REP_ACK:
     new_sock = nbd_internal_crypto_create_session (conn, conn->sock);
     if (new_sock == NULL) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       return -1;
     }
     conn->sock = new_sock;
@@ -446,7 +446,7 @@ send_from_wbuf (struct nbd_connection *conn)
      * then we can continue unencrypted.
      */
     if (h->tls == 2) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       set_error (ENOTSUP, "handshake: server refused TLS, "
                  "but handle TLS setting is require (2)");
       return -1;
@@ -455,17 +455,17 @@ send_from_wbuf (struct nbd_connection *conn)
     debug (conn->h,
            "server refused TLS (%s), continuing with unencrypted connection",
            reply == NBD_REP_ERR_POLICY ? "policy" : "not supported");
-    SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_STRUCTURED_REPLY);
+    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
     return 0;
   }
   return 0;
 
- TLS_HANDSHAKE_READ:
+ NEWSTYLE.OPT_STARTTLS.TLS_HANDSHAKE_READ:
   int r;
 
   r = nbd_internal_crypto_handshake (conn);
   if (r == -1) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     return -1;
   }
   if (r == 0) {
@@ -473,7 +473,7 @@ send_from_wbuf (struct nbd_connection *conn)
     nbd_internal_crypto_debug_tls_enabled (conn);
 
     /* Continue with option negotiation. */
-    SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_STRUCTURED_REPLY);
+    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
     return 0;
   }
   /* Continue handshake. */
@@ -483,12 +483,12 @@ send_from_wbuf (struct nbd_connection *conn)
     SET_NEXT_STATE (%TLS_HANDSHAKE_WRITE);
   return 0;
 
- TLS_HANDSHAKE_WRITE:
+ NEWSTYLE.OPT_STARTTLS.TLS_HANDSHAKE_WRITE:
   int r;
 
   r = nbd_internal_crypto_handshake (conn);
   if (r == -1) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     return -1;
   }
   if (r == 0) {
@@ -496,7 +496,7 @@ send_from_wbuf (struct nbd_connection *conn)
     debug (conn->h, "connection is using TLS");
 
     /* Continue with option negotiation. */
-    SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_STRUCTURED_REPLY);
+    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
     return 0;
   }
   /* Continue handshake. */
@@ -506,47 +506,47 @@ send_from_wbuf (struct nbd_connection *conn)
     SET_NEXT_STATE (%TLS_HANDSHAKE_WRITE);
   return 0;
 
- TRY_NEWSTYLE_OPT_STRUCTURED_REPLY:
+ NEWSTYLE.OPT_STRUCTURED_REPLY.START:
   conn->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   conn->sbuf.option.option = htobe32 (NBD_OPT_STRUCTURED_REPLY);
   conn->sbuf.option.optlen = htobe32 (0);
   conn->wbuf = &conn->sbuf;
   conn->wlen = sizeof conn->sbuf.option;
-  SET_NEXT_STATE (%SEND_NEWSTYLE_OPT_STRUCTURED_REPLY);
+  SET_NEXT_STATE (%SEND);
   return 0;
 
- SEND_NEWSTYLE_OPT_STRUCTURED_REPLY:
+ NEWSTYLE.OPT_STRUCTURED_REPLY.SEND:
   switch (send_from_wbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     conn->rbuf = &conn->sbuf;
     conn->rlen = sizeof conn->sbuf.or.option_reply;
-    SET_NEXT_STATE (%RECV_NEWSTYLE_OPT_STRUCTURED_REPLY);
+    SET_NEXT_STATE (%RECV_REPLY);
   }
   return 0;
 
- RECV_NEWSTYLE_OPT_STRUCTURED_REPLY:
+ NEWSTYLE.OPT_STRUCTURED_REPLY.RECV_REPLY:
   uint32_t len;
 
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     /* Discard the payload if there is one. */
     len = be32toh (conn->sbuf.or.option_reply.replylen);
     conn->rbuf = NULL;
     conn->rlen = len;
-    SET_NEXT_STATE (%SKIP_NEWSTYLE_OPT_STRUCTURED_REPLY_PAYLOAD);
+    SET_NEXT_STATE (%SKIP_REPLY_PAYLOAD);
   }
   return 0;
 
- SKIP_NEWSTYLE_OPT_STRUCTURED_REPLY_PAYLOAD:
+ NEWSTYLE.OPT_STRUCTURED_REPLY.SKIP_REPLY_PAYLOAD:
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
-  case 0:  SET_NEXT_STATE (%CHECK_NEWSTYLE_OPT_STRUCTURED_REPLY);
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 0:  SET_NEXT_STATE (%CHECK_REPLY);
   }
   return 0;
 
- CHECK_NEWSTYLE_OPT_STRUCTURED_REPLY:
+ NEWSTYLE.OPT_STRUCTURED_REPLY.CHECK_REPLY:
   uint64_t magic;
   uint32_t option;
   uint32_t reply;
@@ -555,7 +555,7 @@ send_from_wbuf (struct nbd_connection *conn)
   option = be32toh (conn->sbuf.or.option_reply.option);
   reply = be32toh (conn->sbuf.or.option_reply.reply);
   if (magic != NBD_REP_MAGIC || option != NBD_OPT_STRUCTURED_REPLY) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: invalid option reply magic or option");
     return -1;
   }
@@ -571,69 +571,69 @@ send_from_wbuf (struct nbd_connection *conn)
   }
 
   /* Next option. */
-  SET_NEXT_STATE (%TRY_NEWSTYLE_OPT_GO);
+  SET_NEXT_STATE (%^OPT_GO.START);
   return 0;
 
- TRY_NEWSTYLE_OPT_GO:
+ NEWSTYLE.OPT_GO.START:
   conn->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   conn->sbuf.option.option = htobe32 (NBD_OPT_GO);
   conn->sbuf.option.optlen =
     htobe32 (/* exportnamelen */ 4 + strlen (h->export_name) + /* nrinfos */ 2);
   conn->wbuf = &conn->sbuf;
   conn->wlen = sizeof conn->sbuf.option;
-  SET_NEXT_STATE (%SEND_NEWSTYLE_OPT_GO);
+  SET_NEXT_STATE (%SEND);
   return 0;
 
- SEND_NEWSTYLE_OPT_GO:
+ NEWSTYLE.OPT_GO.SEND:
   const uint32_t exportnamelen = strlen (h->export_name);
 
   switch (send_from_wbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     conn->sbuf.len = htobe32 (exportnamelen);
     conn->wbuf = &conn->sbuf;
     conn->wlen = 4;
-    SET_NEXT_STATE (%SEND_NEWSTYLE_OPT_GO_EXPORTNAMELEN);
+    SET_NEXT_STATE (%SEND_EXPORTNAMELEN);
   }
   return 0;
 
- SEND_NEWSTYLE_OPT_GO_EXPORTNAMELEN:
+ NEWSTYLE.OPT_GO.SEND_EXPORTNAMELEN:
   switch (send_from_wbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     conn->wbuf = h->export_name;
     conn->wlen = strlen (h->export_name);
-    SET_NEXT_STATE (%SEND_NEWSTYLE_OPT_GO_EXPORT);
+    SET_NEXT_STATE (%SEND_EXPORT);
   }
   return 0;
 
- SEND_NEWSTYLE_OPT_GO_EXPORT:
+ NEWSTYLE.OPT_GO.SEND_EXPORT:
   switch (send_from_wbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     conn->sbuf.nrinfos = 0;
     conn->wbuf = &conn->sbuf;
     conn->wlen = 2;
-    SET_NEXT_STATE (%SEND_NEWSTYLE_OPT_GO_NRINFOS);
+    SET_NEXT_STATE (%SEND_NRINFOS);
   }
   return 0;
 
- SEND_NEWSTYLE_OPT_GO_NRINFOS:
+ NEWSTYLE.OPT_GO.SEND_NRINFOS:
   switch (send_from_wbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     conn->rbuf = &conn->sbuf;
     conn->rlen = sizeof conn->sbuf.or.option_reply;
-    SET_NEXT_STATE (%RECV_NEWSTYLE_OPT_GO_REPLY);
+    SET_NEXT_STATE (%RECV_REPLY);
   }
   return 0;
 
- RECV_NEWSTYLE_OPT_GO_REPLY:
+ NEWSTYLE.OPT_GO.RECV_REPLY:
   uint32_t len;
   const size_t maxpayload = sizeof conn->sbuf.or.payload;
 
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     /* Read the following payload if it is short enough to fit in the
      * static buffer.  If it's too long, skip it.
@@ -644,18 +644,18 @@ send_from_wbuf (struct nbd_connection *conn)
     else
       conn->rbuf = NULL;
     conn->rlen = len;
-    SET_NEXT_STATE (%RECV_NEWSTYLE_OPT_GO_REPLY_PAYLOAD);
+    SET_NEXT_STATE (%RECV_REPLY_PAYLOAD);
   }
   return 0;
 
- RECV_NEWSTYLE_OPT_GO_REPLY_PAYLOAD:
+ NEWSTYLE.OPT_GO.RECV_REPLY_PAYLOAD:
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
-  case 0:  SET_NEXT_STATE (%CHECK_NEWSTYLE_OPT_GO_REPLY);
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 0:  SET_NEXT_STATE (%CHECK_REPLY);
   }
   return 0;
 
- CHECK_NEWSTYLE_OPT_GO_REPLY:
+ NEWSTYLE.OPT_GO.CHECK_REPLY:
   uint64_t magic;
   uint32_t option;
   uint32_t reply;
@@ -667,13 +667,13 @@ send_from_wbuf (struct nbd_connection *conn)
   reply = be32toh (conn->sbuf.or.option_reply.reply);
   len = be32toh (conn->sbuf.or.option_reply.replylen);
   if (magic != NBD_REP_MAGIC || option != NBD_OPT_GO) {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: invalid option reply magic or option");
     return -1;
   }
   switch (reply) {
   case NBD_REP_ACK:
-    SET_NEXT_STATE (%READY);
+    SET_NEXT_STATE (%.READY);
     return 0;
   case NBD_REP_INFO:
     if (len <= maxpayload /* see RECV_NEWSTYLE_OPT_GO_REPLY */) {
@@ -685,7 +685,7 @@ send_from_wbuf (struct nbd_connection *conn)
           debug (conn->h, "exportsize: %" PRIu64 " eflags: 0x%" PRIx16,
                  conn->h->exportsize, conn->h->eflags);
           if (conn->h->eflags == 0) {
-            SET_NEXT_STATE (%DEAD);
+            SET_NEXT_STATE (%.DEAD);
             set_error (EINVAL, "handshake: invalid eflags == 0 from server");
             return -1;
           }
@@ -696,21 +696,21 @@ send_from_wbuf (struct nbd_connection *conn)
     /* Server is allowed to send any number of NBD_REP_INFO, read next one. */
     conn->rbuf = &conn->sbuf;
     conn->rlen = sizeof (conn->sbuf.or.option_reply);
-    SET_NEXT_STATE (%RECV_NEWSTYLE_OPT_GO_REPLY);
+    SET_NEXT_STATE (%RECV_REPLY);
     return 0;
   case NBD_REP_ERR_UNSUP:
     /* XXX fall back to NBD_OPT_EXPORT_NAME */
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: server does not support NBD_OPT_GO");
     return -1;
   default:
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: unknown reply from NBD_OPT_GO: 0x%" PRIx32,
                reply);
     return -1;
   }
 
- ISSUE_COMMAND:
+ ISSUE_COMMAND.START:
   struct command_in_flight *cmd;
 
   assert (conn->cmds_to_issue != NULL);
@@ -730,11 +730,11 @@ send_from_wbuf (struct nbd_connection *conn)
   SET_NEXT_STATE (%SEND_REQUEST);
   return 0;
 
- SEND_REQUEST:
+ ISSUE_COMMAND.SEND_REQUEST:
   struct command_in_flight *cmd;
 
   switch (send_from_wbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     assert (conn->cmds_in_flight != NULL);
     cmd = conn->cmds_in_flight;
@@ -745,18 +745,18 @@ send_from_wbuf (struct nbd_connection *conn)
       SET_NEXT_STATE (%SEND_WRITE_PAYLOAD);
     }
     else
-      SET_NEXT_STATE (%READY);
+      SET_NEXT_STATE (%.READY);
   }
   return 0;
 
- SEND_WRITE_PAYLOAD:
+ ISSUE_COMMAND.SEND_WRITE_PAYLOAD:
   switch (send_from_wbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
-  case 0:  SET_NEXT_STATE (%READY);
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 0:  SET_NEXT_STATE (%.READY);
   }
   return 0;
 
- PREPARE_FOR_REPLY:
+ REPLY.START:
   /* This state is entered when a read notification is received in the
    * READY state.  Therefore we know the socket is readable here.
    * Reading a zero length now would indicate that the socket has been
@@ -785,11 +785,11 @@ send_from_wbuf (struct nbd_connection *conn)
       return 0;
 
     /* sock->ops->recv called set_error already. */
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     return -1;
   }
   if (r == 0) {
-    SET_NEXT_STATE (%CLOSED);
+    SET_NEXT_STATE (%.CLOSED);
     return 0;
   }
 
@@ -798,19 +798,19 @@ send_from_wbuf (struct nbd_connection *conn)
   SET_NEXT_STATE (%RECV_REPLY);
   return 0;
 
- RECV_REPLY:
+ REPLY.RECV_REPLY:
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0: SET_NEXT_STATE (%CHECK_SIMPLE_OR_STRUCTURED_REPLY);
   }
   return 0;
 
- CHECK_SIMPLE_OR_STRUCTURED_REPLY:
+ REPLY.CHECK_SIMPLE_OR_STRUCTURED_REPLY:
   uint32_t magic;
 
   magic = be32toh (conn->sbuf.simple_reply.magic);
   if (magic == NBD_SIMPLE_REPLY_MAGIC) {
-    SET_NEXT_STATE (%CHECK_SIMPLE_REPLY);
+    SET_NEXT_STATE (%SIMPLE_REPLY.START);
     return 0;
   }
   else if (magic == NBD_STRUCTURED_REPLY_MAGIC) {
@@ -821,16 +821,16 @@ send_from_wbuf (struct nbd_connection *conn)
     conn->rbuf += sizeof conn->sbuf.simple_reply;
     conn->rlen = sizeof conn->sbuf.sr.structured_reply;
     conn->rlen -= sizeof conn->sbuf.simple_reply;
-    SET_NEXT_STATE (%RECV_STRUCTURED_REPLY_REMAINDER);
+    SET_NEXT_STATE (%STRUCTURED_REPLY.START);
     return 0;
   }
   else {
-    SET_NEXT_STATE (%DEAD); /* We've probably lost synchronization. */
+    SET_NEXT_STATE (%.DEAD); /* We've probably lost synchronization. */
     set_error (0, "invalid reply magic");
     return -1;
   }
 
- CHECK_SIMPLE_REPLY:
+ REPLY.SIMPLE_REPLY.START:
   struct command_in_flight *cmd;
   uint32_t error;
   uint64_t handle;
@@ -844,7 +844,7 @@ send_from_wbuf (struct nbd_connection *conn)
       break;
   }
   if (cmd == NULL) {
-    SET_NEXT_STATE (%READY);
+    SET_NEXT_STATE (%.READY);
     set_error (0, "no matching handle found for server reply, "
                "this is probably a bug in the server");
     return -1;
@@ -854,28 +854,28 @@ send_from_wbuf (struct nbd_connection *conn)
   if (cmd->error == 0 && cmd->type == NBD_CMD_READ) {
     conn->rbuf = cmd->data;
     conn->rlen = cmd->count;
-    SET_NEXT_STATE (%RECV_SIMPLE_READ_PAYLOAD);
+    SET_NEXT_STATE (%RECV_READ_PAYLOAD);
   }
   else {
-    SET_NEXT_STATE (%FINISH_COMMAND);
+    SET_NEXT_STATE (%^FINISH_COMMAND);
   }
   return 0;
 
- RECV_SIMPLE_READ_PAYLOAD:
+ REPLY.SIMPLE_REPLY.RECV_READ_PAYLOAD:
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
-  case 0:  SET_NEXT_STATE (%FINISH_COMMAND);
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 0:  SET_NEXT_STATE (%^FINISH_COMMAND);
   }
   return 0;
 
- RECV_STRUCTURED_REPLY_REMAINDER:
+ REPLY.STRUCTURED_REPLY.START:
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
-  case 0:  SET_NEXT_STATE (%CHECK_STRUCTURED_REPLY);
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 0:  SET_NEXT_STATE (%CHECK);
   }
   return 0;
 
- CHECK_STRUCTURED_REPLY:
+ REPLY.STRUCTURED_REPLY.CHECK:
   struct command_in_flight *cmd;
   uint16_t flags, type;
   uint64_t handle;
@@ -895,7 +895,7 @@ send_from_wbuf (struct nbd_connection *conn)
     /* Unlike for simple replies, this is difficult to recover from.  We
      * would need an extra state to read and ignore length bytes. XXX
      */
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (0, "no matching handle found for server reply, "
                "this is probably a bug in the server");
     return -1;
@@ -903,82 +903,82 @@ send_from_wbuf (struct nbd_connection *conn)
 
   if (NBD_REPLY_TYPE_IS_ERR (type)) {
     if (length < sizeof conn->sbuf.sr.payload.error) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       set_error (0, "too short length in structured reply error");
       return -1;
     }
     conn->rbuf = &conn->sbuf.sr.payload.error;
     conn->rlen = sizeof conn->sbuf.sr.payload.error;
-    SET_NEXT_STATE (%RECV_STRUCTURED_REPLY_ERROR);
+    SET_NEXT_STATE (%RECV_ERROR);
     return 0;
   }
   else if (type == NBD_REPLY_TYPE_NONE) {
     if (length != 0) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       set_error (0, "invalid length in NBD_REPLY_TYPE_NONE");
       return -1;
     }
     if (!(flags & NBD_REPLY_FLAG_DONE)) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       set_error (0, "NBD_REPLY_FLAG_DONE must be set in NBD_REPLY_TYPE_NONE");
       return -1;
     }
-    SET_NEXT_STATE (%FINISH_COMMAND);
+    SET_NEXT_STATE (%^FINISH_COMMAND);
     return 0;
   }
   else if (type == NBD_REPLY_TYPE_OFFSET_DATA) {
     if (length < sizeof conn->sbuf.sr.payload.offset_data) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       set_error (0, "too short length in NBD_REPLY_TYPE_OFFSET_DATA");
       return -1;
     }
     conn->rbuf = &conn->sbuf.sr.payload.offset_data;
     conn->rlen = sizeof conn->sbuf.sr.payload.offset_data;
-    SET_NEXT_STATE (%RECV_STRUCTURED_REPLY_OFFSET_DATA);
+    SET_NEXT_STATE (%RECV_OFFSET_DATA);
     return 0;
   }
   else if (type == NBD_REPLY_TYPE_OFFSET_HOLE) {
     if (length != 12) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       set_error (0, "invalid length in NBD_REPLY_TYPE_NONE");
       return -1;
     }
     conn->rbuf = &conn->sbuf.sr.payload.offset_hole;
     conn->rlen = sizeof conn->sbuf.sr.payload.offset_hole;
-    SET_NEXT_STATE (%RECV_STRUCTURED_REPLY_OFFSET_HOLE);
+    SET_NEXT_STATE (%RECV_OFFSET_HOLE);
     return 0;
   }
   else if (type == NBD_REPLY_TYPE_BLOCK_STATUS) {
     /* XXX Not implemented yet. */
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (0, "NBD_REPLY_TYPE_BLOCK_STATUS not implemented");
     return -1;
   }
   else {
-    SET_NEXT_STATE (%DEAD);
+    SET_NEXT_STATE (%.DEAD);
     set_error (0, "unknown structured reply type (%" PRIu16 ")", type);
     return -1;
   }
 
- RECV_STRUCTURED_REPLY_ERROR:
+ REPLY.STRUCTURED_REPLY.RECV_ERROR:
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     /* We skip the human readable error for now. XXX */
     conn->rbuf = NULL;
     conn->rlen = be16toh (conn->sbuf.sr.payload.error.len);
-    SET_NEXT_STATE (%RECV_STRUCTURED_REPLY_ERROR_MESSAGE);
+    SET_NEXT_STATE (%RECV_ERROR_MESSAGE);
   }
   return 0;
 
- RECV_STRUCTURED_REPLY_ERROR_MESSAGE:
+ REPLY.STRUCTURED_REPLY.RECV_ERROR_MESSAGE:
   struct command_in_flight *cmd;
   uint16_t flags;
   uint64_t handle;
   uint32_t error;
 
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     flags = be16toh (conn->sbuf.sr.structured_reply.flags);
     handle = be64toh (conn->sbuf.sr.structured_reply.handle);
@@ -994,20 +994,20 @@ send_from_wbuf (struct nbd_connection *conn)
     cmd->error = error;
 
     if (flags & NBD_REPLY_FLAG_DONE)
-      SET_NEXT_STATE (%FINISH_COMMAND);
+      SET_NEXT_STATE (%^FINISH_COMMAND);
     else
-      SET_NEXT_STATE (%READY);
+      SET_NEXT_STATE (%.READY);
   }
   return 0;
 
- RECV_STRUCTURED_REPLY_OFFSET_DATA:
+ REPLY.STRUCTURED_REPLY.RECV_OFFSET_DATA:
   struct command_in_flight *cmd;
   uint64_t handle;
   uint64_t offset;
   uint32_t length;
 
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     handle = be64toh (conn->sbuf.sr.structured_reply.handle);
     length = be32toh (conn->sbuf.sr.structured_reply.length);
@@ -1025,7 +1025,7 @@ send_from_wbuf (struct nbd_connection *conn)
 
     /* Is the data within bounds? */
     if (offset < cmd->offset) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       set_error (0, "offset of reply is out of bounds, "
                  "offset=%" PRIu64 ", cmd->offset=%" PRIu64 ", "
                  "this is likely to be a bug in the server",
@@ -1036,7 +1036,7 @@ send_from_wbuf (struct nbd_connection *conn)
     offset -= cmd->offset;
 
     if (offset + length > cmd->count) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       set_error (0, "offset/length of reply is out of bounds, "
                  "offset=%" PRIu64 ", length=%" PRIu32 ", "
                  "cmd->count=%" PRIu32 ", "
@@ -1046,7 +1046,7 @@ send_from_wbuf (struct nbd_connection *conn)
     }
 
     if (cmd->data == NULL) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       set_error (0, "invalid command for receiving offset-data chunk, "
                  "cmd->type=%" PRIu16 ", "
                  "this is likely to be a bug in the server",
@@ -1057,26 +1057,26 @@ send_from_wbuf (struct nbd_connection *conn)
     /* Set up to receive the data directly to the user buffer. */
     conn->rbuf = cmd->data + offset;
     conn->rlen = length;
-    SET_NEXT_STATE (%RECV_STRUCTURED_REPLY_OFFSET_DATA_DATA);
+    SET_NEXT_STATE (%RECV_OFFSET_DATA_DATA);
   }
   return 0;
 
- RECV_STRUCTURED_REPLY_OFFSET_DATA_DATA:
+ REPLY.STRUCTURED_REPLY.RECV_OFFSET_DATA_DATA:
   uint16_t flags;
 
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     flags = be16toh (conn->sbuf.sr.structured_reply.flags);
 
     if (flags & NBD_REPLY_FLAG_DONE)
-      SET_NEXT_STATE (%FINISH_COMMAND);
+      SET_NEXT_STATE (%^FINISH_COMMAND);
     else
-      SET_NEXT_STATE (%READY);
+      SET_NEXT_STATE (%.READY);
   }
   return 0;
 
- RECV_STRUCTURED_REPLY_OFFSET_HOLE:
+ REPLY.STRUCTURED_REPLY.RECV_OFFSET_HOLE:
   struct command_in_flight *cmd;
   uint64_t handle;
   uint16_t flags;
@@ -1084,7 +1084,7 @@ send_from_wbuf (struct nbd_connection *conn)
   uint32_t length;
 
   switch (recv_into_rbuf (conn)) {
-  case -1: SET_NEXT_STATE (%DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     handle = be64toh (conn->sbuf.sr.structured_reply.handle);
     flags = be16toh (conn->sbuf.sr.structured_reply.flags);
@@ -1100,7 +1100,7 @@ send_from_wbuf (struct nbd_connection *conn)
 
     /* Is the data within bounds? */
     if (offset < cmd->offset) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       set_error (0, "offset of reply is out of bounds, "
                  "offset=%" PRIu64 ", cmd->offset=%" PRIu64 ", "
                  "this is likely to be a bug in the server",
@@ -1111,7 +1111,7 @@ send_from_wbuf (struct nbd_connection *conn)
     offset -= cmd->offset;
 
     if (offset + length > cmd->count) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       set_error (0, "offset/length of reply is out of bounds, "
                  "offset=%" PRIu64 ", length=%" PRIu32 ", "
                  "cmd->count=%" PRIu32 ", "
@@ -1121,7 +1121,7 @@ send_from_wbuf (struct nbd_connection *conn)
     }
 
     if (cmd->data == NULL) {
-      SET_NEXT_STATE (%DEAD);
+      SET_NEXT_STATE (%.DEAD);
       set_error (0, "invalid command for receiving offset-hole chunk, "
                  "cmd->type=%" PRIu16 ", "
                  "this is likely to be a bug in the server",
@@ -1132,13 +1132,13 @@ send_from_wbuf (struct nbd_connection *conn)
     memset (cmd->data + offset, 0, length);
 
     if (flags & NBD_REPLY_FLAG_DONE)
-      SET_NEXT_STATE (%FINISH_COMMAND);
+      SET_NEXT_STATE (%^FINISH_COMMAND);
     else
-      SET_NEXT_STATE (%READY);
+      SET_NEXT_STATE (%.READY);
   }
   return 0;
 
- FINISH_COMMAND:
+ REPLY.FINISH_COMMAND:
   struct command_in_flight *prev_cmd, *cmd;
   uint64_t handle;
 
@@ -1163,7 +1163,7 @@ send_from_wbuf (struct nbd_connection *conn)
   cmd->next = conn->cmds_done;
   conn->cmds_done = cmd;
 
-  SET_NEXT_STATE (%READY);
+  SET_NEXT_STATE (%.READY);
   return 0;
 
  DEAD:

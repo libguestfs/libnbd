@@ -48,7 +48,7 @@ pick_connection (struct nbd_handle *h)
     /* At least one connection is busy, not dead and not sitting in
      * the initial CREATED state.
      */
-    if (h->conns[i]->state != STATE_CREATED &&
+    if (h->conns[i]->state != STATE_START &&
         !nbd_unlocked_aio_is_dead (h->conns[i]))
       error = EBUSY;
 

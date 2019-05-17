@@ -38,7 +38,7 @@ create_conn (struct nbd_handle *h)
     return NULL;
 
   conn->id = h->unique++;
-  conn->state = STATE_CREATED;
+  conn->state = STATE_START;
   conn->pid = -1;
   conn->h = h;
 
