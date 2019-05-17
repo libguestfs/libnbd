@@ -152,7 +152,7 @@ const char base_allocation[] = "base:allocation";
         set_error (0, "handshake: unknown option reply (%" PRIu32 ")", reply);
         return -1;
       }
-      SET_NEXT_STATE (%PREPARE_FOR_REPLY);
+      SET_NEXT_STATE (%FINISH);
     }
   }
   return 0;
