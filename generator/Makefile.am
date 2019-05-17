@@ -19,7 +19,19 @@ include $(top_srcdir)/subdir-rules.mk
 
 DISTCLEANFILES = stamp-generator
 
-states_code = states.c
+# Note: These are not source files.  They are parsed by the generator
+# and output to lib/states.c.
+states_code = \
+	states.c \
+	states-issue-command.c \
+	states-magic.c \
+	states-newstyle-opt-go.c \
+	states-newstyle-opt-starttls.c \
+	states-newstyle-opt-structured-reply.c \
+	states-newstyle.c \
+	states-reply-simple.c \
+	states-reply-structured.c \
+	states-reply.c
 
 EXTRA_DIST = \
 	generator \
