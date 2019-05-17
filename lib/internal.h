@@ -243,6 +243,7 @@ struct socket *nbd_internal_socket_create (int fd);
 extern int nbd_internal_run (struct nbd_handle *h, struct nbd_connection *conn,
                              enum external_event ev);
 extern const char *nbd_internal_state_short_string (enum state state);
+extern enum state_group nbd_internal_state_group (enum state state);
 
 /* utils.c */
 extern void nbd_internal_hexdump (const void *data, size_t len, FILE *fp);
