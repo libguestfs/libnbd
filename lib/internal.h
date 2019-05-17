@@ -112,7 +112,8 @@ struct nbd_connection {
    * and commands.
    */
   union {
-    struct nbd_new_handshake handshake;
+    struct nbd_old_handshake old_handshake;
+    struct nbd_new_handshake new_handshake;
     struct nbd_new_option option;
     struct {
       struct nbd_fixed_new_option_reply option_reply;

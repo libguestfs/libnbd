@@ -29,6 +29,7 @@ states_code = \
 	states-newstyle-opt-starttls.c \
 	states-newstyle-opt-structured-reply.c \
 	states-newstyle.c \
+	states-oldstyle.c \
 	states-reply-simple.c \
 	states-reply-structured.c \
 	states-reply.c

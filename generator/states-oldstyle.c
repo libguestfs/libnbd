@@ -16,41 +16,50 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* State machine for parsing the initial magic number from the server. */
+/* State machine for parsing the oldstyle handshake. */
 
 /* STATE MACHINE */ {
- MAGIC.START:
-  conn->rbuf = &conn->sbuf;
-  conn->rlen = 16;
-  SET_NEXT_STATE (%RECV_MAGIC);
+ OLDSTYLE.START:
+  /* We've already read the first 16 bytes of the handshake, we must
+   * now read the remainder.
+   */
+  conn->rbuf = &conn->sbuf.old_handshake;
+  conn->rlen = sizeof conn->sbuf.old_handshake;
+  conn->rbuf += 16;
+  conn->rlen -= 16;
+  SET_NEXT_STATE (%RECV_REMAINING);
   return 0;
 
- MAGIC.RECV_MAGIC:
+ OLDSTYLE.RECV_REMAINING:
   switch (recv_into_rbuf (conn)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
-  case 0:  SET_NEXT_STATE (%CHECK_MAGIC);
+  case 0:  SET_NEXT_STATE (%CHECK);
   }
   return 0;
 
- MAGIC.CHECK_MAGIC:
-  uint64_t version;
+ OLDSTYLE.CHECK:
+  uint64_t exportsize;
+  uint16_t gflags, eflags;
 
-  if (strncmp (conn->sbuf.new_handshake.nbdmagic, "NBDMAGIC", 8) != 0) {
+  /* We already checked the magic and version in MAGIC.CHECK_MAGIC. */
+  exportsize = be64toh (conn->sbuf.old_handshake.exportsize);
+  gflags = be16toh (conn->sbuf.old_handshake.gflags);
+  eflags = be16toh (conn->sbuf.old_handshake.eflags);
+
+  conn->gflags = gflags;
+  conn->h->exportsize = exportsize;
+  conn->h->eflags = eflags;
+  debug (conn->h, "exportsize: %" PRIu64 " eflags: 0x%" PRIx16
+         " gflags: 0x%" PRIx16,
+         exportsize, eflags, gflags);
+  if (eflags == 0) {
     SET_NEXT_STATE (%.DEAD);
-    set_error (0, "handshake: server did not send expected NBD magic");
+    set_error (EINVAL, "handshake: invalid eflags == 0 from server");
     return -1;
   }
 
-  version = be64toh (conn->sbuf.new_handshake.version);
-  if (version == NBD_NEW_VERSION)
-    SET_NEXT_STATE (%.NEWSTYLE.START);
-  else if (version == NBD_OLD_VERSION)
-    SET_NEXT_STATE (%.OLDSTYLE.START);
-  else {
-    SET_NEXT_STATE (%.DEAD);
-    set_error (0, "handshake: server is not either an oldstyle or fixed newstyle NBD server");
-    return -1;
-  }
+  SET_NEXT_STATE (%.READY);
+
   return 0;
 
 } /* END STATE MACHINE */

@@ -51,6 +51,7 @@ check_PROGRAMS = \
 	can-zero-flag \
 	can-multi-conn-flag \
 	can-not-multi-conn-flag \
+	oldstyle \
 	connect-unix \
 	connect-tcp \
 	aio-parallel \
@@ -81,6 +82,7 @@ TESTS = \
 	can-zero-flag \
 	can-multi-conn-flag \
 	can-not-multi-conn-flag \
+	oldstyle \
 	connect-unix \
 	connect-tcp \
 	aio-parallel.sh \
@@ -189,6 +191,11 @@ can_not_multi_conn_flag_LDADD = $(top_builddir)/lib/libnbd.la
 #	-I$(top_srcdir)/include -Dflag=can_cache -Dvalue=none
 #can_not_cache_flag_CFLAGS = $(WARNINGS_CFLAGS)
 #can_not_cache_flag_LDADD = $(top_builddir)/lib/libnbd.la
+
+oldstyle_SOURCES = oldstyle.c
+oldstyle_CPPFLAGS = -I$(top_srcdir)/include
+oldstyle_CFLAGS = $(WARNINGS_CFLAGS)
+oldstyle_LDADD = $(top_builddir)/lib/libnbd.la
 
 connect_unix_SOURCES = connect-unix.c
 connect_unix_CPPFLAGS = -I$(top_srcdir)/include

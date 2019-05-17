@@ -203,6 +203,7 @@ let rec state_machine = [
   };
 
   Group ("MAGIC", magic_state_machine);
+  Group ("OLDSTYLE", oldstyle_state_machine);
   Group ("NEWSTYLE", newstyle_state_machine);
 
   State {
@@ -249,6 +250,30 @@ and magic_state_machine = [
     default_state with
     name = "CHECK_MAGIC";
     comment = "Check magic and version sent by remote";
+  };
+]
+
+(* Oldstyle handshake. *)
+and oldstyle_state_machine = [
+  State {
+    default_state with
+    name = "START";
+    comment = "Prepare to receive remainder of oldstyle header";
+    external_events = [];
+  };
+
+  State {
+    default_state with
+    name = "RECV_REMAINING";
+    comment = "Receive remainder of oldstyle header";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  State {
+    default_state with
+    name = "CHECK";
+    comment = "Check oldstyle header";
+    external_events = [];
   };
 ]
 
