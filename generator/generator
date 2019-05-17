@@ -1645,6 +1645,32 @@ let state_machine_prologue =
 
   prologue
 
+(* Verify state transitions are permitted. *)
+let () =
+  let verify_state_transition from_state to_state =
+    let from_prefix = from_state.parsed.prefix
+    and to_prefix = to_state.parsed.prefix in
+    (* Going from state to state within the same group is always allowed. *)
+    if from_prefix = to_prefix then
+      ()
+    (* Going upwards to any state is always allowed. *)
+    else if List.length from_prefix > List.length to_prefix then
+      ()
+    (* When going downwards (even into an adjacent tree) you must
+     * always enter a group at the START state.
+     *)
+    else if to_state.name <> "START" then (
+      failwithf "non-permitted state transition: %s.%s -> %s.%s"
+                (String.concat "." from_prefix) from_state.name
+                (String.concat "." to_prefix) to_state.name
+    )
+  in
+  List.iter (
+    fun ({ parsed = { internal_transitions; events } } as state) ->
+      List.iter (verify_state_transition state) internal_transitions;
+      List.iter (fun (_, next_state) -> verify_state_transition state next_state) events
+  ) states
+
 (* Write the state machine code. *)
 let generate_lib_states_h () =
   generate_header ~extra_sources:["generator/states*.c"] CStyle;
