@@ -45,8 +45,6 @@
     set_error (0, "handshake: server is not a fixed newstyle NBD server");
     return -1;
   }
-  conn->rbuf = &conn->gflags;
-  conn->rlen = 2;
   SET_NEXT_STATE (%.NEWSTYLE.START);
   return 0;
 

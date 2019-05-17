@@ -20,6 +20,17 @@
 
 /* STATE MACHINE */ {
  REPLY.STRUCTURED_REPLY.START:
+  /* We only read the simple_reply.  The structured_reply is longer,
+   * so read the remaining part.
+   */
+  conn->rbuf = &conn->sbuf;
+  conn->rbuf += sizeof conn->sbuf.simple_reply;
+  conn->rlen = sizeof conn->sbuf.sr.structured_reply;
+  conn->rlen -= sizeof conn->sbuf.simple_reply;
+  SET_NEXT_STATE (%RECV_REMAINING);
+  return 0;
+
+ REPLY.STRUCTURED_REPLY.RECV_REMAINING:
   switch (recv_into_rbuf (conn)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:  SET_NEXT_STATE (%CHECK);

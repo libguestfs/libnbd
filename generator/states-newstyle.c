@@ -20,6 +20,12 @@
 
 /* STATE MACHINE */ {
  NEWSTYLE.START:
+  conn->rbuf = &conn->gflags;
+  conn->rlen = 2;
+  SET_NEXT_STATE (%RECV_GFLAGS);
+  return 0;
+
+ NEWSTYLE.RECV_GFLAGS:
   switch (recv_into_rbuf (conn)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:  SET_NEXT_STATE (%CHECK_GFLAGS);

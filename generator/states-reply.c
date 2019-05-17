@@ -77,13 +77,6 @@
     return 0;
   }
   else if (magic == NBD_STRUCTURED_REPLY_MAGIC) {
-    /* We only read the simple_reply.  The structured_reply is longer,
-     * so read the remaining part.
-     */
-    conn->rbuf = &conn->sbuf;
-    conn->rbuf += sizeof conn->sbuf.simple_reply;
-    conn->rlen = sizeof conn->sbuf.sr.structured_reply;
-    conn->rlen -= sizeof conn->sbuf.simple_reply;
     SET_NEXT_STATE (%STRUCTURED_REPLY.START);
     return 0;
   }

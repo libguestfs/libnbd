@@ -257,6 +257,13 @@ and newstyle_state_machine = [
   State {
     default_state with
     name = "START";
+    comment = "Prepare to receive newstyle gflags from remote";
+    external_events = [];
+  };
+
+  State {
+    default_state with
+    name = "RECV_GFLAGS";
     comment = "Receive newstyle gflags from remote";
     external_events = [ NotifyRead, "" ];
   };
@@ -507,6 +514,13 @@ and structured_reply_state_machine = [
   State {
     default_state with
     name = "START";
+    comment = "Prepare to receive the remaining part of a structured reply";
+    external_events = [];
+  };
+
+  State {
+    default_state with
+    name = "RECV_REMAINING";
     comment = "Receiving the remaining part of a structured reply";
     external_events = [ NotifyRead, "" ];
   };
