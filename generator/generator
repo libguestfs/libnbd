@@ -312,6 +312,7 @@ and newstyle_state_machine = [
    *)
   Group ("OPT_STARTTLS", newstyle_opt_starttls_state_machine);
   Group ("OPT_STRUCTURED_REPLY", newstyle_opt_structured_reply_state_machine);
+  Group ("OPT_SET_META_CONTEXT", newstyle_opt_set_meta_context_state_machine);
   Group ("OPT_GO", newstyle_opt_go_state_machine);
 ]
 
@@ -394,6 +395,86 @@ and newstyle_opt_structured_reply_state_machine = [
     default_state with
     name = "CHECK_REPLY";
     comment = "Check newstyle NBD_OPT_STRUCTURED_REPLY option reply";
+    external_events = [];
+  };
+]
+
+(* Fixed newstyle NBD_OPT_SET_META_CONTEXT option. *)
+and newstyle_opt_set_meta_context_state_machine = [
+  State {
+    default_state with
+    name = "START";
+    comment = "Try to negotiate newstyle NBD_OPT_SET_META_CONTEXT";
+    external_events = [];
+  };
+
+  State {
+    default_state with
+    name = "SEND";
+    comment = "Send newstyle NBD_OPT_SET_META_CONTEXT";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  State {
+    default_state with
+    name = "SEND_EXPORTNAMELEN";
+    comment = "Send newstyle NBD_OPT_SET_META_CONTEXT export name length";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  State {
+    default_state with
+    name = "SEND_EXPORTNAME";
+    comment = "Send newstyle NBD_OPT_SET_META_CONTEXT export name";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  State {
+    default_state with
+    name = "SEND_NRQUERIES";
+    comment = "Send newstyle NBD_OPT_SET_META_CONTEXT number of queries";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  State {
+    default_state with
+    name = "SEND_BASE_ALLOCATION_QUERYLEN";
+    comment = "Send newstyle NBD_OPT_SET_META_CONTEXT base:allocation query length";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  State {
+    default_state with
+    name = "SEND_BASE_ALLOCATION_QUERY";
+    comment = "Send newstyle NBD_OPT_SET_META_CONTEXT base:allocation";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  State {
+    default_state with
+    name = "PREPARE_FOR_REPLY";
+    comment = "Prepare to receive newstyle NBD_OPT_SET_META_CONTEXT option reply";
+    external_events = [];
+  };
+
+  State {
+    default_state with
+    name = "RECV_REPLY";
+    comment = "Receive newstyle NBD_OPT_SET_META_CONTEXT option reply";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  State {
+    default_state with
+    name = "RECV_REPLY_PAYLOAD";
+    comment = "Receive newstyle NBD_OPT_SET_META_CONTEXT option reply payload";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  State {
+    default_state with
+    name = "FINISH";
+    comment = "Finish newstyle NBD_OPT_SET_META_CONTEXT option parsing";
     external_events = [];
   };
 ]

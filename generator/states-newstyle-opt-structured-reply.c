@@ -84,7 +84,7 @@
   }
 
   /* Next option. */
-  SET_NEXT_STATE (%^OPT_GO.START);
+  SET_NEXT_STATE (%^OPT_SET_META_CONTEXT.START);
   return 0;
 
 } /* END STATE MACHINE */

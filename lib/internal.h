@@ -93,6 +93,8 @@ struct nbd_connection {
   enum state state;             /* State machine. */
 
   bool structured_replies;      /* If we negotiated NBD_OPT_STRUCTURED_REPLY */
+  bool has_base_allocation;     /* If we negotiated base:allocation. */
+  uint32_t base_allocation;     /* Context ID of base:allocation. */
 
   /* The socket or a wrapper if using GnuTLS. */
   struct socket *sock;
@@ -119,8 +121,12 @@ struct nbd_connection {
       struct nbd_fixed_new_option_reply option_reply;
       union {
         struct nbd_fixed_new_option_reply_info_export export;
+        struct {
+          struct nbd_fixed_new_option_reply_meta_context context;
+          char str[32];
+        }  __attribute__((packed)) context;
       } payload;
-    } or;
+    }  __attribute__((packed)) or;
     struct nbd_request request;
     struct nbd_simple_reply simple_reply;
     struct {
@@ -130,10 +136,11 @@ struct nbd_connection {
         struct nbd_structured_reply_offset_hole offset_hole;
         struct nbd_structured_reply_error error;
       } payload;
-    } sr;
+    }  __attribute__((packed)) sr;
     uint32_t cflags;
     uint32_t len;
     uint16_t nrinfos;
+    uint32_t nrqueries;
   } sbuf;
 
   /* When connecting, this stores the socket address. */
