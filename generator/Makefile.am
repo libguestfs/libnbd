@@ -19,11 +19,13 @@ include $(top_srcdir)/subdir-rules.mk
 
 DISTCLEANFILES = stamp-generator
 
+states_code = states.c
+
 EXTRA_DIST = \
 	generator \
-	states.c
+	$(states_code)
 
-stamp-generator: generator states.c
+stamp-generator: generator $(states_code)
 #	We must run this from the source directory since these
 #	files are distributed in the tarball.
 	rm -f $@

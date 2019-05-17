@@ -1517,29 +1517,31 @@ let states : state list =
   in
   flatten [] state_machine
 
+(* Read and parse the state machine C code. *)
 let state_machine_prologue =
-  let chan = open_in "generator/states.c" in
-  let lines = ref [] in
-  (try while true do lines := input_line chan :: !lines done
-   with End_of_file -> ());
-  close_in chan;
-  let lines = !lines in
+  let parse_states_file filename =
+    let chan = open_in filename in
+    let lines = ref [] in
+    (try while true do lines := input_line chan :: !lines done
+     with End_of_file -> ());
+    close_in chan;
+    let lines = !lines in
 
-  (* The last line in the file (which is the first element in lines
-   * before we reverse the list) must have a particular form, check
-   * and remove.
-   *)
-  if List.length lines = 0 || List.hd lines <> "} /* END STATE MACHINE */" then
-    failwith "generator/states.c: unexpected file ending";
-  let lines = List.tl lines in
-  let lines = List.rev lines in
+    (* The last line in the file (which is the first element in lines
+     * before we reverse the list) must have a particular form, check
+     * and remove.
+     *)
+    if List.length lines = 0 || List.hd lines <> "} /* END STATE MACHINE */"
+    then
+      failwithf "%s: unexpected file ending" filename;
+    let lines = List.tl lines in
+    let lines = List.rev lines in
 
-  (* Find the start of the state machine and split the list into
-   * the prologue and the list of state code fragments.
-   *)
-  let prologue, statecodes =
+    (* Find the start of the state machine and split the list into
+     * the prologue and the list of state code fragments.
+     *)
     let rec loop acc = function
-      | [] -> failwith "generator/states.c: could not find state machine"
+      | [] -> failwithf "%s: could not find state machine" filename
       | "/* STATE MACHINE */ {" :: lines -> acc, lines
       | line :: lines -> loop (acc ^ "\n" ^ line) lines
     in
@@ -1558,18 +1560,34 @@ let state_machine_prologue =
         )
         else (
           (match !curr_state with
-           | None -> failwith "generator/states.c: missing label"
+           | None -> failwithf "%s: missing label" filename
            | Some (name, code) ->
               curr_state := Some (name, code ^ "\n" ^ line)
           )
         );
-    ) lines;
+      ) lines;
     (match !curr_state with
      | None -> ()
      | Some state -> statecodes := state :: !statecodes);
     let statecodes = List.rev !statecodes in
 
-    prologue, statecodes in
+    prologue, statecodes
+  in
+
+  (* Read all the input files, called [generator/states*.c] *)
+  let files = List.sort compare (Array.to_list (Sys.readdir "generator")) in
+  let files = List.filter (
+    fun filename ->
+      let len = String.length filename in
+      len >= 8 && String.sub filename 0 6 = "states" &&
+        String.sub filename (len-2) 2 = ".c"
+  ) files in
+  let files = List.map ((^) "generator/") files in
+  let files = List.map parse_states_file files in
+
+  (* Mash together the prologues and the state codes. *)
+  let prologue = String.concat "\n" (List.map fst files) in
+  let statecodes = List.concat (List.map snd files) in
 
   (* Resolve the state names in the code to paths. *)
   let statecodes =
@@ -1629,7 +1647,7 @@ let state_machine_prologue =
 
 (* Write the state machine code. *)
 let generate_lib_states_h () =
-  generate_header ~extra_sources:["generator/states.c"] CStyle;
+  generate_header ~extra_sources:["generator/states*.c"] CStyle;
   pr "enum state {\n";
   List.iter (
     fun ({ comment; parsed = { display_name; state_enum } }) ->
@@ -1647,7 +1665,7 @@ let generate_lib_states_h () =
   pr "};\n"
 
 let generate_lib_states_c () =
-  generate_header ~extra_sources:["generator/states.c"] CStyle;
+  generate_header ~extra_sources:["generator/states*.c"] CStyle;
 
   pr "%s\n" state_machine_prologue;
   pr "\n";
