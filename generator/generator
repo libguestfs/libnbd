@@ -306,6 +306,10 @@ and newstyle_state_machine = [
     external_events = [ NotifyWrite, "" ];
   };
 
+  (* Options.  These state groups are always entered unconditionally,
+   * in this order.  The START state in each group will check if the
+   * state needs to run and skip to the next state in the list if not.
+   *)
   Group ("OPT_STARTTLS", newstyle_opt_starttls_state_machine);
   Group ("OPT_STRUCTURED_REPLY", newstyle_opt_structured_reply_state_machine);
   Group ("OPT_GO", newstyle_opt_go_state_machine);

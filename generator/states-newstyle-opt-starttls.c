@@ -20,6 +20,12 @@
 
 /* STATE MACHINE */ {
  NEWSTYLE.OPT_STARTTLS.START:
+  /* If TLS was not requested we skip this option and go to the next one. */
+  if (!h->tls) {
+    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
+    return 0;
+  }
+
   conn->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   conn->sbuf.option.option = htobe32 (NBD_OPT_STARTTLS);
   conn->sbuf.option.optlen = 0;

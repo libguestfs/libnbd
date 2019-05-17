@@ -53,11 +53,8 @@
   switch (send_from_wbuf (conn)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    /* Start sending options.  NBD_OPT_STARTTLS must be sent first. */
-    if (h->tls)
-      SET_NEXT_STATE (%OPT_STARTTLS.START);
-    else
-      SET_NEXT_STATE (%OPT_STRUCTURED_REPLY.START);
+    /* Start sending options. */
+    SET_NEXT_STATE (%OPT_STARTTLS.START);
   }
   return 0;
 
