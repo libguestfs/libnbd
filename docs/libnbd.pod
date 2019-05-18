@@ -335,7 +335,7 @@ does not involve flushing the entire disk.
 =item prefetching
 
 Some servers can prefetch data, making subsequent reads faster.  The
-C<nbd_cache> call (availableif C<nbd_can_cache> returns true) is used
+C<nbd_cache> call (available if C<nbd_can_cache> returns true) is used
 to prefetch.
 
 =back
