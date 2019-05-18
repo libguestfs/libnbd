@@ -2183,8 +2183,7 @@ let rec print_c_arg_list ?handle args =
   ) args;
   pr ")"
 
-let print_extern name htype args ret =
-  pr "extern ";
+let print_call name htype args ret =
   (match ret with
    | RBool
    | RErr
@@ -2195,7 +2194,11 @@ let print_extern name htype args ret =
    | RString -> pr "char *"
   );
   pr "nbd_%s " name;
-  print_c_arg_list ~handle:(htype, None) args;
+  print_c_arg_list ~handle:(htype, None) args
+
+let print_extern name htype args ret =
+  pr "extern ";
+  print_call name htype args ret;
   pr ";\n"
 
 let generate_include_libnbd_h () =
@@ -2315,6 +2318,190 @@ let generate_lib_api_c () =
     fun (name, { args; ret }) ->
       print_wrapper name "connection" "conn" "conn->h->lock" args ret
   ) connection_calls
+
+let print_api htype (name, { args; ret; shortdesc; longdesc }) =
+  pr "=head2 %s —\n" name;
+  pr "%s\n" shortdesc;
+  pr "\n";
+  pr " ";
+  print_call name htype args ret;
+  pr "\n";
+  pr "\n";
+  pr "%s\n" longdesc;
+  pr "\n";
+  let errcode =
+    match ret with
+    | RBool ->
+       pr "This call returns a boolean value.\n";
+       "-1"
+   | RConstString ->
+       pr "This call returns a statically allocated string.\n";
+       "NULL"
+   | RErr ->
+       pr "If the call is successful the function returns C<0>.\n";
+       "-1"
+   | RFd ->
+       pr "This call returns a file descriptor.\n";
+       "-1"
+   | RInt ->
+       pr "This call returns an integer E<ge> 0.\n";
+       "-1"
+   | RInt64 ->
+       pr "This call returns a 64 bit signed integer E<ge> 0.\n";
+       "-1"
+   | RString ->
+       pr "This call returns a string.  The caller must free the\n";
+       pr "returned string to avoid a memory leak.\n";
+       "NULL"
+  in
+  pr "\n";
+  pr "On error C<%s> is returned.\n" errcode;
+  pr "See L<libnbd(3)/ERROR HANDLING> for how to get further details\n";
+  pr "of the error.\n";
+  pr "\n"
+
+let generate_docs_libnbd_api_pod () =
+  pr "
+=head1 NAME
+
+libnbd-api - libnbd C API
+
+=head1 SYNOPSIS
+
+ #include <libnbd.h>
+ 
+ struct nbd_handle *nbd;
+ char buf[512];
+ 
+ if ((nbd = nbd_create ()) == NULL ||
+     nbd_connect_tcp (nbd, \"server.example.com\", \"nbd\") == -1 ||
+     nbd_pread (nbd, buf, sizeof buf, 0) == -1)
+   fprintf (stderr, \"%%s\n\", nbd_get_error ());
+   exit (EXIT_FAILURE);
+ }
+ nbd_close (nbd);
+
+ cc prog.c -o prog -lnbd
+or:
+ cc prog.c -o prog `pkg-config libnbd --cflags --libs`
+
+=head1 DESCRIPTION
+
+This manual page describes all of the libnbd API calls from C
+in detail.  If you want an overview of using the API, or to see
+how to call the API from other programming languages, start
+with libnbd(3).
+
+=head1 CREATE, GET AND CLOSE HANDLES
+
+ struct nbd_handle *nbd;
+
+This opaque structure describes an NBD client handle.  It may
+contain one or more connections to the NBD server.
+
+ struct nbd_connection *conn;
+
+This opaque structure describes an NBD connection to a server
+(eg. over a Unix domain socket or TCP port).  There is usually
+one of these in a handle, but there may be more if “multi-conn”
+has been enabled on the handle.
+
+ struct nbd_handle *nbd_create (void);
+
+Create a new handle.  Returns a pointer to the opaque handle
+structure.
+
+On error this returns C<NULL>.  See L<libnbd(3)/ERROR HANDLING>
+for how to get further details of the error.
+
+ void nbd_close (struct nbd_handle *nbd);
+
+Closing all the handle, and also closes down all connections to
+the server belonging to this handle, and frees any associated
+resources.
+
+ struct nbd_connection *nbd_get_connection (struct nbd_handle *nbd,
+                                            unsigned i);
+
+Get the I<i'th> connection structure managed by this handle.
+Most handles have one connection (use C<i = 0>).  If you have
+enabled ”multi-conn” then more than one connection can be
+returned here.
+
+On error this returns C<NULL>.  See L<libnbd(3)/ERROR HANDLING>
+for how to get further details of the error.
+
+ int nbd_connection_close (struct nbd_connection *conn);
+
+Close and reopen the connection.  This closes the connection
+object and frees all resources associated with it.  Then it
+creates a new connection object in the slot in the handle
+which was previously occupied by this connection.  Note you
+don't normally have to call this because closing the whole
+handle will also close and free up all connections owned by
+the handle.
+
+On error this returns C<-1>.  See L<libnbd(3)/ERROR HANDLING>
+for how to get further details of the error.
+
+=head1 GETTING THE LATEST ERROR MESSAGE IN THE THREAD
+
+See L<libnbd(3)/ERROR HANDLING> for more discussion of how
+error handling works in libnbd.
+
+ const char *nbd_get_error (void);
+
+Return the most recent error message in the current thread.
+The error message is only valid if called immediately after
+the failing call, from the same thread.  The error string
+returned will be freed up next time any libnbd API is called
+from the same thread, so if you need to keep it you must make
+a copy.
+
+This should never return C<NULL> provided there was an error
+returned from the immediately preceding libnbd call in the
+current thread.
+
+ int nbd_get_errno (void);
+
+Return the most recent C<errno> in the current thread.  Not all
+errors have corresponding errnos, so even if there has been an error
+this may return C<0>.  Error codes are the standard ones from
+C<E<lt>errnoE<gt>.h>.
+
+";
+
+  pr "=head1 HANDLE CALLS\n";
+  pr "\n";
+  pr "These are calls where the first parameter is always\n";
+  pr "C<struct nbd_handle *>.\n";
+  pr "\n";
+
+  List.iter (print_api "handle") handle_calls;
+
+  pr "=head1 CONNECTION CALLS\n";
+  pr "\n";
+  pr "These are calls where the first parameter is always\n";
+  pr "C<struct nbd_connection *>.\n";
+  pr "\n";
+
+  List.iter (print_api "connection") connection_calls;
+
+  pr "\
+=head1 SEE ALSO
+
+L<libnbd(3)>.
+
+=head1 AUTHORS
+
+Eric Blake
+
+Richard W.M. Jones
+
+=head1 COPYRIGHT
+
+Copyright (C) 2019 Red Hat Inc.
+"
 
 (*----------------------------------------------------------------------*)
 
@@ -2792,6 +2979,7 @@ let () =
   output_to "include/libnbd.h" generate_include_libnbd_h;
   output_to "lib/unlocked.h" generate_lib_unlocked_h;
   output_to "lib/api.c" generate_lib_api_c;
+  output_to "docs/libnbd-api.pod" generate_docs_libnbd_api_pod;
   output_to "python/methods.h" generate_python_methods_h;
   output_to "python/libnbdmod.c" generate_python_libnbdmod_c;
   output_to "python/methods.c" generate_python_methods_c;

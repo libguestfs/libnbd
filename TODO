@@ -2,8 +2,6 @@ Test high bandwidth, write heavy against remote server.
 
 Check system calls to ensure it's really blocking.
 
-More documentation.
-
 Block status.
 
 Bindings in other languages.

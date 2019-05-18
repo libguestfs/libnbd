@@ -17,16 +17,26 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
+generator_built = \
+	libnbd-api.pod
+
 EXTRA_DIST = \
+	$(generator_built) \
 	libnbd.pod
 
 if HAVE_POD
 
 man_MANS = \
-	libnbd.3
+	libnbd.3 \
+	libnbd-api.3
 CLEANFILES += $(man_MANS)
 
 libnbd.3: libnbd.pod
+	$(PODWRAPPER) --section=3 --man $@ \
+	    --html $(top_builddir)/html/$@.html \
+	    $<
+
+libnbd-api.3: libnbd-api.pod
 	$(PODWRAPPER) --section=3 --man $@ \
 	    --html $(top_builddir)/html/$@.html \
 	    $<
