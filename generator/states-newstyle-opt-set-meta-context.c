@@ -150,14 +150,11 @@ const char base_allocation[] = "base:allocation";
       SET_NEXT_STATE (%RECV_REPLY_PAYLOAD);
       break;
     default:
-      /* Anything else is an error, ignore it if the len == 0. */
-      if (len != 0) {
-        /* We could probably recover from this with some effort. */
-        SET_NEXT_STATE (%.DEAD);
-        set_error (0, "handshake: unknown option reply (%" PRIu32 ")", reply);
-        return -1;
-      }
-      SET_NEXT_STATE (%FINISH);
+      /* Anything else is an error, ignore it */
+      debug (conn->h, "base:allocation is not supported by this server");
+      conn->rbuf = NULL;
+      conn->rlen = len;
+      SET_NEXT_STATE (%RECV_SKIP_PAYLOAD);
     }
   }
   return 0;
@@ -178,6 +175,14 @@ const char base_allocation[] = "base:allocation";
       }
     }
     SET_NEXT_STATE (%PREPARE_FOR_REPLY);
+  }
+  return 0;
+
+ NEWSTYLE.OPT_SET_META_CONTEXT.RECV_SKIP_PAYLOAD:
+  switch (recv_into_rbuf (conn)) {
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 0:  SET_NEXT_STATE (%FINISH);
+    /* XXX: capture instead of skip server's payload to NBD_REP_ERR*? */
   }
   return 0;
 
