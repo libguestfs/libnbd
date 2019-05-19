@@ -74,6 +74,13 @@ struct nbd_new_option {
   /* option data follows */
 } __attribute__((packed));
 
+/* Newstyle handshake OPT_EXPORT_NAME reply message. */
+struct nbd_export_name_option_reply {
+  uint64_t exportsize;          /* size of export */
+  uint16_t eflags;              /* per-export flags */
+  char zeroes[124];             /* optional zeroes */
+} __attribute__((packed));;
+
 /* Fixed newstyle handshake reply message. */
 struct nbd_fixed_new_option_reply {
   uint64_t magic;             /* NBD_REP_MAGIC */

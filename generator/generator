@@ -330,6 +330,7 @@ and newstyle_state_machine = [
   Group ("OPT_STRUCTURED_REPLY", newstyle_opt_structured_reply_state_machine);
   Group ("OPT_SET_META_CONTEXT", newstyle_opt_set_meta_context_state_machine);
   Group ("OPT_GO", newstyle_opt_go_state_machine);
+  Group ("OPT_EXPORT_NAME", newstyle_opt_export_name_state_machine);
 ]
 
 (* Fixed newstyle NBD_OPT_STARTTLS option. *)
@@ -564,6 +565,44 @@ and newstyle_opt_go_state_machine = [
     default_state with
     name = "CHECK_REPLY";
     comment = "Check newstyle NBD_OPT_GO reply";
+    external_events = [];
+  };
+]
+
+(* Newstyle NBD_OPT_EXPORT_NAME option. *)
+and newstyle_opt_export_name_state_machine = [
+  State {
+    default_state with
+    name = "START";
+    comment = "Try to send newstyle NBD_OPT_EXPORT_NAME to end handshake";
+    external_events = [];
+  };
+
+  State {
+    default_state with
+    name = "SEND";
+    comment = "Send newstyle NBD_OPT_EXPORT_NAME to end handshake";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  State {
+    default_state with
+    name = "SEND_EXPORT";
+    comment = "Send newstyle NBD_OPT_EXPORT_NAME export name";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  State {
+    default_state with
+    name = "RECV_REPLY";
+    comment = "Receive newstyle NBD_OPT_EXPORT_NAME reply";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  State {
+    default_state with
+    name = "CHECK_REPLY";
+    comment = "Check newstyle NBD_OPT_EXPORT_NAME reply";
     external_events = [];
   };
 ]

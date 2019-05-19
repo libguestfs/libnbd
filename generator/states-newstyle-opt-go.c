@@ -149,10 +149,10 @@
     SET_NEXT_STATE (%RECV_REPLY);
     return 0;
   case NBD_REP_ERR_UNSUP:
-    /* XXX fall back to NBD_OPT_EXPORT_NAME */
-    SET_NEXT_STATE (%.DEAD);
-    set_error (0, "handshake: server does not support NBD_OPT_GO");
-    return -1;
+    debug (conn->h,
+	   "server is confused by NBD_OPT_GO, continuing anyway");
+    SET_NEXT_STATE (%^OPT_EXPORT_NAME.START);
+    return 0;
   default:
     SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: unknown reply from NBD_OPT_GO: 0x%" PRIx32,

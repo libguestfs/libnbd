@@ -127,6 +127,7 @@ struct nbd_connection {
         }  __attribute__((packed)) context;
       } payload;
     }  __attribute__((packed)) or;
+    struct nbd_export_name_option_reply export_name_reply;
     struct nbd_request request;
     struct nbd_simple_reply simple_reply;
     struct {

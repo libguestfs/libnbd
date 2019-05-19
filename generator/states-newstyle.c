@@ -36,9 +36,11 @@
   uint32_t cflags;
 
   conn->gflags = be16toh (conn->gflags);
-  if ((conn->gflags & NBD_FLAG_FIXED_NEWSTYLE) == 0) {
+  if ((conn->gflags & NBD_FLAG_FIXED_NEWSTYLE) == 0 &&
+      h->tls == 2) {
     SET_NEXT_STATE (%.DEAD);
-    set_error (0, "handshake: server is not a fixed newstyle NBD server");
+    set_error (ENOTSUP, "handshake: server is not fixed newstyle, "
+	       "but handle TLS setting is require (2)");
     return -1;
   }
 
@@ -54,7 +56,10 @@
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     /* Start sending options. */
-    SET_NEXT_STATE (%OPT_STARTTLS.START);
+    if ((conn->gflags & NBD_FLAG_FIXED_NEWSTYLE) == 0)
+      SET_NEXT_STATE (%OPT_EXPORT_NAME.START);
+    else
+      SET_NEXT_STATE (%OPT_STARTTLS.START);
   }
   return 0;
 
