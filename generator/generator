@@ -84,6 +84,8 @@ type external_event =
   | CmdConnectCommand           (* [nbd_aio_connect_command] *)
   | CmdIssue                    (* issuing an NBD command *)
 
+type location = string * int (* file, line number *)
+
 type state = {
   (* The state name (without prefix).  If this has the special name
    * "START" then it is the start state of the current group.  Each
@@ -121,6 +123,7 @@ and parsed_state = {
   state_enum : string;
 
   (* The C code implementing this state. *)
+  loc : location;
   code : string;
 
   (* Internal transitions, parsed out of the C code. *)
@@ -132,7 +135,7 @@ and parsed_state = {
 
 let default_state = { name = ""; comment = ""; external_events = [];
                       parsed = { prefix = []; display_name = "";
-                                 state_enum = ""; code = "";
+                                 state_enum = ""; loc = ("", 0); code = "";
                                  internal_transitions = []; events = [] } }
 
 (* The type of the hierarchical state machine. *)
@@ -1535,6 +1538,8 @@ let output_to filename k =
     printf "written %s\n%!" filename;
   )
 
+let string_of_location (file, lineno) = sprintf "%s:%d" file lineno
+
 (*----------------------------------------------------------------------*)
 
 (* Implement state machine. *)
@@ -1659,17 +1664,23 @@ let state_machine_prologue =
   let parse_states_file filename =
     let chan = open_in filename in
     let lines = ref [] in
-    (try while true do lines := input_line chan :: !lines done
+    let lineno = ref 1 in
+    (try while true do
+           let line = input_line chan in
+           let loc : location = filename, !lineno in
+           incr lineno;
+           lines := (loc, line) :: !lines
+         done
      with End_of_file -> ());
     close_in chan;
+    (* Note this list is initially in reverse order. *)
     let lines = !lines in
 
-    (* The last line in the file (which is the first element in lines
-     * before we reverse the list) must have a particular form, check
+    (* The last line in the file must have a particular form, check
      * and remove.
      *)
-    if List.length lines = 0 || List.hd lines <> "} /* END STATE MACHINE */"
-    then
+    if List.length lines = 0 ||
+         snd (List.hd lines) <> "} /* END STATE MACHINE */" then
       failwithf "%s: unexpected file ending" filename;
     let lines = List.tl lines in
     let lines = List.rev lines in
@@ -1679,8 +1690,8 @@ let state_machine_prologue =
      *)
     let rec loop acc = function
       | [] -> failwithf "%s: could not find state machine" filename
-      | "/* STATE MACHINE */ {" :: lines -> acc, lines
-      | line :: lines -> loop (acc ^ "\n" ^ line) lines
+      | (_, "/* STATE MACHINE */ {") :: lines -> acc, lines
+      | (_, line) :: lines -> loop (acc ^ "\n" ^ line) lines
     in
     let prologue, lines = loop "" lines in
 
@@ -1688,18 +1699,19 @@ let state_machine_prologue =
     let curr_state = ref None in
     let rex = Str.regexp "^ \\([A-Z0-9][A-Z0-9_\\.]*\\):$" in
     List.iter (
-      fun line ->
+      fun (loc, line) ->
         if Str.string_match rex line 0 then ( (* new case *)
           (match !curr_state with
            | None -> ()
            | Some state -> statecodes := state :: !statecodes);
-          curr_state := Some (Str.matched_group 1 line, "");
+          curr_state := Some (Str.matched_group 1 line, "", loc);
         )
         else (
           (match !curr_state with
-           | None -> failwithf "%s: missing label" filename
-           | Some (name, code) ->
-              curr_state := Some (name, code ^ "\n" ^ line)
+           | None ->
+              failwithf "%s: missing label" (string_of_location loc)
+           | Some (name, code, loc) ->
+              curr_state := Some (name, code ^ "\n" ^ line, loc)
           )
         );
       ) lines;
@@ -1729,10 +1741,10 @@ let state_machine_prologue =
   (* Resolve the state names in the code to paths. *)
   let statecodes =
     List.map (
-      fun (name, code) ->
+      fun (name, code, loc) ->
         let path = Str.split_delim dot_rex name in
         let state = find_state path in
-        state, code
+        state, code, loc
     ) statecodes in
 
   (* Parse the state code fragments to get internal state
@@ -1740,7 +1752,7 @@ let state_machine_prologue =
    *)
   let rex = Str.regexp "%\\([\\^\\.]*[A-Z0-9][A-Z0-9_\\.]*\\)" in
   List.iter (
-    fun (state, code) ->
+    fun (state, code, loc) ->
       let code = Str.full_split rex code in
       let code =
         List.map (
@@ -1767,6 +1779,7 @@ let state_machine_prologue =
       (* Create the final C code fragment. *)
       state.parsed <-
         { state.parsed with
+          loc = loc;
           code =
             String.concat "" (
               List.map (
@@ -1854,7 +1867,7 @@ let generate_lib_states_c () =
 
   (* The state machine C code fragments. *)
   List.iter (
-    fun ({ comment; parsed = { display_name; state_enum; code } }) ->
+    fun ({ comment; parsed = { display_name; state_enum; loc; code } }) ->
       pr "/* %s: %s */\n" display_name comment;
       pr "static int\n";
       pr "_enter_%s (struct nbd_handle *h,\n" state_enum;
@@ -1862,8 +1875,10 @@ let generate_lib_states_c () =
       pr "             enum state *next_state,\n";
       pr "             bool *blocked)\n";
       pr "{\n";
-      if code <> "" then
+      if code <> "" then (
+        pr "#line %d \"%s\"\n" (snd loc) (fst loc);
         pr "%s\n" code
+      )
       else
         pr "  return 0;\n";
       pr "}\n";
