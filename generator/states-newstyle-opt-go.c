@@ -118,6 +118,11 @@
   }
   switch (reply) {
   case NBD_REP_ACK:
+    if (len != 0) {
+      SET_NEXT_STATE (%.DEAD);
+      set_error (0, "handshake: invalid option reply length");
+      return -1;
+    }
     SET_NEXT_STATE (%.READY);
     return 0;
   case NBD_REP_INFO:

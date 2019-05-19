@@ -74,10 +74,16 @@
   }
   switch (reply) {
   case NBD_REP_ACK:
+    if (conn->sbuf.or.option_reply.replylen != 0) {
+      SET_NEXT_STATE (%.DEAD);
+      set_error (0, "handshake: invalid option reply length");
+      return -1;
+    }
     debug (conn->h, "negotiated structured replies on this connection");
     conn->structured_replies = true;
     break;
   default:
+    /* XXX: capture instead of skip server's payload to NBD_REP_ERR*? */
     debug (conn->h, "structured replies are not supported by this server");
     conn->structured_replies = false;
     break;

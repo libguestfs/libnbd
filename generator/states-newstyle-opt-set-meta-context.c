@@ -133,6 +133,11 @@ const char base_allocation[] = "base:allocation";
     }
     switch (reply) {
     case NBD_REP_ACK:           /* End of list of replies. */
+      if (len != 0) {
+	SET_NEXT_STATE (%.DEAD);
+	set_error (0, "handshake: invalid option reply length");
+	return -1;
+      }
       SET_NEXT_STATE (%FINISH);
       break;
     case NBD_REP_META_CONTEXT:  /* A context. */
