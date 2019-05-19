@@ -84,7 +84,8 @@ type external_event =
   | CmdConnectCommand           (* [nbd_aio_connect_command] *)
   | CmdIssue                    (* issuing an NBD command *)
 
-type location = string * int (* file, line number *)
+type location = string * int    (* source location: file, line number *)
+let noloc = ("", 0)
 
 type state = {
   (* The state name (without prefix).  If this has the special name
@@ -135,7 +136,7 @@ and parsed_state = {
 
 let default_state = { name = ""; comment = ""; external_events = [];
                       parsed = { prefix = []; display_name = "";
-                                 state_enum = ""; loc = ("", 0); code = "";
+                                 state_enum = ""; loc = noloc; code = "";
                                  internal_transitions = []; events = [] } }
 
 (* The type of the hierarchical state machine. *)
@@ -1592,6 +1593,8 @@ let output_to filename k =
   )
 
 let string_of_location (file, lineno) = sprintf "%s:%d" file lineno
+let line_directive_of_location (file, lineno) =
+  sprintf "#line %d \"%s\"" lineno file
 
 (*----------------------------------------------------------------------*)
 
@@ -1743,8 +1746,8 @@ let state_machine_prologue =
      *)
     let rec loop acc = function
       | [] -> failwithf "%s: could not find state machine" filename
-      | (_, "/* STATE MACHINE */ {") :: lines -> acc, lines
-      | (_, line) :: lines -> loop (acc ^ "\n" ^ line) lines
+      | (_, "/* STATE MACHINE */ {") :: lines -> ((filename, 1), acc), lines
+      | (_, line) :: lines -> loop (acc ^ line ^ "\n") lines
     in
     let prologue, lines = loop "" lines in
 
@@ -1788,7 +1791,13 @@ let state_machine_prologue =
   let files = List.map parse_states_file files in
 
   (* Mash together the prologues and the state codes. *)
-  let prologue = String.concat "\n" (List.map fst files) in
+  let prologue =
+    String.concat "" (
+      List.map (
+        fun ((loc, prologue), _) ->
+          line_directive_of_location loc ^ "\n" ^ prologue ^ "\n"
+       ) files
+     ) in
   let statecodes = List.concat (List.map snd files) in
 
   (* Resolve the state names in the code to paths. *)
@@ -1929,7 +1938,7 @@ let generate_lib_states_c () =
       pr "             bool *blocked)\n";
       pr "{\n";
       if code <> "" then (
-        pr "#line %d \"%s\"\n" (snd loc) (fst loc);
+        pr "%s\n" (line_directive_of_location loc);
         pr "%s\n" code
       )
       else
