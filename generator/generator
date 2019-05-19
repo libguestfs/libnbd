@@ -357,6 +357,13 @@ and newstyle_opt_starttls_state_machine = [
 
   State {
     default_state with
+    name = "SKIP_REPLY_PAYLOAD";
+    comment = "Skip newstyle NBD_OPT_STARTTLS reply payload";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  State {
+    default_state with
     name = "CHECK_REPLY";
     comment = "Check newstyle NBD_OPT_STARTTLS reply";
     external_events = [];
