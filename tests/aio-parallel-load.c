@@ -242,8 +242,12 @@ start_thread (void *arg)
     if (t > status->end_time)
       expired = true;
 
-    /* Do we want to send another request and there's room to issue it? */
-    want_to_send = !expired && in_flight < MAX_IN_FLIGHT;
+    /* Do we want to send another request and there's room to issue it
+     * and the connection is in the READY state so it can be used to
+     * issue a request.
+     */
+    want_to_send =
+      !expired && in_flight < MAX_IN_FLIGHT && nbd_aio_is_ready (conn);
 
     fds[0].fd = nbd_aio_get_fd (conn);
     fds[0].events = want_to_send ? POLLOUT : 0;
