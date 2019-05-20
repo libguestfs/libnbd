@@ -8,6 +8,11 @@
  * This will read and write randomly over the first megabyte of the
  * plugin using multi-conn, multiple threads and multiple requests in
  * flight on each thread.
+ *
+ * To run it against a remote server over TCP (note this will destroy
+ * the first megabyte of the remote disk):
+ *
+ * ./threaded-reads-and-writes hostname port
  */
 
 #include <stdio.h>
@@ -73,8 +78,8 @@ main (int argc, char *argv[])
 
   srand (time (NULL));
 
-  if (argc != 2) {
-    fprintf (stderr, "%s socket\n", argv[0]);
+  if (argc < 2 || argc > 3) {
+    fprintf (stderr, "%s socket | hostname port\n", argv[0]);
     exit (EXIT_FAILURE);
   }
 
@@ -89,9 +94,17 @@ main (int argc, char *argv[])
   }
 
   /* Connect all connections synchronously as this is simpler. */
-  if (nbd_connect_unix (nbd, argv[1]) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
+  if (argc == 2) {
+    if (nbd_connect_unix (nbd, argv[1]) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+  }
+  else {
+    if (nbd_connect_tcp (nbd, argv[1], argv[2]) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
   }
 
   exportsize = nbd_get_size (nbd);
