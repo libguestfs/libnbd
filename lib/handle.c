@@ -64,6 +64,13 @@ free_cmd_list (struct command_in_flight *list)
 static void
 close_conn (struct nbd_connection *conn)
 {
+  struct meta_context *m, *m_next;
+
+  for (m = conn->meta_contexts; m != NULL; m = m_next) {
+    m_next = m->next;
+    free (m->name);
+    free (m);
+  }
   free_cmd_list (conn->cmds_to_issue);
   free_cmd_list (conn->cmds_in_flight);
   free_cmd_list (conn->cmds_done);
@@ -147,6 +154,7 @@ nbd_close (struct nbd_handle *h)
   free (h->tls_certificates);
   free (h->tls_username);
   free (h->tls_psk_file);
+  nbd_internal_free_string_list (h->request_meta_contexts);
   pthread_mutex_destroy (&h->lock);
   free (h);
 }
@@ -284,4 +292,32 @@ nbd_unlocked_get_export_name (struct nbd_handle *h)
   }
 
   return copy;
+}
+
+int
+nbd_unlocked_request_meta_context (struct nbd_handle *h, const char *name)
+{
+  char *copy;
+  size_t len;
+  char **list;
+
+  copy = strdup (name);
+  if (!copy) {
+    set_error (errno, "strdup");
+    return -1;
+  }
+  len = h->request_meta_contexts == NULL ? 0
+    : nbd_internal_string_list_length (h->request_meta_contexts);
+  list = realloc (h->request_meta_contexts,
+                  sizeof (char *) * (len+2 /* + new entry + NULL */));
+  if (list == NULL) {
+    free (copy);
+    set_error (errno, "realloc");
+    return -1;
+  }
+  h->request_meta_contexts = list;
+  list[len] = copy;
+  list[len+1] = NULL;
+
+  return 0;
 }

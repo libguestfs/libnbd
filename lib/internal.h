@@ -37,7 +37,9 @@
  */
 #define MAX_REQUEST_SIZE (64 * 1024 * 1024)
 
+struct meta_context;
 struct socket;
+struct command_in_flight;
 
 struct nbd_handle {
   /* Lock protecting concurrent access to either this handle or the
@@ -61,6 +63,9 @@ struct nbd_handle {
   bool tls_verify_peer;         /* Verify the peer certificate. */
   char *tls_username;           /* Username, NULL = use current username */
   char *tls_psk_file;           /* PSK filename, NULL = no PSK */
+
+  /* Desired metadata contexts. */
+  char **request_meta_contexts;
 
   /* Export size and per-export flags, received during handshake.  NB:
    * These are *both* *only* valid if eflags != 0.  This is because
@@ -93,8 +98,8 @@ struct nbd_connection {
   enum state state;             /* State machine. */
 
   bool structured_replies;      /* If we negotiated NBD_OPT_STRUCTURED_REPLY */
-  bool has_base_allocation;     /* If we negotiated base:allocation. */
-  uint32_t base_allocation;     /* Context ID of base:allocation. */
+  /* Linked list of negotiated metadata contexts. */
+  struct meta_context *meta_contexts;
 
   /* The socket or a wrapper if using GnuTLS. */
   struct socket *sock;
@@ -123,7 +128,7 @@ struct nbd_connection {
         struct nbd_fixed_new_option_reply_info_export export;
         struct {
           struct nbd_fixed_new_option_reply_meta_context context;
-          char str[32];
+          char str[64];
         }  __attribute__((packed)) context;
       } payload;
     }  __attribute__((packed)) or;
@@ -161,6 +166,9 @@ struct nbd_connection {
   struct addrinfo hints;
   struct addrinfo *result, *rp;
 
+  /* When sending metadata contexts, this is used. */
+  size_t querynum;
+
   /* Global flags from the server. */
   uint16_t gflags;
 
@@ -171,6 +179,12 @@ struct nbd_connection {
    * acknowledge them.
    */
   struct command_in_flight *cmds_to_issue, *cmds_in_flight, *cmds_done;
+};
+
+struct meta_context {
+  struct meta_context *next;    /* Linked list. */
+  char *name;                   /* Name of meta context. */
+  uint32_t context_id;          /* Context ID negotiated with the server. */
 };
 
 struct socket_ops {

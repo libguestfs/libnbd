@@ -463,15 +463,22 @@ and newstyle_opt_set_meta_context_state_machine = [
 
   State {
     default_state with
-    name = "SEND_BASE_ALLOCATION_QUERYLEN";
-    comment = "Send newstyle NBD_OPT_SET_META_CONTEXT base:allocation query length";
+    name = "PREPARE_NEXT_QUERY";
+    comment = "Prepare to send newstyle NBD_OPT_SET_META_CONTEXT query";
+    external_events = [];
+  };
+
+  State {
+    default_state with
+    name = "SEND_QUERYLEN";
+    comment = "Send newstyle NBD_OPT_SET_META_CONTEXT query length";
     external_events = [ NotifyWrite, "" ];
   };
 
   State {
     default_state with
-    name = "SEND_BASE_ALLOCATION_QUERY";
-    comment = "Send newstyle NBD_OPT_SET_META_CONTEXT base:allocation";
+    name = "SEND_QUERY";
+    comment = "Send newstyle NBD_OPT_SET_META_CONTEXT query";
     external_events = [ NotifyWrite, "" ];
   };
 
@@ -996,6 +1003,26 @@ authentication cannot be used to connect to the server.";
 Get the current TLS PSK filename.  See C<nbd_set_tls_psk_file>.";
   };
 *)
+
+  "request_meta_context", {
+    default_call with
+    args = [ String "name" ]; ret = RErr;
+    shortdesc = "request metadata context from the server";
+    longdesc = "\
+This is used to enable a metadata context on the server.  This
+can be used to allow you to read extra information about
+data blocks, such as whether they are sparse (holes) or
+allocated, and dirty bitmaps.  You must call this before you
+connect to the server because metadata context negotiation
+happens during the initial handshake.
+
+The single parameter is the name of the metadata context,
+for example C<\"base:allocation\">.
+
+Other metadata contexts are server-specific, but include
+C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
+(see qemu-nbd I<-B> option).  See also C<nbd_block_status>.";
+  };
 
   "connect_unix", {
     default_call with
