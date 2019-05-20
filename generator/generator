@@ -2467,7 +2467,7 @@ current thread.
 Return the most recent C<errno> in the current thread.  Not all
 errors have corresponding errnos, so even if there has been an error
 this may return C<0>.  Error codes are the standard ones from
-C<E<lt>errnoE<gt>.h>.
+C<E<lt>errno.hE<gt>>.
 
 ";
 
