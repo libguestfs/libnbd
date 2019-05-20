@@ -458,8 +458,12 @@ set_up_certificate_credentials (struct nbd_connection *conn,
   return NULL;
 
  found_certificates:
+#ifdef HAVE_GNUTLS_SESSION_SET_VERIFY_CERT
   if (conn->hostname && conn->h->tls_verify_peer)
     gnutls_session_set_verify_cert (session, conn->hostname, 0);
+#else
+  debug (conn->h, "ignoring nbd_set_tls_verify_peer, this requires GnuTLS >= 3.4.6");
+#endif
 
   err = gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, ret);
   if (err < 0) {
