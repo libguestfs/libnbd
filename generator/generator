@@ -760,6 +760,7 @@ type call = {
   longdesc : string;       (* long description *)
 }
 and arg =
+| ArrayAndLen of arg * string (* array + number of entries *)
 | Bool of string           (* bool *)
 | BytesIn of string * string (* byte array + size passed in to the function *)
 | BytesOut of string * string(* byte array + size specified by caller,
@@ -2134,7 +2135,8 @@ let generate_lib_libnbd_syms () =
   pr "  local: *;\n";
   pr "};\n"
 
-let name_of_arg = function
+let rec name_of_arg = function
+| ArrayAndLen (arg, n) -> name_of_arg arg @ [n]
 | Bool n -> [n]
 | BytesIn (n, len) -> [n; len]
 | BytesOut (n, len) -> [n; len]
@@ -2166,6 +2168,8 @@ let rec print_c_arg_list ?handle args =
       if !comma then pr ", ";
       comma := true;
       match arg with
+      | ArrayAndLen (UInt32 n, len) -> pr "uint32_t *%s, size_t %s" n len
+      | ArrayAndLen _ -> assert false
       | Bool n -> pr "bool %s" n
       | BytesIn (n, len) -> pr "const void *%s, size_t %s" n len
       | BytesOut (n, len) -> pr "void *%s, size_t %s" n len
@@ -2621,6 +2625,11 @@ let print_python_binding name { args; ret } htype hname =
   pr "  PyObject *py_ret;\n";
   List.iter (
     function
+    | ArrayAndLen (UInt32 n, len) ->
+       pr "  PyObject *py_%s;\n" n;
+       pr "  uint32_t *%s;\n" n;
+       pr "  size_t %s;\n" len;
+    | ArrayAndLen _ -> assert false
     | Bool n -> pr "  int %s;\n" n
     | BytesIn (n, _) -> pr "  Py_buffer %s;\n" n
     | BytesOut (n, count) ->
@@ -2655,6 +2664,7 @@ let print_python_binding name { args; ret } htype hname =
   pr "  if (!PyArg_ParseTuple (args, (char *) \"O\"";
   List.iter (
     function
+    | ArrayAndLen _ -> pr " \"O\""
     | Bool n -> pr " \"b\""
     | BytesIn (n, _) -> pr " \"y*\""
     | BytesOut (_, count) -> pr " \"n\""
@@ -2674,6 +2684,8 @@ let print_python_binding name { args; ret } htype hname =
   pr "                         &py_%s" hname;
   List.iter (
     function
+    | ArrayAndLen (UInt32 n, _) -> pr ", &py_%s" n
+    | ArrayAndLen _ -> assert false
     | Bool n -> pr ", &%s" n
     | BytesIn (n, _) -> pr ", &%s" n
     | BytesOut (_, count) -> pr ", &%s" count
@@ -2695,6 +2707,24 @@ let print_python_binding name { args; ret } htype hname =
   pr "  %s = get_%s (py_%s);\n" hname htype hname;
   List.iter (
     function
+    | ArrayAndLen (UInt32 n, len) ->
+       pr "  if (!PyList_Check (py_%s)) {\n" n;
+       pr "    PyErr_SetString (PyExc_TypeError, \"expecting a list\");\n";
+       pr "    return NULL;\n";
+       pr "  }\n";
+       pr "  %s = PyList_Size (py_%s);\n" len n;
+       pr "  if (%s == -1) {\n" len;
+       pr "    PyErr_SetString (PyExc_RuntimeError, \"PyList_Size failed\");\n";
+       pr "    return NULL;\n";
+       pr "  }\n";
+       pr "  %s = malloc (sizeof (uint32_t) * %s);\n" n len;
+       pr "  if (%s == NULL) {\n" n;
+       pr "    PyErr_NoMemory ();\n";
+       pr "    return NULL;\n";
+       pr "  }\n";
+       pr "  for (size_t _i = 0; _i < %s; ++_i)\n" len;
+       pr "    %s[_i] = PyLong_AsUnsignedLong (PyList_GetItem (%s, _i));\n" n n
+    | ArrayAndLen _ -> assert false
     | Bool _ -> ()
     | BytesIn _ ->
        if htype = "connection" then
@@ -2728,6 +2758,8 @@ let print_python_binding name { args; ret } htype hname =
   pr "  ret = nbd_%s (%s" name hname;
   List.iter (
     function
+    | ArrayAndLen (UInt32 n, len) -> pr ", %s, %s" n len
+    | ArrayAndLen _ -> assert false
     | Bool n -> pr ", %s" n
     | BytesIn (n, _) -> pr ", %s.buf, %s.len" n n
     | BytesOut (n, count) -> pr ", %s, %s" n count
@@ -2759,6 +2791,7 @@ let print_python_binding name { args; ret } htype hname =
     | BytesOut (n, count) ->
        pr "  py_ret = PyBytes_FromStringAndSize (%s, %s);\n" n count;
        use_ret := false
+    | ArrayAndLen _
     | Bool _
     | BytesIn _
     | Callback _
@@ -2796,6 +2829,8 @@ let print_python_binding name { args; ret } htype hname =
   pr " out:\n";
   List.iter (
     function
+    | ArrayAndLen (UInt32 n, len) -> pr "  free (%s);\n" n
+    | ArrayAndLen _ -> assert false
     | Bool _ -> ()
     | BytesIn (n, _) -> pr "  PyBuffer_Release (&%s);\n" n
     | BytesOut _ -> ()
@@ -2877,6 +2912,8 @@ class NBD (object):
     fun (name, { args; shortdesc }) ->
       let args = List.map (
                      function
+                     | ArrayAndLen (UInt32 n, _) -> n
+                     | ArrayAndLen _ -> assert false
                      | Bool n -> n
                      | BytesIn (n, _) -> n
                      | BytesOut (_, count) -> count
@@ -2921,6 +2958,8 @@ class NBDConnection (object):
     fun (name, { args; shortdesc }) ->
       let args = List.map (
                      function
+                     | ArrayAndLen (UInt32 n, _) -> n
+                     | ArrayAndLen _ -> assert false
                      | Bool n -> n
                      | BytesIn (n, _) -> n
                      | BytesOut (_, count) -> count
