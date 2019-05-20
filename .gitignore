@@ -87,6 +87,7 @@ Makefile.in
 /tests/is-rotational-flag
 /tests/is-not-rotational-flag
 /tests/keys.psk
+/tests/meta-base-allocation
 /tests/oldstyle
 /tests/pki/
 /tests/read-only-flag

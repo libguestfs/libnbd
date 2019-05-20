@@ -27,7 +27,8 @@ EXTRA_DIST = \
 	aio-parallel.sh \
 	aio-parallel-tls.sh
 	aio-parallel-load.sh \
-	aio-parallel-load-tls.sh
+	aio-parallel-load-tls.sh \
+	meta-base-allocation.sh \
 	synch-parallel.sh \
 	synch-parallel-tls.sh
 
@@ -56,7 +57,8 @@ check_PROGRAMS = \
 	connect-tcp \
 	aio-parallel \
 	aio-parallel-load \
-	synch-parallel
+	synch-parallel \
+	meta-base-allocation
 #	can-cache-flag
 #	can-not-cache-flag
 
@@ -87,7 +89,8 @@ TESTS = \
 	connect-tcp \
 	aio-parallel.sh \
 	aio-parallel-load.sh \
-	synch-parallel.sh
+	synch-parallel.sh \
+	meta-base-allocation
 #	can-cache-flag
 #	can-not-cache-flag
 
@@ -221,6 +224,11 @@ synch_parallel_SOURCES = synch-parallel.c
 synch_parallel_CPPFLAGS = -I$(top_srcdir)/include
 synch_parallel_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
 synch_parallel_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
+
+meta_base_allocation_SOURCES = meta-base-allocation.c
+meta_base_allocation_CPPFLAGS = -I$(top_srcdir)/include
+meta_base_allocation_CFLAGS = $(WARNINGS_CFLAGS)
+meta_base_allocation_LDADD = $(top_builddir)/lib/libnbd.la
 
 # Testing TLS support.
 if HAVE_GNUTLS

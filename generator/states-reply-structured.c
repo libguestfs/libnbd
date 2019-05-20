@@ -111,10 +111,31 @@
     return 0;
   }
   else if (type == NBD_REPLY_TYPE_BLOCK_STATUS) {
-    /* XXX Not implemented yet. */
-    SET_NEXT_STATE (%.DEAD);
-    set_error (0, "NBD_REPLY_TYPE_BLOCK_STATUS not implemented");
-    return -1;
+    /* XXX We should be able to skip the bad reply in these two cases. */
+    if (length < 12 || ((length-4) & 7) != 0) {
+      SET_NEXT_STATE (%.DEAD);
+      set_error (0, "invalid length in NBD_REPLY_TYPE_BLOCK_STATUS");
+      return -1;
+    }
+    if (cmd->extent_fn == NULL) {
+      SET_NEXT_STATE (%.DEAD);
+      set_error (0, "not expecting NBD_REPLY_TYPE_BLOCK_STATUS here");
+      return -1;
+    }
+    /* We read the context ID followed by all the entries into a
+     * single array and deal with it at the end.
+     */
+    free (conn->bs_entries);
+    conn->bs_entries = malloc (length);
+    if (conn->bs_entries == NULL) {
+      SET_NEXT_STATE (%.DEAD);
+      set_error (errno, "malloc");
+      return -1;
+    }
+    conn->rbuf = conn->bs_entries;
+    conn->rlen = length;
+    SET_NEXT_STATE (%RECV_BS_ENTRIES);
+    return 0;
   }
   else {
     SET_NEXT_STATE (%.DEAD);
@@ -292,6 +313,63 @@
     }
 
     memset (cmd->data + offset, 0, length);
+
+    if (flags & NBD_REPLY_FLAG_DONE)
+      SET_NEXT_STATE (%^FINISH_COMMAND);
+    else
+      SET_NEXT_STATE (%.READY);
+  }
+  return 0;
+
+ REPLY.STRUCTURED_REPLY.RECV_BS_ENTRIES:
+  struct command_in_flight *cmd;
+  uint64_t handle;
+  uint16_t flags;
+  uint32_t length;
+  size_t i;
+  uint32_t context_id;
+  struct meta_context *meta_context;
+
+  switch (recv_into_rbuf (conn)) {
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 0:
+    handle = be64toh (conn->sbuf.sr.structured_reply.handle);
+    flags = be16toh (conn->sbuf.sr.structured_reply.flags);
+    length = be32toh (conn->sbuf.sr.structured_reply.length);
+
+    /* Find the command amongst the commands in flight. */
+    for (cmd = conn->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
+      if (cmd->handle == handle)
+        break;
+    }
+    /* guaranteed by CHECK */
+    assert (cmd);
+    assert (cmd->extent_fn);
+    assert (conn->bs_entries);
+    assert (length >= 12);
+
+    /* Need to byte-swap the entries returned, but apart from that we
+     * don't validate them.
+     */
+    for (i = 0; i < length/4; ++i)
+      conn->bs_entries[i] = be32toh (conn->bs_entries[i]);
+
+    /* Look up the context ID. */
+    context_id = conn->bs_entries[0];
+    for (meta_context = conn->meta_contexts;
+         meta_context;
+         meta_context = meta_context->next)
+      if (context_id == meta_context->context_id)
+        break;
+
+    if (meta_context)
+      /* Call the caller's extent function. */
+      cmd->extent_fn (cmd->extent_id, meta_context->name, cmd->offset,
+                      &conn->bs_entries[1], (length-4) / 4);
+    else
+      /* Emit a debug message, but ignore it. */
+      debug (h, "server sent unexpected meta context ID %" PRIu32,
+             context_id);
 
     if (flags & NBD_REPLY_FLAG_DONE)
       SET_NEXT_STATE (%^FINISH_COMMAND);

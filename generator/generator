@@ -753,6 +753,13 @@ and structured_reply_state_machine = [
     comment = "Receive a structured reply offset-hole header";
     external_events = [ NotifyRead, "" ];
   };
+
+  State {
+    default_state with
+    name = "RECV_BS_ENTRIES";
+    comment = "Receive a structured reply block-status payload";
+    external_events = [ NotifyRead, "" ];
+  };
 ]
 
 (*----------------------------------------------------------------------*)
@@ -1272,6 +1279,53 @@ If multi-conn is enabled, the command is issued on the next
 ready connection, picked in a round-robin manner.";
   };
 
+  "block_status", {
+    default_call with
+    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags";
+             Int64 "id";
+             Callback ("extent", [Int64 "id"; String "metacontext";
+                                  UInt64 "offset";
+                                  ArrayAndLen (UInt32 "entries",
+                                               "nr_entries")]) ];
+    ret = RErr;
+    shortdesc = "read the block status of the given range";
+    longdesc = "\
+Issue the block status command to the NBD server.  If
+supported by the server, this causes metadata context
+information about all the blocks within the specified
+range to be returned.
+
+Depending on which metadata contexts were enabled before
+connecting (see C<nbd_request_meta_context>) and which are
+supported by the server this call returns information
+about extents by calling back to the extent function.
+
+The extent function is called once per type of metadata
+available.  The C<metacontext> parameter is a string
+such as C<\"base:allocation\">.  The C<entries> array
+is an array of pairs of integers with the first entry
+in each pair being the length (in bytes) of the block
+and the second entry being a status/flags field which
+is specific to the metadata context.  (The number of
+pairs passed to the function is C<nr_entries/2>.)
+The NBD protocol document in the section about
+C<NBD_REPLY_TYPE_BLOCK_STATUS> describes the meaning
+of this array.
+
+It is possible for the extent function to be called
+more times than you expect, so always check the
+C<metacontext> field to ensure you are receiving
+the data you expect.  It is also possible that the
+extent function is not called at all, even for
+metadata contexts that you requested.  This indicates
+either that the server doesn't support the context
+or for some other reason cannot return the data.
+
+The C<flags> parameter may be C<0> for no flags, or may contain
+C<LIBNBD_CMD_FLAG_REQ_ONE> meaning that the server should
+return only one extent per metadata context.";
+  };
+
   "poll", {
     default_call with
     args = [ Int "timeout" ]; ret = RErr;
@@ -1398,6 +1452,22 @@ if the command completed, call C<nbd_aio_command_completed>.  ";
     shortdesc = "send write zeroes to the NBD server";
     longdesc = "\
 Issue a write zeroes command to the NBD server.  This returns the
+unique 64 bit handle for this command.  To check if the command
+completed, call C<nbd_aio_command_completed>.";
+  };
+
+  "aio_block_status", {
+    default_call with
+    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags";
+             Int64 "id";
+             Callback ("extent", [Int64 "id"; String "metacontext";
+                                  UInt64 "offset";
+                                  ArrayAndLen (UInt32 "entries",
+                                               "nr_entries")]) ];
+    ret = RInt64;
+    shortdesc = "send block status to the NBD server";
+    longdesc = "\
+Send the block status command to the NBD server.  This returns the
 unique 64 bit handle for this command.  To check if the command
 completed, call C<nbd_aio_command_completed>.";
   };
@@ -2250,6 +2320,7 @@ let generate_include_libnbd_h () =
   pr "#define LIBNBD_AIO_DIRECTION_BOTH  3\n";
   pr "\n";
   pr "#define LIBNBD_CMD_FLAG_FUA        (1<<0)\n";
+  pr "#define LIBNBD_CMD_FLAG_REQ_ONE    (1<<3)\n";
   pr "\n";
   pr "extern struct nbd_handle *nbd_create (void);\n";
   pr "extern void nbd_close (struct nbd_handle *h);\n";

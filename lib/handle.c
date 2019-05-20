@@ -66,6 +66,7 @@ close_conn (struct nbd_connection *conn)
 {
   struct meta_context *m, *m_next;
 
+  free (conn->bs_entries);
   for (m = conn->meta_contexts; m != NULL; m = m_next) {
     m_next = m->next;
     free (m->name);

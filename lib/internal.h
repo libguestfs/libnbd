@@ -169,6 +169,9 @@ struct nbd_connection {
   /* When sending metadata contexts, this is used. */
   size_t querynum;
 
+  /* When receiving block status, this is used. */
+  uint32_t *bs_entries;
+
   /* Global flags from the server. */
   uint16_t gflags;
 
@@ -210,6 +213,8 @@ struct socket {
   const struct socket_ops *ops;
 };
 
+typedef void (*extent_fn) (int64_t id, const char *metacontext, uint64_t offset, uint32_t *entries, size_t nr_entries);
+
 struct command_in_flight {
   struct command_in_flight *next;
   uint16_t flags;
@@ -218,6 +223,8 @@ struct command_in_flight {
   uint64_t offset;
   uint32_t count;
   void *data;
+  extent_fn extent_fn;
+  int64_t extent_id;
   uint32_t error;
 };
 

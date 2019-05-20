@@ -214,6 +214,33 @@ nbd_unlocked_zero (struct nbd_handle *h,
   return r == -1 ? -1 : 0;
 }
 
+/* Issue a block status command on any connection and wait for the reply. */
+int
+nbd_unlocked_block_status (struct nbd_handle *h,
+                           uint64_t count, uint64_t offset, uint32_t flags,
+                           int64_t id,
+                           extent_fn extent)
+{
+  struct nbd_connection *conn;
+  int64_t ch;
+  int r;
+
+  conn = pick_connection (h);
+  if (conn == NULL)
+    return -1;
+
+  ch = nbd_unlocked_aio_block_status (conn, count, offset, flags, id, extent);
+  if (ch == -1)
+    return -1;
+
+  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
+    if (nbd_unlocked_poll (h, -1) == -1)
+      return -1;
+  }
+
+  return r == -1 ? -1 : 0;
+}
+
 static struct command_in_flight *
 command_common (struct nbd_connection *conn,
                 uint16_t flags, uint16_t type,
@@ -434,6 +461,50 @@ nbd_unlocked_aio_zero (struct nbd_connection *conn,
   cmd = command_common (conn, flags, NBD_CMD_WRITE_ZEROES, offset, count, NULL);
   if (!cmd)
     return -1;
+  if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)
+    return -1;
+
+  return cmd->handle;
+}
+
+int64_t
+nbd_unlocked_aio_block_status (struct nbd_connection *conn,
+                               uint64_t count, uint64_t offset,
+                               uint32_t flags,
+                               int64_t id,
+                               extent_fn extent)
+{
+  struct command_in_flight *cmd;
+
+  if (!conn->structured_replies) {
+    set_error (ENOTSUP, "server does not support structured replies");
+    return -1;
+  }
+
+  if (conn->meta_contexts == NULL) {
+    set_error (ENOTSUP, "did not negotiate any metadata contexts, "
+               "either you did not call nbd_request_meta_context before "
+               "connecting or the server does not support it");
+    return -1;
+  }
+
+  if ((flags & ~LIBNBD_CMD_FLAG_REQ_ONE) != 0) {
+    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
+    return -1;
+  }
+
+  if (count == 0) {             /* NBD protocol forbids this. */
+    set_error (EINVAL, "count cannot be 0");
+    return -1;
+  }
+
+  cmd = command_common (conn, flags, NBD_CMD_BLOCK_STATUS, offset, count, NULL);
+  if (!cmd)
+    return -1;
+
+  cmd->extent_fn = extent;
+  cmd->extent_id = id;
+
   if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)
     return -1;
 
