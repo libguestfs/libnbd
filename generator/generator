@@ -870,7 +870,7 @@ where 1 means multi-conn is not enabled.";
   "set_tls", {
     default_call with
     args = [Int "tls"]; ret = RErr;
-    shortdesc = "Enable or require TLS (authentication and encryption)";
+    shortdesc = "enable or require TLS (authentication and encryption)";
     longdesc = "\
 Enable or require TLS (authenticated and encrypted connections) to the
 NBD server.  The possible settings are:
@@ -969,7 +969,7 @@ If not set then the local username is used.";
   "get_tls_username", {
     default_call with
     args = []; ret = RString;
-    shortdesc = "Get the current TLS username";
+    shortdesc = "get the current TLS username";
     longdesc = "\
 Get the current TLS username.  See C<nbd_set_tls_username>.";
   };
@@ -990,7 +990,7 @@ authentication cannot be used to connect to the server.";
   "get_tls_psk_file", {
     default_call with
     args = []; ret = RString;
-    shortdesc = "Get the current TLS PSK filename";
+    shortdesc = "get the current TLS PSK filename";
     longdesc = "\
 Get the current TLS PSK filename.  See C<nbd_set_tls_psk_file>.";
   };
@@ -1035,7 +1035,7 @@ behave like inetd clients, such as C<nbdkit --single>.";
   "read_only", {
     default_call with
     args = []; ret = RBool;
-    shortdesc = "the NBD export is read-only";
+    shortdesc = "is the NBD export read-only?";
     longdesc = "\
 Returns true if the NBD export is read-only; writes and
 write-like operations will fail.  Can return an error if we have not
@@ -1045,7 +1045,7 @@ connected to and completed the handshake with the server.";
   "can_flush", {
     default_call with
     args = []; ret = RBool;
-    shortdesc = "does the server support the flush command";
+    shortdesc = "does the server support the flush command?";
     longdesc = "\
 Returns true if the server supports the flush command
 (see C<nbd_flush>, C<nbd_aio_flush>).  Returns false if
@@ -1056,7 +1056,7 @@ connected to and completed the handshake with the server.";
   "can_fua", {
     default_call with
     args = []; ret = RBool;
-    shortdesc = "does the server support the FUA flag";
+    shortdesc = "does the server support the FUA flag?";
     longdesc = "\
 Returns true if the server supports the FUA flag on
 certain commands (see C<nbd_pwrite>).  Can return an error
@@ -1066,7 +1066,7 @@ if we have not connected to and completed the handshake with the server.";
   "is_rotational", {
     default_call with
     args = []; ret = RBool;
-    shortdesc = "is the NBD disk rotational (like a disk)";
+    shortdesc = "is the NBD disk rotational (like a disk)?";
     longdesc = "\
 Returns true if the disk exposed over NBD is rotational
 (like a traditional floppy or hard disk).  Returns false if
@@ -1078,7 +1078,7 @@ to and completed the handshake with the server.";
   "can_trim", {
     default_call with
     args = []; ret = RBool;
-    shortdesc = "does the server support the trim command";
+    shortdesc = "does the server support the trim command?";
     longdesc = "\
 Returns true if the server supports the trim command
 (see C<nbd_trim>, C<nbd_aio_trim>).  Returns false if
@@ -1089,7 +1089,7 @@ connected to and completed the handshake with the server.";
   "can_zero", {
     default_call with
     args = []; ret = RBool;
-    shortdesc = "does the server support the zero command";
+    shortdesc = "does the server support the zero command?";
     longdesc = "\
 Returns true if the server supports the zero command
 (see C<nbd_zero>, C<nbd_aio_zero>).  Returns false if
@@ -1100,7 +1100,7 @@ connected to and completed the handshake with the server.";
   "can_multi_conn", {
     default_call with
     args = []; ret = RBool;
-    shortdesc = "does the server support multi-conn";
+    shortdesc = "does the server support multi-conn?";
     longdesc = "\
 Returns true if the server supports multi-conn
 (see C<nbd_set_multi_conn>).  Returns false if
@@ -1111,7 +1111,7 @@ connected to and completed the handshake with the server.";
   "can_cache", {
     default_call with
     args = []; ret = RBool;
-    shortdesc = "does the server support the cache command";
+    shortdesc = "does the server support the cache command?";
     longdesc = "\
 Returns true if the server supports the cache command
 (see C<nbd_cache>, C<nbd_aio_cache>).  Returns false if
