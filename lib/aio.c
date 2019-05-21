@@ -85,6 +85,28 @@ nbd_unlocked_aio_is_ready (struct nbd_connection *conn)
   return conn->state == STATE_READY;
 }
 
+static int
+is_processing_group (enum state_group group)
+{
+  switch (group) {
+  case GROUP_TOP:
+    return 0;
+  case GROUP_ISSUE_COMMAND:
+  case GROUP_REPLY:
+    return 1;
+  default:
+    return is_processing_group (nbd_internal_state_group_parent (group));
+  }
+}
+
+int
+nbd_unlocked_aio_is_processing (struct nbd_connection *conn)
+{
+  enum state_group group = nbd_internal_state_group (conn->state);
+
+  return is_processing_group (group);
+}
+
 int
 nbd_unlocked_aio_is_dead (struct nbd_connection *conn)
 {

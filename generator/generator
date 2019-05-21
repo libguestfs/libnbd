@@ -1578,6 +1578,20 @@ waiting for a reply.  In this state the handle is ready to
 issue commands.";
   };
 
+  "aio_is_processing", {
+    default_call with
+    args = []; ret = RBool;
+    shortdesc = "check if the connection is processing a command";
+    longdesc = "\
+Return true if this connection is connected to the NBD server,
+the handshake has completed, and the connection is processing
+commands (either writing out a request or reading a reply).
+
+Note the ready state (C<nbd_aio_is_ready>) is not included.
+In the ready state commands may be I<in flight> (the I<server>
+is processing them), but libnbd is not processing them.";
+  };
+
   "aio_is_dead", {
     default_call with
     args = []; ret = RBool;
