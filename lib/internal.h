@@ -264,6 +264,12 @@ extern void nbd_internal_set_last_error (int errnum, char *error);
 extern int nbd_internal_errno_of_nbd_error (uint32_t error);
 extern const char *nbd_internal_name_of_nbd_cmd (uint16_t type);
 
+/* rw.c */
+extern int64_t nbd_internal_command_common (struct nbd_connection *conn,
+                                            uint16_t flags, uint16_t type,
+                                            uint64_t offset, uint64_t count,
+                                            void *data, extent_fn extent);
+
 /* socket.c */
 struct socket *nbd_internal_socket_create (int fd);
 

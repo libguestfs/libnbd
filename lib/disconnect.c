@@ -60,27 +60,16 @@ nbd_unlocked_shutdown (struct nbd_handle *h)
 int
 nbd_unlocked_aio_disconnect (struct nbd_connection *conn)
 {
-  struct command_in_flight *cmd;
+  int64_t id;
 
-  cmd = malloc (sizeof *cmd);
-  if (cmd == NULL) {
-    set_error (errno, "malloc");
+  id = nbd_internal_command_common (conn, 0, NBD_CMD_DISC, 0, 0, NULL, NULL);
+  if (id == -1)
     return -1;
-  }
-  cmd->flags = 0;
-  cmd->type = NBD_CMD_DISC;
-  cmd->handle = conn->h->unique++;
-  cmd->offset = 0;
-  cmd->count = 0;
-  cmd->data = NULL;
-
-  cmd->next = conn->cmds_to_issue;
-  conn->cmds_to_issue = cmd;
 
   /* This will leave the command on the in-flight list.  Is this a
    * problem?  Probably it isn't.  If it is, we could add a flag to
    * the command struct to tell SEND_REQUEST not to add it to the
    * in-flight list.
    */
-  return nbd_internal_run (conn->h, conn, cmd_issue);
+  return 0;
 }
