@@ -24,6 +24,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "internal.h"
 
@@ -247,7 +248,15 @@ nbd_internal_command_common (struct nbd_connection *conn,
                              uint64_t offset, uint64_t count, void *data,
                              extent_fn extent)
 {
-  struct command_in_flight *cmd;
+  struct command_in_flight *cmd, *prev_cmd;
+
+  if (!nbd_unlocked_aio_is_ready (conn) &&
+      !nbd_unlocked_aio_is_processing (conn)) {
+    set_error (0, "command request %s is invalid in state %s",
+               nbd_internal_name_of_nbd_cmd (type),
+               nbd_internal_state_short_string (conn->state));
+    return -1;
+  }
 
   switch (type) {
     /* Commands which send or receive data are limited to MAX_REQUEST_SIZE. */
@@ -298,10 +307,23 @@ nbd_internal_command_common (struct nbd_connection *conn,
   if (conn->structured_replies && cmd->data && type == NBD_CMD_READ)
     memset (cmd->data, 0, cmd->count);
 
-  cmd->next = conn->cmds_to_issue;
-  conn->cmds_to_issue = cmd;
-  if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)
-    return -1;
+  /* Add the command to the end of the queue. Kick the state machine
+   * if there is no other command being processed, otherwise, it will
+   * be handled automatically on a future cycle around to READY.
+   */
+  if (conn->cmds_to_issue != NULL) {
+    assert (nbd_unlocked_aio_is_processing (conn));
+    prev_cmd = conn->cmds_to_issue;
+    while (prev_cmd->next)
+      prev_cmd = prev_cmd->next;
+    prev_cmd->next = cmd;
+  }
+  else {
+    conn->cmds_to_issue = cmd;
+    if (nbd_unlocked_aio_is_ready (conn) &&
+        nbd_internal_run (conn->h, conn, cmd_issue) == -1)
+      return -1;
+  }
 
   return cmd->handle;
 }

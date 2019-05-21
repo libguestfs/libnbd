@@ -110,6 +110,11 @@ send_from_wbuf (struct nbd_connection *conn)
 /*----- End of prologue. -----*/
 
 /* STATE MACHINE */ {
+ READY:
+  if (conn->cmds_to_issue)
+    SET_NEXT_STATE (%ISSUE_COMMAND.START);
+  return 0;
+
  DEAD:
   if (conn->sock) {
     conn->sock->ops->close (conn->sock);
