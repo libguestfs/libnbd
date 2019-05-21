@@ -53,6 +53,32 @@ nbd_unlocked_aio_is_created (struct nbd_connection *conn)
   return conn->state == STATE_START;
 }
 
+static int
+is_connecting_group (enum state_group group)
+{
+  switch (group) {
+  case GROUP_TOP:
+    return 0;
+  case GROUP_CONNECT:
+  case GROUP_CONNECT_TCP:
+  case GROUP_CONNECT_COMMAND:
+  case GROUP_MAGIC:
+  case GROUP_OLDSTYLE:
+  case GROUP_NEWSTYLE:
+    return 1;
+  default:
+    return is_connecting_group (nbd_internal_state_group_parent (group));
+  }
+}
+
+int
+nbd_unlocked_aio_is_connecting (struct nbd_connection *conn)
+{
+  enum state_group group = nbd_internal_state_group (conn->state);
+
+  return is_connecting_group (group);
+}
+
 int
 nbd_unlocked_aio_is_ready (struct nbd_connection *conn)
 {

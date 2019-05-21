@@ -1344,9 +1344,12 @@ let connection_calls = [
     args = [ SockAddrAndLen ("addr", "addrlen") ]; ret = RErr;
     shortdesc = "connect to the NBD server";
     longdesc = "\
-Begin connecting to the NBD server.  You can check if the
-connection has connected to the server and completed the NBD
-handshake by calling C<nbd_aio_is_ready> on the connection.";
+Begin connecting to the NBD server.
+
+You can check if the connection is still connecting by calling
+C<nbd_aio_is_connecting>, or if it has connected to the server
+and completed the NBD handshake by calling C<nbd_aio_is_ready>,
+on the connection.";
   };
 
   "aio_connect_tcp", {
@@ -1355,9 +1358,11 @@ handshake by calling C<nbd_aio_is_ready> on the connection.";
     shortdesc = "connect to the NBD server over a TCP port";
     longdesc = "\
 Begin connecting to the NBD server listening on C<hostname:port>.
-You can check if the connection has connected to the server and
-completed the NBD handshake by calling C<nbd_aio_is_ready> on
-the connection.";
+
+You can check if the connection is still connecting by calling
+C<nbd_aio_is_connecting>, or if it has connected to the server
+and completed the NBD handshake by calling C<nbd_aio_is_ready>,
+on the connection.";
   };
 
   "aio_connect_command", {
@@ -1366,9 +1371,12 @@ the connection.";
     shortdesc = "connect to the NBD server";
     longdesc = "\
 Run the command as a subprocess and begin connecting to it over
-stdin/stdout.  You can check if the connection has connected to
-the server and completed the NBD handshake by calling
-C<nbd_aio_is_ready> on the connection.";
+stdin/stdout.
+
+You can check if the connection is still connecting by calling
+C<nbd_aio_is_connecting>, or if it has connected to the server
+and completed the NBD handshake by calling C<nbd_aio_is_ready>,
+on the connection.";
   };
 
   "aio_pread", {
@@ -1546,6 +1554,17 @@ Return true if this connection has just been created.  This
 is the state before the connection object has started
 connecting to a server.  In this state the handle can start
 to be connected by calling functions such as C<nbd_aio_connect>.";
+  };
+
+  "aio_is_connecting", {
+    default_call with
+    args = []; ret = RBool;
+    shortdesc = "check if the connection is connecting or handshaking";
+    longdesc = "\
+Return true if this connection is connecting to the server
+or in the process of handshaking and negotiating options
+which happens before the connection object becomes ready to
+issue commands (see C<nbd_aio_is_ready>).";
   };
 
   "aio_is_ready", {
