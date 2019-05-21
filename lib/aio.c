@@ -48,6 +48,12 @@ nbd_unlocked_aio_notify_write (struct nbd_connection *conn)
 }
 
 int
+nbd_unlocked_aio_is_created (struct nbd_connection *conn)
+{
+  return conn->state == STATE_START;
+}
+
+int
 nbd_unlocked_aio_is_ready (struct nbd_connection *conn)
 {
   return conn->state == STATE_READY;

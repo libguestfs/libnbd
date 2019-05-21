@@ -68,7 +68,7 @@ wait_all_connected (struct nbd_handle *h)
   return 0;
 }
 
-/* For all connections in the CREATED state, start connecting them to
+/* For all connections in the initial state, start connecting them to
  * a Unix domain socket.  Wait until all connections are in the READY
  * state.
  */
@@ -87,7 +87,7 @@ nbd_unlocked_connect_unix (struct nbd_handle *h, const char *sockpath)
 
   started = false;
   for (i = 0; i < h->multi_conn; ++i) {
-    if (h->conns[i]->state == STATE_START) {
+    if (nbd_unlocked_aio_is_created (h->conns[i])) {
       if (nbd_unlocked_aio_connect (h->conns[i],
                                     (struct sockaddr *) &sun, len) == -1)
         return -1;
@@ -113,7 +113,7 @@ nbd_unlocked_connect_tcp (struct nbd_handle *h,
 
   started = false;
   for (i = 0; i < h->multi_conn; ++i) {
-    if (h->conns[i]->state == STATE_START) {
+    if (nbd_unlocked_aio_is_created (h->conns[i])) {
       if (nbd_unlocked_aio_connect_tcp (h->conns[i], hostname, port) == -1)
         return -1;
       started = true;
@@ -134,7 +134,7 @@ nbd_unlocked_connect_tcp (struct nbd_handle *h,
 int
 nbd_unlocked_connect_command (struct nbd_handle *h, char **argv)
 {
-  if (h->conns[0]->state != STATE_START) {
+  if (!nbd_unlocked_aio_is_created (h->conns[0])) {
     set_error (0, "first connection in this handle is not in the created state, this is likely to be caused by a programming error in the calling program");
     return -1;
   }

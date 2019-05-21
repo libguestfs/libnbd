@@ -1537,6 +1537,17 @@ has detected that the file descriptor associated with this
 connection is writable.";
   };
 
+  "aio_is_created", {
+    default_call with
+    args = []; ret = RBool;
+    shortdesc = "check if the connection has just been created";
+    longdesc = "\
+Return true if this connection has just been created.  This
+is the state before the connection object has started
+connecting to a server.  In this state the handle can start
+to be connected by calling functions such as C<nbd_aio_connect>.";
+  };
+
   "aio_is_ready", {
     default_call with
     args = []; ret = RBool;
