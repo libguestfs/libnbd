@@ -151,7 +151,7 @@
       if (cmd->handle == handle)
         break;
     }
-    assert (cmd); /* guaranteed by CHECK_STRUCTURED_REPLY */
+    assert (cmd); /* guaranteed by CHECK */
 
     cmd->error = error;
 
@@ -180,7 +180,7 @@
       if (cmd->handle == handle)
         break;
     }
-    assert (cmd); /* guaranteed by CHECK_STRUCTURED_REPLY */
+    assert (cmd); /* guaranteed by CHECK */
 
     /* Length of the data following. */
     length -= 8;
@@ -258,7 +258,7 @@
       if (cmd->handle == handle)
         break;
     }
-    assert (cmd); /* guaranteed by CHECK_STRUCTURED_REPLY */
+    assert (cmd); /* guaranteed by CHECK */
 
     /* Is the data within bounds? */
     if (offset < cmd->offset) {
