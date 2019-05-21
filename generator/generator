@@ -640,9 +640,23 @@ and issue_command_state_machine = [
 
   State {
     default_state with
+    name = "PREPARE_WRITE_PAYLOAD";
+    comment = "Prepare the write payload to send to the remote server";
+    external_events = [];
+  };
+
+  State {
+    default_state with
     name = "SEND_WRITE_PAYLOAD";
     comment = "Sending the write payload to the remote server";
     external_events = [ NotifyWrite, "" ];
+  };
+
+State {
+    default_state with
+    name = "FINISH";
+    comment = "Finish issuing a command";
+    external_events = [];
   };
 ]
 

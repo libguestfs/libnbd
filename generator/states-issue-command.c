@@ -24,9 +24,6 @@
 
   assert (conn->cmds_to_issue != NULL);
   cmd = conn->cmds_to_issue;
-  conn->cmds_to_issue = cmd->next;
-  cmd->next = conn->cmds_in_flight;
-  conn->cmds_in_flight = cmd;
 
   conn->sbuf.request.magic = htobe32 (NBD_REQUEST_MAGIC);
   conn->sbuf.request.flags = htobe16 (cmd->flags);
@@ -40,29 +37,44 @@
   return 0;
 
  ISSUE_COMMAND.SEND_REQUEST:
-  struct command_in_flight *cmd;
-
   switch (send_from_wbuf (conn)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
-  case 0:
-    assert (conn->cmds_in_flight != NULL);
-    cmd = conn->cmds_in_flight;
-    assert (cmd->handle == be64toh (conn->sbuf.request.handle));
-    if (cmd->type == NBD_CMD_WRITE) {
-      conn->wbuf = cmd->data;
-      conn->wlen = cmd->count;
-      SET_NEXT_STATE (%SEND_WRITE_PAYLOAD);
-    }
-    else
-      SET_NEXT_STATE (%.READY);
+  case 0:  SET_NEXT_STATE (%PREPARE_WRITE_PAYLOAD);
   }
+  return 0;
+
+ ISSUE_COMMAND.PREPARE_WRITE_PAYLOAD:
+  struct command_in_flight *cmd;
+
+  assert (conn->cmds_to_issue != NULL);
+  cmd = conn->cmds_to_issue;
+  assert (cmd->handle == be64toh (conn->sbuf.request.handle));
+  if (cmd->type == NBD_CMD_WRITE) {
+    conn->wbuf = cmd->data;
+    conn->wlen = cmd->count;
+    SET_NEXT_STATE (%SEND_WRITE_PAYLOAD);
+  }
+  else
+    SET_NEXT_STATE (%FINISH);
   return 0;
 
  ISSUE_COMMAND.SEND_WRITE_PAYLOAD:
   switch (send_from_wbuf (conn)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
-  case 0:  SET_NEXT_STATE (%.READY);
+  case 0:  SET_NEXT_STATE (%FINISH);
   }
+  return 0;
+
+ ISSUE_COMMAND.FINISH:
+  struct command_in_flight *cmd;
+
+  assert (conn->cmds_to_issue != NULL);
+  cmd = conn->cmds_to_issue;
+  assert (cmd->handle == be64toh (conn->sbuf.request.handle));
+  conn->cmds_to_issue = cmd->next;
+  cmd->next = conn->cmds_in_flight;
+  conn->cmds_in_flight = cmd;
+  SET_NEXT_STATE (%.READY);
   return 0;
 
 } /* END STATE MACHINE */
