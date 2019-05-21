@@ -2209,7 +2209,40 @@ let generate_lib_states_c () =
   pr "  default:\n";
   pr "    abort (); /* Should never happen, but keeps GCC happy. */\n";
   pr "  }\n";
-  pr "}\n"
+  pr "}\n";
+  pr "\n";
+
+  pr "/* Map a state group to its parent group. */\n";
+  pr "enum state_group\n";
+  pr "nbd_internal_state_group_parent (enum state_group group)\n";
+  pr "{\n";
+  pr "  switch (group) {\n";
+  pr "  case GROUP_TOP:\n";
+  pr "    return GROUP_TOP;\n";
+  let rec loop prefix = function
+    | [] -> ()
+    | State _ :: rest ->
+       loop prefix rest
+    | Group (name, group) :: rest ->
+       let enum =
+         "GROUP" ^ String.concat "" (List.map ((^) "_") prefix) ^ "_" ^ name in
+       pr "  case %s:\n" enum;
+       if prefix = [] then
+         pr "    return GROUP_TOP;\n"
+       else (
+         let parent = "GROUP" ^ String.concat "" (List.map ((^) "_") prefix) in
+         pr "    return %s;\n" parent
+       );
+       loop (prefix @ [name]) group;
+       loop prefix rest
+  in
+  loop [] state_machine;
+  pr "  default:\n";
+  pr "    abort (); /* Should never happen, but keeps GCC happy. */\n";
+  pr "  }\n";
+  pr "};\n"
+
+
 
 (*----------------------------------------------------------------------*)
 
