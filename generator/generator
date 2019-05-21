@@ -1040,8 +1040,7 @@ C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
 Connect (synchronously) over the named Unix domain socket (C<sockpath>)
 to an NBD server running on the same machine.  This call returns
 when the connection has been made.  If multi-conn is enabled, this
-begins connecting all of the connections, and returns as soon as
-any one of them is connected.";
+returns when all of the connections are connected.";
   };
 
   "connect_tcp", {
@@ -1053,9 +1052,8 @@ Connect (synchronously) to the NBD server listening on
 C<hostname:port>.  The C<port> may be a port name such
 as C<\"nbd\">, or it may be a port number as a string
 such as C<\"10809\">.  This call returns when the connection
-has been made.  If multi-conn is enabled, this begins connecting
-all of the connections, and returns as soon as
-any one of them is connected.";
+has been made.  If multi-conn is enabled, this returns when
+all of the connections are connected.";
   };
 
   "connect_command", {
