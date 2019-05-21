@@ -621,12 +621,6 @@ and issue_command_state_machine = [
   State {
     default_state with
     name = "START";
-    (* XXX There's a possible deadlock here if a server cannot
-     * handle multiple requests pipelined on a single connection.
-     * We could try to issue a command and block, but reads might
-     * be available.  It should be possible to break this with
-     * another state.
-     *)
     comment = "Begin issuing a command to the remote server";
     external_events = [];
   };
@@ -635,7 +629,15 @@ and issue_command_state_machine = [
     default_state with
     name = "SEND_REQUEST";
     comment = "Sending a request to the remote server";
-    external_events = [ NotifyWrite, "" ];
+    external_events = [ NotifyWrite, "";
+                        NotifyRead, "PAUSE_SEND_REQUEST" ];
+  };
+
+  State {
+    default_state with
+    name = "PAUSE_SEND_REQUEST";
+    comment = "Interrupt send request to receive an earlier command's reply";
+    external_events = [];
   };
 
   State {
@@ -649,7 +651,15 @@ and issue_command_state_machine = [
     default_state with
     name = "SEND_WRITE_PAYLOAD";
     comment = "Sending the write payload to the remote server";
-    external_events = [ NotifyWrite, "" ];
+    external_events = [ NotifyWrite, "";
+                        NotifyRead, "PAUSE_WRITE_PAYLOAD" ];
+  };
+
+State {
+    default_state with
+    name = "PAUSE_WRITE_PAYLOAD";
+    comment = "Interrupt write payload to receive an earlier command's reply";
+    external_events = [];
   };
 
 State {

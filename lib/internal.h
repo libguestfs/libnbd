@@ -133,7 +133,6 @@ struct nbd_connection {
       } payload;
     }  __attribute__((packed)) or;
     struct nbd_export_name_option_reply export_name_reply;
-    struct nbd_request request;
     struct nbd_simple_reply simple_reply;
     struct {
       struct nbd_structured_reply structured_reply;
@@ -148,6 +147,12 @@ struct nbd_connection {
     uint16_t nrinfos;
     uint32_t nrqueries;
   } sbuf;
+
+  /* Issuing a command must use a buffer separate from sbuf, for the
+   * case when we interrupt a request to service a reply.
+   */
+  struct nbd_request request;
+  bool in_write_payload;
 
   /* When connecting, this stores the socket address. */
   struct sockaddr_storage connaddr;

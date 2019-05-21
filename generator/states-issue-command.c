@@ -25,14 +25,23 @@
   assert (conn->cmds_to_issue != NULL);
   cmd = conn->cmds_to_issue;
 
-  conn->sbuf.request.magic = htobe32 (NBD_REQUEST_MAGIC);
-  conn->sbuf.request.flags = htobe16 (cmd->flags);
-  conn->sbuf.request.type = htobe16 (cmd->type);
-  conn->sbuf.request.handle = htobe64 (cmd->handle);
-  conn->sbuf.request.offset = htobe64 (cmd->offset);
-  conn->sbuf.request.count = htobe32 ((uint32_t) cmd->count);
-  conn->wbuf = &conn->sbuf;
-  conn->wlen = sizeof (conn->sbuf.request);
+  /* Were we interrupted by reading a reply to an earlier command? */
+  if (conn->wlen) {
+    if (conn->in_write_payload)
+      SET_NEXT_STATE(%SEND_WRITE_PAYLOAD);
+    else
+      SET_NEXT_STATE(%SEND_REQUEST);
+    return 0;
+  }
+
+  conn->request.magic = htobe32 (NBD_REQUEST_MAGIC);
+  conn->request.flags = htobe16 (cmd->flags);
+  conn->request.type = htobe16 (cmd->type);
+  conn->request.handle = htobe64 (cmd->handle);
+  conn->request.offset = htobe64 (cmd->offset);
+  conn->request.count = htobe32 ((uint32_t) cmd->count);
+  conn->wbuf = &conn->request;
+  conn->wlen = sizeof (conn->request);
   SET_NEXT_STATE (%SEND_REQUEST);
   return 0;
 
@@ -43,12 +52,19 @@
   }
   return 0;
 
+ ISSUE_COMMAND.PAUSE_SEND_REQUEST:
+  assert (conn->wlen);
+  assert (conn->cmds_to_issue != NULL);
+  conn->in_write_payload = false;
+  SET_NEXT_STATE (%^REPLY.START);
+  return 0;
+
  ISSUE_COMMAND.PREPARE_WRITE_PAYLOAD:
   struct command_in_flight *cmd;
 
   assert (conn->cmds_to_issue != NULL);
   cmd = conn->cmds_to_issue;
-  assert (cmd->handle == be64toh (conn->sbuf.request.handle));
+  assert (cmd->handle == be64toh (conn->request.handle));
   if (cmd->type == NBD_CMD_WRITE) {
     conn->wbuf = cmd->data;
     conn->wlen = cmd->count;
@@ -65,12 +81,20 @@
   }
   return 0;
 
+ ISSUE_COMMAND.PAUSE_WRITE_PAYLOAD:
+  assert (conn->wlen);
+  assert (conn->cmds_to_issue != NULL);
+  conn->in_write_payload = true;
+  SET_NEXT_STATE (%^REPLY.START);
+  return 0;
+
  ISSUE_COMMAND.FINISH:
   struct command_in_flight *cmd;
 
+  assert (!conn->wlen);
   assert (conn->cmds_to_issue != NULL);
   cmd = conn->cmds_to_issue;
-  assert (cmd->handle == be64toh (conn->sbuf.request.handle));
+  assert (cmd->handle == be64toh (conn->request.handle));
   conn->cmds_to_issue = cmd->next;
   cmd->next = conn->cmds_in_flight;
   conn->cmds_in_flight = cmd;
