@@ -30,6 +30,7 @@ Makefile.in
 /docs/libnbd.3
 /docs/libnbd-api.3
 /docs/libnbd-api.pod
+/examples/batched-read-write
 /examples/threaded-reads-and-writes
 /examples/simple-fetch-first-sector
 /examples/simple-reads-and-writes

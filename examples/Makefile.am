@@ -18,6 +18,7 @@
 include $(top_srcdir)/subdir-rules.mk
 
 noinst_PROGRAMS = \
+	batched-read-write \
 	simple-fetch-first-sector \
 	simple-reads-and-writes \
 	threaded-reads-and-writes
@@ -50,3 +51,12 @@ threaded_reads_and_writes_CFLAGS = \
 threaded_reads_and_writes_LDADD = \
 	$(top_builddir)/lib/libnbd.la \
 	$(PTHREAD_LIBS)
+
+batched_read_write_SOURCES = \
+	batched-read-write.c
+batched_read_write_CPPFLAGS = \
+	-I$(top_srcdir)/include
+batched_read_write_CFLAGS = \
+	$(WARNINGS_CFLAGS)
+batched_read_write_LDADD = \
+	$(top_builddir)/lib/libnbd.la
