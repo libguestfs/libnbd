@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include "internal.h"
 
@@ -127,6 +128,11 @@ nbd_unlocked_aio_command_completed (struct nbd_connection *conn,
   uint16_t type;
   uint32_t error;
 
+  if (handle < 1) {
+    set_error (EINVAL, "invalid aio handle %" PRId64, handle);
+    return -1;
+  }
+
   /* Find the command amongst the completed commands. */
   for (cmd = conn->cmds_done, prev_cmd = NULL;
        cmd != NULL;
@@ -156,5 +162,19 @@ nbd_unlocked_aio_command_completed (struct nbd_connection *conn,
   error = nbd_internal_errno_of_nbd_error (error);
   set_error (error, "%s: command failed: %s",
              nbd_internal_name_of_nbd_cmd (type), strerror (error));
+  return -1;
+}
+
+int64_t
+nbd_unlocked_aio_peek_command_completed (struct nbd_connection *conn)
+{
+  if (conn->cmds_done != NULL)
+    return conn->cmds_done->handle;
+
+  if (conn->cmds_in_flight != NULL || conn->cmds_to_issue != NULL) {
+    set_error (0, "no in-flight command has completed yet");
+    return 0;
+  }
+  set_error (EINVAL, "no commands are in flight");
   return -1;
 }

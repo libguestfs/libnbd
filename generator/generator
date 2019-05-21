@@ -1416,10 +1416,10 @@ on the connection.";
     shortdesc = "read from the NBD server";
     longdesc = "\
 Issue a read command to the NBD server.  This returns the
-unique 64 bit handle for this command.  To check if the command
-completed, call C<nbd_aio_command_completed>.  Note that
-you must ensure C<buf> is valid until the command has
-completed.";
+unique positive 64 bit handle for this command, or C<-1> on
+error.  To check if the command completed, call
+C<nbd_aio_command_completed>.  Note that you must ensure
+C<buf> is valid until the command has completed.";
   };
 
   "aio_pwrite", {
@@ -1429,10 +1429,10 @@ completed.";
     shortdesc = "write to the NBD server";
     longdesc = "\
 Issue a write command to the NBD server.  This returns the
-unique 64 bit handle for this command.  To check if the command
-completed, call C<nbd_aio_command_completed>.  Note that
-you must ensure C<buf> is valid until the command has
-completed.";
+unique positive 64 bit handle for this command, or C<-1> on
+error.  To check if the command completed, call
+C<nbd_aio_command_completed>.  Note that you must ensure
+C<buf> is valid until the command has completed.";
   };
 
   "aio_disconnect", {
@@ -1452,8 +1452,9 @@ C<nbd_aio_is_closed> to become true on the connection.";
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
 Issue the flush command to the NBD server.  This returns the
-unique 64 bit handle for this command.  To check if the command
-completed, call C<nbd_aio_command_completed>.";
+unique positive 64 bit handle for this command, or C<-1> on
+error.  To check if the command completed, call
+C<nbd_aio_command_completed>.";
   };
 
   "aio_trim", {
@@ -1463,8 +1464,9 @@ completed, call C<nbd_aio_command_completed>.";
     shortdesc = "send trim to the NBD server";
     longdesc = "\
 Issue a trim command to the NBD server.  This returns the
-unique 64 bit handle for this command.  To check if the command
-completed, call C<nbd_aio_command_completed>.";
+unique positive 64 bit handle for this command, or C<-1> on
+error.  To check if the command completed, call
+C<nbd_aio_command_completed>.";
   };
 
   "aio_cache", {
@@ -1474,8 +1476,9 @@ completed, call C<nbd_aio_command_completed>.";
     shortdesc = "send cache (prefetch) to the NBD server";
     longdesc = "\
 Issue the cache (prefetch) command to the NBD server.  This
-returns the unique 64 bit handle for this command.  To check
-if the command completed, call C<nbd_aio_command_completed>.  ";
+returns the unique positive 64 bit handle for this command, or
+C<-1> on error.  To check if the command completed, call
+C<nbd_aio_command_completed>.";
   };
 
   "aio_zero", {
@@ -1485,8 +1488,9 @@ if the command completed, call C<nbd_aio_command_completed>.  ";
     shortdesc = "send write zeroes to the NBD server";
     longdesc = "\
 Issue a write zeroes command to the NBD server.  This returns the
-unique 64 bit handle for this command.  To check if the command
-completed, call C<nbd_aio_command_completed>.";
+unique positive 64 bit handle for this command, or C<-1> on
+error.  To check if the command completed, call
+C<nbd_aio_command_completed>.";
   };
 
   "aio_block_status", {
@@ -1501,8 +1505,9 @@ completed, call C<nbd_aio_command_completed>.";
     shortdesc = "send block status to the NBD server";
     longdesc = "\
 Send the block status command to the NBD server.  This returns the
-unique 64 bit handle for this command.  To check if the command
-completed, call C<nbd_aio_command_completed>.";
+unique positive 64 bit handle for this command, or C<-1> on
+error.  To check if the command completed, call
+C<nbd_aio_command_completed>.";
   };
 
   "aio_get_fd", {
@@ -1654,8 +1659,20 @@ Return false if the command is still in flight.  This can also
 fail with an error in case the command failed (in this case
 the command is also retired).
 
-The C<handle> parameter is the unique 64 bit handle for the command,
-as returned by a call such as C<nbd_aio_pread>.";
+The C<handle> parameter is the positive unique 64 bit handle
+for the command, as returned by a call such as C<nbd_aio_pread>.";
+  };
+
+  "aio_peek_command_completed", {
+    default_call with
+    args = []; ret = RInt64;
+    shortdesc = "check if any command has completed";
+    longdesc = "\
+Return the unique positive 64 bit handle of the first non-retired but
+completed command, C<0> if no command is awaiting retirement, or C<-1>
+on error. Any handle returned by this function must still be passed to
+C<aio_command_completed> to actually retire the command and learn
+whether the command was successful.";
   };
 
   "connection_state", {

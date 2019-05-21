@@ -103,13 +103,20 @@
   }
   assert (cmd != NULL);
 
-  /* Move it to the cmds_done list. */
+  /* Move it to the end of the cmds_done list. */
   if (prev_cmd != NULL)
     prev_cmd->next = cmd->next;
   else
     conn->cmds_in_flight = cmd->next;
-  cmd->next = conn->cmds_done;
-  conn->cmds_done = cmd;
+  cmd->next = NULL;
+  if (conn->cmds_done) {
+    prev_cmd = conn->cmds_done;
+    while (prev_cmd->next)
+      prev_cmd = prev_cmd->next;
+    prev_cmd->next = cmd;
+  }
+  else
+    conn->cmds_done = cmd;
 
   SET_NEXT_STATE (%.READY);
   return 0;
