@@ -31,7 +31,8 @@ nbd_unlocked_shutdown (struct nbd_handle *h)
   size_t i;
 
   for (i = 0; i < h->multi_conn; ++i) {
-    if (nbd_unlocked_aio_is_ready (h->conns[i])) {
+    if (nbd_unlocked_aio_is_ready (h->conns[i]) ||
+        nbd_unlocked_aio_is_processing (h->conns[i])) {
       if (nbd_unlocked_aio_disconnect (h->conns[i]) == -1)
         return -1;
     }
