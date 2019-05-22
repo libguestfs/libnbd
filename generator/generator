@@ -1337,10 +1337,6 @@ internally by synchronous API calls.  It is mainly useful as
 an example of how you might integrate libnbd with your own
 main loop, rather than being intended as something you would use.";
   };
-
-
-
-
 ]
 
 (* Calls on [nbd_connection *conn] *)
@@ -1600,11 +1596,6 @@ can be used for debugging or troubleshooting, but you should not
 rely on the state of connections since it may change in future
 versions.";
   };
-
-
-
-
-
 ]
 
 (*----------------------------------------------------------------------*)
