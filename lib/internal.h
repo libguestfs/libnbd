@@ -79,8 +79,8 @@ struct nbd_handle {
 
   /* For debugging. */
   bool debug;
-  int64_t debug_id;
-  void (*debug_fn) (int64_t, const char *, const char *);
+  void *debug_data;
+  void (*debug_fn) (void *, const char *, const char *);
 };
 
 /* This corresponds to a single socket connection to a remote server.
@@ -213,7 +213,7 @@ struct socket {
   const struct socket_ops *ops;
 };
 
-typedef void (*extent_fn) (int64_t id, const char *metacontext, uint64_t offset, uint32_t *entries, size_t nr_entries);
+typedef void (*extent_fn) (void *data, const char *metacontext, uint64_t offset, uint32_t *entries, size_t nr_entries);
 
 struct command_in_flight {
   struct command_in_flight *next;
@@ -224,7 +224,7 @@ struct command_in_flight {
   uint32_t count;
   void *data;
   extent_fn extent_fn;
-  int64_t extent_id;
+  void *extent_data;
   uint32_t error;
 };
 

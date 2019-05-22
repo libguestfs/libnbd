@@ -28,7 +28,7 @@
 
 #include <libnbd.h>
 
-static void check_extent (int64_t id, const char *metacontext,
+static void check_extent (void *data, const char *metacontext,
                           uint64_t offset,
                           uint32_t *entries, size_t nr_entries);
 
@@ -37,6 +37,7 @@ main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
   char plugin_path[256];
+  int id;
 
   snprintf (plugin_path, sizeof plugin_path, "%s/meta-base-allocation.sh",
             getenv ("srcdir") ? : ".");
@@ -66,19 +67,22 @@ main (int argc, char *argv[])
   }
 
   /* Read the block status. */
-  if (nbd_block_status (nbd, 65536, 0, 0, 1,
+  id = 1;
+  if (nbd_block_status (nbd, 65536, 0, 0, &id,
                         check_extent) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
-  if (nbd_block_status (nbd, 1024, 32768-512, 0, 2,
+  id = 2;
+  if (nbd_block_status (nbd, 1024, 32768-512, 0, &id,
                         check_extent) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
-  if (nbd_block_status (nbd, 1024, 32768-512, LIBNBD_CMD_FLAG_REQ_ONE, 3,
+  id = 3;
+  if (nbd_block_status (nbd, 1024, 32768-512, LIBNBD_CMD_FLAG_REQ_ONE, &id,
                         check_extent) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -94,13 +98,14 @@ main (int argc, char *argv[])
 }
 
 static void
-check_extent (int64_t id, const char *metacontext,
+check_extent (void *data, const char *metacontext,
               uint64_t offset,
               uint32_t *entries, size_t nr_entries)
 {
   size_t i;
+  int id = * (int *)data;
 
-  printf ("extent: id=%" PRIi64 ", metacontext=%s, offset=%" PRIu64 ", "
+  printf ("extent: id=%d, metacontext=%s, offset=%" PRIu64 ", "
           "nr_entries=%zu\n",
           id, metacontext, offset, nr_entries);
 

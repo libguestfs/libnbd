@@ -364,7 +364,7 @@
 
     if (meta_context)
       /* Call the caller's extent function. */
-      cmd->extent_fn (cmd->extent_id, meta_context->name, cmd->offset,
+      cmd->extent_fn (cmd->extent_data, meta_context->name, cmd->offset,
                       &conn->bs_entries[1], (length-4) / 4);
     else
       /* Emit a debug message, but ignore it. */

@@ -40,11 +40,11 @@ nbd_unlocked_get_debug (struct nbd_handle *h)
 
 int
 nbd_unlocked_set_debug_callback (struct nbd_handle *h,
-                                 int64_t id,
-                                 void (*debug_fn) (int64_t, const char *, const char *))
+                                 void *data,
+                                 void (*debug_fn) (void *, const char *, const char *))
 {
-  h->debug_id = id;
   h->debug_fn = debug_fn;
+  h->debug_data = data;
   return 0;
 }
 
@@ -75,7 +75,7 @@ nbd_internal_debug (struct nbd_handle *h, const char *fs, ...)
     goto out;
 
   if (h->debug_fn)
-    h->debug_fn (h->debug_id, context, msg);
+    h->debug_fn (h->debug_data, context, msg);
   else
     fprintf (stderr, "libnbd: debug: %s: %s\n", context ? : "unknown", msg);
  out:

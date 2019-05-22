@@ -783,6 +783,7 @@ and arg =
 | Callback of string * arg list (* callback function returning void *)
 | Int of string            (* small int *)
 | Int64 of string          (* 64 bit signed int *)
+| Opaque of string         (* opaque object, void* in C *)
 | Path of string           (* filename or path *)
 | SockAddrAndLen of string * string (* struct sockaddr * + socklen_t *)
 | String of string         (* string *)
@@ -828,8 +829,9 @@ Return the state of the debug flag on this handle.";
 
   "set_debug_callback", {
     default_call with
-    args = [ Int64 "id";
-             Callback ("debug_fn", [Int64 "id"; String "context"; String "msg"]) ];
+    args = [ Opaque "data";
+             Callback ("debug_fn", [Opaque "data";
+                                    String "context"; String "msg"]) ];
     ret = RErr;
     shortdesc = "set the debug callback";
     longdesc = "\
@@ -1281,8 +1283,8 @@ ready connection, picked in a round-robin manner.";
   "block_status", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags";
-             Int64 "id";
-             Callback ("extent", [Int64 "id"; String "metacontext";
+             Opaque "data";
+             Callback ("extent", [Opaque "data"; String "metacontext";
                                   UInt64 "offset";
                                   ArrayAndLen (UInt32 "entries",
                                                "nr_entries")]) ];
@@ -1462,8 +1464,8 @@ completed, call C<nbd_aio_command_completed>.";
   "aio_block_status", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags";
-             Int64 "id";
-             Callback ("extent", [Int64 "id"; String "metacontext";
+             Opaque "data";
+             Callback ("extent", [Opaque "data"; String "metacontext";
                                   UInt64 "offset";
                                   ArrayAndLen (UInt32 "entries",
                                                "nr_entries")]) ];
@@ -2307,6 +2309,7 @@ let rec name_of_arg = function
 | Callback (n, _) -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
+| Opaque n -> [n]
 | Path n -> [n]
 | SockAddrAndLen (n, len) -> [n; len]
 | String n -> [n]
@@ -2340,6 +2343,7 @@ let rec print_c_arg_list ?handle args =
       | Callback (n, args) -> pr "void (*%s) " n; print_c_arg_list args
       | Int n -> pr "int %s" n
       | Int64 n -> pr "int64_t %s" n
+      | Opaque n -> pr "void *%s" n
       | Path n
       | String n -> pr "const char *%s" n
       | StringList n -> pr "char **%s" n
@@ -2805,6 +2809,8 @@ let print_python_binding name { args; ret } htype hname =
     | Int64 n ->
        pr "  int64_t %s_i64;\n" n;
        pr "  long long %s; /* really int64_t */\n" n
+    | Opaque n ->
+       pr "  PyObject *%s;\n" n
     | Path n -> pr "  char *%s = NULL;\n" n
     | SockAddrAndLen (n, _) ->
        pr "  /* XXX Complicated - Python uses a tuple of different\n";
@@ -2836,6 +2842,7 @@ let print_python_binding name { args; ret } htype hname =
     | Callback (n, _) -> pr " \"O\""
     | Int n -> pr " \"i\""
     | Int64 n -> pr " \"L\""
+    | Opaque _ -> pr " \"O\""
     | Path n -> pr " \"O&\""
     | SockAddrAndLen (n, _) -> pr " \"O\""
     | String n -> pr " \"s\""
@@ -2857,6 +2864,7 @@ let print_python_binding name { args; ret } htype hname =
     | Callback (n, _) -> pr ", &%s" n
     | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
+    | Opaque n -> pr ", &%s" n
     | Path n -> pr ", PyUnicode_FSConverter, &%s" n
     | SockAddrAndLen (n, _) -> pr ", &%s" n
     | String n -> pr ", &%s" n
@@ -2909,6 +2917,7 @@ let print_python_binding name { args; ret } htype hname =
        pr "  abort (); /* XXX Callback not implemented */\n";
     | Int _ -> ()
     | Int64 n -> pr "  %s_i64 = %s;\n" n n
+    | Opaque _ -> ()
     | Path _ -> ()
     | SockAddrAndLen _ ->
        pr "  abort (); /* XXX SockAddrAndLen not implemented */\n";
@@ -2931,6 +2940,7 @@ let print_python_binding name { args; ret } htype hname =
     | Callback (n, _) -> pr ", /* XXX */ (void *) %s" n
     | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
+    | Opaque n -> pr ", %s" n
     | Path n -> pr ", %s" n
     | SockAddrAndLen (n, _) -> pr ", /* XXX */ (void *) %s, 0" n
     | String n -> pr ", %s" n
@@ -2962,6 +2972,7 @@ let print_python_binding name { args; ret } htype hname =
     | Callback _
     | Int _
     | Int64 _
+    | Opaque _
     | Path _
     | SockAddrAndLen _
     | String _
@@ -3002,6 +3013,7 @@ let print_python_binding name { args; ret } htype hname =
     | Callback _ -> ()
     | Int _ -> ()
     | Int64 _ -> ()
+    | Opaque _ -> ()
     | Path n -> pr "  free (%s);\n" n
     | SockAddrAndLen _ -> ()
     | String n -> ()
@@ -3085,6 +3097,7 @@ class NBD (object):
                      | Callback (n, _) -> n
                      | Int n -> n
                      | Int64 n -> n
+                     | Opaque n -> n
                      | Path n -> n
                      | SockAddrAndLen (n, _) -> n
                      | String n -> n
@@ -3131,6 +3144,7 @@ class NBDConnection (object):
                      | Callback (n, _) -> n
                      | Int n -> n
                      | Int64 n -> n
+                     | Opaque n -> n
                      | Path n -> n
                      | SockAddrAndLen (n, _) -> n
                      | String n -> n

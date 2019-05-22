@@ -1,7 +1,3 @@
-"Opaque" type for the extent_id in callback.
-  - translates to void* in C
-  - something else suitable in other languages
-
 Bindings in other languages.
 
 Example code integrating with glib2, APR pollset (and others?).

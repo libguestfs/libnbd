@@ -218,7 +218,7 @@ nbd_unlocked_zero (struct nbd_handle *h,
 int
 nbd_unlocked_block_status (struct nbd_handle *h,
                            uint64_t count, uint64_t offset, uint32_t flags,
-                           int64_t id,
+                           void *data,
                            extent_fn extent)
 {
   struct nbd_connection *conn;
@@ -229,7 +229,7 @@ nbd_unlocked_block_status (struct nbd_handle *h,
   if (conn == NULL)
     return -1;
 
-  ch = nbd_unlocked_aio_block_status (conn, count, offset, flags, id, extent);
+  ch = nbd_unlocked_aio_block_status (conn, count, offset, flags, data, extent);
   if (ch == -1)
     return -1;
 
@@ -471,7 +471,7 @@ int64_t
 nbd_unlocked_aio_block_status (struct nbd_connection *conn,
                                uint64_t count, uint64_t offset,
                                uint32_t flags,
-                               int64_t id,
+                               void *data,
                                extent_fn extent)
 {
   struct command_in_flight *cmd;
@@ -503,7 +503,7 @@ nbd_unlocked_aio_block_status (struct nbd_connection *conn,
     return -1;
 
   cmd->extent_fn = extent;
-  cmd->extent_id = id;
+  cmd->extent_data = data;
 
   if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)
     return -1;
