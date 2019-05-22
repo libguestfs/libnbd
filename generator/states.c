@@ -95,7 +95,7 @@ send_from_wbuf (struct nbd_connection *conn)
   r = conn->sock->ops->send (conn->sock, conn->wbuf, conn->wlen);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK)
-      return 0;                 /* more data */
+      return 1;                 /* more data */
     /* sock->ops->send called set_error already. */
     return -1;
   }
