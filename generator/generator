@@ -873,7 +873,11 @@ The C<multi_conn> parameter controls whether this feature is
 enabled (if E<gt> 1) or disabled (if C<1>).  The parameter
 passed must not be C<0>.  Usually small powers of 2 (eg. 2, 4, 8)
 will provide increments in performance.  Some servers do not
-support this feature and will return an error on connection.";
+support this feature and will return an error on connection.
+
+At present, libnbd assumes that all connections will report the
+same capabilities; a server that behaves otherwise may trigger
+unexpected behavior.";
   };
 
   "get_multi_conn", {
@@ -1293,13 +1297,19 @@ ready connection, picked in a round-robin manner.";
     longdesc = "\
 Issue the block status command to the NBD server.  If
 supported by the server, this causes metadata context
-information about all the blocks within the specified
-range to be returned.
+information about blocks beginning from the specified
+offset to be returned. The C<count> parameter is a hint: the
+server may choose to return less status, or the final block
+may extend beyond the requested range. If multiple contexts
+are supported, the number of blocks and cumulative length
+of those blocks need not be identical between contexts.
 
 Depending on which metadata contexts were enabled before
 connecting (see C<nbd_request_meta_context>) and which are
 supported by the server this call returns information
-about extents by calling back to the extent function.
+about extents by calling back to the extent function. The
+callback should B<not> call any C<nbd_*> library functions,
+as this could trigger deadlock.
 
 The extent function is called once per type of metadata
 available.  The C<metacontext> parameter is a string
@@ -1314,17 +1324,19 @@ C<NBD_REPLY_TYPE_BLOCK_STATUS> describes the meaning
 of this array.
 
 It is possible for the extent function to be called
-more times than you expect, so always check the
-C<metacontext> field to ensure you are receiving
-the data you expect.  It is also possible that the
-extent function is not called at all, even for
+more times than you expect (if the server is buggy),
+so always check the C<metacontext> field to ensure you
+are receiving the data you expect.  It is also possible
+that the extent function is not called at all, even for
 metadata contexts that you requested.  This indicates
 either that the server doesn't support the context
 or for some other reason cannot return the data.
 
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_REQ_ONE> meaning that the server should
-return only one extent per metadata context.";
+return only one extent per metadata context where that extent
+does not exceed C<count> bytes; however, libnbd does not
+validate that the server obeyed the flag.";
   };
 
   "poll", {
