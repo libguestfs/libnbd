@@ -41,29 +41,30 @@ open Printf
  * of an external event.  That code is not in this file, it's
  * in [generator/states*.c].
  *
- * The handle usually contains one connection, but might have more
- * if multi-conn is enabled.  Each connection starts in the START
- * state.  A connection can move between states for one of two
- * reasons: Either the C code associated with the state moves
- * to another state (eg. move to the DEAD state because a system call
- * returns an error).  Or an external event happens which causes
- * the connection to move to a new state.
+ * The state machine applies to connections, not handles.  A
+ * handle can contain more than one connection if using multi-conn.
+ *
+ * Each connection starts in the top level START state.
+ *
+ * When you enter a state, the associated C code for that state
+ * runs.  If the C code calls SET_NEXT_STATE then the connection
+ * enters the next state without blocking.  If the C code does _not_
+ * call SET_NEXT_STATE before returning then the state machine
+ * blocks and will not be re-entered until an external event
+ * happens (see below).
+ *
+ * There are various end states such as CLOSED and DEAD.  These
+ * are not special, it's just that they have no way to move to
+ * another state.
  *
  * An external event is something like the file descriptor being
  * ready to read or write, or the main program calling a function
  * such as [nbd_aio_connect].  Possible external events, and the
  * next state resulting, are listed in the states table below.
  *
- * An empty string [""] for next state means the same state
- * is re-entered.  The same C code for the state will be called
- * again.
- *
- * If the C code calls SET_NEXT_STATE then the next state is
- * entered immediately.  If the C code does not call SET_NEXT_STATE
- * then the state machine stops until an external event happens.
- * When the external event happens the state machine restarts,
- * either in the same state ([""]) or the new state associated
- * with the external event.
+ * An empty string [""] for an external event’s next state means
+ * the same state is re-entered.  The same C code for the state
+ * will be run again.
  *
  * States can be grouped hierarchically.  States can be referred
  * to by an absolute path from the top level, such as ".DEAD",
