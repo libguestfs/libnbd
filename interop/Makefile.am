@@ -45,9 +45,23 @@ check_PROGRAMS += \
 	interop-qemu-nbd-tls-certs \
 	interop-qemu-nbd-tls-psk
 TESTS += \
-	interop-qemu-nbd \
-	interop-qemu-nbd-tls-certs \
+	interop-qemu-nbd
+
+# tls tests assume the pre-existence of files created in ../tests/Makefile.am,
+# so we can only run them under the same conditions used there
+# XXX Make the tls file creation independent of HAVE_NBDKIT
+if HAVE_NBDKIT
+if HAVE_GNUTLS
+if HAVE_CERTTOOL
+TESTS += \
+	interop-qemu-nbd-tls-certs
+endif
+if HAVE_PSKTOOL
+TESTS += \
 	interop-qemu-nbd-tls-psk
+endif
+endif
+endif
 
 interop_qemu_nbd_SOURCES = interop.c
 interop_qemu_nbd_CPPFLAGS = \
