@@ -33,35 +33,57 @@
 #include "internal.h"
 
 static int
+error_unless_ready (struct nbd_connection *conn)
+{
+  if (nbd_unlocked_aio_is_ready (conn))
+    return 0;
+
+  /* Why did it fail? */
+  if (nbd_unlocked_aio_is_closed (conn)) {
+    set_error (0, "connection is closed");
+    return -1;
+  }
+
+  if (nbd_unlocked_aio_is_dead (conn))
+    /* Don't set the error here, keep the error set when
+     * the connection died.
+     */
+    return -1;
+
+  /* Should probably never happen. */
+  set_error (0, "connection in an unexpected state (%s)",
+             nbd_internal_state_short_string (conn->state));
+  return -1;
+}
+
+static int
 wait_all_connected (struct nbd_handle *h)
 {
   size_t i;
 
   for (;;) {
-    bool all_connected = true;
+    bool all_done = true;
 
     /* Are any not yet connected? */
     for (i = 0; i < h->multi_conn; ++i) {
-      if (nbd_unlocked_aio_is_closed (h->conns[i])) {
-        set_error (0, "connection is closed");
-        return -1;
-      }
-      if (nbd_unlocked_aio_is_dead (h->conns[i])) {
-        /* Don't set the error here, keep the error set when
-         * the connection died.
-         */
-        return -1;
-      }
-      if (!nbd_unlocked_aio_is_ready (h->conns[i])) {
-        all_connected = false;
+      if (nbd_unlocked_aio_is_connecting (h->conns[i])) {
+        all_done = false;
         break;
       }
     }
 
-    if (all_connected)
+    if (all_done)
       break;
 
     if (nbd_unlocked_poll (h, -1) == -1)
+      return -1;
+  }
+
+  /* All connections should be in the READY state, unless there was an
+   * error on one of them.
+   */
+  for (i = 0; i < h->multi_conn; ++i) {
+    if (error_unless_ready (h->conns[i]) == -1)
       return -1;
   }
 
@@ -142,25 +164,12 @@ nbd_unlocked_connect_command (struct nbd_handle *h, char **argv)
   if (nbd_unlocked_aio_connect_command (h->conns[0], argv) == -1)
     return -1;
 
-  for (;;) {
-    if (nbd_unlocked_aio_is_closed (h->conns[0])) {
-      set_error (0, "connection is closed");
-      return -1;
-    }
-    if (nbd_unlocked_aio_is_dead (h->conns[0])) {
-      /* Don't set the error here, keep the error set when
-       * the connection died.
-       */
-      return -1;
-    }
-    if (nbd_unlocked_aio_is_ready (h->conns[0]))
-      break;
-
+  while (nbd_unlocked_aio_is_connecting (h->conns[0])) {
     if (nbd_unlocked_poll (h, -1) == -1)
       return -1;
   }
 
-  return 0;
+  return error_unless_ready (h->conns[0]);
 }
 
 int
