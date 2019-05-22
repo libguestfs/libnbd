@@ -149,8 +149,7 @@
     SET_NEXT_STATE (%RECV_REPLY);
     return 0;
   case NBD_REP_ERR_UNSUP:
-    debug (conn->h,
-	   "server is confused by NBD_OPT_GO, continuing anyway");
+    debug (conn->h, "server is confused by NBD_OPT_GO, continuing anyway");
     SET_NEXT_STATE (%^OPT_EXPORT_NAME.START);
     return 0;
   default:

@@ -61,7 +61,7 @@
   conn->h->exportsize = be64toh (conn->sbuf.export_name_reply.exportsize);
   conn->h->eflags = be16toh (conn->sbuf.export_name_reply.eflags);
   debug (conn->h, "exportsize: %" PRIu64 " eflags: 0x%" PRIx16,
-	 conn->h->exportsize, conn->h->eflags);
+         conn->h->exportsize, conn->h->eflags);
   if (conn->h->eflags == 0) {
     SET_NEXT_STATE (%.DEAD);
     set_error (EINVAL, "handshake: invalid eflags == 0 from server");

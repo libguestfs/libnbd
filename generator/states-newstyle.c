@@ -40,7 +40,7 @@
       h->tls == 2) {
     SET_NEXT_STATE (%.DEAD);
     set_error (ENOTSUP, "handshake: server is not fixed newstyle, "
-	       "but handle TLS setting is require (2)");
+               "but handle TLS setting is require (2)");
     return -1;
   }
 
