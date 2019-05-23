@@ -2850,6 +2850,104 @@ PyInit_libnbdmod (void)
 "
 
 let print_python_binding name { args; ret } htype hname =
+  (* Functions with a callback parameter are special because we
+   * have to generate a wrapper function which translates the
+   * callback parameters back to Python.  This only supports one
+   * Callback arg at the moment and will fail if there are more,
+   * but with some effort could be extended to support that.
+   *)
+  List.iter (
+    function
+    | Callback (cb_name, args) ->
+       pr "struct %s_%s_data {\n" name cb_name;
+       pr "  PyObject *fn;\n";
+       pr "  void *data;\n";
+       pr "};\n";
+       pr "\n";
+       pr "static void\n";
+       pr "%s_%s_wrapper " name cb_name;
+       print_c_arg_list args;
+       pr "\n";
+       pr "{\n";
+       pr "  PyGILState_STATE py_save = PyGILState_UNLOCKED;\n";
+       pr "  PyObject *py_args, *py_ret;\n";
+       List.iter (
+         function
+         | ArrayAndLen (UInt32 n, len) ->
+            pr "  PyObject *py_%s = PyList_New (%s);\n" n len;
+            pr "  for (size_t i = 0; i < %s; ++i)\n" len;
+            pr "    PyList_SET_ITEM (py_%s, i, PyLong_FromUnsignedLong (%s[i]));\n" n n
+         | Opaque n ->
+            pr "  struct %s_%s_data *_data = %s;\n" name cb_name n
+         | String n
+         | UInt64 n -> ()
+         (* The following not yet implemented for callbacks XXX *)
+         | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _ | Callback _
+         | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | UInt _ | UInt32 _ -> pr "  abort ();\n"
+       ) args;
+       pr "\n";
+
+       pr "  py_args = Py_BuildValue (\"(\"";
+       List.iter (
+         function
+         | ArrayAndLen (UInt32 n, len) -> pr " \"O\""
+         | Opaque n -> pr " \"O\""
+         | String n -> pr " \"s\""
+         | UInt64 n -> pr " \"K\""
+         (* The following not yet implemented for callbacks XXX *)
+         | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _ | Callback _
+         | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | UInt _ | UInt32 _ -> pr "  abort ();\n"
+       ) args;
+       pr " \")\"";
+       List.iter (
+         function
+         | ArrayAndLen (UInt32 n, _) -> pr ", py_%s" n
+         | Opaque _ -> pr ", _data->data"
+         | String n
+         | UInt64 n -> pr ", %s" n
+         (* The following not yet implemented for callbacks XXX *)
+         | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _ | Callback _
+         | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | UInt _ | UInt32 _ -> pr "  abort ();\n"
+       ) args;
+       pr ");\n";
+       pr "  Py_INCREF (py_args);\n";
+       pr "\n";
+       pr "  if (PyEval_ThreadsInitialized ())\n";
+       pr "    py_save = PyGILState_Ensure ();\n";
+       pr "\n";
+       pr "  py_ret = PyObject_CallObject (_data->fn, py_args);\n";
+       pr "\n";
+       pr "  if (PyEval_ThreadsInitialized ())\n";
+       pr "    PyGILState_Release (py_save);\n";
+       pr "\n";
+       pr "  Py_DECREF (py_args);\n";
+       pr "\n";
+       pr "  if (py_ret != NULL)\n";
+       pr "    Py_DECREF (py_ret); /* return value is discarded */\n";
+       pr "  else\n";
+       pr "    PyErr_PrintEx (0); /* print exception */\n";
+       pr "\n";
+       List.iter (
+         function
+         | ArrayAndLen (UInt32 n, _) ->
+            pr "  Py_DECREF (py_%s);\n" n
+         | String _
+         | UInt64 _
+         | Opaque _ -> ()
+         (* The following not yet implemented for callbacks XXX *)
+         | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _ | Callback _
+         | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | UInt _ | UInt32 _ -> ()
+       ) args;
+       pr "}\n";
+       pr "\n"
+    | _ -> ()
+  ) args;
+
+  (* Generate the Python binding. *)
   pr "PyObject *\n";
   pr "nbd_internal_py_%s (PyObject *self, PyObject *args)\n" name;
   pr "{\n";
@@ -2877,7 +2975,8 @@ let print_python_binding name { args; ret } htype hname =
     | BytesOut (n, count) ->
        pr "  char *%s;\n" n;
        pr "  Py_ssize_t %s;\n" count
-    | Callback (n, _) -> pr "  PyObject *%s;\n" n
+    | Callback (n, _) ->
+       pr "  struct %s_%s_data callback_data;\n" name n
     | Int n -> pr "  int %s;\n" n
     | Int64 n ->
        pr "  int64_t %s_i64;\n" n;
@@ -2934,7 +3033,7 @@ let print_python_binding name { args; ret } htype hname =
     | Bool n -> pr ", &%s" n
     | BytesIn (n, _) -> pr ", &%s" n
     | BytesOut (_, count) -> pr ", &%s" count
-    | Callback (n, _) -> pr ", &%s" n
+    | Callback _ -> pr ", &callback_data.fn"
     | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
     | Opaque n -> pr ", &%s" n
@@ -2949,7 +3048,6 @@ let print_python_binding name { args; ret } htype hname =
   pr "))\n";
   pr "    return NULL;\n";
 
-  (* Call the underlying C function. *)
   pr "  %s = get_%s (py_%s);\n" hname htype hname;
   List.iter (
     function
@@ -2986,11 +3084,17 @@ let print_python_binding name { args; ret } htype hname =
          pr "  abort (); /* XXX BytesOut not implemented for AIO */\n"
        else
          pr "  %s = malloc (%s);\n" n count
-    | Callback _ ->
-       pr "  abort (); /* XXX Callback not implemented */\n";
+    | Callback (n, _) ->
+       pr "  if (!PyCallable_Check (callback_data.fn)) {\n";
+       pr "    PyErr_SetString (PyExc_TypeError,\n";
+       pr "                     \"callback parameter %s is not callable\");\n"
+          n;
+       pr "    return NULL;\n";
+       pr "  }\n"
     | Int _ -> ()
     | Int64 n -> pr "  %s_i64 = %s;\n" n n
-    | Opaque _ -> ()
+    | Opaque n ->
+       pr "  callback_data.data = %s;\n" n
     | Path _ -> ()
     | SockAddrAndLen _ ->
        pr "  abort (); /* XXX SockAddrAndLen not implemented */\n";
@@ -3002,6 +3106,8 @@ let print_python_binding name { args; ret } htype hname =
     | UInt32 n -> pr "  %s_u32 = %s;\n" n n
     | UInt64 n -> pr "  %s_u64 = %s;\n" n n
   ) args;
+
+  (* Call the underlying C function. *)
   pr "  ret = nbd_%s (%s" name hname;
   List.iter (
     function
@@ -3010,10 +3116,10 @@ let print_python_binding name { args; ret } htype hname =
     | Bool n -> pr ", %s" n
     | BytesIn (n, _) -> pr ", %s.buf, %s.len" n n
     | BytesOut (n, count) -> pr ", %s, %s" n count
-    | Callback (n, _) -> pr ", /* XXX */ (void *) %s" n
+    | Callback (n, _) -> pr ", %s_%s_wrapper" name n
     | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
-    | Opaque n -> pr ", %s" n
+    | Opaque _ -> pr ", &callback_data"
     | Path n -> pr ", %s" n
     | SockAddrAndLen (n, _) -> pr ", /* XXX */ (void *) %s, 0" n
     | String n -> pr ", %s" n
