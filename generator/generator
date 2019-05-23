@@ -1348,8 +1348,9 @@ Depending on which metadata contexts were enabled before
 connecting (see C<nbd_request_meta_context>) and which are
 supported by the server (see C<nbd_can_meta_context>) this call
 returns information about extents by calling back to the
-extent function. The callback should B<not> call any C<nbd_*>
-library functions, as this could trigger deadlock.
+extent function.  The callback cannot call C<nbd_*> APIs on the
+same handle since it holds the handle lock and will
+cause a deadlock.
 
 The extent function is called once per type of metadata
 available.  The C<metacontext> parameter is a string
@@ -1371,10 +1372,6 @@ that the extent function is not called at all, even for
 metadata contexts that you requested.  This indicates
 either that the server doesn't support the context
 or for some other reason cannot return the data.
-
-The extent function cannot call C<nbd_*> APIs on the
-same handle since it holds the handle lock and will
-cause a deadlock.
 
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_REQ_ONE> meaning that the server should
