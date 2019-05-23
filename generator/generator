@@ -860,11 +860,14 @@ Return the state of the debug flag on this handle.";
     longdesc = "\
 Set the debug callback.  This function is called when the library
 emits debug messages, when debugging is enabled on a handle.  The
-callback parameters are C<id> passed to this function, the
+callback parameters are C<data> passed to this function, the
 name of the libnbd function emitting the debug message (C<context>),
 and the message itself (C<msg>).  If no debug callback is set on
-a handle then messages are printed on C<stderr>.";
-  };
+a handle then messages are printed on C<stderr>.
+
+The callback should not call C<nbd_*> APIs on the same handle since it can
+be called while holding the handle lock and will cause a deadlock.";
+};
 
   "set_export_name", {
     default_call with
@@ -2554,7 +2557,7 @@ libnbd-api - libnbd C API
  if ((nbd = nbd_create ()) == NULL ||
      nbd_connect_tcp (nbd, \"server.example.com\", \"nbd\") == -1 ||
      nbd_pread (nbd, buf, sizeof buf, 0) == -1)
-   fprintf (stderr, \"%%s\n\", nbd_get_error ());
+   fprintf (stderr, \"%%s\\n\", nbd_get_error ());
    exit (EXIT_FAILURE);
  }
  nbd_close (nbd);
