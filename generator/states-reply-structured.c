@@ -20,7 +20,7 @@
 
 /* STATE MACHINE */ {
  REPLY.STRUCTURED_REPLY.START:
-  /* We only read the simple_reply.  The structured_reply is longer,
+  /* We've only read the simple_reply.  The structured_reply is longer,
    * so read the remaining part.
    */
   conn->rbuf = &conn->sbuf;

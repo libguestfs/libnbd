@@ -88,7 +88,7 @@ nbd_unlocked_can_cache (struct nbd_handle *h)
 int64_t
 nbd_unlocked_get_size (struct nbd_handle *h)
 {
-  /* exportsize is only valid when we're read both the eflags and the
+  /* exportsize is only valid when we've read both the eflags and the
    * exportsize.  See comment in lib/internal.h.
    */
   if (h->eflags == 0) {
