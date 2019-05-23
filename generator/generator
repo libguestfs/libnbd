@@ -1486,7 +1486,7 @@ C<nbd_aio_is_closed> to become true on the connection.";
   "aio_flush", {
     default_call with
     args = []; ret = RInt64;
-    shortdesc = "disconnect from the NBD server";
+    shortdesc = "send flush command to the NBD server";
     longdesc = "\
 Issue the flush command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
