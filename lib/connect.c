@@ -150,12 +150,15 @@ nbd_unlocked_connect_tcp (struct nbd_handle *h,
   return wait_all_connected (h);
 }
 
-/* Connect to a local command.  Multi-conn doesn't make much sense
- * here, should it be an error?
- */
+/* Connect to a local command. */
 int
 nbd_unlocked_connect_command (struct nbd_handle *h, char **argv)
 {
+  if (h->multi_conn > 1) {
+    set_error (EINVAL, "multi-conn cannot be used when connecting to a command");
+    return -1;
+  }
+
   if (!nbd_unlocked_aio_is_created (h->conns[0])) {
     set_error (0, "first connection in this handle is not in the created state, this is likely to be caused by a programming error in the calling program");
     return -1;
