@@ -1372,6 +1372,10 @@ metadata contexts that you requested.  This indicates
 either that the server doesn't support the context
 or for some other reason cannot return the data.
 
+The extent function cannot call C<nbd_*> APIs on the
+same handle since it holds the handle lock and will
+cause a deadlock.
+
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_REQ_ONE> meaning that the server should
 return only one extent per metadata context where that extent
