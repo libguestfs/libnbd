@@ -21,9 +21,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <errno.h>
 
 #include "internal.h"
+
+/* Set the export size and eflags on the handle, validating them.
+ * This is called from the state machine when either the newstyle or
+ * oldstyle negotiation reaches the point that these are available.
+ */
+int
+nbd_internal_set_size_and_flags (struct nbd_handle *h,
+                                 uint64_t exportsize, uint16_t eflags)
+{
+  debug (h, "exportsize: %" PRIu64 " eflags: 0x%" PRIx16, exportsize, eflags);
+
+  if (eflags == 0) {
+    set_error (EINVAL, "handshake: invalid eflags == 0 from server");
+    return -1;
+  }
+
+  h->exportsize = exportsize;
+  h->eflags = eflags;
+  return 0;
+}
 
 static int
 get_flag (struct nbd_handle *h, uint16_t flag)

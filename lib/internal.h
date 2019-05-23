@@ -265,6 +265,11 @@ extern void nbd_internal_set_last_error (int errnum, char *error);
       nbd_internal_set_last_error ((errnum), _errp);                    \
   } while (0)
 
+/* flags.c */
+extern int nbd_internal_set_size_and_flags (struct nbd_handle *h,
+                                            uint64_t exportsize,
+                                            uint16_t eflags);
+
 /* protocol.c */
 extern int nbd_internal_errno_of_nbd_error (uint32_t error);
 extern const char *nbd_internal_name_of_nbd_cmd (uint16_t type);

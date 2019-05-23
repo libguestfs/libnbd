@@ -47,14 +47,10 @@
   eflags = be16toh (conn->sbuf.old_handshake.eflags);
 
   conn->gflags = gflags;
-  conn->h->exportsize = exportsize;
-  conn->h->eflags = eflags;
-  debug (conn->h, "exportsize: %" PRIu64 " eflags: 0x%" PRIx16
-         " gflags: 0x%" PRIx16,
-         exportsize, eflags, gflags);
-  if (eflags == 0) {
+  debug (conn->h, "gflags: 0x%" PRIx16, gflags);
+
+  if (nbd_internal_set_size_and_flags (conn->h, exportsize, eflags) == -1) {
     SET_NEXT_STATE (%.DEAD);
-    set_error (EINVAL, "handshake: invalid eflags == 0 from server");
     return -1;
   }
 

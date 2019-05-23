@@ -106,6 +106,8 @@
   uint32_t reply;
   uint32_t len;
   const size_t maxpayload = sizeof conn->sbuf.or.payload;
+  uint64_t exportsize;
+  uint16_t eflags;
 
   magic = be64toh (conn->sbuf.or.option_reply.magic);
   option = be32toh (conn->sbuf.or.option_reply.option);
@@ -129,14 +131,11 @@
     if (len <= maxpayload /* see RECV_NEWSTYLE_OPT_GO_REPLY */) {
       if (len >= sizeof conn->sbuf.or.payload.export) {
         if (be16toh (conn->sbuf.or.payload.export.info) == NBD_INFO_EXPORT) {
-          conn->h->exportsize =
-            be64toh (conn->sbuf.or.payload.export.exportsize);
-          conn->h->eflags = be16toh (conn->sbuf.or.payload.export.eflags);
-          debug (conn->h, "exportsize: %" PRIu64 " eflags: 0x%" PRIx16,
-                 conn->h->exportsize, conn->h->eflags);
-          if (conn->h->eflags == 0) {
+          exportsize = be64toh (conn->sbuf.or.payload.export.exportsize);
+          eflags = be16toh (conn->sbuf.or.payload.export.eflags);
+          if (nbd_internal_set_size_and_flags (conn->h,
+                                               exportsize, eflags) == -1) {
             SET_NEXT_STATE (%.DEAD);
-            set_error (EINVAL, "handshake: invalid eflags == 0 from server");
             return -1;
           }
         }

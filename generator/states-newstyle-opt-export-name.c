@@ -58,13 +58,13 @@
   return 0;
 
  NEWSTYLE.OPT_EXPORT_NAME.CHECK_REPLY:
-  conn->h->exportsize = be64toh (conn->sbuf.export_name_reply.exportsize);
-  conn->h->eflags = be16toh (conn->sbuf.export_name_reply.eflags);
-  debug (conn->h, "exportsize: %" PRIu64 " eflags: 0x%" PRIx16,
-         conn->h->exportsize, conn->h->eflags);
-  if (conn->h->eflags == 0) {
+  uint64_t exportsize;
+  uint16_t eflags;
+
+  exportsize = be64toh (conn->sbuf.export_name_reply.exportsize);
+  eflags = be16toh (conn->sbuf.export_name_reply.eflags);
+  if (nbd_internal_set_size_and_flags (conn->h, exportsize, eflags) == -1) {
     SET_NEXT_STATE (%.DEAD);
-    set_error (EINVAL, "handshake: invalid eflags == 0 from server");
     return -1;
   }
   SET_NEXT_STATE (%.READY);
