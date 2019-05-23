@@ -23,6 +23,11 @@
   /* We've only read the simple_reply.  The structured_reply is longer,
    * so read the remaining part.
    */
+  if (!conn->structured_replies) {
+    set_error (0, "server sent unexpected structured reply");
+    SET_NEXT_STATE(%.DEAD);
+    return 0;
+  }
   conn->rbuf = &conn->sbuf;
   conn->rbuf += sizeof conn->sbuf.simple_reply;
   conn->rlen = sizeof conn->sbuf.sr.structured_reply;

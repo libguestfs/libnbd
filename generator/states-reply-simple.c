@@ -39,6 +39,12 @@
     return -1;
   }
 
+  if (cmd->type == NBD_CMD_READ && conn->structured_replies) {
+    set_error (0, "server sent unexpected simple reply for read");
+    SET_NEXT_STATE(%.DEAD);
+    return 0;
+  }
+
   cmd->error = error;
   if (cmd->error == 0 && cmd->type == NBD_CMD_READ) {
     conn->rbuf = cmd->data;
