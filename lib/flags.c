@@ -42,6 +42,18 @@ nbd_internal_set_size_and_flags (struct nbd_handle *h,
     return -1;
   }
 
+  /* It is unsafe to connect to a server with multi-conn set unless
+   * the server says it is safe to do so.
+   */
+  if (h->multi_conn > 1 &&
+      (eflags & NBD_FLAG_CAN_MULTI_CONN) == 0 &&
+      (eflags & NBD_FLAG_READ_ONLY) != 0) {
+    set_error (EINVAL, "handshake: multi-conn is set on this handle, "
+               "but the server does not advertize multi-conn support "
+               "so disconnecting because it is not safe to continue");
+    return -1;
+  }
+
   h->exportsize = exportsize;
   h->eflags = eflags;
   return 0;

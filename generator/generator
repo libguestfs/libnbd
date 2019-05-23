@@ -897,7 +897,8 @@ The C<multi_conn> parameter controls whether this feature is
 enabled (if E<gt> 1) or disabled (if C<1>).  The parameter
 passed must not be C<0>.  Usually small powers of 2 (eg. 2, 4, 8)
 will provide increments in performance.  Some servers do not
-support this feature and will return an error on connection.
+support this feature and libnbd will fail on read-write connections
+to these servers if this setting is E<gt> 1.
 
 At present, libnbd assumes that all connections will report the
 same capabilities; a server that behaves otherwise may trigger
@@ -1171,7 +1172,18 @@ connected to and completed the handshake with the server.";
 Returns true if the server supports multi-conn
 (see C<nbd_set_multi_conn>).  Returns false if
 the server does not.  Can return an error if we have not
-connected to and completed the handshake with the server.";
+connected to and completed the handshake with the server.
+
+Note that you I<cannot> set multi-conn on the handle
+to E<gt> 1, connect, and then check this setting, because
+if the server does not support multi-conn the connection
+can fail.  Instead you should connect with multi-conn
+set to C<1> (the default), check this setting, then if
+multi-conn is found to be supported you can call
+C<nbd_set_multi_conn> with a larger value to increase
+the number of connection objects, then call one of the
+C<nbd_connect*> functions again on the handle to connect
+the remaining connections.";
   };
 
   "can_cache", {
