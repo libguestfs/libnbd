@@ -61,8 +61,38 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  /* Also request negotiation of a bogus context, which should not
+   * fail here nor affect block status later.
+   */
+  if (nbd_request_meta_context (nbd, "x-libnbd:nosuch") == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
   if (nbd_connect_command (nbd, args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  switch (nbd_can_meta_context (nbd, "x-libnbd:nosuch")) {
+  case -1:
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  case 0:
+    break;
+  default:
+    fprintf (stderr, "unexpected status for nbd_can_meta_context\n");
+    exit (EXIT_FAILURE);
+  }
+
+  switch (nbd_can_meta_context (nbd, "base:allocation")) {
+  case -1:
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  case 1:
+    break;
+  default:
+    fprintf (stderr, "unexpected status for nbd_can_meta_context\n");
     exit (EXIT_FAILURE);
   }
 

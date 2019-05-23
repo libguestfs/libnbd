@@ -1028,7 +1028,9 @@ can be used to allow you to read extra information about
 data blocks, such as whether they are sparse (holes) or
 allocated, and dirty bitmaps.  You must call this before you
 connect to the server because metadata context negotiation
-happens during the initial handshake.
+happens during the initial handshake.  To learn if a context
+was actually negotiated, use C<nbd_can_meta_context> after
+the connection is ready.
 
 The single parameter is the name of the metadata context,
 for example C<\"base:allocation\">.
@@ -1157,6 +1159,20 @@ Returns true if the server supports the cache command
 (see C<nbd_cache>, C<nbd_aio_cache>).  Returns false if
 the server does not.  Can return an error if we have not
 connected to and completed the handshake with the server.";
+  };
+
+  "can_meta_context", {
+    default_call with
+    args = [String "metacontext"]; ret = RBool;
+    shortdesc = "does the server support a specific meta context?";
+    longdesc = "\
+Returns true if the server supports the given meta context
+(see C<nbd_request_meta_context>).  Returns false if
+the server does not.  Can return an error if we have not
+connected to and completed the handshake with the server.
+
+The single parameter is the name of the metadata context,
+for example C<\"base:allocation\">.";
   };
 
   "get_size", {
@@ -1306,10 +1322,10 @@ of those blocks need not be identical between contexts.
 
 Depending on which metadata contexts were enabled before
 connecting (see C<nbd_request_meta_context>) and which are
-supported by the server this call returns information
-about extents by calling back to the extent function. The
-callback should B<not> call any C<nbd_*> library functions,
-as this could trigger deadlock.
+supported by the server (see C<nbd_can_meta_context>) this call
+returns information about extents by calling back to the
+extent function. The callback should B<not> call any C<nbd_*>
+library functions, as this could trigger deadlock.
 
 The extent function is called once per type of metadata
 available.  The C<metacontext> parameter is a string
