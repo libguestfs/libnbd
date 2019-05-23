@@ -23,15 +23,15 @@
   /* We've already read the first 16 bytes of the handshake, we must
    * now read the remainder.
    */
-  conn->rbuf = &conn->sbuf.old_handshake;
-  conn->rlen = sizeof conn->sbuf.old_handshake;
-  conn->rbuf += 16;
-  conn->rlen -= 16;
+  h->rbuf = &h->sbuf.old_handshake;
+  h->rlen = sizeof h->sbuf.old_handshake;
+  h->rbuf += 16;
+  h->rlen -= 16;
   SET_NEXT_STATE (%RECV_REMAINING);
   return 0;
 
  OLDSTYLE.RECV_REMAINING:
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:  SET_NEXT_STATE (%CHECK);
   }
@@ -42,14 +42,14 @@
   uint16_t gflags, eflags;
 
   /* We already checked the magic and version in MAGIC.CHECK_MAGIC. */
-  exportsize = be64toh (conn->sbuf.old_handshake.exportsize);
-  gflags = be16toh (conn->sbuf.old_handshake.gflags);
-  eflags = be16toh (conn->sbuf.old_handshake.eflags);
+  exportsize = be64toh (h->sbuf.old_handshake.exportsize);
+  gflags = be16toh (h->sbuf.old_handshake.gflags);
+  eflags = be16toh (h->sbuf.old_handshake.eflags);
 
-  conn->gflags = gflags;
-  debug (conn->h, "gflags: 0x%" PRIx16, gflags);
+  h->gflags = gflags;
+  debug (h, "gflags: 0x%" PRIx16, gflags);
 
-  if (nbd_internal_set_size_and_flags (conn->h, exportsize, eflags) == -1) {
+  if (nbd_internal_set_size_and_flags (h, exportsize, eflags) == -1) {
     SET_NEXT_STATE (%.DEAD);
     return -1;
   }

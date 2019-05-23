@@ -55,11 +55,10 @@ static int64_t exportsize;
 /* Number of commands we issue (per thread). */
 #define NR_CYCLES 10000
 
-/* The single NBD handle.  This contains NR_MULTI_CONN connections. */
-static struct nbd_handle *nbd;
-
 struct thread_status {
   size_t i;                     /* Thread index, 0 .. NR_MULTI_CONN-1 */
+  int argc;                     /* Command line parameters. */
+  char **argv;
   int status;                   /* Return status. */
   unsigned requests;            /* Total number of requests made. */
   unsigned most_in_flight;      /* Most requests seen in flight. */
@@ -70,6 +69,7 @@ static void *start_thread (void *arg);
 int
 main (int argc, char *argv[])
 {
+  struct nbd_handle *nbd;
   pthread_t threads[NR_MULTI_CONN];
   struct thread_status status[NR_MULTI_CONN];
   size_t i;
@@ -88,12 +88,8 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if (nbd_set_multi_conn (nbd, NR_MULTI_CONN) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
 
-  /* Connect all connections synchronously as this is simpler. */
+  /* Connect first to check if the server supports writes and multi-conn. */
   if (argc == 2) {
     if (nbd_connect_unix (nbd, argv[1]) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
@@ -124,9 +120,13 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  nbd_close (nbd);
+
   /* Start the worker threads, one per connection. */
   for (i = 0; i < NR_MULTI_CONN; ++i) {
     status[i].i = i;
+    status[i].argc = argc;
+    status[i].argv = argv;
     status[i].status = 0;
     status[i].requests = 0;
     status[i].most_in_flight = 0;
@@ -159,13 +159,6 @@ main (int argc, char *argv[])
       most_in_flight = status[i].most_in_flight;
   }
 
-  if (nbd_shutdown (nbd) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
-  nbd_close (nbd);
-
   /* Make sure the number of requests that were required matches what
    * we expect.
    */
@@ -181,9 +174,9 @@ main (int argc, char *argv[])
 static void *
 start_thread (void *arg)
 {
+  struct nbd_handle *nbd;
   struct pollfd fds[1];
   struct thread_status *status = arg;
-  struct nbd_connection *conn;
   char buf[512];
   size_t i, j;
   uint64_t offset, handle;
@@ -192,8 +185,24 @@ start_thread (void *arg)
   int dir, r, cmd;
   bool want_to_send;
 
-  /* The single thread "owns" the connection. */
-  conn = nbd_get_connection (nbd, status->i);
+  nbd = nbd_create ();
+  if (nbd == NULL) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  if (status->argc == 2) {
+    if (nbd_connect_unix (nbd, status->argv[1]) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+  }
+  else {
+    if (nbd_connect_tcp (nbd, status->argv[1], status->argv[2]) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+  }
 
   for (i = 0; i < sizeof buf; ++i)
     buf[i] = rand ();
@@ -202,7 +211,7 @@ start_thread (void *arg)
   in_flight = 0;
   i = NR_CYCLES;
   while (i > 0 || in_flight > 0) {
-    if (nbd_aio_is_dead (conn) || nbd_aio_is_closed (conn)) {
+    if (nbd_aio_is_dead (nbd) || nbd_aio_is_closed (nbd)) {
       fprintf (stderr, "thread %zu: connection is dead or closed\n",
                status->i);
       goto error;
@@ -213,12 +222,12 @@ start_thread (void *arg)
      * issue a request.
      */
     want_to_send =
-      i > 0 && in_flight < MAX_IN_FLIGHT && nbd_aio_is_ready (conn);
+      i > 0 && in_flight < MAX_IN_FLIGHT && nbd_aio_is_ready (nbd);
 
-    fds[0].fd = nbd_aio_get_fd (conn);
+    fds[0].fd = nbd_aio_get_fd (nbd);
     fds[0].events = want_to_send ? POLLOUT : 0;
     fds[0].revents = 0;
-    dir = nbd_aio_get_direction (conn);
+    dir = nbd_aio_get_direction (nbd);
     if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0)
       fds[0].events |= POLLIN;
     if ((dir & LIBNBD_AIO_DIRECTION_WRITE) != 0)
@@ -231,10 +240,10 @@ start_thread (void *arg)
 
     if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0 &&
         (fds[0].revents & POLLIN) != 0)
-      nbd_aio_notify_read (conn);
+      nbd_aio_notify_read (nbd);
     else if ((dir & LIBNBD_AIO_DIRECTION_WRITE) != 0 &&
              (fds[0].revents & POLLOUT) != 0)
-      nbd_aio_notify_write (conn);
+      nbd_aio_notify_write (nbd);
 
     /* If we can issue another request, do so.  Note that we reuse the
      * same buffer for multiple in-flight requests.  It doesn't matter
@@ -242,13 +251,13 @@ start_thread (void *arg)
      * would be Very Bad in a real application.
      */
     if (want_to_send && (fds[0].revents & POLLOUT) != 0 &&
-        nbd_aio_is_ready (conn)) {
+        nbd_aio_is_ready (nbd)) {
       offset = rand () % (exportsize - sizeof buf);
       cmd = rand () & 1;
       if (cmd == 0)
-        handle = nbd_aio_pwrite (conn, buf, sizeof buf, offset, 0);
+        handle = nbd_aio_pwrite (nbd, buf, sizeof buf, offset, 0);
       else
-        handle = nbd_aio_pread (conn, buf, sizeof buf, offset);
+        handle = nbd_aio_pread (nbd, buf, sizeof buf, offset);
       if (handle == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
@@ -262,7 +271,7 @@ start_thread (void *arg)
 
     /* If a command is ready to retire, retire it. */
     for (j = 0; j < in_flight; ++j) {
-      r = nbd_aio_command_completed (conn, handles[j]);
+      r = nbd_aio_command_completed (nbd, handles[j]);
       if (r == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
@@ -276,6 +285,13 @@ start_thread (void *arg)
       }
     }
   }
+
+  if (nbd_shutdown (nbd) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  nbd_close (nbd);
 
   printf ("thread %zu: finished OK\n", status->i);
 

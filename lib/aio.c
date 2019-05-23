@@ -27,31 +27,31 @@
 #include "internal.h"
 
 int
-nbd_unlocked_aio_get_fd (struct nbd_connection *conn)
+nbd_unlocked_aio_get_fd (struct nbd_handle *h)
 {
-  if (!conn->sock) {
+  if (!h->sock) {
     set_error (EINVAL, "connection is not in a connected state");
     return -1;
   }
-  return conn->sock->ops->get_fd (conn->sock);
+  return h->sock->ops->get_fd (h->sock);
 }
 
 int
-nbd_unlocked_aio_notify_read (struct nbd_connection *conn)
+nbd_unlocked_aio_notify_read (struct nbd_handle *h)
 {
-  return nbd_internal_run (conn->h, conn, notify_read);
+  return nbd_internal_run (h, notify_read);
 }
 
 int
-nbd_unlocked_aio_notify_write (struct nbd_connection *conn)
+nbd_unlocked_aio_notify_write (struct nbd_handle *h)
 {
-  return nbd_internal_run (conn->h, conn, notify_write);
+  return nbd_internal_run (h, notify_write);
 }
 
 int
-nbd_unlocked_aio_is_created (struct nbd_connection *conn)
+nbd_unlocked_aio_is_created (struct nbd_handle *h)
 {
-  return conn->state == STATE_START;
+  return h->state == STATE_START;
 }
 
 static int
@@ -73,17 +73,17 @@ is_connecting_group (enum state_group group)
 }
 
 int
-nbd_unlocked_aio_is_connecting (struct nbd_connection *conn)
+nbd_unlocked_aio_is_connecting (struct nbd_handle *h)
 {
-  enum state_group group = nbd_internal_state_group (conn->state);
+  enum state_group group = nbd_internal_state_group (h->state);
 
   return is_connecting_group (group);
 }
 
 int
-nbd_unlocked_aio_is_ready (struct nbd_connection *conn)
+nbd_unlocked_aio_is_ready (struct nbd_handle *h)
 {
-  return conn->state == STATE_READY;
+  return h->state == STATE_READY;
 }
 
 static int
@@ -101,27 +101,27 @@ is_processing_group (enum state_group group)
 }
 
 int
-nbd_unlocked_aio_is_processing (struct nbd_connection *conn)
+nbd_unlocked_aio_is_processing (struct nbd_handle *h)
 {
-  enum state_group group = nbd_internal_state_group (conn->state);
+  enum state_group group = nbd_internal_state_group (h->state);
 
   return is_processing_group (group);
 }
 
 int
-nbd_unlocked_aio_is_dead (struct nbd_connection *conn)
+nbd_unlocked_aio_is_dead (struct nbd_handle *h)
 {
-  return conn->state == STATE_DEAD;
+  return h->state == STATE_DEAD;
 }
 
 int
-nbd_unlocked_aio_is_closed (struct nbd_connection *conn)
+nbd_unlocked_aio_is_closed (struct nbd_handle *h)
 {
-  return conn->state == STATE_CLOSED;
+  return h->state == STATE_CLOSED;
 }
 
 int
-nbd_unlocked_aio_command_completed (struct nbd_connection *conn,
+nbd_unlocked_aio_command_completed (struct nbd_handle *h,
                                     int64_t handle)
 {
   struct command_in_flight *prev_cmd, *cmd;
@@ -134,7 +134,7 @@ nbd_unlocked_aio_command_completed (struct nbd_connection *conn,
   }
 
   /* Find the command amongst the completed commands. */
-  for (cmd = conn->cmds_done, prev_cmd = NULL;
+  for (cmd = h->cmds_done, prev_cmd = NULL;
        cmd != NULL;
        prev_cmd = cmd, cmd = cmd->next) {
     if (cmd->handle == handle)
@@ -150,7 +150,7 @@ nbd_unlocked_aio_command_completed (struct nbd_connection *conn,
   if (prev_cmd != NULL)
     prev_cmd->next = cmd->next;
   else
-    conn->cmds_done = cmd->next;
+    h->cmds_done = cmd->next;
 
   free (cmd);
 
@@ -166,12 +166,12 @@ nbd_unlocked_aio_command_completed (struct nbd_connection *conn,
 }
 
 int64_t
-nbd_unlocked_aio_peek_command_completed (struct nbd_connection *conn)
+nbd_unlocked_aio_peek_command_completed (struct nbd_handle *h)
 {
-  if (conn->cmds_done != NULL)
-    return conn->cmds_done->handle;
+  if (h->cmds_done != NULL)
+    return h->cmds_done->handle;
 
-  if (conn->cmds_in_flight != NULL || conn->cmds_to_issue != NULL) {
+  if (h->cmds_in_flight != NULL || h->cmds_to_issue != NULL) {
     set_error (0, "no in-flight command has completed yet");
     return 0;
   }

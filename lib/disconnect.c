@@ -28,29 +28,15 @@
 int
 nbd_unlocked_shutdown (struct nbd_handle *h)
 {
-  size_t i;
 
-  for (i = 0; i < h->multi_conn; ++i) {
-    if (nbd_unlocked_aio_is_ready (h->conns[i]) ||
-        nbd_unlocked_aio_is_processing (h->conns[i])) {
-      if (nbd_unlocked_aio_disconnect (h->conns[i]) == -1)
-        return -1;
-    }
+  if (nbd_unlocked_aio_is_ready (h) ||
+      nbd_unlocked_aio_is_processing (h)) {
+    if (nbd_unlocked_aio_disconnect (h) == -1)
+      return -1;
   }
 
-  /* Wait until all sockets are closed or dead. */
-  for (;;) {
-    bool finished = true;
-
-    for (i = 0; i < h->multi_conn; ++i) {
-      if (!nbd_unlocked_aio_is_closed (h->conns[i]) &&
-          !nbd_unlocked_aio_is_dead (h->conns[i]))
-        finished = false;
-    }
-
-    if (finished)
-      break;
-
+  while (!nbd_unlocked_aio_is_closed (h) &&
+         !nbd_unlocked_aio_is_dead (h)) {
     if (nbd_unlocked_poll (h, -1) == -1)
       return -1;
   }
@@ -59,11 +45,11 @@ nbd_unlocked_shutdown (struct nbd_handle *h)
 }
 
 int
-nbd_unlocked_aio_disconnect (struct nbd_connection *conn)
+nbd_unlocked_aio_disconnect (struct nbd_handle *h)
 {
   int64_t id;
 
-  id = nbd_internal_command_common (conn, 0, NBD_CMD_DISC, 0, 0, NULL, NULL);
+  id = nbd_internal_command_common (h, 0, NBD_CMD_DISC, 0, 0, NULL, NULL);
   if (id == -1)
     return -1;
 

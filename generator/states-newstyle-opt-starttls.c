@@ -26,20 +26,20 @@
     return 0;
   }
 
-  conn->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
-  conn->sbuf.option.option = htobe32 (NBD_OPT_STARTTLS);
-  conn->sbuf.option.optlen = 0;
-  conn->wbuf = &conn->sbuf;
-  conn->wlen = sizeof (conn->sbuf.option);
+  h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
+  h->sbuf.option.option = htobe32 (NBD_OPT_STARTTLS);
+  h->sbuf.option.optlen = 0;
+  h->wbuf = &h->sbuf;
+  h->wlen = sizeof (h->sbuf.option);
   SET_NEXT_STATE (%SEND);
   return 0;
 
  NEWSTYLE.OPT_STARTTLS.SEND:
-  switch (send_from_wbuf (conn)) {
+  switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    conn->rbuf = &conn->sbuf;
-    conn->rlen = sizeof (conn->sbuf.or.option_reply);
+    h->rbuf = &h->sbuf;
+    h->rlen = sizeof (h->sbuf.or.option_reply);
     SET_NEXT_STATE (%RECV_REPLY);
   }
   return 0;
@@ -47,19 +47,19 @@
  NEWSTYLE.OPT_STARTTLS.RECV_REPLY:
   uint32_t len;
 
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     /* Discard the payload if there is one. */
-    len = be32toh (conn->sbuf.or.option_reply.replylen);
-    conn->rbuf = NULL;
-    conn->rlen = len;
+    len = be32toh (h->sbuf.or.option_reply.replylen);
+    h->rbuf = NULL;
+    h->rlen = len;
     SET_NEXT_STATE (%SKIP_REPLY_PAYLOAD);
   }
   return 0;
 
  NEWSTYLE.OPT_STARTTLS.SKIP_REPLY_PAYLOAD:
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:  SET_NEXT_STATE (%CHECK_REPLY);
   }
@@ -72,10 +72,10 @@
   uint32_t len;
   struct socket *new_sock;
 
-  magic = be64toh (conn->sbuf.or.option_reply.magic);
-  option = be32toh (conn->sbuf.or.option_reply.option);
-  reply = be32toh (conn->sbuf.or.option_reply.reply);
-  len = be32toh (conn->sbuf.or.option_reply.replylen);
+  magic = be64toh (h->sbuf.or.option_reply.magic);
+  option = be32toh (h->sbuf.or.option_reply.option);
+  reply = be32toh (h->sbuf.or.option_reply.reply);
+  len = be32toh (h->sbuf.or.option_reply.replylen);
   if (magic != NBD_REP_MAGIC || option != NBD_OPT_STARTTLS) {
     SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: invalid option reply magic or option");
@@ -89,13 +89,13 @@
       return -1;
     }
 
-    new_sock = nbd_internal_crypto_create_session (conn, conn->sock);
+    new_sock = nbd_internal_crypto_create_session (h, h->sock);
     if (new_sock == NULL) {
       SET_NEXT_STATE (%.DEAD);
       return -1;
     }
-    conn->sock = new_sock;
-    if (nbd_internal_crypto_is_reading (conn))
+    h->sock = new_sock;
+    if (nbd_internal_crypto_is_reading (h))
       SET_NEXT_STATE (%TLS_HANDSHAKE_READ);
     else
       SET_NEXT_STATE (%TLS_HANDSHAKE_WRITE);
@@ -103,7 +103,7 @@
 
   default:
     if (!NBD_REP_IS_ERR (reply))
-      debug (conn->h,
+      debug (h,
              "server is confused by NBD_OPT_STARTTLS, continuing anyway");
 
     /* Server refused to upgrade to TLS.  If h->tls is not require (2)
@@ -116,7 +116,7 @@
       return -1;
     }
 
-    debug (conn->h,
+    debug (h,
            "server refused TLS (%s), continuing with unencrypted connection",
            reply == NBD_REP_ERR_POLICY ? "policy" : "not supported");
     /* XXX: capture instead of skip server's payload to NBD_REP_ERR*? */
@@ -128,21 +128,21 @@
  NEWSTYLE.OPT_STARTTLS.TLS_HANDSHAKE_READ:
   int r;
 
-  r = nbd_internal_crypto_handshake (conn);
+  r = nbd_internal_crypto_handshake (h);
   if (r == -1) {
     SET_NEXT_STATE (%.DEAD);
     return -1;
   }
   if (r == 0) {
     /* Finished handshake. */
-    nbd_internal_crypto_debug_tls_enabled (conn);
+    nbd_internal_crypto_debug_tls_enabled (h);
 
     /* Continue with option negotiation. */
     SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
     return 0;
   }
   /* Continue handshake. */
-  if (nbd_internal_crypto_is_reading (conn))
+  if (nbd_internal_crypto_is_reading (h))
     SET_NEXT_STATE (%TLS_HANDSHAKE_READ);
   else
     SET_NEXT_STATE (%TLS_HANDSHAKE_WRITE);
@@ -151,21 +151,21 @@
  NEWSTYLE.OPT_STARTTLS.TLS_HANDSHAKE_WRITE:
   int r;
 
-  r = nbd_internal_crypto_handshake (conn);
+  r = nbd_internal_crypto_handshake (h);
   if (r == -1) {
     SET_NEXT_STATE (%.DEAD);
     return -1;
   }
   if (r == 0) {
     /* Finished handshake. */
-    debug (conn->h, "connection is using TLS");
+    debug (h, "connection is using TLS");
 
     /* Continue with option negotiation. */
     SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
     return 0;
   }
   /* Continue handshake. */
-  if (nbd_internal_crypto_is_reading (conn))
+  if (nbd_internal_crypto_is_reading (h))
     SET_NEXT_STATE (%TLS_HANDSHAKE_READ);
   else
     SET_NEXT_STATE (%TLS_HANDSHAKE_WRITE);

@@ -20,13 +20,13 @@
 
 /* STATE MACHINE */ {
  MAGIC.START:
-  conn->rbuf = &conn->sbuf;
-  conn->rlen = 16;
+  h->rbuf = &h->sbuf;
+  h->rlen = 16;
   SET_NEXT_STATE (%RECV_MAGIC);
   return 0;
 
  MAGIC.RECV_MAGIC:
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:  SET_NEXT_STATE (%CHECK_MAGIC);
   }
@@ -35,13 +35,13 @@
  MAGIC.CHECK_MAGIC:
   uint64_t version;
 
-  if (strncmp (conn->sbuf.new_handshake.nbdmagic, "NBDMAGIC", 8) != 0) {
+  if (strncmp (h->sbuf.new_handshake.nbdmagic, "NBDMAGIC", 8) != 0) {
     SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: server did not send expected NBD magic");
     return -1;
   }
 
-  version = be64toh (conn->sbuf.new_handshake.version);
+  version = be64toh (h->sbuf.new_handshake.version);
   if (version == NBD_NEW_VERSION)
     SET_NEXT_STATE (%.NEWSTYLE.START);
   else if (version == NBD_OLD_VERSION)

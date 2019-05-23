@@ -16,11 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* Test synchronous parallel high level API requests.
- *
- * NB: These don't actually run in parallel because of the handle lock
- * held by nbd_poll (which cannot be removed).  However it's still a
- * nice test of data integrity and locking.
+/* Test synchronous parallel high level API requests on different
+ * handles.  There should be no shared state between the handles so
+ * this should run at full speed (albeit with us only having a single
+ * command per thread in flight).
  */
 
 #include <stdio.h>
@@ -31,16 +30,17 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <assert.h>
 
 #include <pthread.h>
 
 #include <libnbd.h>
 
-/* Size of the RAM disk in bytes. */
-static int64_t exportsize;
-
 /* We keep a shadow of the RAM disk so we can check integrity of the data. */
 static char *ramdisk;
+
+/* This is also defined in synch-parallel.sh and checked here. */
+#define EXPORTSIZE (8*1024*1024)
 
 /* How long (seconds) that the test will run for. */
 #define RUN_TIME 10
@@ -51,8 +51,8 @@ static char *ramdisk;
 #define NR_THREADS 8
 #define NR_MULTI_CONN 4
 
-/* The single NBD handle.  This contains NR_MULTI_CONN connections. */
-static struct nbd_handle *nbd;
+/* Unix socket. */
+static const char *unixsocket;
 
 struct thread_status {
   size_t i;                     /* Thread index, 0 .. NR_THREADS-1 */
@@ -80,38 +80,7 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s socket\n", argv[0]);
     exit (EXIT_FAILURE);
   }
-
-  nbd = nbd_create ();
-  if (nbd == NULL) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
-  if (nbd_set_multi_conn (nbd, NR_MULTI_CONN) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
-#ifdef TLS
-  /* Require TLS on the handle and fail if not available or if the
-   * handshake fails.
-   */
-  if (nbd_set_tls (nbd, 2) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
-  if (nbd_set_tls_psk_file (nbd, "keys.psk") == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-#endif
-
-  /* Connect to nbdkit. */
-  if (nbd_connect_unix (nbd, argv[1]) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
+  unixsocket = argv[1];
 
   /* Get the current time and the end time. */
   time (&t);
@@ -119,42 +88,25 @@ main (int argc, char *argv[])
 
   srand (t + getpid ());
 
-  exportsize = nbd_get_size (nbd);
-  if (exportsize == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
   /* Initialize the RAM disk with the initial data from
    * nbdkit-pattern-filter.
    */
-  ramdisk = malloc (exportsize);
+  ramdisk = malloc (EXPORTSIZE);
   if (ramdisk == NULL) {
     perror ("calloc");
     exit (EXIT_FAILURE);
   }
-  for (i = 0; i < exportsize; i += 8) {
+  for (i = 0; i < EXPORTSIZE; i += 8) {
     uint64_t d = htobe64 (i);
     memcpy (&ramdisk[i], &d, sizeof d);
-  }
-
-  if (nbd_read_only (nbd) == 1) {
-    fprintf (stderr, "%s: error: this NBD export is read-only\n", argv[0]);
-    exit (EXIT_FAILURE);
-  }
-
-  if (nbd_can_multi_conn (nbd) == 0) {
-    fprintf (stderr, "%s: error: "
-             "this NBD export does not support multi-conn\n", argv[0]);
-    exit (EXIT_FAILURE);
   }
 
   /* Start the worker threads. */
   for (i = 0; i < NR_THREADS; ++i) {
     status[i].i = i;
     status[i].end_time = t;
-    status[i].offset = i * exportsize / NR_THREADS;
-    status[i].length = exportsize / NR_THREADS;
+    status[i].offset = i * EXPORTSIZE / NR_THREADS;
+    status[i].length = EXPORTSIZE / NR_THREADS;
     status[i].status = 0;
     status[i].requests = 0;
     status[i].bytes_sent = status[i].bytes_received = 0;
@@ -187,13 +139,6 @@ main (int argc, char *argv[])
     bytes_received += status[i].bytes_received;
   }
 
-  if (nbd_shutdown (nbd) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
-  nbd_close (nbd);
-
   /* Print some stats. */
   printf ("TLS: %s\n",
 #ifdef TLS
@@ -219,12 +164,44 @@ static void *
 start_thread (void *arg)
 {
   struct thread_status *status = arg;
+  struct nbd_handle *nbd;
   char buf[16384];
   int cmd;
   uint64_t offset;
   time_t t;
 
   memset (buf, 0, sizeof buf);
+
+  nbd = nbd_create ();
+  if (nbd == NULL) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+#ifdef TLS
+  /* Require TLS on the handle and fail if not available or if the
+   * handshake fails.
+   */
+  if (nbd_set_tls (nbd, 2) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  if (nbd_set_tls_psk_file (nbd, "keys.psk") == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+#endif
+
+  /* Connect to nbdkit. */
+  if (nbd_connect_unix (nbd, unixsocket) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  assert (nbd_get_size (nbd) == EXPORTSIZE);
+  assert (nbd_can_multi_conn (nbd) > 0);
+  assert (nbd_read_only (nbd) == 0);
 
   /* Issue commands. */
   while (1) {
@@ -259,6 +236,13 @@ start_thread (void *arg)
   }
 
   printf ("thread %zu: finished OK\n", status->i);
+
+  if (nbd_shutdown (nbd) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    goto error;
+  }
+
+  nbd_close (nbd);
 
   status->status = 0;
   pthread_exit (status);

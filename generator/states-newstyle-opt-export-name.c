@@ -20,38 +20,38 @@
 
 /* STATE MACHINE */ {
  NEWSTYLE.OPT_EXPORT_NAME.START:
-  conn->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
-  conn->sbuf.option.option = htobe32 (NBD_OPT_EXPORT_NAME);
-  conn->sbuf.option.optlen = strlen (h->export_name);
-  conn->wbuf = &conn->sbuf;
-  conn->wlen = sizeof conn->sbuf.option;
+  h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
+  h->sbuf.option.option = htobe32 (NBD_OPT_EXPORT_NAME);
+  h->sbuf.option.optlen = strlen (h->export_name);
+  h->wbuf = &h->sbuf;
+  h->wlen = sizeof h->sbuf.option;
   SET_NEXT_STATE (%SEND);
   return 0;
 
  NEWSTYLE.OPT_EXPORT_NAME.SEND:
-  switch (send_from_wbuf (conn)) {
+  switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    conn->wbuf = h->export_name;
-    conn->wlen = strlen (h->export_name);
+    h->wbuf = h->export_name;
+    h->wlen = strlen (h->export_name);
     SET_NEXT_STATE (%SEND_EXPORT);
   }
   return 0;
 
  NEWSTYLE.OPT_EXPORT_NAME.SEND_EXPORT:
-  switch (send_from_wbuf (conn)) {
+  switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    conn->rbuf = &conn->sbuf;
-    conn->rlen = sizeof conn->sbuf.export_name_reply;
-    if ((conn->gflags & NBD_FLAG_NO_ZEROES) != 0)
-      conn->rlen -= sizeof conn->sbuf.export_name_reply.zeroes;
+    h->rbuf = &h->sbuf;
+    h->rlen = sizeof h->sbuf.export_name_reply;
+    if ((h->gflags & NBD_FLAG_NO_ZEROES) != 0)
+      h->rlen -= sizeof h->sbuf.export_name_reply.zeroes;
     SET_NEXT_STATE (%RECV_REPLY);
   }
   return 0;
 
  NEWSTYLE.OPT_EXPORT_NAME.RECV_REPLY:
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:  SET_NEXT_STATE (%CHECK_REPLY);
   }
@@ -61,9 +61,9 @@
   uint64_t exportsize;
   uint16_t eflags;
 
-  exportsize = be64toh (conn->sbuf.export_name_reply.exportsize);
-  eflags = be16toh (conn->sbuf.export_name_reply.eflags);
-  if (nbd_internal_set_size_and_flags (conn->h, exportsize, eflags) == -1) {
+  exportsize = be64toh (h->sbuf.export_name_reply.exportsize);
+  eflags = be16toh (h->sbuf.export_name_reply.eflags);
+  if (nbd_internal_set_size_and_flags (h, exportsize, eflags) == -1) {
     SET_NEXT_STATE (%.DEAD);
     return -1;
   }

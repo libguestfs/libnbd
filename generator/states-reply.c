@@ -33,10 +33,10 @@
    * check the magic in CHECK_SIMPLE_OR_STRUCTURED_REPLY below.
    * This works because the structured_reply header is larger.
    */
-  conn->rbuf = &conn->sbuf;
-  conn->rlen = sizeof conn->sbuf.simple_reply;
+  h->rbuf = &h->sbuf;
+  h->rlen = sizeof h->sbuf.simple_reply;
 
-  r = conn->sock->ops->recv (conn->sock, conn->rbuf, conn->rlen);
+  r = h->sock->ops->recv (h->sock, h->rbuf, h->rlen);
   if (r == -1) {
     /* This should never happen because when we enter this state we
      * should have notification that the socket is ready to read.
@@ -56,13 +56,13 @@
     return 0;
   }
 
-  conn->rbuf += r;
-  conn->rlen -= r;
+  h->rbuf += r;
+  h->rlen -= r;
   SET_NEXT_STATE (%RECV_REPLY);
   return 0;
 
  REPLY.RECV_REPLY:
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0: SET_NEXT_STATE (%CHECK_SIMPLE_OR_STRUCTURED_REPLY);
   }
@@ -71,7 +71,7 @@
  REPLY.CHECK_SIMPLE_OR_STRUCTURED_REPLY:
   uint32_t magic;
 
-  magic = be32toh (conn->sbuf.simple_reply.magic);
+  magic = be32toh (h->sbuf.simple_reply.magic);
   if (magic == NBD_SIMPLE_REPLY_MAGIC) {
     SET_NEXT_STATE (%SIMPLE_REPLY.START);
     return 0;
@@ -93,9 +93,9 @@
   /* NB: This works for both simple and structured replies because the
    * handle is stored at the same offset.
    */
-  handle = be64toh (conn->sbuf.simple_reply.handle);
+  handle = be64toh (h->sbuf.simple_reply.handle);
   /* Find the command amongst the commands in flight. */
-  for (cmd = conn->cmds_in_flight, prev_cmd = NULL;
+  for (cmd = h->cmds_in_flight, prev_cmd = NULL;
        cmd != NULL;
        prev_cmd = cmd, cmd = cmd->next) {
     if (cmd->handle == handle)
@@ -107,16 +107,16 @@
   if (prev_cmd != NULL)
     prev_cmd->next = cmd->next;
   else
-    conn->cmds_in_flight = cmd->next;
+    h->cmds_in_flight = cmd->next;
   cmd->next = NULL;
-  if (conn->cmds_done) {
-    prev_cmd = conn->cmds_done;
+  if (h->cmds_done) {
+    prev_cmd = h->cmds_done;
     while (prev_cmd->next)
       prev_cmd = prev_cmd->next;
     prev_cmd->next = cmd;
   }
   else
-    conn->cmds_done = cmd;
+    h->cmds_done = cmd;
 
   SET_NEXT_STATE (%.READY);
   return 0;

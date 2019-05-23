@@ -22,52 +22,52 @@
  ISSUE_COMMAND.START:
   struct command_in_flight *cmd;
 
-  assert (conn->cmds_to_issue != NULL);
-  cmd = conn->cmds_to_issue;
+  assert (h->cmds_to_issue != NULL);
+  cmd = h->cmds_to_issue;
 
   /* Were we interrupted by reading a reply to an earlier command? */
-  if (conn->wlen) {
-    if (conn->in_write_payload)
+  if (h->wlen) {
+    if (h->in_write_payload)
       SET_NEXT_STATE(%SEND_WRITE_PAYLOAD);
     else
       SET_NEXT_STATE(%SEND_REQUEST);
     return 0;
   }
 
-  conn->request.magic = htobe32 (NBD_REQUEST_MAGIC);
-  conn->request.flags = htobe16 (cmd->flags);
-  conn->request.type = htobe16 (cmd->type);
-  conn->request.handle = htobe64 (cmd->handle);
-  conn->request.offset = htobe64 (cmd->offset);
-  conn->request.count = htobe32 ((uint32_t) cmd->count);
-  conn->wbuf = &conn->request;
-  conn->wlen = sizeof (conn->request);
+  h->request.magic = htobe32 (NBD_REQUEST_MAGIC);
+  h->request.flags = htobe16 (cmd->flags);
+  h->request.type = htobe16 (cmd->type);
+  h->request.handle = htobe64 (cmd->handle);
+  h->request.offset = htobe64 (cmd->offset);
+  h->request.count = htobe32 ((uint32_t) cmd->count);
+  h->wbuf = &h->request;
+  h->wlen = sizeof (h->request);
   SET_NEXT_STATE (%SEND_REQUEST);
   return 0;
 
  ISSUE_COMMAND.SEND_REQUEST:
-  switch (send_from_wbuf (conn)) {
+  switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:  SET_NEXT_STATE (%PREPARE_WRITE_PAYLOAD);
   }
   return 0;
 
  ISSUE_COMMAND.PAUSE_SEND_REQUEST:
-  assert (conn->wlen);
-  assert (conn->cmds_to_issue != NULL);
-  conn->in_write_payload = false;
+  assert (h->wlen);
+  assert (h->cmds_to_issue != NULL);
+  h->in_write_payload = false;
   SET_NEXT_STATE (%^REPLY.START);
   return 0;
 
  ISSUE_COMMAND.PREPARE_WRITE_PAYLOAD:
   struct command_in_flight *cmd;
 
-  assert (conn->cmds_to_issue != NULL);
-  cmd = conn->cmds_to_issue;
-  assert (cmd->handle == be64toh (conn->request.handle));
+  assert (h->cmds_to_issue != NULL);
+  cmd = h->cmds_to_issue;
+  assert (cmd->handle == be64toh (h->request.handle));
   if (cmd->type == NBD_CMD_WRITE) {
-    conn->wbuf = cmd->data;
-    conn->wlen = cmd->count;
+    h->wbuf = cmd->data;
+    h->wlen = cmd->count;
     SET_NEXT_STATE (%SEND_WRITE_PAYLOAD);
   }
   else
@@ -75,29 +75,29 @@
   return 0;
 
  ISSUE_COMMAND.SEND_WRITE_PAYLOAD:
-  switch (send_from_wbuf (conn)) {
+  switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:  SET_NEXT_STATE (%FINISH);
   }
   return 0;
 
  ISSUE_COMMAND.PAUSE_WRITE_PAYLOAD:
-  assert (conn->wlen);
-  assert (conn->cmds_to_issue != NULL);
-  conn->in_write_payload = true;
+  assert (h->wlen);
+  assert (h->cmds_to_issue != NULL);
+  h->in_write_payload = true;
   SET_NEXT_STATE (%^REPLY.START);
   return 0;
 
  ISSUE_COMMAND.FINISH:
   struct command_in_flight *cmd;
 
-  assert (!conn->wlen);
-  assert (conn->cmds_to_issue != NULL);
-  cmd = conn->cmds_to_issue;
-  assert (cmd->handle == be64toh (conn->request.handle));
-  conn->cmds_to_issue = cmd->next;
-  cmd->next = conn->cmds_in_flight;
-  conn->cmds_in_flight = cmd;
+  assert (!h->wlen);
+  assert (h->cmds_to_issue != NULL);
+  cmd = h->cmds_to_issue;
+  assert (cmd->handle == be64toh (h->request.handle));
+  h->cmds_to_issue = cmd->next;
+  cmd->next = h->cmds_in_flight;
+  h->cmds_in_flight = cmd;
   SET_NEXT_STATE (%.READY);
   return 0;
 

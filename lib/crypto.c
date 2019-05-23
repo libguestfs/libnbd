@@ -267,7 +267,7 @@ lookup_key (const char *pskfile, const char *username,
 }
 
 static gnutls_psk_client_credentials_t
-set_up_psk_credentials (struct nbd_connection *conn, gnutls_session_t session)
+set_up_psk_credentials (struct nbd_handle *h, gnutls_session_t session)
 {
   int err;
   const char prio[] = TLS_PRIORITY ":" "+ECDHE-PSK:+DHE-PSK:+PSK";
@@ -281,11 +281,11 @@ set_up_psk_credentials (struct nbd_connection *conn, gnutls_session_t session)
     goto error;
   }
 
-  username = nbd_unlocked_get_tls_username (conn->h);
+  username = nbd_unlocked_get_tls_username (h);
   if (username == NULL)
     goto error;
 
-  if (lookup_key (conn->h->tls_psk_file, username, &key) == -1)
+  if (lookup_key (h->tls_psk_file, username, &key) == -1)
     goto error;
 
   err = gnutls_psk_allocate_client_credentials (&ret);
@@ -404,7 +404,7 @@ load_certificates (const char *path, gnutls_certificate_credentials_t *ret)
 }
 
 static gnutls_certificate_credentials_t
-set_up_certificate_credentials (struct nbd_connection *conn,
+set_up_certificate_credentials (struct nbd_handle *h,
                                 gnutls_session_t session, bool *is_error)
 {
   int err;
@@ -419,8 +419,8 @@ set_up_certificate_credentials (struct nbd_connection *conn,
   }
 
   /* Try to load the certificates from the directory. */
-  if (conn->h->tls_certificates) {
-    if (load_certificates (conn->h->tls_certificates, &ret) == -1)
+  if (h->tls_certificates) {
+    if (load_certificates (h->tls_certificates, &ret) == -1)
       goto error;
     if (ret)
       goto found_certificates;
@@ -459,10 +459,10 @@ set_up_certificate_credentials (struct nbd_connection *conn,
 
  found_certificates:
 #ifdef HAVE_GNUTLS_SESSION_SET_VERIFY_CERT
-  if (conn->hostname && conn->h->tls_verify_peer)
-    gnutls_session_set_verify_cert (session, conn->hostname, 0);
+  if (h->hostname && h->tls_verify_peer)
+    gnutls_session_set_verify_cert (session, h->hostname, 0);
 #else
-  debug (conn->h, "ignoring nbd_set_tls_verify_peer, this requires GnuTLS >= 3.4.6");
+  debug (h, "ignoring nbd_set_tls_verify_peer, this requires GnuTLS >= 3.4.6");
 #endif
 
   err = gnutls_credentials_set (session, GNUTLS_CRD_CERTIFICATE, ret);
@@ -482,7 +482,7 @@ set_up_certificate_credentials (struct nbd_connection *conn,
 }
 
 static gnutls_certificate_credentials_t
-set_up_system_CA (struct nbd_connection *conn, gnutls_session_t session)
+set_up_system_CA (struct nbd_handle *h, gnutls_session_t session)
 {
   int err;
   gnutls_certificate_credentials_t ret = NULL;
@@ -524,7 +524,7 @@ set_up_system_CA (struct nbd_connection *conn, gnutls_session_t session)
  * ops.
  */
 struct socket *
-nbd_internal_crypto_create_session (struct nbd_connection *conn,
+nbd_internal_crypto_create_session (struct nbd_handle *h,
                                     struct socket *oldsock)
 {
   int err;
@@ -540,9 +540,9 @@ nbd_internal_crypto_create_session (struct nbd_connection *conn,
   }
 
   /* If we have the server name, pass SNI. */
-  if (conn->hostname) {
+  if (h->hostname) {
     err = gnutls_server_name_set (session, GNUTLS_NAME_DNS,
-                                  conn->hostname, strlen (conn->hostname));
+                                  h->hostname, strlen (h->hostname));
     if (err < 0) {
       set_error (errno, "gnutls_server_name_set: %s", gnutls_strerror (err));
       gnutls_deinit (session);
@@ -550,8 +550,8 @@ nbd_internal_crypto_create_session (struct nbd_connection *conn,
     }
   }
 
-  if (conn->h->tls_psk_file) {
-    pskcreds = set_up_psk_credentials (conn, session);
+  if (h->tls_psk_file) {
+    pskcreds = set_up_psk_credentials (h, session);
     if (pskcreds == NULL) {
       gnutls_deinit (session);
       return NULL;
@@ -560,11 +560,11 @@ nbd_internal_crypto_create_session (struct nbd_connection *conn,
   else {
     bool is_error = false;
 
-    xcreds = set_up_certificate_credentials (conn, session, &is_error);
+    xcreds = set_up_certificate_credentials (h, session, &is_error);
     if (xcreds == NULL) {
       if (!is_error) {
         /* Fallback case: use system CA. */
-        xcreds = set_up_system_CA (conn, session);
+        xcreds = set_up_system_CA (h, session);
         if (xcreds == NULL)
           is_error = true;
       }
@@ -602,10 +602,10 @@ nbd_internal_crypto_create_session (struct nbd_connection *conn,
 
 /* Return the read/write direction. */
 bool
-nbd_internal_crypto_is_reading (struct nbd_connection *conn)
+nbd_internal_crypto_is_reading (struct nbd_handle *h)
 {
-  assert (conn->sock->u.tls.session);
-  return gnutls_record_get_direction (conn->sock->u.tls.session) == 0;
+  assert (h->sock->u.tls.session);
+  return gnutls_record_get_direction (h->sock->u.tls.session) == 0;
 }
 
 /* Continue with the TLS handshake.  Returns 0 if the handshake
@@ -613,11 +613,11 @@ nbd_internal_crypto_is_reading (struct nbd_connection *conn)
  * there was a GnuTLS error.
  */
 int
-nbd_internal_crypto_handshake (struct nbd_connection *conn)
+nbd_internal_crypto_handshake (struct nbd_handle *h)
 {
   int err;
   gnutls_handshake_description_t in, out;
-  const gnutls_session_t session = conn->sock->u.tls.session;
+  const gnutls_session_t session = h->sock->u.tls.session;
 
   assert (session);
   err = gnutls_handshake (session);
@@ -642,15 +642,15 @@ nbd_internal_crypto_handshake (struct nbd_connection *conn)
  * useful debugging information.
  */
 void
-nbd_internal_crypto_debug_tls_enabled (struct nbd_connection *conn)
+nbd_internal_crypto_debug_tls_enabled (struct nbd_handle *h)
 {
-  if (conn->h->debug) {
-    const gnutls_session_t session = conn->sock->u.tls.session;
+  if (h->debug) {
+    const gnutls_session_t session = h->sock->u.tls.session;
     const gnutls_cipher_algorithm_t cipher = gnutls_cipher_get (session);
     const gnutls_kx_algorithm_t kx = gnutls_kx_get (session);
     const gnutls_mac_algorithm_t mac = gnutls_mac_get (session);
 
-    debug (conn->h,
+    debug (h,
            "connection is using TLS: "
            "cipher %s (%zu bits) key exchange %s mac %s (%zu bits)",
            gnutls_cipher_get_name (cipher),
@@ -668,25 +668,25 @@ nbd_internal_crypto_debug_tls_enabled (struct nbd_connection *conn)
  * !HAVE_GNUTLS.
  */
 int
-nbd_internal_crypto_create_session (struct nbd_connection *conn)
+nbd_internal_crypto_create_session (struct nbd_handle *h)
 {
   abort ();
 }
 
 bool
-nbd_internal_crypto_is_reading (struct nbd_connection *conn)
+nbd_internal_crypto_is_reading (struct nbd_handle *h)
 {
   abort ();
 }
 
 int
-nbd_internal_crypto_handshake (struct nbd_connection *conn)
+nbd_internal_crypto_handshake (struct nbd_handle *h)
 {
   abort ();
 }
 
 void
-nbd_internal_crypto_debug_tls_enabled (struct nbd_connection *conn)
+nbd_internal_crypto_debug_tls_enabled (struct nbd_handle *h)
 {
   abort ();
 }

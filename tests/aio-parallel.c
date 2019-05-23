@@ -34,11 +34,11 @@
 
 #include <libnbd.h>
 
-/* Size of the RAM disk in bytes. */
-static int64_t exportsize;
-
 /* We keep a shadow of the RAM disk so we can check integrity of the data. */
 static char *ramdisk;
+
+/* This is also defined in aio-parallel.sh and checked here. */
+#define EXPORTSIZE (8*1024*1024)
 
 /* How long (seconds) that the test will run for. */
 #define RUN_TIME 10
@@ -49,8 +49,8 @@ static char *ramdisk;
 /* Number of commands in flight per connection. */
 #define MAX_IN_FLIGHT 16
 
-/* The single NBD handle.  This contains NR_MULTI_CONN connections. */
-static struct nbd_handle *nbd;
+/* Unix socket. */
+static const char *unixsocket;
 
 struct thread_status {
   size_t i;                     /* Thread index, 0 .. NR_MULTI_CONN-1 */
@@ -80,38 +80,7 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s socket\n", argv[0]);
     exit (EXIT_FAILURE);
   }
-
-  nbd = nbd_create ();
-  if (nbd == NULL) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
-  if (nbd_set_multi_conn (nbd, NR_MULTI_CONN) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
-#ifdef TLS
-  /* Require TLS on the handle and fail if not available or if the
-   * handshake fails.
-   */
-  if (nbd_set_tls (nbd, 2) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
-  if (nbd_set_tls_psk_file (nbd, "keys.psk") == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-#endif
-
-  /* Connect to nbdkit. */
-  if (nbd_connect_unix (nbd, argv[1]) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
+  unixsocket = argv[1];
 
   /* Get the current time and the end time. */
   time (&t);
@@ -119,34 +88,17 @@ main (int argc, char *argv[])
 
   srand (t + getpid ());
 
-  exportsize = nbd_get_size (nbd);
-  if (exportsize == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
   /* Initialize the RAM disk with the initial data from
    * nbdkit-pattern-filter.
    */
-  ramdisk = malloc (exportsize);
+  ramdisk = malloc (EXPORTSIZE);
   if (ramdisk == NULL) {
     perror ("calloc");
     exit (EXIT_FAILURE);
   }
-  for (i = 0; i < exportsize; i += 8) {
+  for (i = 0; i < EXPORTSIZE; i += 8) {
     uint64_t d = htobe64 (i);
     memcpy (&ramdisk[i], &d, sizeof d);
-  }
-
-  if (nbd_read_only (nbd) == 1) {
-    fprintf (stderr, "%s: error: this NBD export is read-only\n", argv[0]);
-    exit (EXIT_FAILURE);
-  }
-
-  if (nbd_can_multi_conn (nbd) == 0) {
-    fprintf (stderr, "%s: error: "
-             "this NBD export does not support multi-conn\n", argv[0]);
-    exit (EXIT_FAILURE);
   }
 
   /* Start the worker threads, one per connection. */
@@ -155,8 +107,8 @@ main (int argc, char *argv[])
     status[i].end_time = t;
     for (j = 0; j < MAX_IN_FLIGHT; ++j) {
       status[i].offset[j] =
-        (i * MAX_IN_FLIGHT + j) * exportsize / NR_MULTI_CONN / MAX_IN_FLIGHT;
-      status[i].length[j] = exportsize / NR_MULTI_CONN / MAX_IN_FLIGHT;
+        (i * MAX_IN_FLIGHT + j) * EXPORTSIZE / NR_MULTI_CONN / MAX_IN_FLIGHT;
+      status[i].length[j] = EXPORTSIZE / NR_MULTI_CONN / MAX_IN_FLIGHT;
     }
     status[i].status = 0;
     status[i].requests = 0;
@@ -193,13 +145,6 @@ main (int argc, char *argv[])
     bytes_sent += status[i].bytes_sent;
     bytes_received += status[i].bytes_received;
   }
-
-  if (nbd_shutdown (nbd) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
-  nbd_close (nbd);
 
   /* Print some stats. */
   printf ("TLS: %s\n",
@@ -242,7 +187,7 @@ start_thread (void *arg)
 {
   struct pollfd fds[1];
   struct thread_status *status = arg;
-  struct nbd_connection *conn;
+  struct nbd_handle *nbd;
   size_t i;
   int64_t offset, handle;
   char *buf;
@@ -254,13 +199,41 @@ start_thread (void *arg)
   for (i = 0; i < MAX_IN_FLIGHT; ++i)
     commands[status->i][i].offset = -1;
 
-  /* The single thread "owns" the connection. */
-  conn = nbd_get_connection (nbd, status->i);
+  nbd = nbd_create ();
+  if (nbd == NULL) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+#ifdef TLS
+  /* Require TLS on the handle and fail if not available or if the
+   * handshake fails.
+   */
+  if (nbd_set_tls (nbd, 2) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  if (nbd_set_tls_psk_file (nbd, "keys.psk") == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+#endif
+
+  /* Connect to nbdkit. */
+  if (nbd_connect_unix (nbd, unixsocket) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  assert (nbd_get_size (nbd) == EXPORTSIZE);
+  assert (nbd_can_multi_conn (nbd) > 0);
+  assert (nbd_read_only (nbd) == 0);
 
   /* Issue commands. */
   in_flight = 0;
   while (!expired || in_flight > 0) {
-    if (nbd_aio_is_dead (conn) || nbd_aio_is_closed (conn)) {
+    if (nbd_aio_is_dead (nbd) || nbd_aio_is_closed (nbd)) {
       fprintf (stderr, "thread %zu: connection is dead or closed\n",
                status->i);
       goto error;
@@ -276,12 +249,12 @@ start_thread (void *arg)
      * issue a request.
      */
     want_to_send =
-      !expired && in_flight < MAX_IN_FLIGHT && nbd_aio_is_ready (conn);
+      !expired && in_flight < MAX_IN_FLIGHT && nbd_aio_is_ready (nbd);
 
-    fds[0].fd = nbd_aio_get_fd (conn);
+    fds[0].fd = nbd_aio_get_fd (nbd);
     fds[0].events = want_to_send ? POLLOUT : 0;
     fds[0].revents = 0;
-    dir = nbd_aio_get_direction (conn);
+    dir = nbd_aio_get_direction (nbd);
     if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0)
       fds[0].events |= POLLIN;
     if ((dir & LIBNBD_AIO_DIRECTION_WRITE) != 0)
@@ -294,14 +267,14 @@ start_thread (void *arg)
 
     if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0 &&
         (fds[0].revents & POLLIN) != 0)
-      nbd_aio_notify_read (conn);
+      nbd_aio_notify_read (nbd);
     else if ((dir & LIBNBD_AIO_DIRECTION_WRITE) != 0 &&
              (fds[0].revents & POLLOUT) != 0)
-      nbd_aio_notify_write (conn);
+      nbd_aio_notify_write (nbd);
 
     /* If we can issue another request, do so. */
     if (want_to_send && (fds[0].revents & POLLOUT) != 0 &&
-        nbd_aio_is_ready (conn)) {
+        nbd_aio_is_ready (nbd)) {
       /* Find a free command slot. */
       for (i = 0; i < MAX_IN_FLIGHT; ++i)
         if (commands[status->i][i].offset == -1)
@@ -313,12 +286,12 @@ start_thread (void *arg)
         + (rand () % (status->length[i] - BUFFERSIZE));
       cmd = rand () & 1;
       if (cmd == 0) {
-        handle = nbd_aio_pwrite (conn, buf, BUFFERSIZE, offset, 0);
+        handle = nbd_aio_pwrite (nbd, buf, BUFFERSIZE, offset, 0);
         status->bytes_sent += BUFFERSIZE;
         memcpy (&ramdisk[offset], buf, BUFFERSIZE);
       }
       else {
-        handle = nbd_aio_pread (conn, buf, BUFFERSIZE, offset);
+        handle = nbd_aio_pread (nbd, buf, BUFFERSIZE, offset);
         status->bytes_received += BUFFERSIZE;
       }
       if (handle == -1) {
@@ -341,7 +314,7 @@ start_thread (void *arg)
         cmd = commands[status->i][i].cmd;
         buf = commands[status->i][i].buf;
 
-        r = nbd_aio_command_completed (conn, handle);
+        r = nbd_aio_command_completed (nbd, handle);
         if (r == -1) {
           fprintf (stderr, "%s\n", nbd_get_error ());
           goto error;
@@ -360,6 +333,13 @@ start_thread (void *arg)
       }
     }
   }
+
+  if (nbd_shutdown (nbd) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    goto error;
+  }
+
+  nbd_close (nbd);
 
   printf ("thread %zu: finished OK\n", status->i);
 

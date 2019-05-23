@@ -28,233 +28,136 @@
 
 #include "internal.h"
 
-/* For synchronous functions, this picks which connection to use.  It
- * has simple round-robin behaviour, but ignores connections which are
- * dead or not ready.  It will return an error if there are no
- * suitable connections.
- */
-static struct nbd_connection *
-pick_connection (struct nbd_handle *h)
+static int
+wait_for_command (struct nbd_handle *h, int64_t handle)
 {
-  size_t i, j;
-  struct nbd_connection *conn = NULL;
-  int error = ENOTCONN;
+  int r;
 
-  i = h->unique % h->multi_conn;
-  for (j = 0; j < h->multi_conn; ++j) {
-    if (nbd_unlocked_aio_is_ready (h->conns[i])) {
-      conn = h->conns[i];
-      break;
-    }
-    /* At least one connection is busy, not dead and not sitting in
-     * the initial state.
-     */
-    if (!nbd_unlocked_aio_is_created (h->conns[i]) &&
-        !nbd_unlocked_aio_is_dead (h->conns[i]))
-      error = EBUSY;
-
-    ++i;
-    if (i >= h->multi_conn)
-      i = 0;
+  while ((r = nbd_unlocked_aio_command_completed (h, handle)) == 0) {
+    if (nbd_unlocked_poll (h, -1) == -1)
+      return -1;
   }
 
-  if (conn == NULL) {
-    set_error (error, "no connection(s) are ready to issue commands");
-    return NULL;
-  }
-
-  return conn;
+  return r == -1 ? -1 : 0;
 }
 
-/* Issue a read command on any connection and wait for the reply. */
+/* Issue a read command and wait for the reply. */
 int
 nbd_unlocked_pread (struct nbd_handle *h, void *buf,
                     size_t count, uint64_t offset)
 {
-  struct nbd_connection *conn;
   int64_t ch;
-  int r;
 
-  conn = pick_connection (h);
-  if (conn == NULL)
-    return -1;
-
-  ch = nbd_unlocked_aio_pread (conn, buf, count, offset);
+  ch = nbd_unlocked_aio_pread (h, buf, count, offset);
   if (ch == -1)
     return -1;
 
-  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
-    if (nbd_unlocked_poll (h, -1) == -1)
-      return -1;
-  }
-
-  return r == -1 ? -1 : 0;
+  return wait_for_command (h, ch);
 }
 
-/* Issue a write command on any connection and wait for the reply. */
+/* Issue a write command and wait for the reply. */
 int
 nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
                      size_t count, uint64_t offset, uint32_t flags)
 {
-  struct nbd_connection *conn;
   int64_t ch;
-  int r;
 
-  conn = pick_connection (h);
-  if (conn == NULL)
-    return -1;
-
-  ch = nbd_unlocked_aio_pwrite (conn, buf, count, offset, flags);
+  ch = nbd_unlocked_aio_pwrite (h, buf, count, offset, flags);
   if (ch == -1)
     return -1;
 
-  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
-    if (nbd_unlocked_poll (h, -1) == -1)
-      return -1;
-  }
-
-  return r == -1 ? -1 : 0;
+  return wait_for_command (h, ch);
 }
 
-/* Issue a flush command on any connection and wait for the reply. */
+/* Issue a flush command and wait for the reply. */
 int
 nbd_unlocked_flush (struct nbd_handle *h)
 {
-  struct nbd_connection *conn;
   int64_t ch;
-  int r;
 
-  conn = pick_connection (h);
-  if (conn == NULL)
-    return -1;
-
-  ch = nbd_unlocked_aio_flush (conn);
+  ch = nbd_unlocked_aio_flush (h);
   if (ch == -1)
     return -1;
 
-  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
-    if (nbd_unlocked_poll (h, -1) == -1)
-      return -1;
-  }
-
-  return r == -1 ? -1 : 0;
+  return wait_for_command (h, ch);
 }
 
-/* Issue a trim command on any connection and wait for the reply. */
+/* Issue a trim command and wait for the reply. */
 int
 nbd_unlocked_trim (struct nbd_handle *h,
                    uint64_t count, uint64_t offset, uint32_t flags)
 {
-  struct nbd_connection *conn;
   int64_t ch;
-  int r;
 
-  conn = pick_connection (h);
-  if (conn == NULL)
-    return -1;
-
-  ch = nbd_unlocked_aio_trim (conn, count, offset, flags);
+  ch = nbd_unlocked_aio_trim (h, count, offset, flags);
   if (ch == -1)
     return -1;
 
-  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
-    if (nbd_unlocked_poll (h, -1) == -1)
-      return -1;
-  }
-
-  return r == -1 ? -1 : 0;
+  return wait_for_command (h, ch);
 }
 
-/* Issue a cache command on any connection and wait for the reply. */
+/* Issue a cache command and wait for the reply. */
 int
 nbd_unlocked_cache (struct nbd_handle *h,
                     uint64_t count, uint64_t offset)
 {
-  struct nbd_connection *conn;
   int64_t ch;
-  int r;
 
-  conn = pick_connection (h);
-  if (conn == NULL)
-    return -1;
-
-  ch = nbd_unlocked_aio_cache (conn, count, offset);
+  ch = nbd_unlocked_aio_cache (h, count, offset);
   if (ch == -1)
     return -1;
 
-  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
-    if (nbd_unlocked_poll (h, -1) == -1)
-      return -1;
-  }
-
-  return r == -1 ? -1 : 0;
+  return wait_for_command (h, ch);
 }
 
-/* Issue a zero command on any connection and wait for the reply. */
+/* Issue a zero command and wait for the reply. */
 int
 nbd_unlocked_zero (struct nbd_handle *h,
                    uint64_t count, uint64_t offset, uint32_t flags)
 {
-  struct nbd_connection *conn;
   int64_t ch;
-  int r;
 
-  conn = pick_connection (h);
-  if (conn == NULL)
-    return -1;
-
-  ch = nbd_unlocked_aio_zero (conn, count, offset, flags);
+  ch = nbd_unlocked_aio_zero (h, count, offset, flags);
   if (ch == -1)
     return -1;
 
-  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
-    if (nbd_unlocked_poll (h, -1) == -1)
-      return -1;
-  }
-
-  return r == -1 ? -1 : 0;
+  return wait_for_command (h, ch);
 }
 
-/* Issue a block status command on any connection and wait for the reply. */
+/* Issue a block status command and wait for the reply. */
 int
 nbd_unlocked_block_status (struct nbd_handle *h,
                            uint64_t count, uint64_t offset, uint32_t flags,
                            void *data,
                            extent_fn extent)
 {
-  struct nbd_connection *conn;
   int64_t ch;
-  int r;
 
-  conn = pick_connection (h);
-  if (conn == NULL)
-    return -1;
-
-  ch = nbd_unlocked_aio_block_status (conn, count, offset, flags, data, extent);
+  ch = nbd_unlocked_aio_block_status (h, count, offset, flags, data, extent);
   if (ch == -1)
     return -1;
 
-  while ((r = nbd_unlocked_aio_command_completed (conn, ch)) == 0) {
-    if (nbd_unlocked_poll (h, -1) == -1)
-      return -1;
-  }
-
-  return r == -1 ? -1 : 0;
+  return wait_for_command (h, ch);
 }
 
 int64_t
-nbd_internal_command_common (struct nbd_connection *conn,
+nbd_internal_command_common (struct nbd_handle *h,
                              uint16_t flags, uint16_t type,
                              uint64_t offset, uint64_t count, void *data,
                              extent_fn extent)
 {
   struct command_in_flight *cmd, *prev_cmd;
 
-  if (!nbd_unlocked_aio_is_ready (conn) &&
-      !nbd_unlocked_aio_is_processing (conn)) {
+  if (nbd_unlocked_aio_is_created (h)) {
+    set_error (ENOTCONN, "you must connect to the NBD server "
+               "before issuing commands");
+    return -1;
+  }
+  if (!nbd_unlocked_aio_is_ready (h) &&
+      !nbd_unlocked_aio_is_processing (h)) {
     set_error (0, "command request %s is invalid in state %s",
                nbd_internal_name_of_nbd_cmd (type),
-               nbd_internal_state_short_string (conn->state));
+               nbd_internal_state_short_string (h->state));
     return -1;
   }
 
@@ -290,7 +193,7 @@ nbd_internal_command_common (struct nbd_connection *conn,
   }
   cmd->flags = flags;
   cmd->type = type;
-  cmd->handle = conn->h->unique++;
+  cmd->handle = h->unique++;
   cmd->offset = offset;
   cmd->count = count;
   cmd->data = data;
@@ -304,24 +207,24 @@ nbd_internal_command_common (struct nbd_connection *conn,
    * in the highly intensive loopback case.  For TLS we get a
    * performance gain, go figure.
    */
-  if (conn->structured_replies && cmd->data && type == NBD_CMD_READ)
+  if (h->structured_replies && cmd->data && type == NBD_CMD_READ)
     memset (cmd->data, 0, cmd->count);
 
   /* Add the command to the end of the queue. Kick the state machine
    * if there is no other command being processed, otherwise, it will
    * be handled automatically on a future cycle around to READY.
    */
-  if (conn->cmds_to_issue != NULL) {
-    assert (nbd_unlocked_aio_is_processing (conn));
-    prev_cmd = conn->cmds_to_issue;
+  if (h->cmds_to_issue != NULL) {
+    assert (nbd_unlocked_aio_is_processing (h));
+    prev_cmd = h->cmds_to_issue;
     while (prev_cmd->next)
       prev_cmd = prev_cmd->next;
     prev_cmd->next = cmd;
   }
   else {
-    conn->cmds_to_issue = cmd;
-    if (nbd_unlocked_aio_is_ready (conn) &&
-        nbd_internal_run (conn->h, conn, cmd_issue) == -1)
+    h->cmds_to_issue = cmd;
+    if (nbd_unlocked_aio_is_ready (h) &&
+        nbd_internal_run (h, cmd_issue) == -1)
       return -1;
   }
 
@@ -329,19 +232,19 @@ nbd_internal_command_common (struct nbd_connection *conn,
 }
 
 int64_t
-nbd_unlocked_aio_pread (struct nbd_connection *conn, void *buf,
+nbd_unlocked_aio_pread (struct nbd_handle *h, void *buf,
                         size_t count, uint64_t offset)
 {
-  return nbd_internal_command_common (conn, 0, NBD_CMD_READ, offset, count,
+  return nbd_internal_command_common (h, 0, NBD_CMD_READ, offset, count,
                                       buf, NULL);
 }
 
 int64_t
-nbd_unlocked_aio_pwrite (struct nbd_connection *conn, const void *buf,
+nbd_unlocked_aio_pwrite (struct nbd_handle *h, const void *buf,
                          size_t count, uint64_t offset,
                          uint32_t flags)
 {
-  if (nbd_unlocked_read_only (conn->h) == 1) {
+  if (nbd_unlocked_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
     return -1;
   }
@@ -352,33 +255,33 @@ nbd_unlocked_aio_pwrite (struct nbd_connection *conn, const void *buf,
   }
 
   if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
-      nbd_unlocked_can_fua (conn->h) != 1) {
+      nbd_unlocked_can_fua (h) != 1) {
     set_error (EINVAL, "server does not support the FUA flag");
     return -1;
   }
 
-  return nbd_internal_command_common (conn, flags, NBD_CMD_WRITE, offset, count,
+  return nbd_internal_command_common (h, flags, NBD_CMD_WRITE, offset, count,
                                       (void *) buf, NULL);
 }
 
 int64_t
-nbd_unlocked_aio_flush (struct nbd_connection *conn)
+nbd_unlocked_aio_flush (struct nbd_handle *h)
 {
-  if (nbd_unlocked_can_flush (conn->h) != 1) {
+  if (nbd_unlocked_can_flush (h) != 1) {
     set_error (EINVAL, "server does not support flush operations");
     return -1;
   }
 
-  return nbd_internal_command_common (conn, 0, NBD_CMD_FLUSH, 0, 0,
+  return nbd_internal_command_common (h, 0, NBD_CMD_FLUSH, 0, 0,
                                       NULL, NULL);
 }
 
 int64_t
-nbd_unlocked_aio_trim (struct nbd_connection *conn,
+nbd_unlocked_aio_trim (struct nbd_handle *h,
                        uint64_t count, uint64_t offset,
                        uint32_t flags)
 {
-  if (nbd_unlocked_read_only (conn->h) == 1) {
+  if (nbd_unlocked_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
     return -1;
   }
@@ -389,7 +292,7 @@ nbd_unlocked_aio_trim (struct nbd_connection *conn,
   }
 
   if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
-      nbd_unlocked_can_fua (conn->h) != 1) {
+      nbd_unlocked_can_fua (h) != 1) {
     set_error (EINVAL, "server does not support the FUA flag");
     return -1;
   }
@@ -399,33 +302,33 @@ nbd_unlocked_aio_trim (struct nbd_connection *conn,
     return -1;
   }
 
-  return nbd_internal_command_common (conn, flags, NBD_CMD_TRIM, offset, count,
+  return nbd_internal_command_common (h, flags, NBD_CMD_TRIM, offset, count,
                                       NULL, NULL);
 }
 
 int64_t
-nbd_unlocked_aio_cache (struct nbd_connection *conn,
+nbd_unlocked_aio_cache (struct nbd_handle *h,
                         uint64_t count, uint64_t offset)
 {
   /* Actually according to the NBD protocol document, servers do exist
    * that support NBD_CMD_CACHE but don't advertise the
    * NBD_FLAG_SEND_CACHE bit, but we ignore those.
    */
-  if (nbd_unlocked_can_cache (conn->h) != 1) {
+  if (nbd_unlocked_can_cache (h) != 1) {
     set_error (EINVAL, "server does not support cache operations");
     return -1;
   }
 
-  return nbd_internal_command_common (conn, 0, NBD_CMD_CACHE, offset, count,
+  return nbd_internal_command_common (h, 0, NBD_CMD_CACHE, offset, count,
                                       NULL, NULL);
 }
 
 int64_t
-nbd_unlocked_aio_zero (struct nbd_connection *conn,
+nbd_unlocked_aio_zero (struct nbd_handle *h,
                        uint64_t count, uint64_t offset,
                        uint32_t flags)
 {
-  if (nbd_unlocked_read_only (conn->h) == 1) {
+  if (nbd_unlocked_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
     return -1;
   }
@@ -436,7 +339,7 @@ nbd_unlocked_aio_zero (struct nbd_connection *conn,
   }
 
   if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
-      nbd_unlocked_can_fua (conn->h) != 1) {
+      nbd_unlocked_can_fua (h) != 1) {
     set_error (EINVAL, "server does not support the FUA flag");
     return -1;
   }
@@ -446,23 +349,23 @@ nbd_unlocked_aio_zero (struct nbd_connection *conn,
     return -1;
   }
 
-  return nbd_internal_command_common (conn, flags, NBD_CMD_WRITE_ZEROES, offset,
+  return nbd_internal_command_common (h, flags, NBD_CMD_WRITE_ZEROES, offset,
                                       count, NULL, NULL);
 }
 
 int64_t
-nbd_unlocked_aio_block_status (struct nbd_connection *conn,
+nbd_unlocked_aio_block_status (struct nbd_handle *h,
                                uint64_t count, uint64_t offset,
                                uint32_t flags,
                                void *data,
                                extent_fn extent)
 {
-  if (!conn->structured_replies) {
+  if (!h->structured_replies) {
     set_error (ENOTSUP, "server does not support structured replies");
     return -1;
   }
 
-  if (conn->meta_contexts == NULL) {
+  if (h->meta_contexts == NULL) {
     set_error (ENOTSUP, "did not negotiate any metadata contexts, "
                "either you did not call nbd_request_meta_context before "
                "connecting or the server does not support it");
@@ -479,6 +382,6 @@ nbd_unlocked_aio_block_status (struct nbd_connection *conn,
     return -1;
   }
 
-  return nbd_internal_command_common (conn, flags, NBD_CMD_BLOCK_STATUS, offset,
+  return nbd_internal_command_common (h, flags, NBD_CMD_BLOCK_STATUS, offset,
                                       count, data, extent);
 }

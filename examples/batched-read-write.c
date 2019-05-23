@@ -47,24 +47,20 @@ static int
 try_deadlock (void *arg)
 {
   struct pollfd fds[1];
-  struct nbd_connection *conn;
   size_t i;
   int64_t handles[2], done;
   size_t in_flight;        /* counts number of requests in flight */
   int dir, r;
 
-  /* The single thread "owns" the connection. */
-  conn = nbd_get_connection (nbd, 0);
-
   /* Issue commands. */
   in_flight = 0;
-  handles[0] = nbd_aio_pread (conn, in, packetsize, 0);
+  handles[0] = nbd_aio_pread (nbd, in, packetsize, 0);
   if (handles[0] == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto error;
   }
   in_flight++;
-  handles[1] = nbd_aio_pwrite (conn, out, packetsize, packetsize, 0);
+  handles[1] = nbd_aio_pwrite (nbd, out, packetsize, packetsize, 0);
   if (handles[1] == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto error;
@@ -73,15 +69,15 @@ try_deadlock (void *arg)
 
   /* Now wait for commands to retire, or for deadlock to occur */
   while (in_flight > 0) {
-    if (nbd_aio_is_dead (conn) || nbd_aio_is_closed (conn)) {
+    if (nbd_aio_is_dead (nbd) || nbd_aio_is_closed (nbd)) {
       fprintf (stderr, "connection is dead or closed\n");
       goto error;
     }
 
-    fds[0].fd = nbd_aio_get_fd (conn);
+    fds[0].fd = nbd_aio_get_fd (nbd);
     fds[0].events = 0;
     fds[0].revents = 0;
-    dir = nbd_aio_get_direction (conn);
+    dir = nbd_aio_get_direction (nbd);
     if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0)
       fds[0].events |= POLLIN;
     if ((dir & LIBNBD_AIO_DIRECTION_WRITE) != 0)
@@ -94,16 +90,16 @@ try_deadlock (void *arg)
 
     if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0 &&
         (fds[0].revents & POLLIN) != 0)
-      nbd_aio_notify_read (conn);
+      nbd_aio_notify_read (nbd);
     else if ((dir & LIBNBD_AIO_DIRECTION_WRITE) != 0 &&
              (fds[0].revents & POLLOUT) != 0)
-      nbd_aio_notify_write (conn);
+      nbd_aio_notify_write (nbd);
 
     /* If a command is ready to retire, retire it. */
-    while ((done = nbd_aio_peek_command_completed (conn)) > 0) {
+    while ((done = nbd_aio_peek_command_completed (nbd)) > 0) {
       for (i = 0; i < in_flight; ++i) {
         if (handles[i] == done) {
-          r = nbd_aio_command_completed (conn, handles[i]);
+          r = nbd_aio_command_completed (nbd, handles[i]);
           if (r == -1) {
             fprintf (stderr, "%s\n", nbd_get_error ());
             goto error;

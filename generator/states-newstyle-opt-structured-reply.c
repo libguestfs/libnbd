@@ -20,20 +20,20 @@
 
 /* STATE MACHINE */ {
  NEWSTYLE.OPT_STRUCTURED_REPLY.START:
-  conn->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
-  conn->sbuf.option.option = htobe32 (NBD_OPT_STRUCTURED_REPLY);
-  conn->sbuf.option.optlen = htobe32 (0);
-  conn->wbuf = &conn->sbuf;
-  conn->wlen = sizeof conn->sbuf.option;
+  h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
+  h->sbuf.option.option = htobe32 (NBD_OPT_STRUCTURED_REPLY);
+  h->sbuf.option.optlen = htobe32 (0);
+  h->wbuf = &h->sbuf;
+  h->wlen = sizeof h->sbuf.option;
   SET_NEXT_STATE (%SEND);
   return 0;
 
  NEWSTYLE.OPT_STRUCTURED_REPLY.SEND:
-  switch (send_from_wbuf (conn)) {
+  switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    conn->rbuf = &conn->sbuf;
-    conn->rlen = sizeof conn->sbuf.or.option_reply;
+    h->rbuf = &h->sbuf;
+    h->rlen = sizeof h->sbuf.or.option_reply;
     SET_NEXT_STATE (%RECV_REPLY);
   }
   return 0;
@@ -41,19 +41,19 @@
  NEWSTYLE.OPT_STRUCTURED_REPLY.RECV_REPLY:
   uint32_t len;
 
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     /* Discard the payload if there is one. */
-    len = be32toh (conn->sbuf.or.option_reply.replylen);
-    conn->rbuf = NULL;
-    conn->rlen = len;
+    len = be32toh (h->sbuf.or.option_reply.replylen);
+    h->rbuf = NULL;
+    h->rlen = len;
     SET_NEXT_STATE (%SKIP_REPLY_PAYLOAD);
   }
   return 0;
 
  NEWSTYLE.OPT_STRUCTURED_REPLY.SKIP_REPLY_PAYLOAD:
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:  SET_NEXT_STATE (%CHECK_REPLY);
   }
@@ -64,9 +64,9 @@
   uint32_t option;
   uint32_t reply;
 
-  magic = be64toh (conn->sbuf.or.option_reply.magic);
-  option = be32toh (conn->sbuf.or.option_reply.option);
-  reply = be32toh (conn->sbuf.or.option_reply.reply);
+  magic = be64toh (h->sbuf.or.option_reply.magic);
+  option = be32toh (h->sbuf.or.option_reply.option);
+  reply = be32toh (h->sbuf.or.option_reply.reply);
   if (magic != NBD_REP_MAGIC || option != NBD_OPT_STRUCTURED_REPLY) {
     SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: invalid option reply magic or option");
@@ -74,18 +74,18 @@
   }
   switch (reply) {
   case NBD_REP_ACK:
-    if (conn->sbuf.or.option_reply.replylen != 0) {
+    if (h->sbuf.or.option_reply.replylen != 0) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "handshake: invalid option reply length");
       return -1;
     }
-    debug (conn->h, "negotiated structured replies on this connection");
-    conn->structured_replies = true;
+    debug (h, "negotiated structured replies on this connection");
+    h->structured_replies = true;
     break;
   default:
     /* XXX: capture instead of skip server's payload to NBD_REP_ERR*? */
-    debug (conn->h, "structured replies are not supported by this server");
-    conn->structured_replies = false;
+    debug (h, "structured replies are not supported by this server");
+    h->structured_replies = false;
     break;
   }
 

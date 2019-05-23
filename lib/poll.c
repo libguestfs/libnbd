@@ -30,53 +30,48 @@
 int
 nbd_unlocked_poll (struct nbd_handle *h, int timeout)
 {
-  struct pollfd fds[h->multi_conn];
-  size_t i;
+  struct pollfd fds[1];
   int r;
 
-  for (i = 0; i < h->multi_conn; ++i) {
-    /* fd might be negative, and poll will ignore it. */
-    fds[i].fd = nbd_unlocked_aio_get_fd (h->conns[i]);
-    switch (nbd_unlocked_aio_get_direction (h->conns[i])) {
-    case LIBNBD_AIO_DIRECTION_READ:
-      fds[i].events = POLLIN;
-      break;
-    case LIBNBD_AIO_DIRECTION_WRITE:
-      fds[i].events = POLLOUT;
-      break;
-    case LIBNBD_AIO_DIRECTION_BOTH:
-      fds[i].events = POLLIN|POLLOUT;
-      break;
-    }
-    fds[i].revents = 0;
+  /* fd might be negative, and poll will ignore it. */
+  fds[0].fd = nbd_unlocked_aio_get_fd (h);
+  switch (nbd_unlocked_aio_get_direction (h)) {
+  case LIBNBD_AIO_DIRECTION_READ:
+    fds[0].events = POLLIN;
+    break;
+  case LIBNBD_AIO_DIRECTION_WRITE:
+    fds[0].events = POLLOUT;
+    break;
+  case LIBNBD_AIO_DIRECTION_BOTH:
+    fds[0].events = POLLIN|POLLOUT;
+    break;
   }
+  fds[0].revents = 0;
 
   /* Note that it's not safe to release the handle lock here, as it
    * would allow other threads to close file descriptors which we have
    * passed to poll.
    */
-  r = poll (fds, h->multi_conn, timeout);
+  r = poll (fds, 1, timeout);
   if (r == -1) {
     set_error (errno, "poll");
     return -1;
   }
 
-  for (i = 0; i < h->multi_conn; ++i) {
-    r = 0;
-    /* POLLIN and POLLOUT might both be set.  However we shouldn't
-     * call both nbd_aio_notify_read and nbd_aio_notify_write at this
-     * time since the first might change the handle state, making the
-     * second notification invalid.  Nothing bad happens by ignoring
-     * one of the notifications since if it's still valid it will be
-     * picked up by a subsequent poll.
-     */
-    if ((fds[i].revents & POLLIN) != 0)
-      r = nbd_unlocked_aio_notify_read (h->conns[i]);
-    else if ((fds[i].revents & POLLOUT) != 0)
-      r = nbd_unlocked_aio_notify_write (h->conns[i]);
-    if (r == -1)
-      return -1;
-  }
+  /* POLLIN and POLLOUT might both be set.  However we shouldn't call
+   * both nbd_aio_notify_read and nbd_aio_notify_write at this time
+   * since the first might change the handle state, making the second
+   * notification invalid.  Nothing bad happens by ignoring one of the
+   * notifications since if it's still valid it will be picked up by a
+   * subsequent poll.
+   */
+  r = 0;
+  if ((fds[0].revents & POLLIN) != 0)
+    r = nbd_unlocked_aio_notify_read (h);
+  else if ((fds[0].revents & POLLOUT) != 0)
+    r = nbd_unlocked_aio_notify_write (h);
+  if (r == -1)
+    return -1;
 
   return 0;
 }

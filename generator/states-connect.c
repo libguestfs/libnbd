@@ -39,21 +39,21 @@
  CONNECT.START:
   int fd;
 
-  assert (!conn->sock);
+  assert (!h->sock);
   fd = socket (AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
   if (fd == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "socket");
     return -1;
   }
-  conn->sock = nbd_internal_socket_create (fd);
-  if (!conn->sock) {
+  h->sock = nbd_internal_socket_create (fd);
+  if (!h->sock) {
     SET_NEXT_STATE (%.DEAD);
     return -1;
   }
 
-  if (connect (fd, (struct sockaddr *) &conn->connaddr,
-               conn->connaddrlen) == -1) {
+  if (connect (fd, (struct sockaddr *) &h->connaddr,
+               h->connaddrlen) == -1) {
     if (errno != EINPROGRESS) {
       SET_NEXT_STATE (%.DEAD);
       set_error (errno, "connect");
@@ -66,7 +66,7 @@
   int status;
   socklen_t len = sizeof status;
 
-  if (getsockopt (conn->sock->ops->get_fd (conn->sock),
+  if (getsockopt (h->sock->ops->get_fd (h->sock),
                   SOL_SOCKET, SO_ERROR, &status, &len) == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "getsockopt: SO_ERROR");
@@ -86,64 +86,64 @@
  CONNECT_TCP.START:
   int r;
 
-  assert (conn->hostname != NULL);
-  assert (conn->port != NULL);
+  assert (h->hostname != NULL);
+  assert (h->port != NULL);
 
-  if (conn->result) {
-    freeaddrinfo (conn->result);
-    conn->result = NULL;
+  if (h->result) {
+    freeaddrinfo (h->result);
+    h->result = NULL;
   }
 
-  memset (&conn->hints, 0, sizeof conn->hints);
-  conn->hints.ai_family = AF_UNSPEC;
-  conn->hints.ai_socktype = SOCK_STREAM;
-  conn->hints.ai_flags = 0;
-  conn->hints.ai_protocol = 0;
+  memset (&h->hints, 0, sizeof h->hints);
+  h->hints.ai_family = AF_UNSPEC;
+  h->hints.ai_socktype = SOCK_STREAM;
+  h->hints.ai_flags = 0;
+  h->hints.ai_protocol = 0;
 
   /* XXX Unfortunately getaddrinfo blocks.  getaddrinfo_a isn't
    * portable and in any case isn't an alternative because it can't be
    * integrated into a main loop.
    */
-  r = getaddrinfo (conn->hostname, conn->port, &conn->hints, &conn->result);
+  r = getaddrinfo (h->hostname, h->port, &h->hints, &h->result);
   if (r != 0) {
     SET_NEXT_STATE (%^START);
     set_error (0, "getaddrinfo: %s:%s: %s",
-               conn->hostname, conn->port, gai_strerror (r));
+               h->hostname, h->port, gai_strerror (r));
     return -1;
   }
 
-  conn->rp = conn->result;
+  h->rp = h->result;
   SET_NEXT_STATE (%CONNECT);
   return 0;
 
  CONNECT_TCP.CONNECT:
   int fd;
 
-  assert (!conn->sock);
+  assert (!h->sock);
 
-  if (conn->rp == NULL) {
+  if (h->rp == NULL) {
     /* We tried all the results from getaddrinfo without success.
      * Save errno from most recent connect(2) call. XXX
      */
     SET_NEXT_STATE (%^START);
     set_error (0, "connect: %s:%s: could not connect to remote host",
-               conn->hostname, conn->port);
+               h->hostname, h->port);
     return -1;
   }
 
-  fd = socket (conn->rp->ai_family,
-               conn->rp->ai_socktype|SOCK_NONBLOCK|SOCK_CLOEXEC,
-               conn->rp->ai_protocol);
+  fd = socket (h->rp->ai_family,
+               h->rp->ai_socktype|SOCK_NONBLOCK|SOCK_CLOEXEC,
+               h->rp->ai_protocol);
   if (fd == -1) {
     SET_NEXT_STATE (%NEXT_ADDRESS);
     return 0;
   }
-  conn->sock = nbd_internal_socket_create (fd);
-  if (!conn->sock) {
+  h->sock = nbd_internal_socket_create (fd);
+  if (!h->sock) {
     SET_NEXT_STATE (%.DEAD);
     return -1;
   }
-  if (connect (fd, conn->rp->ai_addr, conn->rp->ai_addrlen) == -1) {
+  if (connect (fd, h->rp->ai_addr, h->rp->ai_addrlen) == -1) {
     if (errno != EINPROGRESS) {
       SET_NEXT_STATE (%NEXT_ADDRESS);
       return 0;
@@ -157,7 +157,7 @@
   int status;
   socklen_t len = sizeof status;
 
-  if (getsockopt (conn->sock->ops->get_fd (conn->sock),
+  if (getsockopt (h->sock->ops->get_fd (h->sock),
                   SOL_SOCKET, SO_ERROR, &status, &len) == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "getsockopt: SO_ERROR");
@@ -171,12 +171,12 @@
   return 0;
 
  CONNECT_TCP.NEXT_ADDRESS:
-  if (conn->sock) {
-    conn->sock->ops->close (conn->sock);
-    conn->sock = NULL;
+  if (h->sock) {
+    h->sock->ops->close (h->sock);
+    h->sock = NULL;
   }
-  if (conn->rp)
-    conn->rp = conn->rp->ai_next;
+  if (h->rp)
+    h->rp = h->rp->ai_next;
   SET_NEXT_STATE (%CONNECT);
   return 0;
 
@@ -184,9 +184,9 @@
   int sv[2];
   pid_t pid;
 
-  assert (!conn->sock);
-  assert (conn->argv);
-  assert (conn->argv[0]);
+  assert (!h->sock);
+  assert (h->argv);
+  assert (h->argv[0]);
   if (socketpair (AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0,
                   sv) == -1) {
     SET_NEXT_STATE (%.DEAD);
@@ -213,15 +213,15 @@
     /* Restore SIGPIPE back to SIG_DFL. */
     signal (SIGPIPE, SIG_DFL);
 
-    execvp (conn->argv[0], conn->argv);
-    perror (conn->argv[0]);
+    execvp (h->argv[0], h->argv);
+    perror (h->argv[0]);
     _exit (EXIT_FAILURE);
   }
 
   /* Parent. */
-  conn->pid = pid;
-  conn->sock = nbd_internal_socket_create (sv[0]);
-  if (!conn->sock) {
+  h->pid = pid;
+  h->sock = nbd_internal_socket_create (sv[0]);
+  if (!h->sock) {
     SET_NEXT_STATE (%.DEAD);
     return -1;
   }

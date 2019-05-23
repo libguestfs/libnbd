@@ -39,29 +39,29 @@
 /*#define DUMP_PACKETS 1*/
 
 static int
-recv_into_rbuf (struct nbd_connection *conn)
+recv_into_rbuf (struct nbd_handle *h)
 {
   ssize_t r;
   char buf[BUFSIZ];
   void *rbuf;
   size_t rlen;
 
-  if (conn->rlen == 0)
+  if (h->rlen == 0)
     return 0;                   /* move to next state */
 
-  /* As a special case conn->rbuf is allowed to be NULL, meaning
+  /* As a special case h->rbuf is allowed to be NULL, meaning
    * throw away the data.
    */
-  if (conn->rbuf) {
-    rbuf = conn->rbuf;
-    rlen = conn->rlen;
+  if (h->rbuf) {
+    rbuf = h->rbuf;
+    rlen = h->rlen;
   }
   else {
     rbuf = &buf;
-    rlen = conn->rlen > sizeof buf ? sizeof buf : conn->rlen;
+    rlen = h->rlen > sizeof buf ? sizeof buf : h->rlen;
   }
 
-  r = conn->sock->ops->recv (conn->sock, rbuf, rlen);
+  r = h->sock->ops->recv (h->sock, rbuf, rlen);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK)
       return 1;                 /* more data */
@@ -73,35 +73,35 @@ recv_into_rbuf (struct nbd_connection *conn)
     return -1;
   }
 #ifdef DUMP_PACKETS
-  if (conn->rbuf != NULL)
-    nbd_internal_hexdump (conn->rbuf, r, stderr);
+  if (h->rbuf != NULL)
+    nbd_internal_hexdump (h->rbuf, r, stderr);
 #endif
-  if (conn->rbuf)
-    conn->rbuf += r;
-  conn->rlen -= r;
-  if (conn->rlen == 0)
+  if (h->rbuf)
+    h->rbuf += r;
+  h->rlen -= r;
+  if (h->rlen == 0)
     return 0;                   /* move to next state */
   else
     return 1;                   /* more data */
 }
 
 static int
-send_from_wbuf (struct nbd_connection *conn)
+send_from_wbuf (struct nbd_handle *h)
 {
   ssize_t r;
 
-  if (conn->wlen == 0)
+  if (h->wlen == 0)
     return 0;                   /* move to next state */
-  r = conn->sock->ops->send (conn->sock, conn->wbuf, conn->wlen);
+  r = h->sock->ops->send (h->sock, h->wbuf, h->wlen);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK)
       return 1;                 /* more data */
     /* sock->ops->send called set_error already. */
     return -1;
   }
-  conn->wbuf += r;
-  conn->wlen -= r;
-  if (conn->wlen == 0)
+  h->wbuf += r;
+  h->wlen -= r;
+  if (h->wlen == 0)
     return 0;                   /* move to next state */
   else
     return 1;                   /* more data */
@@ -111,21 +111,21 @@ send_from_wbuf (struct nbd_connection *conn)
 
 /* STATE MACHINE */ {
  READY:
-  if (conn->cmds_to_issue)
+  if (h->cmds_to_issue)
     SET_NEXT_STATE (%ISSUE_COMMAND.START);
   return 0;
 
  DEAD:
-  if (conn->sock) {
-    conn->sock->ops->close (conn->sock);
-    conn->sock = NULL;
+  if (h->sock) {
+    h->sock->ops->close (h->sock);
+    h->sock = NULL;
   }
   return 0;
 
  CLOSED:
-  if (conn->sock) {
-    conn->sock->ops->close (conn->sock);
-    conn->sock = NULL;
+  if (h->sock) {
+    h->sock->ops->close (h->sock);
+    h->sock = NULL;
   }
   return 0;
 

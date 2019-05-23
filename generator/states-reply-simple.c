@@ -24,11 +24,11 @@
   uint32_t error;
   uint64_t handle;
 
-  error = be32toh (conn->sbuf.simple_reply.error);
-  handle = be64toh (conn->sbuf.simple_reply.handle);
+  error = be32toh (h->sbuf.simple_reply.error);
+  handle = be64toh (h->sbuf.simple_reply.handle);
 
   /* Find the command amongst the commands in flight. */
-  for (cmd = conn->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
+  for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
     if (cmd->handle == handle)
       break;
   }
@@ -39,7 +39,7 @@
     return -1;
   }
 
-  if (cmd->type == NBD_CMD_READ && conn->structured_replies) {
+  if (cmd->type == NBD_CMD_READ && h->structured_replies) {
     set_error (0, "server sent unexpected simple reply for read");
     SET_NEXT_STATE(%.DEAD);
     return 0;
@@ -47,8 +47,8 @@
 
   cmd->error = error;
   if (cmd->error == 0 && cmd->type == NBD_CMD_READ) {
-    conn->rbuf = cmd->data;
-    conn->rlen = cmd->count;
+    h->rbuf = cmd->data;
+    h->rlen = cmd->count;
     SET_NEXT_STATE (%RECV_READ_PAYLOAD);
   }
   else {
@@ -57,7 +57,7 @@
   return 0;
 
  REPLY.SIMPLE_REPLY.RECV_READ_PAYLOAD:
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:  SET_NEXT_STATE (%^FINISH_COMMAND);
   }

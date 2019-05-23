@@ -42,18 +42,6 @@ nbd_internal_set_size_and_flags (struct nbd_handle *h,
     return -1;
   }
 
-  /* It is unsafe to connect to a server with multi-conn set unless
-   * the server says it is safe to do so.
-   */
-  if (h->multi_conn > 1 &&
-      (eflags & NBD_FLAG_CAN_MULTI_CONN) == 0 &&
-      (eflags & NBD_FLAG_READ_ONLY) != 0) {
-    set_error (EINVAL, "handshake: multi-conn is set on this handle, "
-               "but the server does not advertise multi-conn support "
-               "so disconnecting because it is not safe to continue");
-    return -1;
-  }
-
   h->exportsize = exportsize;
   h->eflags = eflags;
   return 0;
@@ -122,29 +110,9 @@ nbd_unlocked_can_cache (struct nbd_handle *h)
 int
 nbd_unlocked_can_meta_context (struct nbd_handle *h, const char *name)
 {
-  struct nbd_connection *conn = NULL;
-  int i;
   struct meta_context *meta_context;
 
-  /* Unlike other can_FOO, this is not tracked in h->eflags, but is a
-   * per-connection result. Find first ready connection, and assume
-   * that all other connections will have the same set of contexts
-   * (although not necessarily the same ordering or context ids).
-   */
-  for (i = 0; i < h->multi_conn; ++i) {
-    if (!nbd_unlocked_aio_is_created (h->conns[i]) &&
-        !nbd_unlocked_aio_is_connecting (h->conns[i])) {
-      conn = h->conns[i];
-      break;
-    }
-  }
-
-  if (conn == NULL) {
-    set_error (ENOTCONN, "handshake is not yet complete");
-    return -1;
-  }
-
-  for (meta_context = conn->meta_contexts;
+  for (meta_context = h->meta_contexts;
        meta_context;
        meta_context = meta_context->next)
     if (strcmp (meta_context->name, name) == 0)

@@ -41,10 +41,7 @@ open Printf
  * of an external event.  That code is not in this file, it's
  * in [generator/states*.c].
  *
- * The state machine applies to connections, not handles.  A
- * handle can contain more than one connection if using multi-conn.
- *
- * Each connection starts in the top level START state.
+ * Each handle starts in the top level START state.
  *
  * When you enter a state, the associated C code for that state
  * runs.  If the C code calls SET_NEXT_STATE then the connection
@@ -151,7 +148,7 @@ let rec state_machine = [
   State {
     default_state with
     name = "START";
-    comment = "Connection after being initially created";
+    comment = "Handle after being initially created";
     external_events = [ CmdCreate, "";
                         CmdConnectSockAddr, "CONNECT.START";
                         CmdConnectTCP, "CONNECT_TCP.START";
@@ -804,6 +801,8 @@ and arg =
 | BytesIn of string * string (* byte array + size passed in to the function *)
 | BytesOut of string * string(* byte array + size specified by caller,
                               written by the function *)
+| BytesPersistIn of string * string (* same as above, but buffer persists *)
+| BytesPersistOut of string * string
 | Callback of string * arg list (* callback function returning void *)
 | Int of string            (* small int *)
 | Int64 of string          (* 64 bit signed int *)
@@ -827,7 +826,7 @@ and ret =
 let default_call = { args = []; ret = RErr; is_locked = true;
                      shortdesc = ""; longdesc = "" }
 
-(* Calls on [nbd_handle *nbd] *)
+(* Calls - first parameter [struct nbd_handle *nbd] is implicit. *)
 let handle_calls = [
   "set_debug", {
     default_call with
@@ -885,33 +884,6 @@ use the empty string.";
     shortdesc = "get the export name";
     longdesc = "\
 Get the export name associated with the handle.";
-  };
-
-  "set_multi_conn", {
-    default_call with
-    args = [ UInt "multi_conn" ]; ret = RErr;
-    shortdesc = "enable or disable multi-conn and set nr connections";
-    longdesc = "\
-NBD can make multiple connections, if the server supports it.
-The C<multi_conn> parameter controls whether this feature is
-enabled (if E<gt> 1) or disabled (if C<1>).  The parameter
-passed must not be C<0>.  Usually small powers of 2 (eg. 2, 4, 8)
-will provide increments in performance.  Some servers do not
-support this feature and libnbd will fail on read-write connections
-to these servers if this setting is E<gt> 1.
-
-At present, libnbd assumes that all connections will report the
-same capabilities; a server that behaves otherwise may trigger
-unexpected behavior.";
-  };
-
-  "get_multi_conn", {
-    default_call with
-    args = []; ret = RInt;
-    shortdesc = "get the multi-conn setting";
-    longdesc = "\
-Get the multi-conn setting for this handle.  This is always E<ge> 1,
-where 1 means multi-conn is not enabled.";
   };
 
   "set_tls", {
@@ -1072,8 +1044,7 @@ C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
     longdesc = "\
 Connect (synchronously) over the named Unix domain socket (C<sockpath>)
 to an NBD server running on the same machine.  This call returns
-when the connection has been made.  If multi-conn is enabled, this
-returns when all of the connections are connected.";
+when the connection has been made.";
   };
 
   "connect_tcp", {
@@ -1085,8 +1056,7 @@ Connect (synchronously) to the NBD server listening on
 C<hostname:port>.  The C<port> may be a port name such
 as C<\"nbd\">, or it may be a port number as a string
 such as C<\"10809\">.  This call returns when the connection
-has been made.  If multi-conn is enabled, this returns when
-all of the connections are connected.";
+has been made.";
   };
 
   "connect_command", {
@@ -1169,21 +1139,17 @@ connected to and completed the handshake with the server.";
     args = []; ret = RBool;
     shortdesc = "does the server support multi-conn?";
     longdesc = "\
-Returns true if the server supports multi-conn
-(see C<nbd_set_multi_conn>).  Returns false if
-the server does not.  Can return an error if we have not
-connected to and completed the handshake with the server.
+Returns true if the server supports multi-conn.  Returns
+false if the server does not.  Can return an error if we
+have not connected to and completed the handshake with
+the server.
 
-Note that you I<cannot> set multi-conn on the handle
-to E<gt> 1, connect, and then check this setting, because
-if the server does not support multi-conn the connection
-can fail.  Instead you should connect with multi-conn
-set to C<1> (the default), check this setting, then if
-multi-conn is found to be supported you can call
-C<nbd_set_multi_conn> with a larger value to increase
-the number of connection objects, then call one of the
-C<nbd_connect*> functions again on the handle to connect
-the remaining connections.";
+It is not safe to open multiple handles connecting to the
+same server if you will write to the server and the
+server does not advertize multi-conn support.  The safe
+way to check for this is to open one connection, check
+this flag is true, then open further connections as
+required.";
   };
 
   "can_cache", {
@@ -1231,10 +1197,7 @@ Issue a read command to the NBD server for the range starting
 at C<offset> and ending at C<offset> + C<count> - 1.  NBD
 can only read all or nothing using this call.  The call
 returns when the data has been read fully into C<buf> or there is an
-error.
-
-If multi-conn is enabled, the command is issued on the next
-ready connection, picked in a round-robin manner.";
+error.";
   };
 
   "pwrite", {
@@ -1252,10 +1215,7 @@ acknowledged by the server, or there is an error.
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
-(if that is supported - some servers cannot do this).
-
-If multi-conn is enabled, the command is issued on the next
-ready connection, picked in a round-robin manner.";
+(if that is supported - some servers cannot do this).";
   };
 
   "shutdown", {
@@ -1295,10 +1255,7 @@ or there is an error.
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
-(if that is supported - some servers cannot do this).
-
-If multi-conn is enabled, the command is issued on the next
-ready connection, picked in a round-robin manner.";
+(if that is supported - some servers cannot do this).";
   };
 
   "cache", {
@@ -1330,10 +1287,7 @@ or there is an error.
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
-(if that is supported - some servers cannot do this).
-
-If multi-conn is enabled, the command is issued on the next
-ready connection, picked in a round-robin manner.";
+(if that is supported - some servers cannot do this).";
   };
 
   "block_status", {
@@ -1402,10 +1356,7 @@ internally by synchronous API calls.  It is mainly useful as
 an example of how you might integrate libnbd with your own
 main loop, rather than being intended as something you would use.";
   };
-]
 
-(* Calls on [nbd_connection *conn] *)
-let connection_calls = [
   "aio_connect", {
     default_call with
     args = [ SockAddrAndLen ("addr", "addrlen") ]; ret = RErr;
@@ -1448,7 +1399,7 @@ on the connection.";
 
   "aio_pread", {
     default_call with
-    args = [ BytesOut ("buf", "count"); UInt64 "offset" ];
+    args = [ BytesPersistOut ("buf", "count"); UInt64 "offset" ];
     ret = RInt64;
     shortdesc = "read from the NBD server";
     longdesc = "\
@@ -1461,7 +1412,7 @@ C<buf> is valid until the command has completed.";
 
   "aio_pwrite", {
     default_call with
-    args = [ BytesIn ("buf", "count"); UInt64 "offset"; UInt32 "flags" ];
+    args = [ BytesPersistIn ("buf", "count"); UInt64 "offset"; UInt32 "flags" ];
     ret = RInt64;
     shortdesc = "write to the NBD server";
     longdesc = "\
@@ -1623,9 +1574,9 @@ connection is writable.";
     shortdesc = "check if the connection has just been created";
     longdesc = "\
 Return true if this connection has just been created.  This
-is the state before the connection object has started
-connecting to a server.  In this state the handle can start
-to be connected by calling functions such as C<nbd_aio_connect>.";
+is the state before the handle has started connecting to a
+server.  In this state the handle can start to be connected
+by calling functions such as C<nbd_aio_connect>.";
   };
 
   "aio_is_connecting", {
@@ -1635,7 +1586,7 @@ to be connected by calling functions such as C<nbd_aio_connect>.";
     longdesc = "\
 Return true if this connection is connecting to the server
 or in the process of handshaking and negotiating options
-which happens before the connection object becomes ready to
+which happens before the handle becomes ready to
 issue commands (see C<nbd_aio_is_ready>).";
   };
 
@@ -1670,9 +1621,8 @@ is processing them), but libnbd is not processing them.";
     shortdesc = "check if the connection is dead";
     longdesc = "\
 Return true if the connection has encountered a fatal
-error and is dead.  In this state the connection (or whole handle)
-may only be closed.  There is no way to recover a handle from
-the dead state.";
+error and is dead.  In this state the handle may only be closed.
+There is no way to recover a handle from the dead state.";
   };
 
   "aio_is_closed", {
@@ -1681,8 +1631,8 @@ the dead state.";
     shortdesc = "check if the connection is closed";
     longdesc = "\
 Return true if the connection has closed.  There is no way to
-reconnect a closed connection.  Instead you must recreate the
-connection object or close the whole handle.";
+reconnect a closed connection.  Instead you must close the
+whole handle.";
   };
 
   "aio_command_completed", {
@@ -2149,7 +2099,6 @@ let generate_lib_states_c () =
       pr "/* %s: %s */\n" display_name comment;
       pr "static int\n";
       pr "_enter_%s (struct nbd_handle *h,\n" state_enum;
-      pr "             struct nbd_connection *conn,\n";
       pr "             enum state *next_state,\n";
       pr "             bool *blocked)\n";
       pr "{\n";
@@ -2162,19 +2111,17 @@ let generate_lib_states_c () =
       pr "}\n";
       pr "\n";
       pr "static int\n";
-      pr "enter_%s (struct nbd_handle *h, struct nbd_connection *conn,\n"
-         state_enum;
-      pr "            bool *blocked)\n";
+      pr "enter_%s (struct nbd_handle *h, bool *blocked)\n" state_enum;
       pr "{\n";
       pr "  int r;\n";
       pr "  enum state next_state = %s;\n" state_enum;
       pr "\n";
-      pr "  r = _enter_%s (h, conn, &next_state, blocked);\n" state_enum;
-      pr "  if (conn->state != next_state) {\n";
-      pr "    debug (h, \"conn %%\" PRIi64 \": transition: %%s -> %%s\",\n";
-      pr "           conn->id, \"%s\",\n" display_name;
+      pr "  r = _enter_%s (h, &next_state, blocked);\n" state_enum;
+      pr "  if (h->state != next_state) {\n";
+      pr "    debug (h, \"transition: %%s -> %%s\",\n";
+      pr "           \"%s\",\n" display_name;
       pr "           nbd_internal_state_short_string (next_state));\n";
-      pr "    conn->state = next_state;\n";
+      pr "    h->state = next_state;\n";
       pr "  }\n";
       pr "  return r;\n";
       pr "}\n";
@@ -2183,14 +2130,13 @@ let generate_lib_states_c () =
 
   pr "/* Run the state machine based on an external event until it would block. */\n";
   pr "int\n";
-  pr "nbd_internal_run (struct nbd_handle *h, struct nbd_connection *conn,\n";
-  pr "                  enum external_event ev)\n";
+  pr "nbd_internal_run (struct nbd_handle *h, enum external_event ev)\n";
   pr "{\n";
   pr "  int r;\n";
   pr "  bool blocked;\n";
   pr "\n";
   pr "  /* Validate and handle the external event. */\n";
-  pr "  switch (conn->state)\n";
+  pr "  switch (h->state)\n";
   pr "  {\n";
   List.iter (
     fun ({ parsed = { display_name; state_enum; events } } as state) ->
@@ -2202,9 +2148,9 @@ let generate_lib_states_c () =
           fun (e, next_state) ->
             pr "    case %s:\n" (c_string_of_external_event e);
             if state != next_state then (
-              pr "      conn->state = %s;\n" next_state.parsed.state_enum;
-              pr "      debug (h, \"conn %%\" PRIi64 \": event %%s: %%s -> %%s\",\n";
-              pr "             conn->id, \"%s\", \"%s\", \"%s\");\n"
+              pr "      h->state = %s;\n" next_state.parsed.state_enum;
+              pr "      debug (h, \"event %%s: %%s -> %%s\",\n";
+              pr "             \"%s\", \"%s\", \"%s\");\n"
                  (string_of_external_event e)
                  display_name next_state.parsed.display_name;
             );
@@ -2218,7 +2164,7 @@ let generate_lib_states_c () =
   pr "  }\n";
   pr "\n";
   pr "  set_error (0, \"external event %%d is invalid in state %%s\",\n";
-  pr "             ev, nbd_internal_state_short_string (conn->state));\n";
+  pr "             ev, nbd_internal_state_short_string (h->state));\n";
   pr "  return -1;\n";
   pr "\n";
   pr " ok:\n";
@@ -2226,12 +2172,12 @@ let generate_lib_states_c () =
   pr "    blocked = true;\n";
   pr "\n";
   pr "    /* Run a single step. */\n";
-  pr "    switch (conn->state)\n";
+  pr "    switch (h->state)\n";
   pr "    {\n";
   List.iter (
     fun { parsed = { state_enum } } ->
       pr "    case %s:\n" state_enum;
-      pr "      r = enter_%s (h, conn, &blocked);\n" state_enum;
+      pr "      r = enter_%s (h, &blocked);\n" state_enum;
       pr "      break;\n"
   ) states;
   pr "    default:\n";
@@ -2246,11 +2192,11 @@ let generate_lib_states_c () =
 
   pr "/* Returns whether in the current state read or write would be valid. */\n";
   pr "int\n";
-  pr "nbd_unlocked_aio_get_direction (struct nbd_connection *conn)\n";
+  pr "nbd_unlocked_aio_get_direction (struct nbd_handle *h)\n";
   pr "{\n";
   pr "  int r = 0;\n";
   pr "\n";
-  pr "  switch (conn->state)\n";
+  pr "  switch (h->state)\n";
   pr "  {\n";
   List.iter (
     fun ({ parsed = { state_enum; events } }) ->
@@ -2292,9 +2238,9 @@ let generate_lib_states_c () =
   pr "\n";
 
   pr "const char *\n";
-  pr "nbd_unlocked_connection_state (struct nbd_connection *conn)\n";
+  pr "nbd_unlocked_connection_state (struct nbd_handle *h)\n";
   pr "{\n";
-  pr "  switch (conn->state)\n";
+  pr "  switch (h->state)\n";
   pr "  {\n";
   List.iter (
     fun ({ comment; parsed = { display_name; state_enum } }) ->
@@ -2372,12 +2318,9 @@ let generate_lib_libnbd_syms () =
   pr "  global:\n";
   pr "    nbd_create;\n";
   pr "    nbd_close;\n";
-  pr "    nbd_get_connection;\n";
   pr "    nbd_get_errno;\n";
   pr "    nbd_get_error;\n";
-  pr "    nbd_connection_close;\n";
   List.iter (fun (name, _) -> pr "    nbd_%s;\n" name) handle_calls;
-  List.iter (fun (name, _) -> pr "    nbd_%s;\n" name) connection_calls;
   pr "\n";
   pr "  # Everything else is hidden.\n";
   pr "  local: *;\n";
@@ -2388,6 +2331,8 @@ let rec name_of_arg = function
 | Bool n -> [n]
 | BytesIn (n, len) -> [n; len]
 | BytesOut (n, len) -> [n; len]
+| BytesPersistIn (n, len) -> [n; len]
+| BytesPersistOut (n, len) -> [n; len]
 | Callback (n, _) -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
@@ -2400,17 +2345,12 @@ let rec name_of_arg = function
 | UInt32 n -> [n]
 | UInt64 n -> [n]
 
-let rec print_c_arg_list ?handle args =
+let rec print_c_arg_list ?(handle = false) args =
   pr "(";
   let comma = ref false in
-  (match handle with
-   | None -> ()
-   | Some (htype, hname) ->
-      comma := true;
-      pr "struct nbd_%s *" htype;
-      match hname with
-      | None -> ()
-      | Some hname -> pr "%s" hname
+  if handle then (
+    comma := true;
+    pr "struct nbd_handle *h";
   );
   List.iter (
     fun arg ->
@@ -2420,8 +2360,10 @@ let rec print_c_arg_list ?handle args =
       | ArrayAndLen (UInt32 n, len) -> pr "uint32_t *%s, size_t %s" n len
       | ArrayAndLen _ -> assert false
       | Bool n -> pr "bool %s" n
-      | BytesIn (n, len) -> pr "const void *%s, size_t %s" n len
-      | BytesOut (n, len) -> pr "void *%s, size_t %s" n len
+      | BytesIn (n, len)
+      | BytesPersistIn (n, len) -> pr "const void *%s, size_t %s" n len
+      | BytesOut (n, len)
+      | BytesPersistOut (n, len) -> pr "void *%s, size_t %s" n len
       | Callback (n, args) -> pr "void (*%s) " n; print_c_arg_list args
       | Int n -> pr "int %s" n
       | Int64 n -> pr "int64_t %s" n
@@ -2437,7 +2379,7 @@ let rec print_c_arg_list ?handle args =
   ) args;
   pr ")"
 
-let print_call name htype args ret =
+let print_call name args ret =
   (match ret with
    | RBool
    | RErr
@@ -2448,11 +2390,11 @@ let print_call name htype args ret =
    | RString -> pr "char *"
   );
   pr "nbd_%s " name;
-  print_c_arg_list ~handle:(htype, None) args
+  print_c_arg_list ~handle:true args
 
-let print_extern name htype args ret =
+let print_extern name args ret =
   pr "extern ";
-  print_call name htype args ret;
+  print_call name args ret;
   pr ";\n"
 
 let generate_include_libnbd_h () =
@@ -2466,7 +2408,6 @@ let generate_include_libnbd_h () =
   pr "#include <sys/socket.h>\n";
   pr "\n";
   pr "struct nbd_handle;\n";
-  pr "struct nbd_connection;\n";
   pr "\n";
   pr "#define LIBNBD_AIO_DIRECTION_READ  1\n";
   pr "#define LIBNBD_AIO_DIRECTION_WRITE 2\n";
@@ -2481,16 +2422,8 @@ let generate_include_libnbd_h () =
   pr "extern int nbd_get_errno (void);\n";
   pr "\n";
   List.iter (
-    fun (name, { args; ret }) -> print_extern name "handle" args ret
+    fun (name, { args; ret }) -> print_extern name args ret
   ) handle_calls;
-  pr "\n";
-  pr "extern struct nbd_connection *nbd_get_connection (struct nbd_handle *h,\n";
-  pr "                                                  unsigned i);\n";
-  pr "extern int nbd_connection_close (struct nbd_connection *conn);\n";
-  pr "\n";
-  List.iter (
-    fun (name, { args; ret }) -> print_extern name "connection" args ret
-  ) connection_calls;
   pr "\n";
   pr "#endif /* LIBNBD_H */\n"
 
@@ -2502,13 +2435,8 @@ let generate_lib_unlocked_h () =
   pr "\n";
   List.iter (
     fun (name, { args; ret }) ->
-      print_extern ("unlocked_" ^ name) "handle" args ret
+      print_extern ("unlocked_" ^ name) args ret
   ) handle_calls;
-  pr "\n";
-  List.iter (
-    fun (name, { args; ret }) ->
-      print_extern ("unlocked_" ^ name) "connection" args ret
-  ) connection_calls;
   pr "\n";
   pr "#endif /* LIBNBD_UNLOCKED_H */\n"
 
@@ -2516,7 +2444,7 @@ let generate_lib_unlocked_h () =
  * grab the thread mutex (lock) and do logging.
  *)
 let generate_lib_api_c () =
-  let print_wrapper name htype hname lock args ret =
+  let print_wrapper name args ret =
     (match ret with
      | RBool
      | RErr
@@ -2527,7 +2455,7 @@ let generate_lib_api_c () =
      | RString -> pr "char *\n"
     );
     pr "nbd_%s " name;
-    print_c_arg_list ~handle:(htype, Some hname) args;
+    print_c_arg_list ~handle:true args;
     pr "\n";
     pr "{\n";
     (match ret with
@@ -2540,13 +2468,13 @@ let generate_lib_api_c () =
      | RString -> pr "  char *ret;\n"
     );
     pr "\n";
-    pr "  pthread_mutex_lock (&%s);\n" lock;
+    pr "  pthread_mutex_lock (&h->lock);\n";
     pr "  nbd_internal_reset_error (\"nbd_%s\");\n" name;
-    pr "  ret = nbd_unlocked_%s (%s" name hname;
+    pr "  ret = nbd_unlocked_%s (h" name;
     let argnames = List.flatten (List.map name_of_arg args) in
     List.iter (pr ", %s") argnames;
     pr ");\n";
-    pr "  pthread_mutex_unlock (&%s);\n" lock;
+    pr "  pthread_mutex_unlock (&h->lock);\n";
     pr "  return ret;\n";
     pr "}\n";
     pr "\n";
@@ -2566,20 +2494,15 @@ let generate_lib_api_c () =
   pr "\n";
   List.iter (
     fun (name, { args; ret }) ->
-      print_wrapper name "handle" "h" "h->lock" args ret
-  ) handle_calls;
-  pr "\n";
-  List.iter (
-    fun (name, { args; ret }) ->
-      print_wrapper name "connection" "conn" "conn->h->lock" args ret
-  ) connection_calls
+      print_wrapper name args ret
+  ) handle_calls
 
-let print_api htype (name, { args; ret; shortdesc; longdesc }) =
+let print_api (name, { args; ret; shortdesc; longdesc }) =
   pr "=head2 %s —\n" name;
   pr "%s\n" shortdesc;
   pr "\n";
   pr " ";
-  print_call name htype args ret;
+  print_call name args ret;
   pr "\n";
   pr "\n";
   pr "%s\n" longdesc;
@@ -2651,15 +2574,8 @@ with libnbd(3).
 
  struct nbd_handle *nbd;
 
-This opaque structure describes an NBD client handle.  It may
-contain one or more connections to the NBD server.
-
- struct nbd_connection *conn;
-
-This opaque structure describes an NBD connection to a server
-(eg. over a Unix domain socket or TCP port).  There is usually
-one of these in a handle, but there may be more if “multi-conn”
-has been enabled on the handle.
+This opaque structure describes an NBD client handle and
+connection to an NBD server.
 
  struct nbd_handle *nbd_create (void);
 
@@ -2671,33 +2587,7 @@ for how to get further details of the error.
 
  void nbd_close (struct nbd_handle *nbd);
 
-Closing all the handle, and also closes down all connections to
-the server belonging to this handle, and frees any associated
-resources.
-
- struct nbd_connection *nbd_get_connection (struct nbd_handle *nbd,
-                                            unsigned i);
-
-Get the I<i'th> connection structure managed by this handle.
-Most handles have one connection (use C<i = 0>).  If you have
-enabled ”multi-conn” then more than one connection can be
-returned here.
-
-On error this returns C<NULL>.  See L<libnbd(3)/ERROR HANDLING>
-for how to get further details of the error.
-
- int nbd_connection_close (struct nbd_connection *conn);
-
-Close and reopen the connection.  This closes the connection
-object and frees all resources associated with it.  Then it
-creates a new connection object in the slot in the handle
-which was previously occupied by this connection.  Note you
-don't normally have to call this because closing the whole
-handle will also close and free up all connections owned by
-the handle.
-
-On error this returns C<-1>.  See L<libnbd(3)/ERROR HANDLING>
-for how to get further details of the error.
+Closes the handle frees any associated resources.
 
 =head1 GETTING THE LATEST ERROR MESSAGE IN THE THREAD
 
@@ -2726,21 +2616,10 @@ C<E<lt>errno.hE<gt>>.
 
 ";
 
-  pr "=head1 HANDLE CALLS\n";
-  pr "\n";
-  pr "These are calls where the first parameter is always\n";
-  pr "C<struct nbd_handle *>.\n";
+  pr "=head1 API CALLS\n";
   pr "\n";
 
-  List.iter (print_api "handle") handle_calls;
-
-  pr "=head1 CONNECTION CALLS\n";
-  pr "\n";
-  pr "These are calls where the first parameter is always\n";
-  pr "C<struct nbd_connection *>.\n";
-  pr "\n";
-
-  List.iter (print_api "connection") connection_calls;
+  List.iter print_api handle_calls;
 
   pr "\
 =head1 SEE ALSO
@@ -2785,21 +2664,13 @@ get_handle (PyObject *obj)
   return (struct nbd_handle *) PyCapsule_GetPointer(obj, \"nbd_handle\");
 }
 
-static inline struct nbd_connection *
-get_connection (PyObject *obj)
-{
-  assert (obj);
-  assert (obj != Py_None);
-  return (struct nbd_connection *) PyCapsule_GetPointer(obj, \"nbd_connection\");
-}
 ";
 
   List.iter (
     fun name ->
       pr "extern PyObject *nbd_internal_py_%s (PyObject *self, PyObject *args);\n"
          name;
-  ) ([ "create"; "close"; "get_connection"; "connection_close" ] @
-       List.map fst (handle_calls @ connection_calls));
+  ) ([ "create"; "close" ] @ List.map fst handle_calls);
 
   pr "\n";
   pr "#endif /* LIBNBD_METHODS_H */\n"
@@ -2825,8 +2696,7 @@ let generate_python_libnbdmod_c () =
     fun name ->
       pr "  { (char *) \"%s\", nbd_internal_py_%s, METH_VARARGS, NULL },\n"
          name name;
-  ) ([ "create"; "close"; "get_connection"; "connection_close" ] @
-       List.map fst (handle_calls @ connection_calls));
+  ) ([ "create"; "close" ] @ List.map fst handle_calls);
   pr "  { NULL, NULL, 0, NULL }\n";
   pr "};\n";
   pr "\n";
@@ -2858,7 +2728,7 @@ PyInit_libnbdmod (void)
 }
 "
 
-let print_python_binding name { args; ret } htype hname =
+let print_python_binding name { args; ret } =
   (* Functions with a callback parameter are special because we
    * have to generate a wrapper function which translates the
    * callback parameters back to Python.  This only supports one
@@ -2891,7 +2761,8 @@ let print_python_binding name { args; ret } htype hname =
          | String n
          | UInt64 n -> ()
          (* The following not yet implemented for callbacks XXX *)
-         | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _ | Callback _
+         | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
+         | BytesPersistIn _ | BytesPersistOut _ | Callback _
          | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> pr "  abort ();\n"
        ) args;
@@ -2905,7 +2776,8 @@ let print_python_binding name { args; ret } htype hname =
          | String n -> pr " \"s\""
          | UInt64 n -> pr " \"K\""
          (* The following not yet implemented for callbacks XXX *)
-         | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _ | Callback _
+         | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
+         | BytesPersistIn _ | BytesPersistOut _ | Callback _
          | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> pr "  abort ();\n"
        ) args;
@@ -2917,7 +2789,8 @@ let print_python_binding name { args; ret } htype hname =
          | String n
          | UInt64 n -> pr ", %s" n
          (* The following not yet implemented for callbacks XXX *)
-         | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _ | Callback _
+         | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
+         | BytesPersistIn _ | BytesPersistOut _ | Callback _
          | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> pr "  abort ();\n"
        ) args;
@@ -2947,7 +2820,8 @@ let print_python_binding name { args; ret } htype hname =
          | UInt64 _
          | Opaque _ -> ()
          (* The following not yet implemented for callbacks XXX *)
-         | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _ | Callback _
+         | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
+         | BytesPersistIn _ | BytesPersistOut _ | Callback _
          | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> ()
        ) args;
@@ -2960,8 +2834,8 @@ let print_python_binding name { args; ret } htype hname =
   pr "PyObject *\n";
   pr "nbd_internal_py_%s (PyObject *self, PyObject *args)\n" name;
   pr "{\n";
-  pr "  PyObject *py_%s;\n" hname;
-  pr "  struct nbd_%s *%s;\n" htype hname;
+  pr "  PyObject *py_h;\n";
+  pr "  struct nbd_handle *h;\n";
   (match ret with
    | RBool
    | RErr
@@ -2980,8 +2854,9 @@ let print_python_binding name { args; ret } htype hname =
        pr "  size_t %s;\n" len;
     | ArrayAndLen _ -> assert false
     | Bool n -> pr "  int %s;\n" n
-    | BytesIn (n, _) -> pr "  Py_buffer %s;\n" n
-    | BytesOut (n, count) ->
+    | BytesIn (n, _) | BytesPersistIn (n, _) ->
+       pr "  Py_buffer %s;\n" n
+    | BytesOut (n, count) | BytesPersistOut (n, count) ->
        pr "  char *%s;\n" n;
        pr "  Py_ssize_t %s;\n" count
     | Callback (n, _) ->
@@ -3018,8 +2893,8 @@ let print_python_binding name { args; ret } htype hname =
     function
     | ArrayAndLen _ -> pr " \"O\""
     | Bool n -> pr " \"b\""
-    | BytesIn (n, _) -> pr " \"y*\""
-    | BytesOut (_, count) -> pr " \"n\""
+    | BytesIn (n, _) | BytesPersistIn (n, _)-> pr " \"y*\""
+    | BytesOut (_, count) | BytesPersistOut (_, count) -> pr " \"n\""
     | Callback (n, _) -> pr " \"O\""
     | Int n -> pr " \"i\""
     | Int64 n -> pr " \"L\""
@@ -3034,14 +2909,14 @@ let print_python_binding name { args; ret } htype hname =
   ) args;
   pr "\n";
   pr "                         \":nbd_%s\",\n" name;
-  pr "                         &py_%s" hname;
+  pr "                         &py_h";
   List.iter (
     function
     | ArrayAndLen (UInt32 n, _) -> pr ", &py_%s" n
     | ArrayAndLen _ -> assert false
     | Bool n -> pr ", &%s" n
-    | BytesIn (n, _) -> pr ", &%s" n
-    | BytesOut (_, count) -> pr ", &%s" count
+    | BytesIn (n, _) | BytesPersistIn (n, _) -> pr ", &%s" n
+    | BytesOut (_, count) | BytesPersistOut (_, count)-> pr ", &%s" count
     | Callback _ -> pr ", &callback_data.fn"
     | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
@@ -3057,7 +2932,7 @@ let print_python_binding name { args; ret } htype hname =
   pr "))\n";
   pr "    return NULL;\n";
 
-  pr "  %s = get_%s (py_%s);\n" hname htype hname;
+  pr "  h = get_handle (py_h);\n";
   List.iter (
     function
     | ArrayAndLen (UInt32 n, len) ->
@@ -3079,20 +2954,17 @@ let print_python_binding name { args; ret } htype hname =
        pr "    %s[_i] = PyLong_AsUnsignedLong (PyList_GetItem (%s, _i));\n" n n
     | ArrayAndLen _ -> assert false
     | Bool _ -> ()
-    | BytesIn _ ->
-       if htype = "connection" then
-         (* The AIO pread/pwrite calls require a buffer which
-          * persists for as long as the command is running, which
-          * is at least after this function returns.  So we need
-          * a way to allocate one of those and pass it to the
-          * function from Python and free it later.
-          *)
-         pr "  abort (); /* XXX BytesIn not implemented for AIO */\n"
+    | BytesIn _ -> ()
     | BytesOut (n, count) ->
-       if htype = "connection" then
-         pr "  abort (); /* XXX BytesOut not implemented for AIO */\n"
-       else
-         pr "  %s = malloc (%s);\n" n count
+       pr "  %s = malloc (%s);\n" n count
+    | BytesPersistIn _ | BytesPersistOut _ ->
+       (* The AIO pread/pwrite calls require a buffer which
+        * persists for as long as the command is running, which
+        * is at least after this function returns.  So we need
+        * a way to allocate one of those and pass it to the
+        * function from Python and free it later.
+        *)
+       pr "  abort (); /* XXX BytesPersistIn/Out not implemented */\n"
     | Callback (n, _) ->
        pr "  if (!PyCallable_Check (callback_data.fn)) {\n";
        pr "    PyErr_SetString (PyExc_TypeError,\n";
@@ -3117,14 +2989,14 @@ let print_python_binding name { args; ret } htype hname =
   ) args;
 
   (* Call the underlying C function. *)
-  pr "  ret = nbd_%s (%s" name hname;
+  pr "  ret = nbd_%s (h" name;
   List.iter (
     function
     | ArrayAndLen (UInt32 n, len) -> pr ", %s, %s" n len
     | ArrayAndLen _ -> assert false
     | Bool n -> pr ", %s" n
-    | BytesIn (n, _) -> pr ", %s.buf, %s.len" n n
-    | BytesOut (n, count) -> pr ", %s, %s" n count
+    | BytesIn (n, _) | BytesPersistIn (n, _) -> pr ", %s.buf, %s.len" n n
+    | BytesOut (n, count) | BytesPersistOut (n, count) -> pr ", %s, %s" n count
     | Callback (n, _) -> pr ", %s_%s_wrapper" name n
     | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
@@ -3157,6 +3029,7 @@ let print_python_binding name { args; ret } htype hname =
     | ArrayAndLen _
     | Bool _
     | BytesIn _
+    | BytesPersistIn _ | BytesPersistOut _
     | Callback _
     | Int _
     | Int64 _
@@ -3196,8 +3069,9 @@ let print_python_binding name { args; ret } htype hname =
     | ArrayAndLen (UInt32 n, len) -> pr "  free (%s);\n" n
     | ArrayAndLen _ -> assert false
     | Bool _ -> ()
-    | BytesIn (n, _) -> pr "  PyBuffer_Release (&%s);\n" n
-    | BytesOut _ -> ()
+    | BytesIn (n, _) | BytesPersistIn (n, _) ->
+       pr "  PyBuffer_Release (&%s);\n" n
+    | BytesOut _ | BytesPersistOut _ -> ()
     | Callback _ -> ()
     | Int _ -> ()
     | Int64 _ -> ()
@@ -3229,12 +3103,8 @@ let generate_python_methods_c () =
   pr "\n";
   List.iter (
     fun (name, fn) ->
-      print_python_binding name fn "handle" "h"
-  ) handle_calls;
-  List.iter (
-    fun (name, fn) ->
-      print_python_binding name fn "connection" "conn"
-  ) connection_calls
+      print_python_binding name fn
+  ) handle_calls
 
 let generate_python_nbd_py () =
   generate_header HashStyle;
@@ -3264,12 +3134,8 @@ class NBD (object):
         self._o = libnbdmod.create ()
 
     def __del__ (self):
-        \"\"\"Close the NBD handle and all connections\"\"\"
+        \"\"\"Close the NBD handle and underlying connection\"\"\"
         libnbdmod.close (self._o)
-
-    def get_connection (self, i):
-        \"\"\"Get the i'th connection associated with the handle\"\"\"
-        return NBDConnection (self, i)
 
 ";
 
@@ -3280,8 +3146,8 @@ class NBD (object):
                      | ArrayAndLen (UInt32 n, _) -> n
                      | ArrayAndLen _ -> assert false
                      | Bool n -> n
-                     | BytesIn (n, _) -> n
-                     | BytesOut (_, count) -> count
+                     | BytesIn (n, _) | BytesPersistIn (n, _) -> n
+                     | BytesOut (_, count) | BytesPersistOut (_, count) -> count
                      | Callback (n, _) -> n
                      | Int n -> n
                      | Int64 n -> n
@@ -3301,53 +3167,6 @@ class NBD (object):
       pr "        return libnbdmod.%s (self._o%s)\n" name args;
       pr "\n"
   ) handle_calls;
-
-  pr "\
-class NBDConnection (object):
-    def __init__ (self, h, i):
-        \"\"\"Get the i'th connection associated with the handle\"\"\"
-        self._o = libnbdmod.get_connection (h, i)
-
-    # Note there is intentionally no __del__ method.
-    def close (self):
-        \"\"\"Close this connection.  The i'th connection slot in
-        the handle is reopened with a freshly created connection.
-
-        The underlying C object is freed when you call this, so
-        you must not call any other methods on the connection
-        afterwards.
-        \"\"\"
-        libnbdmod.connection_close (self._o)
-";
-
-  List.iter (
-    fun (name, { args; shortdesc }) ->
-      let args = List.map (
-                     function
-                     | ArrayAndLen (UInt32 n, _) -> n
-                     | ArrayAndLen _ -> assert false
-                     | Bool n -> n
-                     | BytesIn (n, _) -> n
-                     | BytesOut (_, count) -> count
-                     | Callback (n, _) -> n
-                     | Int n -> n
-                     | Int64 n -> n
-                     | Opaque n -> n
-                     | Path n -> n
-                     | SockAddrAndLen (n, _) -> n
-                     | String n -> n
-                     | StringList n -> n
-                     | UInt n -> n
-                     | UInt32 n -> n
-                     | UInt64 n -> n
-                   ) args in
-      let args = List.map ((^) ", ") args in
-      let args = String.concat "" args in
-      pr "    def %s (self%s):\n" name args;
-      pr "        \"\"\"%s\"\"\"\n" shortdesc;
-      pr "        return libnbdmod.%s (self._o%s)\n" name args;
-      pr "\n"
-  ) connection_calls;
 
   (* For nbdsh. *)
   pr "\

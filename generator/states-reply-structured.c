@@ -23,20 +23,20 @@
   /* We've only read the simple_reply.  The structured_reply is longer,
    * so read the remaining part.
    */
-  if (!conn->structured_replies) {
+  if (!h->structured_replies) {
     set_error (0, "server sent unexpected structured reply");
     SET_NEXT_STATE(%.DEAD);
     return 0;
   }
-  conn->rbuf = &conn->sbuf;
-  conn->rbuf += sizeof conn->sbuf.simple_reply;
-  conn->rlen = sizeof conn->sbuf.sr.structured_reply;
-  conn->rlen -= sizeof conn->sbuf.simple_reply;
+  h->rbuf = &h->sbuf;
+  h->rbuf += sizeof h->sbuf.simple_reply;
+  h->rlen = sizeof h->sbuf.sr.structured_reply;
+  h->rlen -= sizeof h->sbuf.simple_reply;
   SET_NEXT_STATE (%RECV_REMAINING);
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_REMAINING:
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:  SET_NEXT_STATE (%CHECK);
   }
@@ -48,13 +48,13 @@
   uint64_t handle;
   uint32_t length;
 
-  flags = be16toh (conn->sbuf.sr.structured_reply.flags);
-  type = be16toh (conn->sbuf.sr.structured_reply.type);
-  handle = be64toh (conn->sbuf.sr.structured_reply.handle);
-  length = be32toh (conn->sbuf.sr.structured_reply.length);
+  flags = be16toh (h->sbuf.sr.structured_reply.flags);
+  type = be16toh (h->sbuf.sr.structured_reply.type);
+  handle = be64toh (h->sbuf.sr.structured_reply.handle);
+  length = be32toh (h->sbuf.sr.structured_reply.length);
 
   /* Find the command amongst the commands in flight. */
-  for (cmd = conn->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
+  for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
     if (cmd->handle == handle)
       break;
   }
@@ -69,13 +69,13 @@
   }
 
   if (NBD_REPLY_TYPE_IS_ERR (type)) {
-    if (length < sizeof conn->sbuf.sr.payload.error) {
+    if (length < sizeof h->sbuf.sr.payload.error) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "too short length in structured reply error");
       return -1;
     }
-    conn->rbuf = &conn->sbuf.sr.payload.error;
-    conn->rlen = sizeof conn->sbuf.sr.payload.error;
+    h->rbuf = &h->sbuf.sr.payload.error;
+    h->rlen = sizeof h->sbuf.sr.payload.error;
     SET_NEXT_STATE (%RECV_ERROR);
     return 0;
   }
@@ -94,13 +94,13 @@
     return 0;
   }
   else if (type == NBD_REPLY_TYPE_OFFSET_DATA) {
-    if (length < sizeof conn->sbuf.sr.payload.offset_data) {
+    if (length < sizeof h->sbuf.sr.payload.offset_data) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "too short length in NBD_REPLY_TYPE_OFFSET_DATA");
       return -1;
     }
-    conn->rbuf = &conn->sbuf.sr.payload.offset_data;
-    conn->rlen = sizeof conn->sbuf.sr.payload.offset_data;
+    h->rbuf = &h->sbuf.sr.payload.offset_data;
+    h->rlen = sizeof h->sbuf.sr.payload.offset_data;
     SET_NEXT_STATE (%RECV_OFFSET_DATA);
     return 0;
   }
@@ -110,8 +110,8 @@
       set_error (0, "invalid length in NBD_REPLY_TYPE_NONE");
       return -1;
     }
-    conn->rbuf = &conn->sbuf.sr.payload.offset_hole;
-    conn->rlen = sizeof conn->sbuf.sr.payload.offset_hole;
+    h->rbuf = &h->sbuf.sr.payload.offset_hole;
+    h->rlen = sizeof h->sbuf.sr.payload.offset_hole;
     SET_NEXT_STATE (%RECV_OFFSET_HOLE);
     return 0;
   }
@@ -130,15 +130,15 @@
     /* We read the context ID followed by all the entries into a
      * single array and deal with it at the end.
      */
-    free (conn->bs_entries);
-    conn->bs_entries = malloc (length);
-    if (conn->bs_entries == NULL) {
+    free (h->bs_entries);
+    h->bs_entries = malloc (length);
+    if (h->bs_entries == NULL) {
       SET_NEXT_STATE (%.DEAD);
       set_error (errno, "malloc");
       return -1;
     }
-    conn->rbuf = conn->bs_entries;
-    conn->rlen = length;
+    h->rbuf = h->bs_entries;
+    h->rlen = length;
     SET_NEXT_STATE (%RECV_BS_ENTRIES);
     return 0;
   }
@@ -149,12 +149,12 @@
   }
 
  REPLY.STRUCTURED_REPLY.RECV_ERROR:
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     /* We skip the human readable error for now. XXX */
-    conn->rbuf = NULL;
-    conn->rlen = be16toh (conn->sbuf.sr.payload.error.len);
+    h->rbuf = NULL;
+    h->rlen = be16toh (h->sbuf.sr.payload.error.len);
     SET_NEXT_STATE (%RECV_ERROR_MESSAGE);
   }
   return 0;
@@ -165,15 +165,15 @@
   uint64_t handle;
   uint32_t error;
 
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    flags = be16toh (conn->sbuf.sr.structured_reply.flags);
-    handle = be64toh (conn->sbuf.sr.structured_reply.handle);
-    error = be32toh (conn->sbuf.sr.payload.error.error);
+    flags = be16toh (h->sbuf.sr.structured_reply.flags);
+    handle = be64toh (h->sbuf.sr.structured_reply.handle);
+    error = be32toh (h->sbuf.sr.payload.error.error);
 
     /* Find the command amongst the commands in flight. */
-    for (cmd = conn->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
+    for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
       if (cmd->handle == handle)
         break;
     }
@@ -194,15 +194,15 @@
   uint64_t offset;
   uint32_t length;
 
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    handle = be64toh (conn->sbuf.sr.structured_reply.handle);
-    length = be32toh (conn->sbuf.sr.structured_reply.length);
-    offset = be64toh (conn->sbuf.sr.payload.offset_data.offset);
+    handle = be64toh (h->sbuf.sr.structured_reply.handle);
+    length = be32toh (h->sbuf.sr.structured_reply.length);
+    offset = be64toh (h->sbuf.sr.payload.offset_data.offset);
 
     /* Find the command amongst the commands in flight. */
-    for (cmd = conn->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
+    for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
       if (cmd->handle == handle)
         break;
     }
@@ -244,8 +244,8 @@
     }
 
     /* Set up to receive the data directly to the user buffer. */
-    conn->rbuf = cmd->data + offset;
-    conn->rlen = length;
+    h->rbuf = cmd->data + offset;
+    h->rlen = length;
     SET_NEXT_STATE (%RECV_OFFSET_DATA_DATA);
   }
   return 0;
@@ -253,10 +253,10 @@
  REPLY.STRUCTURED_REPLY.RECV_OFFSET_DATA_DATA:
   uint16_t flags;
 
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    flags = be16toh (conn->sbuf.sr.structured_reply.flags);
+    flags = be16toh (h->sbuf.sr.structured_reply.flags);
 
     if (flags & NBD_REPLY_FLAG_DONE)
       SET_NEXT_STATE (%^FINISH_COMMAND);
@@ -272,16 +272,16 @@
   uint64_t offset;
   uint32_t length;
 
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    handle = be64toh (conn->sbuf.sr.structured_reply.handle);
-    flags = be16toh (conn->sbuf.sr.structured_reply.flags);
-    offset = be64toh (conn->sbuf.sr.payload.offset_hole.offset);
-    length = be32toh (conn->sbuf.sr.payload.offset_hole.length);
+    handle = be64toh (h->sbuf.sr.structured_reply.handle);
+    flags = be16toh (h->sbuf.sr.structured_reply.flags);
+    offset = be64toh (h->sbuf.sr.payload.offset_hole.offset);
+    length = be32toh (h->sbuf.sr.payload.offset_hole.length);
 
     /* Find the command amongst the commands in flight. */
-    for (cmd = conn->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
+    for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
       if (cmd->handle == handle)
         break;
     }
@@ -337,33 +337,33 @@
   uint32_t context_id;
   struct meta_context *meta_context;
 
-  switch (recv_into_rbuf (conn)) {
+  switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    handle = be64toh (conn->sbuf.sr.structured_reply.handle);
-    flags = be16toh (conn->sbuf.sr.structured_reply.flags);
-    length = be32toh (conn->sbuf.sr.structured_reply.length);
+    handle = be64toh (h->sbuf.sr.structured_reply.handle);
+    flags = be16toh (h->sbuf.sr.structured_reply.flags);
+    length = be32toh (h->sbuf.sr.structured_reply.length);
 
     /* Find the command amongst the commands in flight. */
-    for (cmd = conn->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
+    for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
       if (cmd->handle == handle)
         break;
     }
     /* guaranteed by CHECK */
     assert (cmd);
     assert (cmd->extent_fn);
-    assert (conn->bs_entries);
+    assert (h->bs_entries);
     assert (length >= 12);
 
     /* Need to byte-swap the entries returned, but apart from that we
      * don't validate them.
      */
     for (i = 0; i < length/4; ++i)
-      conn->bs_entries[i] = be32toh (conn->bs_entries[i]);
+      h->bs_entries[i] = be32toh (h->bs_entries[i]);
 
     /* Look up the context ID. */
-    context_id = conn->bs_entries[0];
-    for (meta_context = conn->meta_contexts;
+    context_id = h->bs_entries[0];
+    for (meta_context = h->meta_contexts;
          meta_context;
          meta_context = meta_context->next)
       if (context_id == meta_context->context_id)
@@ -372,7 +372,7 @@
     if (meta_context)
       /* Call the caller's extent function. */
       cmd->extent_fn (cmd->data, meta_context->name, cmd->offset,
-                      &conn->bs_entries[1], (length-4) / 4);
+                      &h->bs_entries[1], (length-4) / 4);
     else
       /* Emit a debug message, but ignore it. */
       debug (h, "server sent unexpected meta context ID %" PRIu32,

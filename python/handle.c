@@ -40,13 +40,6 @@ put_handle (struct nbd_handle *h)
   return PyCapsule_New ((void *) h, "nbd_handle", NULL);
 }
 
-static inline PyObject *
-put_connection (struct nbd_connection *conn)
-{
-  assert (conn);
-  return PyCapsule_New ((void *) conn, "nbd_connection", NULL);
-}
-
 PyObject *
 nbd_internal_py_create (PyObject *self, PyObject *args)
 {
@@ -74,47 +67,6 @@ nbd_internal_py_close (PyObject *self, PyObject *args)
   h = get_handle (py_h);
 
   nbd_close (h);
-
-  Py_INCREF (Py_None);
-  return Py_None;
-}
-
-PyObject *
-nbd_internal_py_get_connection (PyObject *self, PyObject *args)
-{
-  PyObject *py_h;
-  unsigned i;
-  struct nbd_handle *h;
-  struct nbd_connection *conn;
-
-  if (!PyArg_ParseTuple (args, (char *) "OI:nbd_get_connection", &py_h, &i))
-    return NULL;
-  h = get_handle (py_h);
-
-  conn = nbd_get_connection (h, i);
-  if (!conn) {
-    PyErr_SetString (PyExc_RuntimeError, nbd_get_error ());
-    return NULL;
-  }
-
-  /* This is going to create a new PyObject even for the same
-   * connection.  Unclear if that matters, but things should be fine
-   * as long as no one cares about physical equality.
-   */
-  return put_connection (conn);
-}
-
-PyObject *
-nbd_internal_py_connection_close (PyObject *self, PyObject *args)
-{
-  PyObject *py_conn;
-  struct nbd_connection *conn;
-
-  if (!PyArg_ParseTuple (args, (char *) "O:nbd_connection_close", &py_conn))
-    return NULL;
-  conn = get_connection (py_conn);
-
-  nbd_connection_close (conn);
 
   Py_INCREF (Py_None);
   return Py_None;

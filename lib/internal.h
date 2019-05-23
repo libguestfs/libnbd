@@ -42,18 +42,8 @@ struct socket;
 struct command_in_flight;
 
 struct nbd_handle {
-  /* Lock protecting concurrent access to either this handle or the
-   * connections owned by the handle.
-   */
+  /* Lock protecting concurrent access to the handle. */
   pthread_mutex_t lock;
-
-  /* Connection(s).  Usually 1 but there may be several.  The length
-   * of the list is multi_conn.  The elements are never NULL.  If a
-   * connection is closed then it is replaced with a newly created
-   * connection immediately.
-   */
-  struct nbd_connection **conns;
-  unsigned multi_conn;
 
   char *export_name;            /* Export name, never NULL. */
 
@@ -66,6 +56,9 @@ struct nbd_handle {
 
   /* Desired metadata contexts. */
   char **request_meta_contexts;
+
+  /* Global flags from the server. */
+  uint16_t gflags;
 
   /* Export size and per-export flags, received during handshake.  NB:
    * These are *both* *only* valid if eflags != 0.  This is because
@@ -81,23 +74,11 @@ struct nbd_handle {
   bool debug;
   void *debug_data;
   void (*debug_fn) (void *, const char *, const char *);
-};
-
-/* This corresponds to a single socket connection to a remote server.
- * Usually there is one of these in the handle, but for multi_conn
- * there may be several.
- */
-struct nbd_connection {
-  struct nbd_handle *h;         /* Parent handle. */
-
-  /* To avoid leaking addresses in debug messages, and to make debug
-   * easier to read, give this a unique ID used in debug.
-   */
-  int64_t id;
 
   enum state state;             /* State machine. */
 
   bool structured_replies;      /* If we negotiated NBD_OPT_STRUCTURED_REPLY */
+
   /* Linked list of negotiated metadata contexts. */
   struct meta_context *meta_contexts;
 
@@ -177,9 +158,6 @@ struct nbd_connection {
   /* When receiving block status, this is used. */
   uint32_t *bs_entries;
 
-  /* Global flags from the server. */
-  uint16_t gflags;
-
   /* When issuing a command, the first list contains commands waiting
    * to be issued.  The second list contains commands which have been
    * issued and waiting for replies.  The third list contains commands
@@ -233,10 +211,10 @@ struct command_in_flight {
 };
 
 /* crypto.c */
-extern struct socket *nbd_internal_crypto_create_session (struct nbd_connection *, struct socket *oldsock);
-extern bool nbd_internal_crypto_is_reading (struct nbd_connection *);
-extern int nbd_internal_crypto_handshake (struct nbd_connection *);
-extern void nbd_internal_crypto_debug_tls_enabled (struct nbd_connection *);
+extern struct socket *nbd_internal_crypto_create_session (struct nbd_handle *, struct socket *oldsock);
+extern bool nbd_internal_crypto_is_reading (struct nbd_handle *);
+extern int nbd_internal_crypto_handshake (struct nbd_handle *);
+extern void nbd_internal_crypto_debug_tls_enabled (struct nbd_handle *);
 
 /* debug.c */
 extern void nbd_internal_debug (struct nbd_handle *h, const char *fs, ...);
@@ -275,7 +253,7 @@ extern int nbd_internal_errno_of_nbd_error (uint32_t error);
 extern const char *nbd_internal_name_of_nbd_cmd (uint16_t type);
 
 /* rw.c */
-extern int64_t nbd_internal_command_common (struct nbd_connection *conn,
+extern int64_t nbd_internal_command_common (struct nbd_handle *h,
                                             uint16_t flags, uint16_t type,
                                             uint64_t offset, uint64_t count,
                                             void *data, extent_fn extent);
@@ -284,8 +262,7 @@ extern int64_t nbd_internal_command_common (struct nbd_connection *conn,
 struct socket *nbd_internal_socket_create (int fd);
 
 /* states.c */
-extern int nbd_internal_run (struct nbd_handle *h, struct nbd_connection *conn,
-                             enum external_event ev);
+extern int nbd_internal_run (struct nbd_handle *h, enum external_event ev);
 extern const char *nbd_internal_state_short_string (enum state state);
 extern enum state_group nbd_internal_state_group (enum state state);
 extern enum state_group nbd_internal_state_group_parent (enum state_group group);
