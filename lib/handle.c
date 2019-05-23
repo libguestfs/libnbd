@@ -301,6 +301,15 @@ nbd_unlocked_request_meta_context (struct nbd_handle *h, const char *name)
   char *copy;
   size_t len;
   char **list;
+  int i;
+
+  for (i = 0; i < h->multi_conn; ++i) {
+    if (!nbd_unlocked_aio_is_created (h->conns[i])) {
+      set_error (EINVAL,
+                 "requesting meta context must occur before connection");
+      return -1;
+    }
+  }
 
   copy = strdup (name);
   if (!copy) {
