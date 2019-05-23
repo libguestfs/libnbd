@@ -49,7 +49,7 @@ nbd_internal_set_size_and_flags (struct nbd_handle *h,
       (eflags & NBD_FLAG_CAN_MULTI_CONN) == 0 &&
       (eflags & NBD_FLAG_READ_ONLY) != 0) {
     set_error (EINVAL, "handshake: multi-conn is set on this handle, "
-               "but the server does not advertize multi-conn support "
+               "but the server does not advertise multi-conn support "
                "so disconnecting because it is not safe to continue");
     return -1;
   }

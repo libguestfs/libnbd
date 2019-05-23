@@ -408,7 +408,7 @@ nbd_unlocked_aio_cache (struct nbd_connection *conn,
                         uint64_t count, uint64_t offset)
 {
   /* Actually according to the NBD protocol document, servers do exist
-   * that support NBD_CMD_CACHE but don't advertize the
+   * that support NBD_CMD_CACHE but don't advertise the
    * NBD_FLAG_SEND_CACHE bit, but we ignore those.
    */
   if (nbd_unlocked_can_cache (conn->h) != 1) {
