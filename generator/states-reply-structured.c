@@ -208,6 +208,16 @@
     }
     assert (cmd); /* guaranteed by CHECK */
 
+    if (cmd->type != NBD_CMD_READ) {
+      SET_NEXT_STATE (%.DEAD);
+      set_error (0, "invalid command for receiving offset-data chunk, "
+                 "cmd->type=%" PRIu16 ", "
+                 "this is likely to be a bug in the server",
+                 cmd->type);
+      return -1;
+    }
+    assert (cmd->data);
+
     /* Length of the data following. */
     length -= 8;
 
@@ -230,15 +240,6 @@
                  "cmd->count=%" PRIu32 ", "
                  "this is likely to be a bug in the server",
                  offset, length, cmd->count);
-      return -1;
-    }
-
-    if (cmd->data == NULL) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "invalid command for receiving offset-data chunk, "
-                 "cmd->type=%" PRIu16 ", "
-                 "this is likely to be a bug in the server",
-                 cmd->type);
       return -1;
     }
 
@@ -286,6 +287,16 @@
     }
     assert (cmd); /* guaranteed by CHECK */
 
+    if (cmd->type != NBD_CMD_READ) {
+      SET_NEXT_STATE (%.DEAD);
+      set_error (0, "invalid command for receiving offset-hole chunk, "
+                 "cmd->type=%" PRIu16 ", "
+                 "this is likely to be a bug in the server",
+                 cmd->type);
+      return -1;
+    }
+    assert (cmd->data);
+
     /* Is the data within bounds? */
     if (offset < cmd->offset) {
       SET_NEXT_STATE (%.DEAD);
@@ -305,15 +316,6 @@
                  "cmd->count=%" PRIu32 ", "
                  "this is likely to be a bug in the server",
                  offset, length, cmd->count);
-      return -1;
-    }
-
-    if (cmd->data == NULL) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "invalid command for receiving offset-hole chunk, "
-                 "cmd->type=%" PRIu16 ", "
-                 "this is likely to be a bug in the server",
-                 cmd->type);
       return -1;
     }
 
@@ -369,7 +371,7 @@
 
     if (meta_context)
       /* Call the caller's extent function. */
-      cmd->extent_fn (cmd->extent_data, meta_context->name, cmd->offset,
+      cmd->extent_fn (cmd->data, meta_context->name, cmd->offset,
                       &conn->bs_entries[1], (length-4) / 4);
     else
       /* Emit a debug message, but ignore it. */

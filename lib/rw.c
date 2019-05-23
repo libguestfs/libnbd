@@ -498,12 +498,11 @@ nbd_unlocked_aio_block_status (struct nbd_connection *conn,
     return -1;
   }
 
-  cmd = command_common (conn, flags, NBD_CMD_BLOCK_STATUS, offset, count, NULL);
+  cmd = command_common (conn, flags, NBD_CMD_BLOCK_STATUS, offset, count, data);
   if (!cmd)
     return -1;
 
   cmd->extent_fn = extent;
-  cmd->extent_data = data;
 
   if (nbd_internal_run (conn->h, conn, cmd_issue) == -1)
     return -1;

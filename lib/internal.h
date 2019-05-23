@@ -222,9 +222,8 @@ struct command_in_flight {
   uint64_t handle;
   uint64_t offset;
   uint32_t count;
-  void *data;
+  void *data; /* Buffer for read/write, opaque for block status */
   extent_fn extent_fn;
-  void *extent_data;
   uint32_t error;
 };
 
