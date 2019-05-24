@@ -333,7 +333,7 @@ nbd_unlocked_aio_zero (struct nbd_handle *h,
     return -1;
   }
 
-  if ((flags & ~LIBNBD_CMD_FLAG_FUA) != 0) {
+  if ((flags & ~(LIBNBD_CMD_FLAG_FUA | LIBNBD_CMD_FLAG_NO_HOLE)) != 0) {
     set_error (EINVAL, "invalid flag: %" PRIu32, flags);
     return -1;
   }

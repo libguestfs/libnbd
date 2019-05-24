@@ -1290,7 +1290,9 @@ or there is an error.
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
-(if that is supported - some servers cannot do this).";
+(if that is supported - some servers cannot do this), and/or
+C<LIBNBD_CMD_FLAG_NO_HOLE> meaning that the server should favor
+writing actual allocated zeroes over punching a hole.";
   };
 
   "block_status", {
@@ -2417,6 +2419,7 @@ let generate_include_libnbd_h () =
   pr "#define LIBNBD_AIO_DIRECTION_BOTH  3\n";
   pr "\n";
   pr "#define LIBNBD_CMD_FLAG_FUA        (1<<0)\n";
+  pr "#define LIBNBD_CMD_FLAG_NO_HOLE    (1<<1)\n";
   pr "#define LIBNBD_CMD_FLAG_REQ_ONE    (1<<3)\n";
   pr "\n";
   pr "extern struct nbd_handle *nbd_create (void);\n";
