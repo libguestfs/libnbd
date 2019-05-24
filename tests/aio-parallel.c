@@ -241,8 +241,11 @@ start_thread (void *arg)
 
     /* Run until the timer expires. */
     time (&t);
-    if (t > status->end_time)
+    if (t > status->end_time) {
       expired = true;
+      if (!in_flight)
+        break;
+    }
 
     /* Do we want to send another request and there's room to issue it
      * and the connection is in the READY state so it can be used to
