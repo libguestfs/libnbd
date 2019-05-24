@@ -6,6 +6,7 @@
 *.pyc
 *.trs
 
+/libnbd-[0-9]*[0-9]/
 /libnbd-*.tar.gz
 
 /local*
