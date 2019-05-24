@@ -24,11 +24,12 @@ CLEANFILES += \
 
 EXTRA_DIST = \
 	aio-parallel.sh \
-	aio-parallel-tls.sh
+	aio-parallel-tls.sh \
 	aio-parallel-load.sh \
 	aio-parallel-load-tls.sh \
 	eflags-plugin.sh \
 	functions.sh.in \
+	make-pki.sh \
 	meta-base-allocation.sh \
 	synch-parallel.sh \
 	synch-parallel-tls.sh
