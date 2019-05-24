@@ -31,20 +31,33 @@ files="dirty-bitmap.sock dirty-bitmap.qcow2"
 rm -f $files
 cleanup_fn rm -f $files
 
+# Create file with intentionally different written areas vs. dirty areas
 qemu-img create -f qcow2 dirty-bitmap.qcow2 1M
+qemu-io -f qcow2 -c 'w 0 64k' dirty-bitmap.qcow2
 cat <<'EOF' | qemu-kvm -nodefaults -nographic -qmp stdio
 {'execute':'qmp_capabilities'}
 {'execute':'blockdev-add','arguments':{'node-name':'n','driver':'qcow2','file':{'driver':'file','filename':'dirty-bitmap.qcow2'}}}
 {'execute':'block-dirty-bitmap-add','arguments':{'node':'n','name':'bitmap0','persistent':true}}
 {'execute':'quit'}
 EOF
-qemu-io -f qcow2 -c 'w 64k 64k' -c 'w 512k 64k' dirty-bitmap.qcow2
+qemu-io -f qcow2 -c 'w 64k 64k' -c 'w -z 512k 64k' dirty-bitmap.qcow2
 
 qemu-nbd -k $PWD/dirty-bitmap.sock -f qcow2 -B bitmap0 dirty-bitmap.qcow2 &
-cleanup_fn kill $!
+qemu_pid=$!
+cleanup_fn kill $qemu_pid
 
 # No good way to wait for qemu-nbd to start server, so ...
-sleep 5
+for ((i = 0; i < 300; i++)); do
+  if [ -r $PWD/dirty-bitmap.sock ]; then
+    break
+  fi
+  kill -s 0 $qemu_pid 2>/dev/null
+  if test $? != 0; then
+    echo "qemu-nbd unexpectedly quit" 2>&1
+    exit 1
+  fi
+  sleep 0.1
+done
 
 # Run the test.
 $VG ./dirty-bitmap dirty-bitmap.sock qemu:dirty-bitmap:bitmap0

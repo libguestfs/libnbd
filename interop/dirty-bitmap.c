@@ -28,23 +28,49 @@
 
 static const char *unixsocket;
 static const char *bitmap;
+static const char *base_allocation = "base:allocation";
+
+static int calls; /* Track which contexts passed through callback */
 
 static void
 cb (void *data, const char *metacontext, uint64_t offset,
     uint32_t *entries, size_t len)
 {
-  if (strcmp (metacontext, bitmap) != 0)
-    return;
+  /* Hack: data is non-NULL if request included REQ_ONE flag */
+  assert (offset == 0);
+  if (strcmp (metacontext, base_allocation) == 0) {
+    calls += 0x1;
+    assert (len == (data ? 2 : 8));
 
-  assert (len == 10);
+    /* Data block offset 0 size 128k */
+    assert (entries[0] == 131072); assert (entries[1] == 0);
+    if (!data) {
+      /* hole|zero offset 128k size 384k */
+      assert (entries[2] == 393216); assert (entries[3] == 3);
+      /* allocated zero offset 512k size 64k */
+      assert (entries[4] ==  65536); assert (entries[5] == 2);
+      /* hole|zero offset 576k size 448k */
+      assert (entries[6] == 458752); assert (entries[7] == 3);
+    }
+  }
+  else if (strcmp (metacontext, bitmap) == 0) {
+    calls += 0x10;
+    assert (len == (data ? 2 : 10));
 
-  assert (entries[0] ==  65536); assert (entries[1] == 0);
-  /* dirty block offset 64K size 64K */
-  assert (entries[2] ==  65536); assert (entries[3] == 1);
-  assert (entries[4] == 393216); assert (entries[5] == 0);
-  /* dirty block offset 512K size 64K */
-  assert (entries[6] ==  65536); assert (entries[7] == 1);
-  assert (entries[8] == 458752); assert (entries[9] == 0);
+    assert (entries[0] ==  65536); assert (entries[1] == 0);
+    if (!data) {
+      /* dirty block offset 64K size 64K */
+      assert (entries[2] ==  65536); assert (entries[3] == 1);
+      assert (entries[4] == 393216); assert (entries[5] == 0);
+      /* dirty block offset 512K size 64K */
+      assert (entries[6] ==  65536); assert (entries[7] == 1);
+      assert (entries[8] == 458752); assert (entries[9] == 0);
+    }
+  }
+  else {
+    fprintf (stderr, "unexpected context %s\n", metacontext);
+    exit (EXIT_FAILURE);
+  }
 }
 
 int
@@ -66,6 +92,7 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  nbd_request_meta_context (nbd, base_allocation);
   nbd_request_meta_context (nbd, bitmap);
 
   if (nbd_connect_unix (nbd, unixsocket) == -1) {
@@ -83,6 +110,13 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+  assert (calls == 0x11);
+  if (nbd_block_status (nbd, exportsize, 0, LIBNBD_CMD_FLAG_REQ_ONE,
+                        &exportsize, cb) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  assert (calls == 0x22);
 
   if (nbd_shutdown (nbd) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
