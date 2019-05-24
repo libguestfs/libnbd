@@ -84,6 +84,7 @@ Makefile.in
 /tests/connect-tls-psk
 /tests/connect-unix
 /tests/errors
+/tests/functions.sh
 /tests/get-size
 /tests/is-rotational-flag
 /tests/is-not-rotational-flag

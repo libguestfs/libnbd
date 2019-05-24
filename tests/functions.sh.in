@@ -1,0 +1,94 @@
+# nbdkit
+# Common functions used by the tests.
+# @configure_input@
+# Copyright (C) 2017-2019 Red Hat Inc.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#
+# * Redistributions of source code must retain the above copyright
+# notice, this list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright
+# notice, this list of conditions and the following disclaimer in the
+# documentation and/or other materials provided with the distribution.
+#
+# * Neither the name of Red Hat nor the names of its contributors may be
+# used to endorse or promote products derived from this software without
+# specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY RED HAT AND CONTRIBUTORS ''AS IS'' AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+# PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL RED HAT OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF
+# USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
+# OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+# SUCH DAMAGE.
+
+# cleanup_fn f [args]
+#
+# A generic trap handling function.  This runs the function or command
+# f plus optional args when the script exits for any reason.
+declare -a _cleanup_hook
+cleanup_fn ()
+{
+    _cleanup_hook[${#_cleanup_hook[@]}]="$@"
+}
+
+_run_cleanup_hooks ()
+{
+    status=$?
+    set +e
+    trap '' INT QUIT TERM EXIT ERR
+    echo $0: run cleanup hooks: exit code $status
+
+    for (( i = 0; i < ${#_cleanup_hook[@]}; ++i )); do
+        ${_cleanup_hook[i]}
+    done
+
+    exit $status
+}
+trap _run_cleanup_hooks INT QUIT TERM EXIT ERR
+
+# requires program [args]
+#
+# Check that ‘program [args]’ works.  If not, skip the test.
+# For example to check that qemu-img is available, do:
+#
+# requires qemu-img --version
+requires ()
+{
+    ( "$@" ) </dev/null >/dev/null 2>&1 || {
+        echo "$0: ‘$*’ failed with error code $?"
+        echo "$0: test prerequisite is missing or not working"
+        exit 77
+    }
+}
+
+# pick_unused_port
+#
+# Picks and returns an "unused" port, setting the global variable
+# $port.
+#
+# This is inherently racy so we only use it where it's absolutely
+# necessary (eg. testing TLS because qemu cannot do TLS over a Unix
+# domain socket).
+pick_unused_port ()
+{
+    requires ss --version
+
+    # Start at a random port to make it less likely that two parallel
+    # tests will conflict.
+    port=$(( 50000 + (RANDOM%15000) ))
+    while ss -ltn | grep -sqE ":$port\b"; do
+        ((port++))
+        if [ $port -eq 65000 ]; then port=50000; fi
+    done
+    echo picked unused port $port
+}

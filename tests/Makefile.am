@@ -23,11 +23,12 @@ CLEANFILES += \
 	connect-unix.sock
 
 EXTRA_DIST = \
-	eflags-plugin.sh \
 	aio-parallel.sh \
 	aio-parallel-tls.sh
 	aio-parallel-load.sh \
 	aio-parallel-load-tls.sh \
+	eflags-plugin.sh \
+	functions.sh.in \
 	meta-base-allocation.sh \
 	synch-parallel.sh \
 	synch-parallel-tls.sh

@@ -237,6 +237,7 @@ AC_CONFIG_FILES([Makefile
                  python/Makefile
                  sh/Makefile
                  tests/Makefile
+                 tests/functions.sh
                  valgrind/Makefile])
 
 AC_OUTPUT
