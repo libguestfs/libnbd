@@ -21,4 +21,4 @@
 nbdkit -U - \
        --filter=cow \
        pattern size=8M \
-       --run './synch-parallel $unixsocket'
+       --run '$VG ./synch-parallel $unixsocket'

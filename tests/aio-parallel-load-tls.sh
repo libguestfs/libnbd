@@ -20,4 +20,4 @@
 
 nbdkit -U - --tls=require --tls-verify-peer --tls-psk=keys.psk \
        memory size=64M \
-       --run './aio-parallel-load-tls $unixsocket'
+       --run '$VG ./aio-parallel-load-tls $unixsocket'

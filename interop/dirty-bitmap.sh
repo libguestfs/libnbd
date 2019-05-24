@@ -47,4 +47,4 @@ cleanup_fn kill $!
 sleep 5
 
 # Run the test.
-./dirty-bitmap dirty-bitmap.sock qemu:dirty-bitmap:bitmap0
+$VG ./dirty-bitmap dirty-bitmap.sock qemu:dirty-bitmap:bitmap0

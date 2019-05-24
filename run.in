@@ -79,8 +79,23 @@ if libtool --help >/dev/null 2>&1; then
 fi
 
 # Use valgrind?
+#
+# If we're running a binary then apply valgrind directly to it.
+#
+# If it's a shell script then we set $VG and the script must run any
+# valgrinded programs by using $VG explicitly (note this variable is
+# not set if not valgrinding).
+#
+# Unfortunately the obvious thing of running ‘file $1’ will not work
+# because of libtool, so we have to base this off the file extension.
 if [ "x$LIBNBD_VALGRIND" = "x1" ]; then
-    valgrind="valgrind --vgdb=no --leak-check=full --show-leak-kinds=all --error-exitcode=119 --suppressions=$b/valgrind/suppressions --trace-children=no --run-libc-freeres=no --num-callers=100"
+    _VG="valgrind --vgdb=no --leak-check=full --show-leak-kinds=all --error-exitcode=119 --suppressions=$b/valgrind/suppressions --trace-children=no --run-libc-freeres=no --num-callers=100"
+    case "$1" in
+        *.sh)
+            VG="$libtool $_VG"; export VG ;;
+        *)
+            valgrind="$_VG" ;;
+    esac
 fi
 
 # Avoid GNOME keyring stupidity

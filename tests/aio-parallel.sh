@@ -21,4 +21,4 @@
 nbdkit -U - \
        --filter=cow \
        pattern size=8M \
-       --run './aio-parallel $unixsocket'
+       --run '$VG ./aio-parallel $unixsocket'
