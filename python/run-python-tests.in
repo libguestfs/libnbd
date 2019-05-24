@@ -1,4 +1,4 @@
-#!/bin/bash -
+#!/usr/bin/env bash
 # libnbd: derived from: hivex Python bindings
 # Copyright (C) 2009-2011 Red Hat Inc.
 #

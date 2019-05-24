@@ -1,4 +1,4 @@
-#!/bin/bash -
+#!/usr/bin/env bash
 # libnbd 'run' programs locally script
 # Copyright (C) 2011-2019 Red Hat Inc.
 #
