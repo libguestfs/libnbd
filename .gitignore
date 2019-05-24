@@ -37,6 +37,7 @@ Makefile.in
 /generator/stamp-generator
 /html/*.?.html
 /include/libnbd.h
+/interop/dirty-bitmap
 /interop/interop-nbd-server
 /interop/interop-qemu-nbd
 /interop/interop-qemu-nbd-tls-certs

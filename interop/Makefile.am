@@ -17,6 +17,9 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
+EXTRA_DIST = \
+	dirty-bitmap.sh
+
 TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
 LOG_COMPILER = $(top_builddir)/run
 check_PROGRAMS =
@@ -43,9 +46,11 @@ if HAVE_QEMU_NBD
 check_PROGRAMS += \
 	interop-qemu-nbd \
 	interop-qemu-nbd-tls-certs \
-	interop-qemu-nbd-tls-psk
+	interop-qemu-nbd-tls-psk \
+	dirty-bitmap
 TESTS += \
-	interop-qemu-nbd
+	interop-qemu-nbd \
+	dirty-bitmap.sh
 
 # tls tests assume the pre-existence of files created in ../tests/Makefile.am,
 # so we can only run them under the same conditions used there
@@ -96,6 +101,11 @@ interop_qemu_nbd_tls_psk_CPPFLAGS = \
 	-DPSK=1
 interop_qemu_nbd_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
 interop_qemu_nbd_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
+
+dirty_bitmap_SOURCES = dirty-bitmap.c
+dirty_bitmap_CPPFLAGS = -I$(top_srcdir)/include
+dirty_bitmap_CFLAGS = $(WARNINGS_CFLAGS)
+dirty_bitmap_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_QEMU_NBD
 

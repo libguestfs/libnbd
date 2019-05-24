@@ -67,6 +67,8 @@ Optional:
  * nbd-server and qemu-nbd if you want to do interoperability testing
    against these servers.
 
+ * qemu, qemu-io, qemu-img for interoperability testing.
+
  * Perl Pod::Man and Pod::Simple to generate the documentation.
 
  * Python >= 3.3 to build the Python 3 bindings and NBD shell (nbdsh).
