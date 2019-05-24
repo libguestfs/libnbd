@@ -139,6 +139,8 @@ main (int argc, char *argv[])
     bytes_received += status[i].bytes_received;
   }
 
+  free (ramdisk);
+
   /* Print some stats. */
   printf ("TLS: %s\n",
 #ifdef TLS
