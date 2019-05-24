@@ -41,9 +41,34 @@ EXTRA_DIST = \
 	generator \
 	$(states_code)
 
+if HAVE_OCAML_TOPLEVEL
+
 stamp-generator: generator $(states_code)
 #	We must run this from the source directory since these
 #	files are distributed in the tarball.
 	rm -f $@
 	cd $(top_srcdir) && OCAMLRUNPARAM=b generator/generator
 	touch $@
+
+else
+
+stamp-generator:
+	@rm -f $@
+	@if [ -f $(top_srcdir)/lib/states.c ]; then            \
+	    echo "No ocaml toplevel, skipping the generator."; \
+	    touch $@;                                          \
+	else                                                   \
+	    echo;                                              \
+	    echo "        *** *** ***";                        \
+	    echo;                                              \
+	    echo "Source files are missing from your build.";  \
+	    echo;                                              \
+	    echo "Install the OCaml toplevel (the program called ‘ocaml’)"; \
+	    echo "and rerun ./configure && make";              \
+	    echo;                                              \
+	    echo "        *** *** ***";                        \
+	    echo;                                              \
+	    exit 1;                                            \
+	fi
+
+endif

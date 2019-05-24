@@ -142,6 +142,11 @@ dnl Define the path to the podwrapper program.
 PODWRAPPER="$PERL $(pwd)/podwrapper.pl"
 AC_SUBST([PODWRAPPER])
 
+dnl OCaml, required for running the generator when building from git,
+dnl optional the rest of the time.
+AC_PROG_OCAML
+AM_CONDITIONAL([HAVE_OCAML_TOPLEVEL],[test "x$OCAML" != "xno"])
+
 dnl Python, optional for the Python bindings and shell.
 PYTHON_PREFIX=
 PYTHON_VERSION=
