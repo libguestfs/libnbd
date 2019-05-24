@@ -3135,12 +3135,14 @@ AIO_DIRECTION_BOTH  = 3
 CMD_FLAG_FUA = 1<<0
 
 class NBD (object):
+    \"\"\"NBD handle\"\"\"
+
     def __init__ (self):
-        \"\"\"Create a new NBD handle\"\"\"
+        \"\"\"create a new NBD handle\"\"\"
         self._o = libnbdmod.create ()
 
     def __del__ (self):
-        \"\"\"Close the NBD handle and underlying connection\"\"\"
+        \"\"\"close the NBD handle and underlying connection\"\"\"
         libnbdmod.close (self._o)
 
 ";
