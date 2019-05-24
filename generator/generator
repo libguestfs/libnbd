@@ -2659,8 +2659,14 @@ let generate_python_methods_h () =
   pr "#include <assert.h>\n";
   pr "\n";
   pr "\
+struct py_aio_buffer {
+  Py_ssize_t len;
+  void *data;
+};
+
 extern char **nbd_internal_py_get_string_list (PyObject *);
 extern void nbd_internal_py_free_string_list (char **);
+extern struct py_aio_buffer *nbd_internal_py_get_aio_buffer (PyObject *);
 
 static inline struct nbd_handle *
 get_handle (PyObject *obj)
@@ -2676,7 +2682,9 @@ get_handle (PyObject *obj)
     fun name ->
       pr "extern PyObject *nbd_internal_py_%s (PyObject *self, PyObject *args);\n"
          name;
-  ) ([ "create"; "close" ] @ List.map fst handle_calls);
+  ) ([ "create"; "close";
+       "alloc_aio_buffer"; "aio_buffer_from_bytearray";
+       "aio_buffer_to_bytearray" ] @ List.map fst handle_calls);
 
   pr "\n";
   pr "#endif /* LIBNBD_METHODS_H */\n"
@@ -2702,7 +2710,9 @@ let generate_python_libnbdmod_c () =
     fun name ->
       pr "  { (char *) \"%s\", nbd_internal_py_%s, METH_VARARGS, NULL },\n"
          name name;
-  ) ([ "create"; "close" ] @ List.map fst handle_calls);
+  ) ([ "create"; "close";
+       "alloc_aio_buffer"; "aio_buffer_from_bytearray";
+       "aio_buffer_to_bytearray" ] @ List.map fst handle_calls);
   pr "  { NULL, NULL, 0, NULL }\n";
   pr "};\n";
   pr "\n";
@@ -2860,11 +2870,16 @@ let print_python_binding name { args; ret } =
        pr "  size_t %s;\n" len;
     | ArrayAndLen _ -> assert false
     | Bool n -> pr "  int %s;\n" n
-    | BytesIn (n, _) | BytesPersistIn (n, _) ->
+    | BytesIn (n, _) ->
        pr "  Py_buffer %s;\n" n
-    | BytesOut (n, count) | BytesPersistOut (n, count) ->
+    | BytesOut (n, count) ->
        pr "  char *%s;\n" n;
        pr "  Py_ssize_t %s;\n" count
+    | BytesPersistIn (n, _)
+    | BytesPersistOut (n, _) ->
+       pr "  PyObject *%s; /* PyCapsule pointing to struct py_aio_buffer */\n"
+          n;
+       pr "  struct py_aio_buffer *%s_buf;\n" n
     | Callback (n, _) ->
        pr "  struct %s_%s_data callback_data;\n" name n
     | Int n -> pr "  int %s;\n" n
@@ -2899,8 +2914,10 @@ let print_python_binding name { args; ret } =
     function
     | ArrayAndLen _ -> pr " \"O\""
     | Bool n -> pr " \"b\""
-    | BytesIn (n, _) | BytesPersistIn (n, _)-> pr " \"y*\""
-    | BytesOut (_, count) | BytesPersistOut (_, count) -> pr " \"n\""
+    | BytesIn (n, _) -> pr " \"y*\""
+    | BytesPersistIn (n, _) -> pr " \"O\""
+    | BytesOut (_, count) -> pr " \"n\""
+    | BytesPersistOut (_, count) -> pr " \"O\""
     | Callback (n, _) -> pr " \"O\""
     | Int n -> pr " \"i\""
     | Int64 n -> pr " \"L\""
@@ -2921,8 +2938,9 @@ let print_python_binding name { args; ret } =
     | ArrayAndLen (UInt32 n, _) -> pr ", &py_%s" n
     | ArrayAndLen _ -> assert false
     | Bool n -> pr ", &%s" n
-    | BytesIn (n, _) | BytesPersistIn (n, _) -> pr ", &%s" n
-    | BytesOut (_, count) | BytesPersistOut (_, count)-> pr ", &%s" count
+    | BytesIn (n, _) | BytesPersistIn (n, _)
+    | BytesPersistOut (n, _) -> pr ", &%s" n
+    | BytesOut (_, count) -> pr ", &%s" count
     | Callback _ -> pr ", &callback_data.fn"
     | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
@@ -2963,14 +2981,8 @@ let print_python_binding name { args; ret } =
     | BytesIn _ -> ()
     | BytesOut (n, count) ->
        pr "  %s = malloc (%s);\n" n count
-    | BytesPersistIn _ | BytesPersistOut _ ->
-       (* The AIO pread/pwrite calls require a buffer which
-        * persists for as long as the command is running, which
-        * is at least after this function returns.  So we need
-        * a way to allocate one of those and pass it to the
-        * function from Python and free it later.
-        *)
-       pr "  abort (); /* XXX BytesPersistIn/Out not implemented */\n"
+    | BytesPersistIn (n, _) | BytesPersistOut (n, _) ->
+       pr "  %s_buf = nbd_internal_py_get_aio_buffer (%s);\n" n n
     | Callback (n, _) ->
        pr "  if (!PyCallable_Check (callback_data.fn)) {\n";
        pr "    PyErr_SetString (PyExc_TypeError,\n";
@@ -3001,8 +3013,10 @@ let print_python_binding name { args; ret } =
     | ArrayAndLen (UInt32 n, len) -> pr ", %s, %s" n len
     | ArrayAndLen _ -> assert false
     | Bool n -> pr ", %s" n
-    | BytesIn (n, _) | BytesPersistIn (n, _) -> pr ", %s.buf, %s.len" n n
-    | BytesOut (n, count) | BytesPersistOut (n, count) -> pr ", %s, %s" n count
+    | BytesIn (n, _) -> pr ", %s.buf, %s.len" n n
+    | BytesOut (n, count) -> pr ", %s, %s" n count
+    | BytesPersistIn (n, _)
+    | BytesPersistOut (n, _) -> pr ", %s_buf->data, %s_buf->len" n n
     | Callback (n, _) -> pr ", %s_%s_wrapper" name n
     | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
@@ -3075,9 +3089,8 @@ let print_python_binding name { args; ret } =
     | ArrayAndLen (UInt32 n, len) -> pr "  free (%s);\n" n
     | ArrayAndLen _ -> assert false
     | Bool _ -> ()
-    | BytesIn (n, _) | BytesPersistIn (n, _) ->
-       pr "  PyBuffer_Release (&%s);\n" n
-    | BytesOut _ | BytesPersistOut _ -> ()
+    | BytesIn (n, _) -> pr "  PyBuffer_Release (&%s);\n" n
+    | BytesPersistIn _ | BytesOut _ | BytesPersistOut _ -> ()
     | Callback _ -> ()
     | Int _ -> ()
     | Int64 _ -> ()
@@ -3134,6 +3147,18 @@ AIO_DIRECTION_BOTH  = 3
 
 CMD_FLAG_FUA = 1<<0
 
+# AIO buffer functions.
+def aio_buffer (len):
+    \"\"\"allocate an AIO buffer used for nbd.aio_pread and nbd.aio_pwrite\"\"\"
+    return libnbdmod.alloc_aio_buffer (len)
+
+def aio_buffer_from_bytearray (ba):
+    \"\"\"create an AIO buffer from a bytearray\"\"\"
+    return libnbdmod.aio_buffer_from_bytearray (ba)
+def aio_buffer_to_bytearray (buf):
+    \"\"\"copy an AIO buffer into a bytearray\"\"\"
+    return libnbdmod.aio_buffer_to_bytearray (buf)
+
 class NBD (object):
     \"\"\"NBD handle\"\"\"
 
@@ -3155,7 +3180,8 @@ class NBD (object):
                      | ArrayAndLen _ -> assert false
                      | Bool n -> n
                      | BytesIn (n, _) | BytesPersistIn (n, _) -> n
-                     | BytesOut (_, count) | BytesPersistOut (_, count) -> count
+                     | BytesPersistOut (n, _) -> n
+                     | BytesOut (_, count) -> count
                      | Callback (n, _) -> n
                      | Int n -> n
                      | Int64 n -> n

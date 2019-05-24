@@ -71,3 +71,125 @@ nbd_internal_py_close (PyObject *self, PyObject *args)
   Py_INCREF (Py_None);
   return Py_None;
 }
+
+static char aio_buffer_name[] = "struct py_aio_buffer";
+
+struct py_aio_buffer *
+nbd_internal_py_get_aio_buffer (PyObject *capsule)
+{
+  return PyCapsule_GetPointer (capsule, aio_buffer_name);
+}
+
+static void
+free_aio_buffer (PyObject *capsule)
+{
+  struct py_aio_buffer *buf = PyCapsule_GetPointer (capsule, aio_buffer_name);
+
+  free (buf->data);
+  free (buf);
+}
+
+/* Allocate a persistent buffer used for nbd_aio_pread and
+ * nbd_aio_pwrite.
+ */
+PyObject *
+nbd_internal_py_alloc_aio_buffer (PyObject *self, PyObject *args)
+{
+  struct py_aio_buffer *buf;
+  PyObject *ret;
+
+  buf = malloc (sizeof *buf);
+  if (buf == NULL) {
+    PyErr_NoMemory ();
+    return NULL;
+  }
+
+  if (!PyArg_ParseTuple (args, (char *) "n:nbd_internal_py_alloc_aio_buffer",
+                         &buf->len)) {
+    free (buf);
+    return NULL;
+  }
+
+  if (buf->len < 0) {
+    PyErr_SetString (PyExc_RuntimeError, "length < 0");
+    free (buf);
+    return NULL;
+  }
+  buf->data = calloc (1, buf->len);
+  if (buf->data == NULL) {
+    PyErr_NoMemory ();
+    free (buf);
+    return NULL;
+  }
+
+  ret = PyCapsule_New (buf, aio_buffer_name, free_aio_buffer);
+  if (ret == NULL) {
+    free (buf->data);
+    free (buf);
+    return NULL;
+  }
+
+  return ret;
+}
+
+PyObject *
+nbd_internal_py_aio_buffer_from_bytearray (PyObject *self, PyObject *args)
+{
+  PyObject *obj;
+  Py_ssize_t len;
+  void *data;
+  struct py_aio_buffer *buf;
+  PyObject *ret;
+
+  if (!PyArg_ParseTuple (args,
+                         (char *) "O:nbd_internal_py_aio_buffer_from_bytearray",
+                         &obj))
+    return NULL;
+
+  data = PyByteArray_AsString (obj);
+  if (!data)
+    return NULL;
+  len = PyByteArray_Size (obj);
+
+  buf = malloc (sizeof *buf);
+  if (buf == NULL) {
+    PyErr_NoMemory ();
+    return NULL;
+  }
+
+  buf->len = len;
+  buf->data = malloc (len);
+  if (buf->data == NULL) {
+    PyErr_NoMemory ();
+    free (buf);
+    return NULL;
+  }
+  memcpy (buf->data, data, len);
+
+  ret = PyCapsule_New (buf, aio_buffer_name, free_aio_buffer);
+  if (ret == NULL) {
+    free (buf->data);
+    free (buf);
+    return NULL;
+  }
+
+  return ret;
+}
+
+PyObject *
+nbd_internal_py_aio_buffer_to_bytearray (PyObject *self, PyObject *args)
+{
+  PyObject *obj;
+  struct py_aio_buffer *buf;
+
+  if (!PyArg_ParseTuple (args,
+                         (char *) "O:nbd_internal_py_aio_buffer_to_bytearray",
+                         &obj))
+    return NULL;
+
+  buf = nbd_internal_py_get_aio_buffer (obj);
+  if (buf == NULL)
+    return NULL;
+
+  return PyByteArray_FromStringAndSize (buf->data, buf->len);
+}
