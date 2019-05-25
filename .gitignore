@@ -67,6 +67,7 @@ Makefile.in
 /python/run-python-tests
 /run
 /sh/nbdsh
+/sh/nbdsh.1
 /stamp-h1
 /test-driver
 /tests/aio-parallel

@@ -17,9 +17,23 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
+EXTRA_DIST = nbdsh.pod
+
 if HAVE_PYTHON
 
 bin_SCRIPTS = nbdsh
+
+if HAVE_POD
+
+man_MANS = nbdsh.1
+CLEANFILES += $(man_MANS)
+
+nbdsh.1: nbdsh.pod
+	$(PODWRAPPER) --section=1 --man $@ \
+	    --html $(top_builddir)/html/$@.html \
+	    $<
+
+endif HAVE_POD
 
 if HAVE_NBDKIT
 

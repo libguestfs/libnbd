@@ -292,7 +292,7 @@ pop @name;
 die "$progname: $input: empty NAME section\n"
     unless @name >= 1;
 die "$progname: $input: NAME doesn't start with libnbd\n"
-    unless $name[0] =~ m/^libnbd/;
+    unless $name[0] =~ m/^libnbd/ || $name[0] =~ m/^nbd/;
 die "$progname: $input: NAME does not conform with Linux man pages standard\n"
     if $name[0] !~ m/- [a-z]/ || $name[@name-1] =~ m/\.$/;
 
