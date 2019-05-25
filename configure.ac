@@ -96,6 +96,15 @@ dnl psktool (part of GnuTLS) for testing Pre-Shared Keys (PSK).
 AC_CHECK_PROG([PSKTOOL], [psktool], [psktool])
 AM_CONDITIONAL([HAVE_PSKTOOL], [test "x$PSKTOOL" != "x"])
 
+dnl Check for libxml2 (optional, for NBD URI support)
+PKG_CHECK_MODULES([LIBXML2], [libxml-2.0], [
+    AC_SUBST([LIBXML2_CFLAGS])
+    AC_SUBST([LIBXML2_LIBS])
+    AC_DEFINE([HAVE_LIBXML2],[1],[libxml2 found at compile time.])
+], [
+    AC_MSG_WARN([libxml2 not found, NBD URI support will be disabled.])
+])
+
 dnl nbdkit, nbdkit-sh-plugin and development headers are only needed
 dnl to run the test suite.
 AC_CHECK_PROG([NBDKIT], [nbdkit], [nbdkit])

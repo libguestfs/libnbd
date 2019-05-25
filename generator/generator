@@ -1056,6 +1056,17 @@ C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
 (see qemu-nbd I<-B> option).  See also C<nbd_block_status>.";
   };
 
+  "connect_uri", {
+    default_call with
+    args = [ String "uri" ]; ret = RErr;
+    shortdesc = "connect to NBD URI";
+    longdesc = "\
+Connect (synchronously) to an NBD server and export by specifying
+the NBD URI.  This call parses the URI and may call [nbd_connect_tcp],
+[nbd_connect_unix] and [nbd_set_tls].  This call returns when the
+connection has been made.";
+  };
+
   "connect_unix", {
     default_call with
     args = [ Path "unixsocket" ]; ret = RErr;
@@ -1384,6 +1395,19 @@ main loop, rather than being intended as something you would use.";
     shortdesc = "connect to the NBD server";
     longdesc = "\
 Begin connecting to the NBD server.
+
+You can check if the connection is still connecting by calling
+C<nbd_aio_is_connecting>, or if it has connected to the server
+and completed the NBD handshake by calling C<nbd_aio_is_ready>,
+on the connection.";
+  };
+
+  "aio_connect_uri", {
+    default_call with
+    args = [ String "uri" ]; ret = RErr;
+    shortdesc = "connect to an NBD URI";
+    longdesc = "\
+Begin connecting to the NBD URI C<uri>.
 
 You can check if the connection is still connecting by calling
 C<nbd_aio_is_connecting>, or if it has connected to the server

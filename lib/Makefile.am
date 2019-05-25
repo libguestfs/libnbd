@@ -57,9 +57,11 @@ libnbd_la_CPPFLAGS = \
 libnbd_la_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
 	$(PTHREAD_CFLAGS) \
-	$(GNUTLS_CFLAGS)
+	$(GNUTLS_CFLAGS) \
+	$(LIBXML2_CFLAGS)
 libnbd_la_LIBADD = \
-	$(GNUTLS_LIBS)
+	$(GNUTLS_LIBS) \
+	$(LIBXML2_LIBS)
 libnbd_la_LDFLAGS = \
 	$(PTHREAD_LIBS) \
 	-Wl,--version-script=$(srcdir)/libnbd.syms \

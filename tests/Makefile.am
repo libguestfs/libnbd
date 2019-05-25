@@ -20,7 +20,10 @@ include $(top_srcdir)/subdir-rules.mk
 CLEANFILES += \
 	connect-tcp.pid \
 	connect-unix.pid \
-	connect-unix.sock
+	connect-unix.sock \
+	connect-uri-tcp.pid \
+	connect-uri-unix.pid \
+	connect-uri-unix.sock
 
 EXTRA_DIST = \
 	aio-parallel.sh \
@@ -57,6 +60,8 @@ check_PROGRAMS = \
 	oldstyle \
 	connect-unix \
 	connect-tcp \
+	connect-uri-unix \
+	connect-uri-tcp \
 	aio-parallel \
 	aio-parallel-load \
 	synch-parallel \
@@ -89,6 +94,8 @@ TESTS = \
 	oldstyle \
 	connect-unix \
 	connect-tcp \
+	connect-uri-unix \
+	connect-uri-tcp \
 	aio-parallel.sh \
 	aio-parallel-load.sh \
 	synch-parallel.sh \
@@ -211,6 +218,16 @@ connect_tcp_SOURCES = connect-tcp.c
 connect_tcp_CPPFLAGS = -I$(top_srcdir)/include
 connect_tcp_CFLAGS = $(WARNINGS_CFLAGS)
 connect_tcp_LDADD = $(top_builddir)/lib/libnbd.la
+
+connect_uri_unix_SOURCES = connect-uri-unix.c
+connect_uri_unix_CPPFLAGS = -I$(top_srcdir)/include
+connect_uri_unix_CFLAGS = $(WARNINGS_CFLAGS)
+connect_uri_unix_LDADD = $(top_builddir)/lib/libnbd.la
+
+connect_uri_tcp_SOURCES = connect-uri-tcp.c
+connect_uri_tcp_CPPFLAGS = -I$(top_srcdir)/include
+connect_uri_tcp_CFLAGS = $(WARNINGS_CFLAGS)
+connect_uri_tcp_LDADD = $(top_builddir)/lib/libnbd.la
 
 aio_parallel_SOURCES = aio-parallel.c
 aio_parallel_CPPFLAGS = -I$(top_srcdir)/include

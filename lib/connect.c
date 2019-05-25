@@ -29,6 +29,10 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#ifdef HAVE_LIBXML2
+#include <libxml/uri.h>
+#endif
+
 #include "internal.h"
 
 static int
@@ -64,6 +68,16 @@ wait_until_connected (struct nbd_handle *h)
   }
 
   return error_unless_ready (h);
+}
+
+/* Connect to an NBD URI. */
+int
+nbd_unlocked_connect_uri (struct nbd_handle *h, const char *uri)
+{
+  if (nbd_unlocked_aio_connect_uri (h, uri) == -1)
+    return -1;
+
+  return wait_until_connected (h);
 }
 
 /* Connect to a Unix domain socket. */
@@ -121,6 +135,109 @@ nbd_unlocked_aio_connect (struct nbd_handle *h,
   h->connaddrlen = len;
 
   return nbd_internal_run (h, cmd_connect_sockaddr);
+}
+
+int
+nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
+{
+#ifdef HAVE_LIBXML2
+  xmlURIPtr uri = NULL;
+  bool tcp, tls;
+  int r;
+
+  if (error_unless_start (h) == -1)
+    goto error;
+
+  uri = xmlParseURI (raw_uri);
+  if (!uri) {
+    set_error (EINVAL, "unable to parse URI: %s", raw_uri);
+    goto error;
+  }
+
+  /* Scheme. */
+  if (uri->scheme) {
+    if (strcmp (uri->scheme, "nbd") == 0) {
+      tcp = true;
+      tls = false;
+    }
+    else if (strcmp (uri->scheme, "nbds") == 0) {
+      tcp = true;
+      tls = true;
+    }
+    else if (strcmp (uri->scheme, "nbd+unix") == 0) {
+      tcp = false;
+      tls = false;
+    }
+    else if (strcmp (uri->scheme, "nbds+unix") == 0) {
+      tcp = false;
+      tls = true;
+    }
+    else goto unknown_scheme;
+  }
+  else {
+  unknown_scheme:
+    set_error (EINVAL, "unknown URI scheme: %s", uri->scheme ? : "NULL");
+    goto error;
+  }
+
+  /* TLS */
+  if (tls && nbd_unlocked_set_tls (h, 2) == -1)
+    goto error;
+
+  /* Export name. */
+  if (uri->path) {
+    if (uri->path[0] == '/')
+      r = nbd_unlocked_set_export_name (h, &uri->path[1]);
+    else
+      r = nbd_unlocked_set_export_name (h, uri->path);
+  }
+  else
+    r = nbd_unlocked_set_export_name (h, "");
+  if (r == -1)
+    goto error;
+
+  if (tcp) {
+    char port_str[32];
+
+    snprintf (port_str, sizeof port_str,
+              "%d", uri->port > 0 ? uri->port : 10809);
+    if (nbd_unlocked_aio_connect_tcp (h, uri->server ? : "localhost",
+                                      port_str) == -1)
+      goto error;
+  }
+  else /* Unix domain socket */ {
+    const char *p, *unixsocket = NULL;
+
+    /* XXX parsing and unquoting are all wrong.  This will only work
+     * in trivial cases.
+     */
+    if (uri->query_raw) {
+      p = strstr (uri->query_raw, "socket=");
+      if (p)
+        unixsocket = p+7;
+    }
+    if (!unixsocket) {
+      set_error (EINVAL, "cannot parse socket parameter from NBD URI: %s",
+                 uri->query_raw ? : "NULL");
+      goto error;
+    }
+
+    if (nbd_unlocked_aio_connect_unix (h, unixsocket) == -1)
+      goto error;
+  }
+
+  xmlFreeURI (uri);
+  return 0;
+
+error:
+  xmlFreeURI (uri);
+  return -1;
+
+#else /* !HAVE_LIBXML2 */
+  set_error (ENOTSUP, "libnbd was compiled without libxml2 support, "
+             "so we do not support NBD URI");
+  return -1;
+#endif /* !HAVE_LIBXML2 */
 }
 
 int

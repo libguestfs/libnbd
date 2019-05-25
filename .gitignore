@@ -87,6 +87,8 @@ Makefile.in
 /tests/connect-tls-certs
 /tests/connect-tls-psk
 /tests/connect-unix
+/tests/connect-uri-tcp
+/tests/connect-uri-unix
 /tests/errors
 /tests/functions.sh
 /tests/get-size

@@ -54,12 +54,15 @@ Requirements:
 
 Optional:
 
- * GnuTLS is recommended for TLS support.  If not available then TLS
-   support will be disabled in the library.
-
  * ocaml is required to run the generator, which is needed for
    building from git.  However it is not needed if building from
    tarballs, so this is classified as an optional dependency.
+
+ * GnuTLS is recommended for TLS support.  If not available then TLS
+   support will be disabled in the library.
+
+ * libxml2 is recommended for NBD URI support.  If not available then
+   a few APIs related to URIs will always return error.
 
  * The nbdkit command, nbdkit-sh-plugin and nbdkit development headers
    are recommended as they are needed to run the test suite.
