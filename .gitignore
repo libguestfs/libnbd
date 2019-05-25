@@ -35,6 +35,7 @@ Makefile.in
 /examples/threaded-reads-and-writes
 /examples/simple-fetch-first-sector
 /examples/simple-reads-and-writes
+/generator/generator-cache.v1
 /generator/stamp-generator
 /html/*.?.html
 /include/libnbd.h
