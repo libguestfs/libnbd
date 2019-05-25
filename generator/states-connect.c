@@ -27,6 +27,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <signal.h>
 #include <netdb.h>
@@ -183,12 +184,12 @@
  CONNECT_COMMAND.START:
   int sv[2];
   pid_t pid;
+  int flags;
 
   assert (!h->sock);
   assert (h->argv);
   assert (h->argv[0]);
-  if (socketpair (AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0,
-                  sv) == -1) {
+  if (socketpair (AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0, sv) == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "socketpair");
     return -1;
@@ -219,13 +220,27 @@
   }
 
   /* Parent. */
+  close (sv[1]);
+
   h->pid = pid;
+
+  /* The socket must be set to non-blocking only in the parent,
+   * because the child may not be expecting a non-blocking socket.
+   */
+  flags = fcntl (sv[0], F_GETFL, 0);
+  if (flags == -1 ||
+      fcntl (sv[0], F_SETFL, flags|O_NONBLOCK) == -1) {
+    SET_NEXT_STATE (%.DEAD);
+    close (sv[0]);
+    return -1;
+  }
+
   h->sock = nbd_internal_socket_create (sv[0]);
   if (!h->sock) {
     SET_NEXT_STATE (%.DEAD);
+    close (sv[0]);
     return -1;
   }
-  close (sv[1]);
 
   /* The sockets are connected already, we can jump directly to
    * receiving the server magic.
