@@ -1679,6 +1679,17 @@ versions.";
   };
 ]
 
+(* Constants, flags, etc. *)
+let constants = [
+  "AIO_DIRECTION_READ",  1;
+  "AIO_DIRECTION_WRITE", 2;
+  "AIO_DIRECTION_BOTH",  3;
+
+  "CMD_FLAG_FUA",        1 lsl 0;
+  "CMD_FLAG_NO_HOLE",    1 lsl 1;
+  "CMD_FLAG_REQ_ONE",    1 lsl 2;
+]
+
 (*----------------------------------------------------------------------*)
 
 (* Helper functions. *)
@@ -2414,13 +2425,7 @@ let generate_include_libnbd_h () =
   pr "\n";
   pr "struct nbd_handle;\n";
   pr "\n";
-  pr "#define LIBNBD_AIO_DIRECTION_READ  1\n";
-  pr "#define LIBNBD_AIO_DIRECTION_WRITE 2\n";
-  pr "#define LIBNBD_AIO_DIRECTION_BOTH  3\n";
-  pr "\n";
-  pr "#define LIBNBD_CMD_FLAG_FUA        (1<<0)\n";
-  pr "#define LIBNBD_CMD_FLAG_NO_HOLE    (1<<1)\n";
-  pr "#define LIBNBD_CMD_FLAG_REQ_ONE    (1<<3)\n";
+  List.iter (fun (n, i) -> pr "#define LIBNBD_%-30s %d\n" n i) constants;
   pr "\n";
   pr "extern struct nbd_handle *nbd_create (void);\n";
   pr "extern void nbd_close (struct nbd_handle *h);\n";
@@ -3141,11 +3146,11 @@ Read the libnbd(3) man page to find out how to use the API.
 
 import libnbdmod
 
-AIO_DIRECTION_READ  = 1
-AIO_DIRECTION_WRITE = 2
-AIO_DIRECTION_BOTH  = 3
+";
 
-CMD_FLAG_FUA = 1<<0
+  List.iter (fun (n, i) -> pr "%-30s = %d\n" n i) constants;
+
+  pr "\
 
 # AIO buffer functions.
 def aio_buffer (len):
