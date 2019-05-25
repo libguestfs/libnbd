@@ -89,6 +89,28 @@ free_aio_buffer (PyObject *capsule)
   free (buf);
 }
 
+PyObject *
+nbd_internal_py_get_package_name (PyObject *self, PyObject *args)
+{
+  static char name[] = PACKAGE_NAME;
+
+  if (!PyArg_ParseTuple (args, (char *) ":nbd_internal_py_get_package_name"))
+    return NULL;
+
+  return PyUnicode_FromStringAndSize (name, strlen (name));
+}
+
+PyObject *
+nbd_internal_py_get_package_version (PyObject *self, PyObject *args)
+{
+  static char version[] = PACKAGE_VERSION;
+
+  if (!PyArg_ParseTuple (args, (char *) ":nbd_internal_py_get_package_version"))
+    return NULL;
+
+  return PyUnicode_FromStringAndSize (version, strlen (version));
+}
+
 /* Allocate a persistent buffer used for nbd_aio_pread and
  * nbd_aio_pwrite.
  */

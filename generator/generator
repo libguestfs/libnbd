@@ -2682,7 +2682,7 @@ get_handle (PyObject *obj)
     fun name ->
       pr "extern PyObject *nbd_internal_py_%s (PyObject *self, PyObject *args);\n"
          name;
-  ) ([ "create"; "close";
+  ) ([ "create"; "close"; "get_package_name"; "get_package_version";
        "alloc_aio_buffer"; "aio_buffer_from_bytearray";
        "aio_buffer_to_bytearray" ] @ List.map fst handle_calls);
 
@@ -2710,7 +2710,7 @@ let generate_python_libnbdmod_c () =
     fun name ->
       pr "  { (char *) \"%s\", nbd_internal_py_%s, METH_VARARGS, NULL },\n"
          name name;
-  ) ([ "create"; "close";
+  ) ([ "create"; "close"; "get_package_name"; "get_package_version";
        "alloc_aio_buffer"; "aio_buffer_from_bytearray";
        "aio_buffer_to_bytearray" ] @ List.map fst handle_calls);
   pr "  { NULL, NULL, 0, NULL }\n";
@@ -3204,10 +3204,21 @@ class NBD (object):
 
   (* For nbdsh. *)
   pr "\
+package_name = libnbdmod.get_package_name ()
+__version__ = libnbdmod.get_package_version ()
+
 if __name__ == \"__main__\":
-    import nbd
+    import argparse
     import code
     import sys
+
+    import nbd
+
+    description = '''Network Block Device (NBD) shell'''
+    parser = argparse.ArgumentParser (prog='nbdsh', description=description)
+    parser.add_argument ('-V', '--version', action='version',
+                         version=package_name + ' ' + __version__)
+    args = parser.parse_args ()
 
     h = nbd.NBD ()
     sys.ps1 = \"nbd> \"
