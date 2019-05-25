@@ -28,7 +28,6 @@
 #include <netinet/tcp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/un.h>
 
 #include "internal.h"
 
@@ -69,17 +68,9 @@ wait_until_connected (struct nbd_handle *h)
 
 /* Connect to a Unix domain socket. */
 int
-nbd_unlocked_connect_unix (struct nbd_handle *h, const char *sockpath)
+nbd_unlocked_connect_unix (struct nbd_handle *h, const char *unixsocket)
 {
-  struct sockaddr_un sun;
-  socklen_t len;
-
-  sun.sun_family = AF_UNIX;
-  memset (sun.sun_path, 0, sizeof (sun.sun_path));
-  strncpy (sun.sun_path, sockpath, sizeof (sun.sun_path) - 1);
-  len = sizeof (sun.sun_family) + strlen (sun.sun_path) + 1;
-
-  if (nbd_unlocked_aio_connect (h, (struct sockaddr *) &sun, len) == -1)
+  if (nbd_unlocked_aio_connect_unix (h, unixsocket) == -1)
     return -1;
 
   return wait_until_connected (h);
@@ -130,6 +121,23 @@ nbd_unlocked_aio_connect (struct nbd_handle *h,
   h->connaddrlen = len;
 
   return nbd_internal_run (h, cmd_connect_sockaddr);
+}
+
+int
+nbd_unlocked_aio_connect_unix (struct nbd_handle *h, const char *unixsocket)
+{
+  if (error_unless_start (h) == -1)
+    return -1;
+
+  if (h->unixsocket)
+    free (h->unixsocket);
+  h->unixsocket = strdup (unixsocket);
+  if (!h->unixsocket) {
+    set_error (errno, "strdup");
+    return -1;
+  }
+
+  return nbd_internal_run (h, cmd_connect_unix);
 }
 
 int

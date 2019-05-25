@@ -35,6 +35,7 @@
 #include <netinet/tcp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 
 /* STATE MACHINE */ {
  CONNECT.START:
@@ -83,6 +84,22 @@
     set_error (status, "connect");
     return -1;
   }
+
+ CONNECT_UNIX.START:
+  struct sockaddr_un sun;
+  socklen_t len;
+
+  assert (h->unixsocket != NULL);
+
+  sun.sun_family = AF_UNIX;
+  memset (sun.sun_path, 0, sizeof (sun.sun_path));
+  strncpy (sun.sun_path, h->unixsocket, sizeof (sun.sun_path) - 1);
+  len = sizeof (sun.sun_family) + strlen (sun.sun_path) + 1;
+
+  memcpy (&h->connaddr, &sun, len);
+  h->connaddrlen = len;
+  SET_NEXT_STATE (%^CONNECT.START);
+  return 0;
 
  CONNECT_TCP.START:
   int r;

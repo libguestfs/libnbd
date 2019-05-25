@@ -81,6 +81,7 @@ type external_event =
   | NotifyWrite                 (* fd becomes ready to write *)
   | CmdCreate                   (* [nbd_create] function called *)
   | CmdConnectSockAddr          (* [nbd_aio_connect] function called *)
+  | CmdConnectUnix              (* [nbd_aio_connect_unix] *)
   | CmdConnectTCP               (* [nbd_aio_connect_tcp] *)
   | CmdConnectCommand           (* [nbd_aio_connect_command] *)
   | CmdIssue                    (* issuing an NBD command *)
@@ -154,11 +155,13 @@ let rec state_machine = [
     comment = "Handle after being initially created";
     external_events = [ CmdCreate, "";
                         CmdConnectSockAddr, "CONNECT.START";
+                        CmdConnectUnix, "CONNECT_UNIX.START";
                         CmdConnectTCP, "CONNECT_TCP.START";
                         CmdConnectCommand, "CONNECT_COMMAND.START" ];
   };
 
   Group ("CONNECT", connect_state_machine);
+  Group ("CONNECT_UNIX", connect_unix_state_machine);
   Group ("CONNECT_TCP", connect_tcp_state_machine);
   Group ("CONNECT_COMMAND", connect_command_state_machine);
 
@@ -190,7 +193,7 @@ let rec state_machine = [
   };
 ]
 
-(* State machine implementing [nbd_aio_connect] and Unix domain sockets. *)
+(* State machine implementing [nbd_aio_connect]. *)
 and connect_state_machine = [
   State {
     default_state with
@@ -204,6 +207,16 @@ and connect_state_machine = [
     name = "CONNECTING";
     comment = "Connecting to the remote server";
     external_events = [ NotifyWrite, "" ];
+  };
+]
+
+(* State machine implementing [nbd_aio_connect_unix]. *)
+and connect_unix_state_machine = [
+  State {
+    default_state with
+    name = "START";
+    comment = "Connect to a Unix domain socket";
+    external_events = [];
   };
 ]
 
@@ -1045,10 +1058,10 @@ C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
 
   "connect_unix", {
     default_call with
-    args = [ Path "sockpath" ]; ret = RErr;
+    args = [ Path "unixsocket" ]; ret = RErr;
     shortdesc = "connect to NBD server over a Unix domain socket";
     longdesc = "\
-Connect (synchronously) over the named Unix domain socket (C<sockpath>)
+Connect (synchronously) over the named Unix domain socket (C<unixsocket>)
 to an NBD server running on the same machine.  This call returns
 when the connection has been made.";
   };
@@ -1371,6 +1384,20 @@ main loop, rather than being intended as something you would use.";
     shortdesc = "connect to the NBD server";
     longdesc = "\
 Begin connecting to the NBD server.
+
+You can check if the connection is still connecting by calling
+C<nbd_aio_is_connecting>, or if it has connected to the server
+and completed the NBD handshake by calling C<nbd_aio_is_ready>,
+on the connection.";
+  };
+
+  "aio_connect_unix", {
+    default_call with
+    args = [ Path "unixsocket" ]; ret = RErr;
+    shortdesc = "connect to the NBD server over a Unix domain socket";
+    longdesc = "\
+Begin connecting to the NBD server over Unix domain socket
+(C<unixsocket>).
 
 You can check if the connection is still connecting by calling
 C<nbd_aio_is_connecting>, or if it has connected to the server
@@ -1857,13 +1884,16 @@ let pod2text longdesc =
 
 let all_external_events =
   [NotifyRead; NotifyWrite;
-   CmdCreate; CmdConnectSockAddr; CmdConnectTCP; CmdConnectCommand; CmdIssue]
+   CmdCreate;
+   CmdConnectSockAddr; CmdConnectUnix; CmdConnectTCP; CmdConnectCommand;
+   CmdIssue]
 
 let string_of_external_event = function
   | NotifyRead -> "NotifyRead"
   | NotifyWrite -> "NotifyWrite"
   | CmdCreate -> "CmdCreate"
   | CmdConnectSockAddr -> "CmdConnectSockAddr"
+  | CmdConnectUnix -> "CmdConnectUnix"
   | CmdConnectTCP -> "CmdConnectTCP"
   | CmdConnectCommand -> "CmdConnectCommand"
   | CmdIssue -> "CmdIssue"
@@ -1873,6 +1903,7 @@ let c_string_of_external_event = function
   | NotifyWrite -> "notify_write"
   | CmdCreate -> "cmd_create"
   | CmdConnectSockAddr -> "cmd_connect_sockaddr"
+  | CmdConnectUnix -> "cmd_connect_unix"
   | CmdConnectTCP -> "cmd_connect_tcp"
   | CmdConnectCommand -> "cmd_connect_command"
   | CmdIssue -> "cmd_issue"
@@ -2295,7 +2326,9 @@ let generate_lib_states_c () =
           match e with
           | NotifyRead ->  pr "    r |= LIBNBD_AIO_DIRECTION_READ;\n"
           | NotifyWrite -> pr "    r |= LIBNBD_AIO_DIRECTION_WRITE;\n"
-          | CmdCreate | CmdConnectSockAddr | CmdConnectTCP | CmdConnectCommand
+          | CmdCreate
+          | CmdConnectSockAddr
+          | CmdConnectUnix | CmdConnectTCP | CmdConnectCommand
           | CmdIssue -> ()
       ) events;
       pr "    break;\n";

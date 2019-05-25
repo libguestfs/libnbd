@@ -102,6 +102,7 @@ nbd_close (struct nbd_handle *h)
   free_cmd_list (h->cmds_in_flight);
   free_cmd_list (h->cmds_done);
   nbd_internal_free_string_list (h->argv);
+  free (h->unixsocket);
   free (h->hostname);
   free (h->port);
   if (h->result)

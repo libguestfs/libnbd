@@ -147,6 +147,9 @@ struct nbd_handle {
   char **argv;
   pid_t pid;
 
+  /* When connecting to Unix domain socket. */
+  char *unixsocket;
+
   /* When connecting to TCP ports, these fields are used. */
   char *hostname, *port;
   struct addrinfo hints;
