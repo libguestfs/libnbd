@@ -223,7 +223,7 @@ lookup_key (const char *pskfile, const char *username,
   ssize_t r;
   char *line = NULL;
 
-  fp = fopen (pskfile, "r");
+  fp = fopen (pskfile, "re");
   if (fp == NULL) {
     set_error (errno, "open: %s", pskfile);
     goto error;
