@@ -17,7 +17,7 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
-CLEANFILES += *.pyc
+CLEANFILES += *.pyc t/*~
 
 clean-local:
 	-rm -rf __pycache__
