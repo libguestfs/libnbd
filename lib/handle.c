@@ -151,7 +151,7 @@ nbd_unlocked_get_export_name (struct nbd_handle *h)
 }
 
 int
-nbd_unlocked_request_meta_context (struct nbd_handle *h, const char *name)
+nbd_unlocked_add_meta_context (struct nbd_handle *h, const char *name)
 {
   char *copy;
   size_t len;

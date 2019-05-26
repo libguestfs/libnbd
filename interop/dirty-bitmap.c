@@ -92,8 +92,8 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  nbd_request_meta_context (nbd, base_allocation);
-  nbd_request_meta_context (nbd, bitmap);
+  nbd_add_meta_context (nbd, base_allocation);
+  nbd_add_meta_context (nbd, bitmap);
 
   if (nbd_connect_unix (nbd, unixsocket) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());

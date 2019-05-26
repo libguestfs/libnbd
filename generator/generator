@@ -1034,19 +1034,25 @@ Get the current TLS PSK filename.  See C<nbd_set_tls_psk_file>.";
   };
 *)
 
-  "request_meta_context", {
+  "add_meta_context", {
     default_call with
     args = [ String "name" ]; ret = RErr;
-    shortdesc = "request metadata context from the server";
+    shortdesc = "ask server to negotiate metadata context";
     longdesc = "\
-This is used to enable a metadata context on the server.  This
-can be used to allow you to read extra information about
-data blocks, such as whether they are sparse (holes) or
-allocated, and dirty bitmaps.  You must call this before you
-connect to the server because metadata context negotiation
-happens during the initial handshake.  To learn if a context
-was actually negotiated, use C<nbd_can_meta_context> after
-the connection is ready.
+During connection libnbd can negotiate zero or more metadata
+contexts with the server.  Metadata contexts are features (such
+as C<\"base:allocation\">) which describe information returned
+by the C<nbd_block_status> command (for C<\"base:allocation\">
+this is whether blocks of data are allocated, zero or sparse).
+
+This call adds one metadata context to the list to be negotiated.
+You can call it as many times as needed.  The list is initially
+empty when the handle is created.
+
+You must call this before you connect to the server.  Not
+all servers support all metadata contexts.  To learn if a context
+was actually negotiated, call C<nbd_can_meta_context> after
+connecting.
 
 The single parameter is the name of the metadata context,
 for example C<\"base:allocation\">.
@@ -1199,7 +1205,7 @@ connected to and completed the handshake with the server.";
     shortdesc = "does the server support a specific meta context?";
     longdesc = "\
 Returns true if the server supports the given meta context
-(see C<nbd_request_meta_context>).  Returns false if
+(see C<nbd_add_meta_context>).  Returns false if
 the server does not.  Can return an error if we have not
 connected to and completed the handshake with the server.
 
@@ -1346,7 +1352,7 @@ are supported, the number of blocks and cumulative length
 of those blocks need not be identical between contexts.
 
 Depending on which metadata contexts were enabled before
-connecting (see C<nbd_request_meta_context>) and which are
+connecting (see C<nbd_add_meta_context>) and which are
 supported by the server (see C<nbd_can_meta_context>) this call
 returns information about extents by calling back to the
 extent function.  The callback cannot call C<nbd_*> APIs on the

@@ -56,7 +56,7 @@ main (int argc, char *argv[])
   /* Negotiate metadata context "base:allocation" with the server.
    * This is supported in nbdkit >= 1.12.
    */
-  if (nbd_request_meta_context (nbd, "base:allocation") == -1) {
+  if (nbd_add_meta_context (nbd, "base:allocation") == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -64,7 +64,7 @@ main (int argc, char *argv[])
   /* Also request negotiation of a bogus context, which should not
    * fail here nor affect block status later.
    */
-  if (nbd_request_meta_context (nbd, "x-libnbd:nosuch") == -1) {
+  if (nbd_add_meta_context (nbd, "x-libnbd:nosuch") == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

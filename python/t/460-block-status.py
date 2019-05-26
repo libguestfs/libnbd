@@ -22,7 +22,7 @@ import nbd
 script = ("%s/../tests/meta-base-allocation.sh" % os.getenv ("srcdir", "."))
 
 h = nbd.NBD ()
-h.request_meta_context ("base:allocation")
+h.add_meta_context ("base:allocation")
 h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
                     "sh", script])
 

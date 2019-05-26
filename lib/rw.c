@@ -367,7 +367,7 @@ nbd_unlocked_aio_block_status (struct nbd_handle *h,
 
   if (h->meta_contexts == NULL) {
     set_error (ENOTSUP, "did not negotiate any metadata contexts, "
-               "either you did not call nbd_request_meta_context before "
+               "either you did not call nbd_add_meta_context before "
                "connecting or the server does not support it");
     return -1;
   }
