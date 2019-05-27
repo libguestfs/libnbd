@@ -94,14 +94,18 @@ TESTS = \
 	oldstyle \
 	connect-unix \
 	connect-tcp \
-	connect-uri-unix \
-	connect-uri-tcp \
 	aio-parallel.sh \
 	aio-parallel-load.sh \
 	synch-parallel.sh \
 	meta-base-allocation
 #	can-cache-flag
 #	can-not-cache-flag
+
+if HAVE_LIBXML2
+TESTS += \
+	connect-uri-unix \
+	connect-uri-tcp
+endif HAVE_LIBXML2
 
 errors_SOURCES = errors.c
 errors_CPPFLAGS = -I$(top_srcdir)/include

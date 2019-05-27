@@ -104,6 +104,7 @@ PKG_CHECK_MODULES([LIBXML2], [libxml-2.0], [
 ], [
     AC_MSG_WARN([libxml2 not found, NBD URI support will be disabled.])
 ])
+AM_CONDITIONAL([HAVE_LIBXML2], [test "x$LIBXML2_LIBS" != "x"])
 
 dnl nbdkit, nbdkit-sh-plugin and development headers are only needed
 dnl to run the test suite.
