@@ -1062,8 +1062,8 @@ C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
     shortdesc = "connect to NBD URI";
     longdesc = "\
 Connect (synchronously) to an NBD server and export by specifying
-the NBD URI.  This call parses the URI and may call [nbd_connect_tcp],
-[nbd_connect_unix] and [nbd_set_tls].  This call returns when the
+the NBD URI.  This call parses the URI and may call C<nbd_connect_tcp>,
+C<nbd_connect_unix> and C<nbd_set_tls>.  This call returns when the
 connection has been made.";
   };
 
