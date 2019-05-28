@@ -820,6 +820,7 @@ and arg =
 | BytesPersistIn of string * string (* same as above, but buffer persists *)
 | BytesPersistOut of string * string
 | Callback of string * arg list (* callback function returning void *)
+| CallbackPersist of string * arg list (* as above, but callback persists *)
 | Flags of string          (* NBD_CMD_FLAG_* flags *)
 | Int of string            (* small int *)
 | Int64 of string          (* 64 bit signed int *)
@@ -870,8 +871,8 @@ Return the state of the debug flag on this handle.";
   "set_debug_callback", {
     default_call with
     args = [ Opaque "data";
-             Callback ("debug_fn", [Opaque "data";
-                                    String "context"; String "msg"]) ];
+             CallbackPersist ("debug_fn", [Opaque "data";
+                                           String "context"; String "msg"]) ];
     ret = RErr;
     shortdesc = "set the debug callback";
     longdesc = "\
@@ -1580,10 +1581,10 @@ in C<nbd_zero>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Opaque "data";
-             Callback ("extent", [Opaque "data"; String "metacontext";
-                                  UInt64 "offset";
-                                  ArrayAndLen (UInt32 "entries",
-                                               "nr_entries")]);
+             CallbackPersist ("extent", [Opaque "data"; String "metacontext";
+                                         UInt64 "offset";
+                                         ArrayAndLen (UInt32 "entries",
+                                                      "nr_entries")]);
              Flags "flags" ];
     ret = RInt64;
     shortdesc = "send block status to the NBD server";
@@ -2533,7 +2534,7 @@ let rec name_of_arg = function
 | BytesOut (n, len) -> [n; len]
 | BytesPersistIn (n, len) -> [n; len]
 | BytesPersistOut (n, len) -> [n; len]
-| Callback (n, _) -> [n]
+| Callback (n, _) | CallbackPersist (n, _) -> [n]
 | Flags n -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
@@ -2565,7 +2566,9 @@ let rec print_c_arg_list ?(handle = false) args =
       | BytesPersistIn (n, len) -> pr "const void *%s, size_t %s" n len
       | BytesOut (n, len)
       | BytesPersistOut (n, len) -> pr "void *%s, size_t %s" n len
-      | Callback (n, args) -> pr "void (*%s) " n; print_c_arg_list args
+      | Callback (n, args)
+      | CallbackPersist (n, args) ->
+         pr "void (*%s) " n; print_c_arg_list args
       | Flags n -> pr "uint32_t %s" n
       | Int n -> pr "int %s" n
       | Int64 n -> pr "int64_t %s" n
@@ -2954,13 +2957,29 @@ PyInit_libnbdmod (void)
 let print_python_binding name { args; ret } =
   (* Functions with a callback parameter are special because we
    * have to generate a wrapper function which translates the
-   * callback parameters back to Python.  This only supports one
-   * Callback arg at the moment and will fail if there are more,
-   * but with some effort could be extended to support that.
+   * callback parameters back to Python.
    *)
+  let find_callback opaque_id =
+    let cb =
+      try
+        List.find (
+          function
+          | Callback (_, args) | CallbackPersist (_, args) ->
+             List.mem (Opaque opaque_id) args
+          | _ -> false
+        ) args
+      with
+        Not_found ->
+        failwithf "%s: couldn't find callback associated with Opaque %s"
+                  name opaque_id in
+    match cb with
+    | Callback (name, _) | CallbackPersist (name, _) -> name
+    | _ -> assert false
+  in
+
   List.iter (
     function
-    | Callback (cb_name, args) ->
+    | Callback (cb_name, args) | CallbackPersist (cb_name, args) ->
        pr "struct %s_%s_data {\n" name cb_name;
        pr "  PyObject *fn;\n";
        pr "  PyObject *data;\n";
@@ -2985,8 +3004,8 @@ let print_python_binding name { args; ret } =
          | UInt64 n -> ()
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | Flags _
-         | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
+         | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> pr "  abort ();\n"
        ) args;
        pr "\n";
@@ -3000,8 +3019,8 @@ let print_python_binding name { args; ret } =
          | UInt64 n -> pr " \"K\""
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | Flags _
-         | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
+         | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> pr "  abort ();\n"
        ) args;
        pr " \")\"";
@@ -3013,8 +3032,8 @@ let print_python_binding name { args; ret } =
          | UInt64 n -> pr ", %s" n
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | Flags _
-         | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
+         | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> pr "  abort ();\n"
        ) args;
        pr ");\n";
@@ -3044,8 +3063,8 @@ let print_python_binding name { args; ret } =
          | Opaque _ -> ()
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | Flags _
-         | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
+         | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> ()
        ) args;
        pr "}\n";
@@ -3088,7 +3107,9 @@ let print_python_binding name { args; ret } =
           n;
        pr "  struct py_aio_buffer *%s_buf;\n" n
     | Callback (n, _) ->
-       pr "  struct %s_%s_data callback_data;\n" name n
+       pr "  struct %s_%s_data _%s_data, *%s_data = &_%s_data;\n" name n n n n
+    | CallbackPersist (n, _) ->
+       pr "  struct %s_%s_data *%s_data;\n" name n n
     | Flags n ->
        pr "  uint32_t %s_u32;\n" n;
        pr "  unsigned int %s; /* really uint32_t */\n" n
@@ -3096,8 +3117,7 @@ let print_python_binding name { args; ret } =
     | Int64 n ->
        pr "  int64_t %s_i64;\n" n;
        pr "  long long %s; /* really int64_t */\n" n
-    | Opaque n ->
-       pr "  PyObject *%s;\n" n
+    | Opaque _ -> ()
     | Path n -> pr "  char *%s = NULL;\n" n
     | SockAddrAndLen (n, _) ->
        pr "  /* XXX Complicated - Python uses a tuple of different\n";
@@ -3118,6 +3138,35 @@ let print_python_binding name { args; ret } =
   ) args;
   pr "\n";
 
+  (* Allocate the parameter. *)
+  List.iter (
+    function
+    | ArrayAndLen _
+    | Bool _
+    | BytesIn _
+    | BytesPersistIn _
+    | BytesOut _
+    | BytesPersistOut _
+    | Callback _ -> ()
+    | CallbackPersist (n, _) ->
+       pr "  %s_data = malloc (sizeof *%s_data);\n" n n;
+       pr "  if (%s_data == NULL) {\n" n;
+       pr "    PyErr_NoMemory ();\n";
+       pr "    return NULL;\n";
+       pr "  }\n"
+    | Flags _
+    | Int _
+    | Int64 _
+    | Opaque _
+    | Path _
+    | SockAddrAndLen _
+    | String _
+    | StringList _
+    | UInt _
+    | UInt32 _
+    | UInt64 _ -> ()
+  ) args;
+
   (* Parse the Python parameters. *)
   pr "  if (!PyArg_ParseTuple (args, (char *) \"O\"";
   List.iter (
@@ -3128,7 +3177,7 @@ let print_python_binding name { args; ret } =
     | BytesPersistIn (n, _) -> pr " \"O\""
     | BytesOut (_, count) -> pr " \"n\""
     | BytesPersistOut (_, count) -> pr " \"O\""
-    | Callback (n, _) -> pr " \"O\""
+    | Callback (n, _) | CallbackPersist (n, _) -> pr " \"O\""
     | Flags n -> pr " \"I\""
     | Int n -> pr " \"i\""
     | Int64 n -> pr " \"L\""
@@ -3152,11 +3201,11 @@ let print_python_binding name { args; ret } =
     | BytesIn (n, _) | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) -> pr ", &%s" n
     | BytesOut (_, count) -> pr ", &%s" count
-    | Callback _ -> pr ", &callback_data.fn"
+    | Callback (n, _) | CallbackPersist (n, _) -> pr ", &%s_data->fn" n
     | Flags n -> pr ", &%s" n
     | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
-    | Opaque n -> pr ", &%s" n
+    | Opaque n -> pr ", &%s_data->data" (find_callback n)
     | Path n -> pr ", PyUnicode_FSConverter, &%s" n
     | SockAddrAndLen (n, _) -> pr ", &%s" n
     | String n -> pr ", &%s" n
@@ -3195,8 +3244,8 @@ let print_python_binding name { args; ret } =
        pr "  %s = malloc (%s);\n" n count
     | BytesPersistIn (n, _) | BytesPersistOut (n, _) ->
        pr "  %s_buf = nbd_internal_py_get_aio_buffer (%s);\n" n n
-    | Callback (n, _) ->
-       pr "  if (!PyCallable_Check (callback_data.fn)) {\n";
+    | Callback (n, _) | CallbackPersist (n, _) ->
+       pr "  if (!PyCallable_Check (%s_data->fn)) {\n" n;
        pr "    PyErr_SetString (PyExc_TypeError,\n";
        pr "                     \"callback parameter %s is not callable\");\n"
           n;
@@ -3205,8 +3254,7 @@ let print_python_binding name { args; ret } =
     | Flags n -> pr "  %s_u32 = %s;\n" n n
     | Int _ -> ()
     | Int64 n -> pr "  %s_i64 = %s;\n" n n
-    | Opaque n ->
-       pr "  callback_data.data = %s;\n" n
+    | Opaque n -> ()
     | Path _ -> ()
     | SockAddrAndLen _ ->
        pr "  abort (); /* XXX SockAddrAndLen not implemented */\n";
@@ -3230,11 +3278,11 @@ let print_python_binding name { args; ret } =
     | BytesOut (n, count) -> pr ", %s, %s" n count
     | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) -> pr ", %s_buf->data, %s_buf->len" n n
-    | Callback (n, _) -> pr ", %s_%s_wrapper" name n
+    | Callback (n, _) | CallbackPersist (n, _) -> pr ", %s_%s_wrapper" name n
     | Flags n -> pr ", %s_u32" n
     | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
-    | Opaque _ -> pr ", &callback_data"
+    | Opaque n -> pr ", %s_data" (find_callback n)
     | Path n -> pr ", %s" n
     | SockAddrAndLen (n, _) -> pr ", /* XXX */ (void *) %s, 0" n
     | String n -> pr ", %s" n
@@ -3264,7 +3312,7 @@ let print_python_binding name { args; ret } =
     | Bool _
     | BytesIn _
     | BytesPersistIn _ | BytesPersistOut _
-    | Callback _
+    | Callback _ | CallbackPersist _
     | Flags _
     | Int _
     | Int64 _
@@ -3307,6 +3355,9 @@ let print_python_binding name { args; ret } =
     | BytesIn (n, _) -> pr "  PyBuffer_Release (&%s);\n" n
     | BytesPersistIn _ | BytesOut _ | BytesPersistOut _ -> ()
     | Callback _ -> ()
+    | CallbackPersist (n, _) ->
+       pr "  /* This ensures the callback data is freed eventually. */\n";
+       pr "  nbd_add_close_callback (h, free, %s_data);\n" n
     | Flags _ -> ()
     | Int _ -> ()
     | Int64 _ -> ()
@@ -3402,7 +3453,7 @@ class NBD (object):
                      | BytesIn (n, _) | BytesPersistIn (n, _) -> n, None
                      | BytesPersistOut (n, _) -> n, None
                      | BytesOut (_, count) -> count, None
-                     | Callback (n, _) -> n, None
+                     | Callback (n, _) | CallbackPersist (n, _) -> n, None
                      | Flags n -> n, Some "0"
                      | Int n -> n, None
                      | Int64 n -> n, None
