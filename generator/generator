@@ -1347,12 +1347,13 @@ punching a hole.";
 
   "block_status", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags";
+    args = [ UInt64 "count"; UInt64 "offset";
              Opaque "data";
              Callback ("extent", [Opaque "data"; String "metacontext";
                                   UInt64 "offset";
                                   ArrayAndLen (UInt32 "entries",
-                                               "nr_entries")]) ];
+                                               "nr_entries")]);
+             UInt32 "flags" ];
     ret = RErr;
     shortdesc = "read the block status of the given range";
     longdesc = "\
@@ -1576,12 +1577,13 @@ in C<nbd_zero>.";
 
   "aio_block_status", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags";
+    args = [ UInt64 "count"; UInt64 "offset";
              Opaque "data";
              Callback ("extent", [Opaque "data"; String "metacontext";
                                   UInt64 "offset";
                                   ArrayAndLen (UInt32 "entries",
-                                               "nr_entries")]) ];
+                                               "nr_entries")]);
+             UInt32 "flags" ];
     ret = RInt64;
     shortdesc = "send block status to the NBD server";
     longdesc = "\

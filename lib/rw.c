@@ -127,13 +127,12 @@ nbd_unlocked_zero (struct nbd_handle *h,
 /* Issue a block status command and wait for the reply. */
 int
 nbd_unlocked_block_status (struct nbd_handle *h,
-                           uint64_t count, uint64_t offset, uint32_t flags,
-                           void *data,
-                           extent_fn extent)
+                           uint64_t count, uint64_t offset,
+                           void *data, extent_fn extent, uint32_t flags)
 {
   int64_t ch;
 
-  ch = nbd_unlocked_aio_block_status (h, count, offset, flags, data, extent);
+  ch = nbd_unlocked_aio_block_status (h, count, offset, data, extent, flags);
   if (ch == -1)
     return -1;
 
@@ -371,9 +370,8 @@ nbd_unlocked_aio_zero (struct nbd_handle *h,
 int64_t
 nbd_unlocked_aio_block_status (struct nbd_handle *h,
                                uint64_t count, uint64_t offset,
-                               uint32_t flags,
-                               void *data,
-                               extent_fn extent)
+                               void *data, extent_fn extent,
+                               uint32_t flags)
 {
   if (!h->structured_replies) {
     set_error (ENOTSUP, "server does not support structured replies");

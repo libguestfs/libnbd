@@ -98,22 +98,20 @@ main (int argc, char *argv[])
 
   /* Read the block status. */
   id = 1;
-  if (nbd_block_status (nbd, 65536, 0, 0, &id,
-                        check_extent) == -1) {
+  if (nbd_block_status (nbd, 65536, 0, &id, check_extent, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   id = 2;
-  if (nbd_block_status (nbd, 1024, 32768-512, 0, &id,
-                        check_extent) == -1) {
+  if (nbd_block_status (nbd, 1024, 32768-512, &id, check_extent, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   id = 3;
-  if (nbd_block_status (nbd, 1024, 32768-512, LIBNBD_CMD_FLAG_REQ_ONE, &id,
-                        check_extent) == -1) {
+  if (nbd_block_status (nbd, 1024, 32768-512, &id, check_extent,
+                        LIBNBD_CMD_FLAG_REQ_ONE) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
