@@ -1,3 +1,9 @@
+This is the general license covering libnbd.  The example code (in the
+examples/ subdirectory) is distributed under a different license, see
+examples/LICENSE-FOR-EXAMPLES.
+
+----------------------------------------------------------------------
+
                   GNU LESSER GENERAL PUBLIC LICENSE
                        Version 2.1, February 1999
 

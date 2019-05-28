@@ -1,7 +1,4 @@
-/* This example can be copied, used and modified for any purpose
- * without restrictions.
- *
- * Example usage with nbdkit:
+/* Example usage with nbdkit:
  *
  * nbdkit -U - memory 1M --run './simple-reads-and-writes $unixsocket'
  *

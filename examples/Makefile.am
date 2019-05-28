@@ -17,6 +17,8 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
+EXTRA_DIST = LICENSE-FOR-EXAMPLES
+
 noinst_PROGRAMS = \
 	batched-read-write \
 	simple-fetch-first-sector \
