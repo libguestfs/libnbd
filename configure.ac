@@ -153,9 +153,21 @@ PODWRAPPER="$PERL $(pwd)/podwrapper.pl"
 AC_SUBST([PODWRAPPER])
 
 dnl OCaml, required for running the generator when building from git,
-dnl optional the rest of the time.
+dnl optional the rest of the time unless you want to build the OCaml
+dnl bindings.
 AC_PROG_OCAML
+AC_PROG_FINDLIB
 AM_CONDITIONAL([HAVE_OCAML_TOPLEVEL],[test "x$OCAML" != "xno"])
+AM_CONDITIONAL([HAVE_OCAML],
+               [test "x$OCAMLC" != "xno" && test "x$OCAMLFIND" != "xno"])
+AM_CONDITIONAL([HAVE_OCAMLOPT],
+               [test "x$OCAMLOPT" != "xno" && test "x$OCAMLFIND" != "xno"])
+
+dnl Flags we want to pass to every OCaml compiler call.
+OCAML_WARN_ERROR="-warn-error CDEFLMPSUVYZX+52-3"
+AC_SUBST([OCAML_WARN_ERROR])
+OCAML_FLAGS="-g -annot -safe-string"
+AC_SUBST([OCAML_FLAGS])
 
 dnl Python, optional for the Python bindings and shell.
 PYTHON_PREFIX=
@@ -249,6 +261,9 @@ AC_CONFIG_FILES([Makefile
                  interop/Makefile
                  lib/Makefile
                  lib/libnbd.pc
+                 ocaml/Makefile
+                 ocaml/META
+                 ocaml/examples/Makefile
                  python/Makefile
                  sh/Makefile
                  tests/Makefile

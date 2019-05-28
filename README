@@ -54,7 +54,7 @@ Requirements:
 
 Optional:
 
- * ocaml is required to run the generator, which is needed for
+ * OCaml is required to run the generator, which is needed for
    building from git.  However it is not needed if building from
    tarballs, so this is classified as an optional dependency.
 
@@ -71,6 +71,8 @@ Optional:
    against these servers.
 
  * qemu, qemu-io, qemu-img for interoperability testing.
+
+ * OCaml and ocamlfind are both needed to generate the OCaml bindings.
 
  * Perl Pod::Man and Pod::Simple to generate the documentation.
 

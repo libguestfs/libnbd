@@ -34,6 +34,8 @@ SUBDIRS = \
 	tests \
 	python \
 	sh \
+	ocaml \
+	ocaml/examples \
 	interop
 
 # Check no files are missing from EXTRA_DIST rules, and that all

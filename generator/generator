@@ -3384,6 +3384,8 @@ let generate_python_methods_c () =
   pr "\n";
   pr "#include <stdio.h>\n";
   pr "#include <stdlib.h>\n";
+  pr "#include <stdint.h>\n";
+  pr "#include <stdbool.h>\n";
   pr "\n";
   pr "#include <libnbd.h>\n";
   pr "\n";
@@ -3530,6 +3532,529 @@ help (nbd)                          # Display documentation
 
 (*----------------------------------------------------------------------*)
 
+(* OCaml bindings. *)
+
+(* We convert the list of generic args to an OCaml-specific list
+ * because the mapping between them is complicated.
+ *)
+type ocaml_arg =
+  | OCamlHandle                 (* The NBD handle (NBD.t) *)
+  | OCamlFlags of string        (* Optional ?flags parameter *)
+  | OCamlArg of arg             (* Other arg (string = name). *)
+
+let args_to_ocaml_args args =
+  (* Flags argument, if present, is always placed first. *)
+  let flags, args =
+    match List.rev args with
+    | Flags n :: rest -> Some (OCamlFlags n), List.rev rest
+    | _ -> None, args in
+  let args = List.map (fun a -> OCamlArg a) args in
+  match flags with
+  | Some f -> f :: OCamlHandle :: args
+  | None -> OCamlHandle :: args
+
+(* String representation of args and return value. *)
+let rec ocaml_fundecl_to_string args ret =
+  let args = List.map ocaml_arg_to_string args in
+  let ret = ocaml_ret_to_string ret in
+  String.concat " -> " (args @ [ret])
+
+(* String representation of a single OCaml arg. *)
+and ocaml_arg_to_string = function
+  | OCamlHandle -> "t"
+  | OCamlFlags n -> sprintf "?%s:int32 list" n
+  | OCamlArg (ArrayAndLen (t, _)) ->
+     sprintf "%s array" (ocaml_arg_to_string (OCamlArg t))
+  | OCamlArg (Bool _) -> "bool"
+  | OCamlArg (BytesIn _) -> "bytes"
+  | OCamlArg (BytesPersistIn _) -> "Buffer.t"
+  | OCamlArg (BytesOut _) -> "bytes"
+  | OCamlArg (BytesPersistOut _) -> "Buffer.t"
+  | OCamlArg (Callback (_, args))
+  | OCamlArg (CallbackPersist (_, args)) ->
+     sprintf "(%s)"
+             (ocaml_fundecl_to_string (List.map (fun a -> OCamlArg a) args)
+                                      RErr)
+  | OCamlArg (Flags _) -> assert false (* see above *)
+  | OCamlArg (Int _) -> "int"
+  | OCamlArg (Int64 _) -> "int64"
+  | OCamlArg (Opaque n) -> sprintf "'%s" n
+  | OCamlArg (Path _) -> "string"
+  | OCamlArg (SockAddrAndLen _) -> "string" (* XXX not impl *)
+  | OCamlArg (String _) -> "string"
+  | OCamlArg (StringList _) -> "string list"
+  | OCamlArg (UInt _) -> "int"
+  | OCamlArg (UInt32 _) -> "int32"
+  | OCamlArg (UInt64 _) -> "int64"
+
+and ocaml_ret_to_string = function
+  | RBool -> "bool"
+  | RConstString -> "string"
+  | RErr -> "unit"
+  | RFd -> "Unix.file_descr"
+  | RInt -> "int"
+  | RInt64 -> "int64"
+  | RString -> "string"
+
+let name_of_ocaml_arg = function
+  | OCamlHandle -> "h"
+  | OCamlFlags n -> n
+  | OCamlArg a -> List.hd (name_of_arg a)
+
+let generate_ocaml_nbd_mli () =
+  generate_header OCamlStyle;
+
+  pr "\
+(** OCaml bindings for libnbd.
+
+    These bindings work like the C API, so the primary documentation
+    for them is libnbd(3) and libnbd-api(3).
+
+    For examples written in OCaml see the libnbd source code
+    [ocaml/examples] subdirectory.
+*)
+
+exception Error of string * int
+(** Exception thrown when an API call fails.
+
+    The string is the error message, and the int is the raw errno
+    (if available).
+*)
+
+exception Closed of string
+(** Exception thrown if you call a closed handle. *)
+
+";
+
+  List.iter (
+    fun (n, _) -> pr "val %s : int32\n" (String.lowercase_ascii n)
+  ) constants;
+  pr "\n";
+
+  pr "\
+module Buffer : sig
+  type t
+  (** Persistent, mutable C-compatible malloc'd buffer, used in AIO calls. *)
+
+  val to_bytes : t -> bytes
+  (** Copy buffer to an OCaml [bytes] object. *)
+
+  val of_bytes : bytes -> t
+  (** Copy an OCaml [bytes] object to a newly allocated buffer. *)
+end
+(** Persistent buffer used in AIO calls. *)
+
+type t
+(** The handle. *)
+
+val create : unit -> t
+(** Create a new handle. *)
+
+val close : t -> unit
+(** Close a handle.
+
+    Handles can also be closed by the garbage collector when
+    they become unreachable.  This call is used only if you want
+    to force the handle to close now and reclaim resources
+    immediately.
+*)
+
+";
+
+  List.iter (
+    fun (name, { args; ret; shortdesc; longdesc }) ->
+      pr "val %s : %s\n" name
+         (ocaml_fundecl_to_string (args_to_ocaml_args args) ret);
+
+      pr "(** %s\n" shortdesc;
+      pr "\n";
+      pr "%s" (String.concat "\n" (pod2text longdesc));
+      pr "*)\n";
+      pr "\n";
+
+  ) handle_calls
+
+let generate_ocaml_nbd_ml () =
+  generate_header OCamlStyle;
+
+  pr "\
+exception Error of string * int
+exception Closed of string
+
+(* Give the exceptions names so that can be raised from the C code. *)
+let () =
+  Callback.register_exception \"nbd_internal_ocaml_error\" (Error (\"\", 0));
+  Callback.register_exception \"nbd_internal_ocaml_closed\" (Closed \"\")
+
+";
+
+  List.iter (
+    fun (n, i) -> pr "let %s = %d_l\n" (String.lowercase_ascii n) i
+  ) constants;
+  pr "\n";
+
+  pr "\
+module Buffer = struct
+  type t
+  external to_bytes : t -> bytes = \"nbd_internal_ocaml_buffer_to_bytes\"
+  external of_bytes : bytes -> t = \"nbd_internal_ocaml_buffer_of_bytes\"
+end
+
+type t
+
+external create : unit -> t = \"nbd_internal_ocaml_nbd_create\"
+external close : t -> unit = \"nbd_internal_ocaml_nbd_close\"
+
+";
+
+  List.iter (
+    fun (name, { args; ret }) ->
+      let oargs = args_to_ocaml_args args in
+      pr "external %s : %s\n" name (ocaml_fundecl_to_string oargs ret);
+      pr "    = ";
+      (* In OCaml, argument lists longer than 5 elements require
+       * special handling in the C bindings.
+       *)
+      if List.length oargs > 5 then
+        pr "\"nbd_internal_ocaml_nbd_%s_byte\" " name;
+      pr "\"nbd_internal_ocaml_nbd_%s\"\n" name
+  ) handle_calls
+
+let print_ocaml_binding (name, { args; ret }) =
+  (* Functions with a callback parameter require special handling. *)
+  let find_callback opaque_id =
+    try
+      List.find (
+        function
+        | Callback (_, args) | CallbackPersist (_, args) ->
+           List.mem (Opaque opaque_id) args
+        | _ -> false
+      ) args
+    with
+      Not_found ->
+      failwithf "%s: couldn't find callback associated with Opaque %s"
+                name opaque_id
+  in
+
+  List.iter (
+    function
+    | Callback (cb_name, args) | CallbackPersist (cb_name, args) ->
+       let argnames =
+         List.map (
+           function
+           | ArrayAndLen (UInt32 n, _) | String n | UInt64 n | Opaque n ->
+              n ^ "v"
+           (* The following not yet implemented for callbacks XXX *)
+           | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
+           | BytesPersistIn _ | BytesPersistOut _
+           | Callback _ | CallbackPersist _
+           | Flags _ | Int _ | Int64 _ | Path _
+           | SockAddrAndLen _ | StringList _
+           | UInt _ | UInt32 _ -> assert false
+         ) args in
+
+       pr "static void\n";
+       pr "%s_%s_wrapper_locked " name cb_name;
+       print_c_arg_list args;
+       pr "\n";
+       pr "{\n";
+       pr "  CAMLparam0 ();\n";
+       assert (List.length argnames <= 5);
+       pr "  CAMLlocal%d (%s);\n" (List.length argnames)
+          (String.concat ", " argnames);
+       pr "  CAMLlocal2 (fnv, rv);\n";
+       pr "  value args[%d];\n" (List.length argnames);
+       pr "\n";
+
+       List.iter (
+         function
+         | ArrayAndLen (UInt32 n, count) ->
+            pr "  %sv = nbd_internal_ocaml_alloc_int32_array (%s, %s);\n"
+               n n count;
+         | String n ->
+            pr "  %sv = caml_copy_string (%s);\n" n n
+         | UInt64 n ->
+            pr "  %sv = caml_copy_int64 (%s);\n" n n
+         | Opaque n ->
+            pr "  const struct callback_data *_%s = %s;\n" n n;
+            pr "  fnv = *_%s->cb;\n" n;
+            pr "  %sv = *_%s->data;\n" n n
+         (* The following not yet implemented for callbacks XXX *)
+         | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
+         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
+         | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | UInt _ | UInt32 _ -> ()
+       ) args;
+
+       List.iteri (fun i n -> pr "  args[%d] = %s;\n" i n) argnames;
+
+       pr "  rv = caml_callbackN_exn (fnv, %d, args);\n"
+          (List.length argnames);
+       pr "  if (Is_exception_result (rv))\n";
+       pr "    fprintf (stderr,\n";
+       pr "             \"libnbd: uncaught OCaml exception: %%s\",\n";
+       pr "             caml_format_exception (Extract_exception (rv)));\n";
+       pr "\n";
+       pr "  CAMLreturn0;\n";
+       pr "}\n";
+       pr "\n";
+       pr "static void\n";
+       pr "%s_%s_wrapper " name cb_name;
+       print_c_arg_list args;
+       pr "\n";
+       pr "{\n";
+       pr "  caml_leave_blocking_section ();\n";
+       let c_argnames = List.flatten (List.map name_of_arg args) in
+       pr "  %s_%s_wrapper_locked (%s);\n" name cb_name
+          (String.concat ", " c_argnames);
+       pr "  caml_enter_blocking_section ();\n";
+       pr "}\n"
+    | _ -> ()
+  ) args;
+
+  (* Convert the generic args to OCaml args. *)
+  let oargs = args_to_ocaml_args args in
+
+  (* Create the binding. *)
+  pr "value\n";
+  pr "nbd_internal_ocaml_nbd_%s (" name;
+  let comma = ref false in
+  List.iter (
+    fun oarg ->
+      if !comma then pr ", ";
+      comma := true;
+      pr "value %sv" (name_of_ocaml_arg oarg)
+  ) oargs;
+  pr ")";
+  pr "\n";
+  pr "{\n";
+  (* CAMLparam<N> can only take up to 5 parameters.  Further parameters
+   * have to be passed in groups of 5 to CAMLxparam<N> calls.
+   *)
+  (match List.map (fun oarg -> name_of_ocaml_arg oarg ^ "v") oargs with
+   | p1 :: p2 :: p3 :: p4 :: p5 :: rest ->
+      pr "  CAMLparam5 (%s);\n" (String.concat ", " [p1; p2; p3; p4; p5]);
+      let rec loop = function
+        | [] -> ()
+        | p1 :: p2 :: p3 :: p4 :: p5 :: rest ->
+           pr "  CAMLxparam5 (%s);\n"
+              (String.concat ", " [p1; p2; p3; p4; p5]);
+           loop rest
+        | rest ->
+           pr "  CAMLxparam%d (%s);\n"
+              (List.length rest) (String.concat ", " rest)
+      in
+      loop rest
+   | ps ->
+      pr "  CAMLparam%d (%s);\n" (List.length ps) (String.concat ", " ps)
+  );
+  pr "  CAMLlocal1 (rv);\n";
+  pr "\n";
+  List.iter (
+    function
+    | OCamlHandle ->
+       pr "  struct nbd_handle *h = NBD_val (hv);\n";
+       pr "  if (h == NULL)\n";
+       pr "    nbd_internal_ocaml_raise_closed (\"NBD.%s\");\n" name
+    | OCamlFlags n ->
+       pr "  uint32_t %s = Flags_val (%sv);\n" n n
+    | OCamlArg (ArrayAndLen (t, _)) -> (* XXX *) ()
+    | OCamlArg (Bool n) ->
+       pr "  bool %s = Bool_val (%sv);\n" n n
+    | OCamlArg (BytesIn (n, count)) ->
+       pr "  const void *%s = Bytes_val (%sv);\n" n n;
+       pr "  size_t %s = caml_string_length (%sv);\n" count n
+    | OCamlArg (BytesPersistIn (n, count)) ->
+       pr "  struct nbd_buffer %s_buf = NBD_buffer_val (%sv);\n" n n;
+       pr "  const void *%s = %s_buf.data;\n" n n;
+       pr "  size_t %s = %s_buf.len;\n" count n
+    | OCamlArg (BytesOut (n, count)) ->
+       pr "  void *%s = Bytes_val (%sv);\n" n n;
+       pr "  size_t %s = caml_string_length (%sv);\n" count n
+    | OCamlArg (BytesPersistOut (n, count)) ->
+       pr "  struct nbd_buffer %s_buf = NBD_buffer_val (%sv);\n" n n;
+       pr "  void *%s = %s_buf.data;\n" n n;
+       pr "  size_t %s = %s_buf.len;\n" count n
+    | OCamlArg (Callback (n, _)) ->
+       pr "  /* This is safe because we only call this while this stack\n";
+       pr "   * frame is live.\n";
+       pr "   */\n";
+       pr "  value *%s_cb = &%sv;\n" n n;
+       pr "  const void *%s = %s_%s_wrapper;\n" n name n
+    | OCamlArg (CallbackPersist (n, _)) ->
+       pr "  /* The function may save a reference to this closure, so we\n";
+       pr "   * must treat it as a possible GC root.\n";
+       pr "   */\n";
+       pr "  value *%s_cb = malloc (sizeof *%s_cb);\n" n n;
+       pr "  if (!%s_cb) caml_raise_out_of_memory ();\n" n;
+       pr "  *%s_cb = %sv;\n" n n;
+       pr "  caml_register_generational_global_root (%s_cb);\n" n;
+       pr "  nbd_add_close_callback (h, nbd_internal_ocaml_free_root, %s_cb);\n"
+          n;
+       pr "  const void *%s = %s_%s_wrapper;\n" n name n
+    | OCamlArg (Flags _) -> assert false (* see above *)
+    | OCamlArg (Int n) ->
+       pr "  int %s = Int_val (%sv);\n" n n
+    | OCamlArg (Int64 n) ->
+       pr "  int64_t %s = Int64_val (%sv);\n" n n
+    | OCamlArg (Opaque n) ->
+       (match find_callback n with
+        | Callback (cb_name, _) ->
+           pr "  /* This is safe because we only use this while this stack\n";
+           pr "   * frame is live.\n";
+           pr "   */\n";
+           pr "  value *%s_data = &%sv;\n" n n
+        | CallbackPersist (cb_name, _) ->
+           pr "  /* The function may save a reference to this value, so we\n";
+           pr "   * must treat it as a possible GC root.\n";
+           pr "   */\n";
+           pr "  value *%s_data = malloc (sizeof *%s_data);\n" n n;
+           pr "  if (!%s_data) caml_raise_out_of_memory ();\n" n;
+           pr "  *%s_data = %sv;\n" n n;
+           pr "  caml_register_generational_global_root (%s_data);\n" n;
+           pr "  nbd_add_close_callback (h, nbd_internal_ocaml_free_root, %s_data);\n" n
+        | _ -> assert false
+       )
+    | OCamlArg (Path n) | OCamlArg (String n) ->
+       pr "  const char *%s = String_val (%sv);\n" n n
+    | OCamlArg (SockAddrAndLen (n, len)) ->
+       pr "  const struct sockaddr *%s;\n" n;
+       pr "  socklen_t %s;\n" len;
+       pr "  abort ();\n" (* XXX *)
+    | OCamlArg (StringList n) ->
+       pr "  char **%s = nbd_internal_ocaml_string_list (%sv);\n" n n
+    | OCamlArg (UInt n) ->
+       pr "  unsigned %s = Int_val (%sv);\n" n n
+    | OCamlArg (UInt32 n) ->
+       pr "  uint32_t %s = Int32_val (%sv);\n" n n
+    | OCamlArg (UInt64 n) ->
+       pr "  uint64_t %s = Int64_val (%sv);\n" n n
+  ) oargs;
+
+  (* Create wrapper data for callbacks. *)
+  List.iter (
+    function
+    | OCamlArg (Opaque n) ->
+       (match find_callback n with
+        | Callback (cb_name, _) ->
+           pr "  struct callback_data _%s = { .cb = %s_cb, .data = %s_data };\n"
+              n cb_name n;
+           pr "  struct callback_data *%s = &_%s;\n" n n
+        | CallbackPersist (cb_name, _) ->
+           pr "  struct callback_data *%s = malloc (sizeof *%s);\n" n n;
+           pr "  if (!%s) caml_raise_out_of_memory ();\n" n;
+           pr "  %s->cb = %s_cb;\n" n cb_name;
+           pr "  %s->data = %s_data;\n" n n;
+           pr "  nbd_add_close_callback (h, free, %s_data);\n" n
+        | _ -> assert false
+       )
+    | _ -> ()
+  ) oargs;
+
+  let errcode =
+    match ret with
+    | RBool | RErr | RFd | RInt | RInt64 -> pr "  int r;\n"; "-1"
+    | RConstString -> pr "  const char *r;\n"; "NULL"
+    | RString -> pr "  char *r;\n"; "NULL" in
+  pr "\n";
+  pr "  caml_enter_blocking_section ();\n";
+  pr "  r =  nbd_%s (h%s);\n" name
+     (String.concat ""
+                    (List.map ((^) ", ")
+                              (List.flatten (List.map name_of_arg args))));
+  pr "  caml_leave_blocking_section ();\n";
+  pr "\n";
+  pr "  if (r == %s)\n" errcode;
+  pr "    nbd_internal_ocaml_raise_error ();\n";
+  pr "\n";
+  (match ret with
+   | RBool -> pr "  rv = Val_bool (r);\n"
+   | RErr -> pr "  rv = Val_unit;\n"
+   | RFd -> pr "  rv = Val_int (r);\n"
+   | RInt -> pr "  rv = Val_int (r);\n"
+   | RInt64 -> pr "  rv = caml_copy_int64 (r);\n"
+   | RConstString -> pr "  rv = caml_copy_string (r);\n"
+   | RString ->
+      pr "  rv = caml_copy_string (r);\n";
+      pr "  free (r);\n"
+  );
+
+  (* Any parameters which need to be freed. *)
+  List.iter (
+    function
+    | OCamlArg (StringList n) -> pr "  free (%s);\n" n
+    | OCamlHandle
+    | OCamlFlags _
+    | OCamlArg (ArrayAndLen _)
+    | OCamlArg (Bool _)
+    | OCamlArg (BytesIn _)
+    | OCamlArg (BytesPersistIn _)
+    | OCamlArg (BytesOut _)
+    | OCamlArg (BytesPersistOut _)
+    | OCamlArg (Callback _)
+    | OCamlArg (CallbackPersist _)
+    | OCamlArg (Flags _)
+    | OCamlArg (Int _)
+    | OCamlArg (Int64 _)
+    | OCamlArg (Opaque _)
+    | OCamlArg (Path _)
+    | OCamlArg (String _)
+    | OCamlArg (SockAddrAndLen _)
+    | OCamlArg (UInt _)
+    | OCamlArg (UInt32 _)
+    | OCamlArg (UInt64 _) -> ()
+  ) oargs;
+
+  pr "  CAMLreturn (rv);\n";
+  pr "}\n";
+  pr "\n";
+
+  if List.length oargs > 5 then (
+    pr "/* Byte-code compat function because this method has > 5 parameters.\n";
+    pr " */\n";
+    pr "value\n";
+    pr "nbd_internal_ocaml_nbd_%s_byte (value *argv, int argn)\n" name;
+    pr "{\n";
+    pr "  return nbd_internal_ocaml_nbd_%s (" name;
+    let comma = ref false in
+    List.iteri (
+      fun i _ ->
+        if !comma then pr ", ";
+        comma := true;
+        pr "argv[%d]" i
+    ) oargs;
+    pr ");\n";
+    pr "}\n";
+    pr "\n"
+  )
+
+let generate_ocaml_nbd_c () =
+  generate_header CStyle;
+
+  pr "#include <config.h>\n";
+  pr "\n";
+  pr "#include <stdio.h>\n";
+  pr "#include <stdlib.h>\n";
+  pr "\n";
+  pr "#include <libnbd.h>\n";
+  pr "\n";
+  pr "#include \"nbd-c.h\"\n";
+  pr "\n";
+  pr "#include <caml/alloc.h>\n";
+  pr "#include <caml/callback.h>\n";
+  pr "#include <caml/fail.h>\n";
+  pr "#include <caml/memory.h>\n";
+  pr "#include <caml/mlvalues.h>\n";
+  pr "#include <caml/printexc.h>\n";
+  pr "#include <caml/threads.h>\n";
+  pr "\n";
+  pr "#pragma GCC diagnostic ignored \"-Wmissing-prototypes\"\n";
+  pr "\n";
+
+  List.iter print_ocaml_binding handle_calls
+
+(*----------------------------------------------------------------------*)
+
 (* Write the output files. *)
 let () =
   output_to "lib/states.h" generate_lib_states_h;
@@ -3542,4 +4067,7 @@ let () =
   output_to "python/methods.h" generate_python_methods_h;
   output_to "python/libnbdmod.c" generate_python_libnbdmod_c;
   output_to "python/methods.c" generate_python_methods_c;
-  output_to "python/nbd.py" generate_python_nbd_py
+  output_to "python/nbd.py" generate_python_nbd_py;
+  output_to "ocaml/NBD.mli" generate_ocaml_nbd_mli;
+  output_to "ocaml/NBD.ml" generate_ocaml_nbd_ml;
+  output_to "ocaml/nbd-c.c" generate_ocaml_nbd_c;

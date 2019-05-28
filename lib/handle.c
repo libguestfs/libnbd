@@ -93,6 +93,9 @@ nbd_close (struct nbd_handle *h)
   struct close_callback *cc, *cc_next;
   struct meta_context *m, *m_next;
 
+  if (h == NULL)
+    return;
+
   for (cc = h->close_callbacks; cc != NULL; cc = cc_next) {
     cc_next = cc->next;
     cc->cb (cc->data);

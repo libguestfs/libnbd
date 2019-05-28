@@ -1,0 +1,6 @@
+name="nbd"
+version="@PACKAGE_VERSION@"
+description="libnbd bindings for OCaml"
+requires="unix"
+archive(byte)="mlnbd.cma"
+archive(native)="mlnbd.cmxa"

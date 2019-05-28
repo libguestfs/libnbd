@@ -15,16 +15,35 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-# subdir-rules.mk is included only in subdirectories.
-# common-rules.mk is included in every Makefile.am.
+include $(top_srcdir)/subdir-rules.mk
 
-include $(top_srcdir)/common-rules.mk
+EXTRA_DIST = \
+	extents.ml
 
-%.cmi: $(srcdir)/%.mli
-	$(OCAMLFIND) ocamlc $(OCAMLFLAGS) $(OCAMLPACKAGES) -c $< -o $@
-%.cmo: $(srcdir)/%.ml
-	$(OCAMLFIND) ocamlc $(OCAMLFLAGS) $(OCAMLPACKAGES) -c $< -o $@
+CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so *.bc *.opt
+
+if HAVE_OCAML
+
+OCAMLFLAGS = $(OCAML_FLAGS) $(OCAML_WARN_ERROR) -ccopt '$(CFLAGS)' -I ..
+OCAMLPACKAGES = -package unix
+
+noinst_SCRIPTS = extents.bc
 if HAVE_OCAMLOPT
-%.cmx: $(srcdir)/%.ml
-	$(OCAMLFIND) ocamlopt $(OCAMLFLAGS) $(OCAMLPACKAGES) -c $< -o $@
+noinst_SCRIPTS += extents.opt
 endif
+
+%.bc: %.cmo ../mlnbd.cma
+	LD_LIBRARY_PATH=../../lib/.libs $(OCAMLFIND) ocamlc $(OCAMLFLAGS) -package unix -linkpkg mlnbd.cma $< -o $@
+
+if HAVE_OCAMLOPT
+%.opt: %.cmx ../mlnbd.cmxa
+	LD_LIBRARY_PATH=../../lib/.libs $(OCAMLFIND) ocamlopt $(OCAMLFLAGS) -cclib -L$(top_builddir)/lib/.libs -I . -package unix -linkpkg mlnbd.cmxa $< -o $@
+endif
+
+endif HAVE_OCAML
+
+# Dependencies.
+#.depend: $(srcdir)/*.mli $(srcdir)/*.ml
+.depend: $(srcdir)/*.ml
+	$(OCAMLFIND) ocamldep -I .. $^ > $@
+-include .depend
