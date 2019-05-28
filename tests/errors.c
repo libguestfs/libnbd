@@ -41,7 +41,7 @@ main (int argc, char *argv[])
   }
 
   /* Issue a connected command when not connected. */
-  if (nbd_pread (nbd, NULL, 0, 0) != -1) {
+  if (nbd_pread (nbd, NULL, 0, 0, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_pread did not fail on non-connected handle\n",
              argv[0]);

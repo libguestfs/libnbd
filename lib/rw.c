@@ -44,11 +44,11 @@ wait_for_command (struct nbd_handle *h, int64_t handle)
 /* Issue a read command and wait for the reply. */
 int
 nbd_unlocked_pread (struct nbd_handle *h, void *buf,
-                    size_t count, uint64_t offset)
+                    size_t count, uint64_t offset, uint32_t flags)
 {
   int64_t ch;
 
-  ch = nbd_unlocked_aio_pread (h, buf, count, offset);
+  ch = nbd_unlocked_aio_pread (h, buf, count, offset, flags);
   if (ch == -1)
     return -1;
 
@@ -71,11 +71,11 @@ nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
 
 /* Issue a flush command and wait for the reply. */
 int
-nbd_unlocked_flush (struct nbd_handle *h)
+nbd_unlocked_flush (struct nbd_handle *h, uint32_t flags)
 {
   int64_t ch;
 
-  ch = nbd_unlocked_aio_flush (h);
+  ch = nbd_unlocked_aio_flush (h, flags);
   if (ch == -1)
     return -1;
 
@@ -99,11 +99,11 @@ nbd_unlocked_trim (struct nbd_handle *h,
 /* Issue a cache command and wait for the reply. */
 int
 nbd_unlocked_cache (struct nbd_handle *h,
-                    uint64_t count, uint64_t offset)
+                    uint64_t count, uint64_t offset, uint32_t flags)
 {
   int64_t ch;
 
-  ch = nbd_unlocked_aio_cache (h, count, offset);
+  ch = nbd_unlocked_aio_cache (h, count, offset, flags);
   if (ch == -1)
     return -1;
 
@@ -233,8 +233,13 @@ nbd_internal_command_common (struct nbd_handle *h,
 
 int64_t
 nbd_unlocked_aio_pread (struct nbd_handle *h, void *buf,
-                        size_t count, uint64_t offset)
+                        size_t count, uint64_t offset, uint32_t flags)
 {
+  if (flags != 0) {
+    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
+    return -1;
+  }
+
   return nbd_internal_command_common (h, 0, NBD_CMD_READ, offset, count,
                                       buf, NULL);
 }
@@ -265,10 +270,15 @@ nbd_unlocked_aio_pwrite (struct nbd_handle *h, const void *buf,
 }
 
 int64_t
-nbd_unlocked_aio_flush (struct nbd_handle *h)
+nbd_unlocked_aio_flush (struct nbd_handle *h, uint32_t flags)
 {
   if (nbd_unlocked_can_flush (h) != 1) {
     set_error (EINVAL, "server does not support flush operations");
+    return -1;
+  }
+
+  if (flags != 0) {
+    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
     return -1;
   }
 
@@ -308,7 +318,7 @@ nbd_unlocked_aio_trim (struct nbd_handle *h,
 
 int64_t
 nbd_unlocked_aio_cache (struct nbd_handle *h,
-                        uint64_t count, uint64_t offset)
+                        uint64_t count, uint64_t offset, uint32_t flags)
 {
   /* Actually according to the NBD protocol document, servers do exist
    * that support NBD_CMD_CACHE but don't advertise the
@@ -316,6 +326,11 @@ nbd_unlocked_aio_cache (struct nbd_handle *h,
    */
   if (nbd_unlocked_can_cache (h) != 1) {
     set_error (EINVAL, "server does not support cache operations");
+    return -1;
+  }
+
+  if (flags != 0) {
+    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
     return -1;
   }
 

@@ -254,7 +254,7 @@ start_thread (void *arg)
       if (cmd == 0)
         handle = nbd_aio_pwrite (nbd, buf, sizeof buf, offset, 0);
       else
-        handle = nbd_aio_pread (nbd, buf, sizeof buf, offset);
+        handle = nbd_aio_pread (nbd, buf, sizeof buf, offset, 0);
       if (handle == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;

@@ -11,7 +11,7 @@ libnbd - network block device (NBD) client library in userspace
  
  if ((nbd = nbd_create ()) == NULL ||
      nbd_connect_tcp (nbd, "server.example.com", "nbd") == -1 ||
-     nbd_pread (nbd, buf, sizeof buf, 0) == -1)
+     nbd_pread (nbd, buf, sizeof buf, 0, 0) == -1)
    fprintf (stderr, "%s\n", nbd_get_error ());
    exit (EXIT_FAILURE);
  }
@@ -91,7 +91,7 @@ Read the first sector (512 bytes) from the NBD export:
 
  char buf[512];
  
- if (nbd_pread (nbd, buf, sizeof buf, 0) == -1) {
+ if (nbd_pread (nbd, buf, sizeof buf, 0, 0) == -1) {
    fprintf (stderr, "%s\n", nbd_get_error ());
    exit (EXIT_FAILURE);
  }
@@ -156,7 +156,7 @@ has completed:
  int64_t id;
  char buf[512];
  
- id = nbd_aio_pread (nbd, buf, sizeof buf, offset)
+ id = nbd_aio_pread (nbd, buf, sizeof buf, offset, 0)
  if (id == -1) {
    fprintf (stderr, "%s\n", nbd_get_error ());
    exit (EXIT_FAILURE);

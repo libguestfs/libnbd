@@ -68,7 +68,7 @@ main (int argc, char *argv[])
   /* 1000 reads and writes. */
   for (i = 0; i < 1000; ++i) {
     offset = rand () % (exportsize - sizeof buf);
-    if (nbd_pread (nbd, buf, sizeof buf, offset) == -1) {
+    if (nbd_pread (nbd, buf, sizeof buf, offset, 0) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }

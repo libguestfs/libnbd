@@ -39,7 +39,7 @@ while not (h.aio_command_completed (id)):
     h.poll (-1)
 
 buf2 = nbd.aio_buffer (512)
-id = h.aio_pread (buf2, 0)
+id = h.aio_pread (buf2, 0, 0)
 while not (h.aio_command_completed (id)):
     h.poll (-1)
 

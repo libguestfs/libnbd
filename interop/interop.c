@@ -138,7 +138,7 @@ main (int argc, char *argv[])
     goto out;
   }
 
-  if (nbd_pread (nbd, buf, sizeof buf, 0) == -1) {
+  if (nbd_pread (nbd, buf, sizeof buf, 0, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto out;
   }

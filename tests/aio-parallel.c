@@ -296,7 +296,7 @@ start_thread (void *arg)
         memcpy (&ramdisk[offset], buf, BUFFERSIZE);
       }
       else {
-        handle = nbd_aio_pread (nbd, buf, BUFFERSIZE, offset);
+        handle = nbd_aio_pread (nbd, buf, BUFFERSIZE, offset, 0);
         status->bytes_received += BUFFERSIZE;
       }
       if (handle == -1) {

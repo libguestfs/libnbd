@@ -66,7 +66,7 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  if (nbd_pread (nbd, rbuf, sizeof rbuf, 0) == -1) {
+  if (nbd_pread (nbd, rbuf, sizeof rbuf, 0, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

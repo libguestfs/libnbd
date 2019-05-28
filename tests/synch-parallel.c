@@ -224,7 +224,7 @@ start_thread (void *arg)
       memcpy (&ramdisk[offset], buf, sizeof buf);
     }
     else {
-      if (nbd_pread (nbd, buf, sizeof buf, offset) == -1) {
+      if (nbd_pread (nbd, buf, sizeof buf, offset, 0) == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
       }

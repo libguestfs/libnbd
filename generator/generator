@@ -1225,7 +1225,7 @@ with the server.";
 
   "pread", {
     default_call with
-    args = [ BytesOut ("buf", "count"); UInt64 "offset" ];
+    args = [ BytesOut ("buf", "count"); UInt64 "offset"; UInt32 "flags" ];
     ret = RErr;
     shortdesc = "read from the NBD server";
     longdesc = "\
@@ -1233,7 +1233,10 @@ Issue a read command to the NBD server for the range starting
 at C<offset> and ending at C<offset> + C<count> - 1.  NBD
 can only read all or nothing using this call.  The call
 returns when the data has been read fully into C<buf> or there is an
-error.";
+error.
+
+The C<flags> parameter must be C<0> for now (it exists for future NBD
+protocol extensions).";
   };
 
   "pwrite", {
@@ -1263,18 +1266,26 @@ C<nbd_can_fua>).";
 Issue the disconnect command to the NBD server.  This is
 a nice way to tell the server we are going away, but from the
 client's point of view has no advantage over abruptly closing
-the connection (see C<nbd_close>).";
+the connection (see C<nbd_close>).
+
+This function works whether or not the handle is ready for
+transmission commands, and as such does not take a C<flags>
+parameter. If more fine-grained control is needed, see
+C<nbd_aio_disconnect>.";
   };
 
   "flush", {
     default_call with
-    args = []; ret = RErr;
+    args = [ UInt32 "flags" ]; ret = RErr;
     shortdesc = "flushing pending write requests";
     longdesc = "\
 Issue the flush command to the NBD server.  The function should
 return when all write commands which have completed have been
 committed to permanent storage on the server.  Note this will
-return an error if C<nbd_can_flush> is false.";
+return an error if C<nbd_can_flush> is false.
+
+The C<flags> parameter must be C<0> for now (it exists for future NBD
+protocol extensions).";
   };
 
   "trim", {
@@ -1298,7 +1309,7 @@ C<nbd_can_fua>).";
 
   "cache", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset" ];
+    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags" ];
     ret = RErr;
     shortdesc = "send cache (prefetch) to the NBD server";
     longdesc = "\
@@ -1307,7 +1318,10 @@ if supported by the server causes data to be prefetched
 into faster storage by the server, speeding up a subsequent
 C<nbd_pread> call.  The server can also silently ignore
 this command.  Note this will return an error if
-C<nbd_can_cache> is false.";
+C<nbd_can_cache> is false.
+
+The C<flags> parameter must be C<0> for now (it exists for future NBD
+protocol extensions).";
   };
 
   "zero", {
@@ -1467,7 +1481,8 @@ on the connection.";
 
   "aio_pread", {
     default_call with
-    args = [ BytesPersistOut ("buf", "count"); UInt64 "offset" ];
+    args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
+             UInt32 "flags" ];
     ret = RInt64;
     shortdesc = "read from the NBD server";
     longdesc = "\
@@ -1475,7 +1490,8 @@ Issue a read command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
 error.  To check if the command completed, call
 C<nbd_aio_command_completed>.  Note that you must ensure
-C<buf> is valid until the command has completed.";
+C<buf> is valid until the command has completed.  Other
+parameters behave as documented in C<nbd_pread>.";
   };
 
   "aio_pwrite", {
@@ -1488,29 +1504,35 @@ Issue a write command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
 error.  To check if the command completed, call
 C<nbd_aio_command_completed>.  Note that you must ensure
-C<buf> is valid until the command has completed.";
+C<buf> is valid until the command has completed.  Other
+parameters behave as documented in C<nbd_pwrite>.";
   };
 
   "aio_disconnect", {
     default_call with
-    args = []; ret = RErr;
+    args = [ UInt32 "flags" ]; ret = RErr;
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
 Issue the disconnect command to the NBD server.  This is
 not a normal command because NBD servers are not obliged
 to send a reply.  Instead you should wait for
-C<nbd_aio_is_closed> to become true on the connection.";
+C<nbd_aio_is_closed> to become true on the connection.
+
+The C<flags> parameter must be C<0> for now (it exists for future NBD
+protocol extensions).  There is no direct synchronous counterpart;
+however, C<nbd_shutdown> will call this function if appropriate.";
   };
 
   "aio_flush", {
     default_call with
-    args = []; ret = RInt64;
+    args = [ UInt32 "flags" ]; ret = RInt64;
     shortdesc = "send flush command to the NBD server";
     longdesc = "\
 Issue the flush command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>.";
+C<nbd_aio_command_completed>.  Parameters behave as documented
+in C<nbd_flush>.";
   };
 
   "aio_trim", {
@@ -1522,19 +1544,21 @@ C<nbd_aio_command_completed>.";
 Issue a trim command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>.";
+C<nbd_aio_command_completed>.  Parameters behave as documented
+in C<nbd_trim>.";
   };
 
   "aio_cache", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset" ];
+    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags" ];
     ret = RInt64;
     shortdesc = "send cache (prefetch) to the NBD server";
     longdesc = "\
 Issue the cache (prefetch) command to the NBD server.  This
 returns the unique positive 64 bit handle for this command, or
 C<-1> on error.  To check if the command completed, call
-C<nbd_aio_command_completed>.";
+C<nbd_aio_command_completed>.  Parameters behave as documented
+in C<nbd_cache>.";
   };
 
   "aio_zero", {
@@ -1546,7 +1570,8 @@ C<nbd_aio_command_completed>.";
 Issue a write zeroes command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>.";
+C<nbd_aio_command_completed>.  Parameters behave as documented
+in C<nbd_zero>.";
   };
 
   "aio_block_status", {
@@ -1563,7 +1588,8 @@ C<nbd_aio_command_completed>.";
 Send the block status command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>.";
+C<nbd_aio_command_completed>.  Parameters behave as documented
+in C<nbd_block_status>.";
   };
 
   "aio_get_fd", {
@@ -2703,7 +2729,7 @@ libnbd-api - libnbd C API
  
  if ((nbd = nbd_create ()) == NULL ||
      nbd_connect_tcp (nbd, \"server.example.com\", \"nbd\") == -1 ||
-     nbd_pread (nbd, buf, sizeof buf, 0) == -1)
+     nbd_pread (nbd, buf, sizeof buf, 0, 0) == -1)
    fprintf (stderr, \"%%s\\n\", nbd_get_error ());
    exit (EXIT_FAILURE);
  }
@@ -3282,7 +3308,7 @@ Python bindings for libnbd
 import nbd
 h = nbd.NBD ()
 h.connect_tcp (\"localhost\", \"nbd\")
-buf = h.pread (512, 0)
+buf = h.pread (512, 0, 0)
 
 Read the libnbd(3) man page to find out how to use the API.
 '''
@@ -3383,7 +3409,7 @@ is an open NBD handle called ‘h’.
 
 h.connect_tcp (\"remote\", \"10809\")   # Connect to a remote server.
 h.get_size ()                       # Get size of the remote disk.
-buf = h.pread (512, 0)              # Read the first sector.
+buf = h.pread (512, 0, 0)           # Read the first sector.
 exit() or Ctrl-D                    # Quit the shell
 help (nbd)                          # Display documentation
 '''

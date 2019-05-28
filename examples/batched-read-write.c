@@ -51,7 +51,7 @@ try_deadlock (void *arg)
 
   /* Issue commands. */
   in_flight = 0;
-  handles[0] = nbd_aio_pread (nbd, in, packetsize, 0);
+  handles[0] = nbd_aio_pread (nbd, in, packetsize, 0, 0);
   if (handles[0] == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto error;
@@ -180,7 +180,7 @@ main (int argc, char *argv[])
   }
 
   /* Attempt to be non-destructive, by writing what file already contains */
-  if (nbd_pread (nbd, out, packetsize, packetsize) == -1) {
+  if (nbd_pread (nbd, out, packetsize, packetsize, 0) == -1) {
     fprintf (stderr, "sync read failed: %s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

@@ -257,7 +257,7 @@ start_thread (void *arg)
         status->bytes_sent += sizeof buf;
       }
       else {
-        handle = nbd_aio_pread (nbd, buf, sizeof buf, offset);
+        handle = nbd_aio_pread (nbd, buf, sizeof buf, offset, 0);
         status->bytes_received += sizeof buf;
       }
       if (handle == -1) {

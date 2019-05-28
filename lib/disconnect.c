@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include "internal.h"
 
@@ -31,7 +32,7 @@ nbd_unlocked_shutdown (struct nbd_handle *h)
 
   if (nbd_unlocked_aio_is_ready (h) ||
       nbd_unlocked_aio_is_processing (h)) {
-    if (nbd_unlocked_aio_disconnect (h) == -1)
+    if (nbd_unlocked_aio_disconnect (h, 0) == -1)
       return -1;
   }
 
@@ -45,9 +46,14 @@ nbd_unlocked_shutdown (struct nbd_handle *h)
 }
 
 int
-nbd_unlocked_aio_disconnect (struct nbd_handle *h)
+nbd_unlocked_aio_disconnect (struct nbd_handle *h, uint32_t flags)
 {
   int64_t id;
+
+  if (flags != 0) {
+    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
+    return -1;
+  }
 
   id = nbd_internal_command_common (h, 0, NBD_CMD_DISC, 0, 0, NULL, NULL);
   if (id == -1)
