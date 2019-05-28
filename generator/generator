@@ -1245,7 +1245,8 @@ acknowledged by the server, or there is an error.
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
-(if that is supported - some servers cannot do this).";
+(if that is supported - some servers cannot do this, see
+C<nbd_can_fua>).";
   };
 
   "shutdown", {
@@ -1285,7 +1286,8 @@ or there is an error.
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
-(if that is supported - some servers cannot do this).";
+(if that is supported - some servers cannot do this, see
+C<nbd_can_fua>).";
   };
 
   "cache", {
@@ -1317,9 +1319,10 @@ or there is an error.
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
-(if that is supported - some servers cannot do this), and/or
-C<LIBNBD_CMD_FLAG_NO_HOLE> meaning that the server should favor
-writing actual allocated zeroes over punching a hole.";
+(if that is supported - some servers cannot do this, see
+C<nbd_can_fua>), and/or C<LIBNBD_CMD_FLAG_NO_HOLE> meaning that
+the server should favor writing actual allocated zeroes over
+punching a hole.";
   };
 
   "block_status", {
