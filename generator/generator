@@ -1271,7 +1271,7 @@ client's point of view has no advantage over abruptly closing
 the connection (see C<nbd_close>).
 
 This function works whether or not the handle is ready for
-transmission commands, and as such does not take a C<flags>
+transmission of commands, and as such does not take a C<flags>
 parameter. If more fine-grained control is needed, see
 C<nbd_aio_disconnect>.";
   };
