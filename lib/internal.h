@@ -38,6 +38,7 @@
 #define MAX_REQUEST_SIZE (64 * 1024 * 1024)
 
 struct meta_context;
+struct close_callback;
 struct socket;
 struct command_in_flight;
 
@@ -74,6 +75,9 @@ struct nbd_handle {
   bool debug;
   void *debug_data;
   void (*debug_fn) (void *, const char *, const char *);
+
+  /* Linked list of close callbacks. */
+  struct close_callback *close_callbacks;
 
   enum state state;             /* State machine. */
 
@@ -174,6 +178,12 @@ struct meta_context {
   struct meta_context *next;    /* Linked list. */
   char *name;                   /* Name of meta context. */
   uint32_t context_id;          /* Context ID negotiated with the server. */
+};
+
+struct close_callback {
+  struct close_callback *next;  /* Linked list. */
+  nbd_close_callback cb;        /* Function. */
+  void *data;                   /* Data. */
 };
 
 struct socket_ops {
