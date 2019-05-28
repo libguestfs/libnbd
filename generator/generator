@@ -948,7 +948,7 @@ For more information see L<libnbd(3)/ENCRYPTION AND AUTHENTICATION>.";
   "get_tls", {
     default_call with
     args = []; ret = RInt;
-    shortdesc = "Get the current TLS setting";
+    shortdesc = "get the current TLS setting";
     longdesc = "\
 Get the current TLS setting.  See C<nbd_set_tls>.";
   };
@@ -971,7 +971,7 @@ trusted CAs are used.";
   "get_tls_certificates", {
     default_call with
     args = []; ret = RString;
-    shortdesc = "Get the current TLS certificates directory";
+    shortdesc = "get the current TLS certificates directory";
     longdesc = "\
 Get the current TLS directory.  See C<nbd_set_tls_certificates>.";
   };
@@ -1279,7 +1279,7 @@ C<nbd_aio_disconnect>.";
   "flush", {
     default_call with
     args = [ Flags "flags" ]; ret = RErr;
-    shortdesc = "flushing pending write requests";
+    shortdesc = "send flush command to the NBD server";
     longdesc = "\
 Issue the flush command to the NBD server.  The function should
 return when all write commands which have completed have been
@@ -1294,7 +1294,7 @@ protocol extensions).";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RErr;
-    shortdesc = "send trim to the NBD server";
+    shortdesc = "send trim command to the NBD server";
     longdesc = "\
 Issue a trim command to the NBD server, which if supported
 by the server causes a hole to be punched in the backing
@@ -1313,7 +1313,7 @@ C<nbd_can_fua>).";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RErr;
-    shortdesc = "send cache (prefetch) to the NBD server";
+    shortdesc = "send cache (prefetch) command to the NBD server";
     longdesc = "\
 Issue the cache (prefetch) command to the NBD server, which
 if supported by the server causes data to be prefetched
@@ -1330,7 +1330,7 @@ protocol extensions).";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RErr;
-    shortdesc = "send write zeroes to the NBD server";
+    shortdesc = "send write zeroes command to the NBD server";
     longdesc = "\
 Issue a write zeroes command to the NBD server, which if supported
 by the server causes a zeroes to be written efficiently
@@ -1357,7 +1357,7 @@ punching a hole.";
                                                "nr_entries")]);
              Flags "flags" ];
     ret = RErr;
-    shortdesc = "read the block status of the given range";
+    shortdesc = "send block status command to the NBD server";
     longdesc = "\
 Issue the block status command to the NBD server.  If
 supported by the server, this causes metadata context
@@ -1542,7 +1542,7 @@ in C<nbd_flush>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RInt64;
-    shortdesc = "send trim to the NBD server";
+    shortdesc = "send trim command to the NBD server";
     longdesc = "\
 Issue a trim command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
@@ -1555,7 +1555,7 @@ in C<nbd_trim>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RInt64;
-    shortdesc = "send cache (prefetch) to the NBD server";
+    shortdesc = "send cache (prefetch) command to the NBD server";
     longdesc = "\
 Issue the cache (prefetch) command to the NBD server.  This
 returns the unique positive 64 bit handle for this command, or
@@ -1568,7 +1568,7 @@ in C<nbd_cache>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RInt64;
-    shortdesc = "send write zeroes to the NBD server";
+    shortdesc = "send write zeroes command to the NBD server";
     longdesc = "\
 Issue a write zeroes command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
@@ -1587,7 +1587,7 @@ in C<nbd_zero>.";
                                                       "nr_entries")]);
              Flags "flags" ];
     ret = RInt64;
-    shortdesc = "send block status to the NBD server";
+    shortdesc = "send block status command to the NBD server";
     longdesc = "\
 Send the block status command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
