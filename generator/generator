@@ -2706,7 +2706,7 @@ let print_api (name, { args; ret; shortdesc; longdesc }) =
   pr "%s\n" shortdesc;
   pr "\n";
   pr " ";
-  print_call name args ret;
+  print_call name args ret; pr ";";
   pr "\n";
   pr "\n";
   pr "%s\n" longdesc;
