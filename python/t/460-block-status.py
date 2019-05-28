@@ -34,14 +34,14 @@ def f (data, metacontext, offset, e):
         return
     entries = e
 
-h.block_status (65536, 0, 42, f, 0)
+h.block_status (65536, 0, 42, f)
 assert entries == [ 8192, 0,
                     8192, 1,
                    16384, 3,
                    16384, 2,
                    16384, 0]
 
-h.block_status (1024, 32256, 42, f, 0)
+h.block_status (1024, 32256, 42, f)
 print ("entries = %r" % entries)
 assert entries == [  512, 3,
                    16384, 2]

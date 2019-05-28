@@ -33,7 +33,7 @@ h = nbd.NBD ()
 h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
                     "file", datafile])
 h.pwrite (buf1, 0, nbd.CMD_FLAG_FUA)
-buf2 = h.pread (512, 0, 0)
+buf2 = h.pread (512, 0)
 
 assert buf1 == buf2
 

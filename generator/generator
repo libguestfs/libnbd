@@ -820,6 +820,7 @@ and arg =
 | BytesPersistIn of string * string (* same as above, but buffer persists *)
 | BytesPersistOut of string * string
 | Callback of string * arg list (* callback function returning void *)
+| Flags of string          (* NBD_CMD_FLAG_* flags *)
 | Int of string            (* small int *)
 | Int64 of string          (* 64 bit signed int *)
 | Opaque of string         (* opaque object, void* in C *)
@@ -1225,7 +1226,7 @@ with the server.";
 
   "pread", {
     default_call with
-    args = [ BytesOut ("buf", "count"); UInt64 "offset"; UInt32 "flags" ];
+    args = [ BytesOut ("buf", "count"); UInt64 "offset"; Flags "flags" ];
     ret = RErr;
     shortdesc = "read from the NBD server";
     longdesc = "\
@@ -1241,7 +1242,7 @@ protocol extensions).";
 
   "pwrite", {
     default_call with
-    args = [ BytesIn ("buf", "count"); UInt64 "offset"; UInt32 "flags" ];
+    args = [ BytesIn ("buf", "count"); UInt64 "offset"; Flags "flags" ];
     ret = RErr;
     shortdesc = "write to the NBD server";
     longdesc = "\
@@ -1276,7 +1277,7 @@ C<nbd_aio_disconnect>.";
 
   "flush", {
     default_call with
-    args = [ UInt32 "flags" ]; ret = RErr;
+    args = [ Flags "flags" ]; ret = RErr;
     shortdesc = "flushing pending write requests";
     longdesc = "\
 Issue the flush command to the NBD server.  The function should
@@ -1290,7 +1291,7 @@ protocol extensions).";
 
   "trim", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags" ];
+    args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RErr;
     shortdesc = "send trim to the NBD server";
     longdesc = "\
@@ -1309,7 +1310,7 @@ C<nbd_can_fua>).";
 
   "cache", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags" ];
+    args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RErr;
     shortdesc = "send cache (prefetch) to the NBD server";
     longdesc = "\
@@ -1326,7 +1327,7 @@ protocol extensions).";
 
   "zero", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags" ];
+    args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RErr;
     shortdesc = "send write zeroes to the NBD server";
     longdesc = "\
@@ -1353,7 +1354,7 @@ punching a hole.";
                                   UInt64 "offset";
                                   ArrayAndLen (UInt32 "entries",
                                                "nr_entries")]);
-             UInt32 "flags" ];
+             Flags "flags" ];
     ret = RErr;
     shortdesc = "read the block status of the given range";
     longdesc = "\
@@ -1483,7 +1484,7 @@ on the connection.";
   "aio_pread", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
-             UInt32 "flags" ];
+             Flags "flags" ];
     ret = RInt64;
     shortdesc = "read from the NBD server";
     longdesc = "\
@@ -1497,7 +1498,7 @@ parameters behave as documented in C<nbd_pread>.";
 
   "aio_pwrite", {
     default_call with
-    args = [ BytesPersistIn ("buf", "count"); UInt64 "offset"; UInt32 "flags" ];
+    args = [ BytesPersistIn ("buf", "count"); UInt64 "offset"; Flags "flags" ];
     ret = RInt64;
     shortdesc = "write to the NBD server";
     longdesc = "\
@@ -1511,7 +1512,7 @@ parameters behave as documented in C<nbd_pwrite>.";
 
   "aio_disconnect", {
     default_call with
-    args = [ UInt32 "flags" ]; ret = RErr;
+    args = [ Flags "flags" ]; ret = RErr;
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
 Issue the disconnect command to the NBD server.  This is
@@ -1526,7 +1527,7 @@ however, C<nbd_shutdown> will call this function if appropriate.";
 
   "aio_flush", {
     default_call with
-    args = [ UInt32 "flags" ]; ret = RInt64;
+    args = [ Flags "flags" ]; ret = RInt64;
     shortdesc = "send flush command to the NBD server";
     longdesc = "\
 Issue the flush command to the NBD server.  This returns the
@@ -1538,7 +1539,7 @@ in C<nbd_flush>.";
 
   "aio_trim", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags" ];
+    args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RInt64;
     shortdesc = "send trim to the NBD server";
     longdesc = "\
@@ -1551,7 +1552,7 @@ in C<nbd_trim>.";
 
   "aio_cache", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags" ];
+    args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RInt64;
     shortdesc = "send cache (prefetch) to the NBD server";
     longdesc = "\
@@ -1564,7 +1565,7 @@ in C<nbd_cache>.";
 
   "aio_zero", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; UInt32 "flags" ];
+    args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RInt64;
     shortdesc = "send write zeroes to the NBD server";
     longdesc = "\
@@ -1583,7 +1584,7 @@ in C<nbd_zero>.";
                                   UInt64 "offset";
                                   ArrayAndLen (UInt32 "entries",
                                                "nr_entries")]);
-             UInt32 "flags" ];
+             Flags "flags" ];
     ret = RInt64;
     shortdesc = "send block status to the NBD server";
     longdesc = "\
@@ -2494,6 +2495,21 @@ let generate_lib_states_c () =
 
 (* Generate C API. *)
 
+(* Check the API definition. *)
+let () =
+  (* Flags must only appear once in the final argument position. *)
+  List.iter (
+    fun (name, { args }) ->
+      let args = List.rev args in
+      match args with
+      | [] -> ()
+      | Flags _ :: xs
+      | xs ->
+         if List.exists (function Flags _ -> true | _ -> false) xs then
+           failwithf "%s: Flags must appear in final argument position only"
+                     name
+  ) handle_calls
+
 let generate_lib_libnbd_syms () =
   generate_header HashStyle;
 
@@ -2517,6 +2533,7 @@ let rec name_of_arg = function
 | BytesPersistIn (n, len) -> [n; len]
 | BytesPersistOut (n, len) -> [n; len]
 | Callback (n, _) -> [n]
+| Flags n -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
 | Opaque n -> [n]
@@ -2548,6 +2565,7 @@ let rec print_c_arg_list ?(handle = false) args =
       | BytesOut (n, len)
       | BytesPersistOut (n, len) -> pr "void *%s, size_t %s" n len
       | Callback (n, args) -> pr "void (*%s) " n; print_c_arg_list args
+      | Flags n -> pr "uint32_t %s" n
       | Int n -> pr "int %s" n
       | Int64 n -> pr "int64_t %s" n
       | Opaque n -> pr "void *%s" n
@@ -2950,7 +2968,7 @@ let print_python_binding name { args; ret } =
          | UInt64 n -> ()
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _ | Callback _
+         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | Flags _
          | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> pr "  abort ();\n"
        ) args;
@@ -2965,7 +2983,7 @@ let print_python_binding name { args; ret } =
          | UInt64 n -> pr " \"K\""
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _ | Callback _
+         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | Flags _
          | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> pr "  abort ();\n"
        ) args;
@@ -2978,7 +2996,7 @@ let print_python_binding name { args; ret } =
          | UInt64 n -> pr ", %s" n
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _ | Callback _
+         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | Flags _
          | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> pr "  abort ();\n"
        ) args;
@@ -3009,7 +3027,7 @@ let print_python_binding name { args; ret } =
          | Opaque _ -> ()
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _ | Callback _
+         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | Flags _
          | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> ()
        ) args;
@@ -3054,6 +3072,9 @@ let print_python_binding name { args; ret } =
        pr "  struct py_aio_buffer *%s_buf;\n" n
     | Callback (n, _) ->
        pr "  struct %s_%s_data callback_data;\n" name n
+    | Flags n ->
+       pr "  uint32_t %s_u32;\n" n;
+       pr "  unsigned int %s; /* really uint32_t */\n" n
     | Int n -> pr "  int %s;\n" n
     | Int64 n ->
        pr "  int64_t %s_i64;\n" n;
@@ -3091,6 +3112,7 @@ let print_python_binding name { args; ret } =
     | BytesOut (_, count) -> pr " \"n\""
     | BytesPersistOut (_, count) -> pr " \"O\""
     | Callback (n, _) -> pr " \"O\""
+    | Flags n -> pr " \"I\""
     | Int n -> pr " \"i\""
     | Int64 n -> pr " \"L\""
     | Opaque _ -> pr " \"O\""
@@ -3114,6 +3136,7 @@ let print_python_binding name { args; ret } =
     | BytesPersistOut (n, _) -> pr ", &%s" n
     | BytesOut (_, count) -> pr ", &%s" count
     | Callback _ -> pr ", &callback_data.fn"
+    | Flags n -> pr ", &%s" n
     | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
     | Opaque n -> pr ", &%s" n
@@ -3162,6 +3185,7 @@ let print_python_binding name { args; ret } =
           n;
        pr "    return NULL;\n";
        pr "  }\n"
+    | Flags n -> pr "  %s_u32 = %s;\n" n n
     | Int _ -> ()
     | Int64 n -> pr "  %s_i64 = %s;\n" n n
     | Opaque n ->
@@ -3190,6 +3214,7 @@ let print_python_binding name { args; ret } =
     | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) -> pr ", %s_buf->data, %s_buf->len" n n
     | Callback (n, _) -> pr ", %s_%s_wrapper" name n
+    | Flags n -> pr ", %s_u32" n
     | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
     | Opaque _ -> pr ", &callback_data"
@@ -3223,6 +3248,7 @@ let print_python_binding name { args; ret } =
     | BytesIn _
     | BytesPersistIn _ | BytesPersistOut _
     | Callback _
+    | Flags _
     | Int _
     | Int64 _
     | Opaque _
@@ -3264,6 +3290,7 @@ let print_python_binding name { args; ret } =
     | BytesIn (n, _) -> pr "  PyBuffer_Release (&%s);\n" n
     | BytesPersistIn _ | BytesOut _ | BytesPersistOut _ -> ()
     | Callback _ -> ()
+    | Flags _ -> ()
     | Int _ -> ()
     | Int64 _ -> ()
     | Opaque _ -> ()
@@ -3310,7 +3337,7 @@ Python bindings for libnbd
 import nbd
 h = nbd.NBD ()
 h.connect_tcp (\"localhost\", \"nbd\")
-buf = h.pread (512, 0, 0)
+buf = h.pread (512, 0)
 
 Read the libnbd(3) man page to find out how to use the API.
 '''
@@ -3352,32 +3379,44 @@ class NBD (object):
     fun (name, { args; shortdesc; longdesc }) ->
       let args = List.map (
                      function
-                     | ArrayAndLen (UInt32 n, _) -> n
+                     | ArrayAndLen (UInt32 n, _) -> n, None
                      | ArrayAndLen _ -> assert false
-                     | Bool n -> n
-                     | BytesIn (n, _) | BytesPersistIn (n, _) -> n
-                     | BytesPersistOut (n, _) -> n
-                     | BytesOut (_, count) -> count
-                     | Callback (n, _) -> n
-                     | Int n -> n
-                     | Int64 n -> n
-                     | Opaque n -> n
-                     | Path n -> n
-                     | SockAddrAndLen (n, _) -> n
-                     | String n -> n
-                     | StringList n -> n
-                     | UInt n -> n
-                     | UInt32 n -> n
-                     | UInt64 n -> n
+                     | Bool n -> n, None
+                     | BytesIn (n, _) | BytesPersistIn (n, _) -> n, None
+                     | BytesPersistOut (n, _) -> n, None
+                     | BytesOut (_, count) -> count, None
+                     | Callback (n, _) -> n, None
+                     | Flags n -> n, Some "0"
+                     | Int n -> n, None
+                     | Int64 n -> n, None
+                     | Opaque n -> n, None
+                     | Path n -> n, None
+                     | SockAddrAndLen (n, _) -> n, None
+                     | String n -> n, None
+                     | StringList n -> n, None
+                     | UInt n -> n, None
+                     | UInt32 n -> n, None
+                     | UInt64 n -> n, None
                    ) args in
-      let args = List.map ((^) ", ") args in
-      let args = String.concat "" args in
-      let longdesc = Str.global_replace py_fn_rex "C<nbd." longdesc in
-      let longdesc = Str.global_replace py_const_rex "C<" longdesc in
-      let longdesc = pod2text longdesc in
-      pr "    def %s (self%s):\n" name args;
-      pr "        '''▶ %s\n\n%s'''\n" shortdesc (String.concat "\n" longdesc);
-      pr "        return libnbdmod.%s (self._o%s)\n" name args;
+      let () =
+        let args = List.map (
+          function
+          | n, None -> sprintf ", %s" n
+          | n, Some def -> sprintf ", %s=%s" n def
+        ) args in
+        let args = String.concat "" args in
+        pr "    def %s (self%s):\n" name args in
+      let () =
+        let longdesc = Str.global_replace py_fn_rex "C<nbd." longdesc in
+        let longdesc = Str.global_replace py_const_rex "C<" longdesc in
+        let longdesc = pod2text longdesc in
+        pr "        '''▶ %s\n\n%s'''\n"
+           shortdesc (String.concat "\n" longdesc) in
+      let () =
+        let args = List.map fst args in
+        let args = List.map ((^) ", ") args in
+        let args = String.concat "" args in
+        pr "        return libnbdmod.%s (self._o%s)\n" name args in
       pr "\n"
   ) handle_calls;
 
