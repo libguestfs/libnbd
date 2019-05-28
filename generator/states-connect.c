@@ -86,15 +86,20 @@
   }
 
  CONNECT_UNIX.START:
-  struct sockaddr_un sun;
+  struct sockaddr_un sun = { .sun_family = AF_UNIX };
   socklen_t len;
+  size_t namelen;
 
   assert (h->unixsocket != NULL);
 
-  sun.sun_family = AF_UNIX;
-  memset (sun.sun_path, 0, sizeof (sun.sun_path));
-  strncpy (sun.sun_path, h->unixsocket, sizeof (sun.sun_path) - 1);
-  len = sizeof (sun.sun_family) + strlen (sun.sun_path) + 1;
+  namelen = strlen (h->unixsocket);
+  if (namelen > sizeof sun.sun_path) {
+    set_error (ENAMETOOLONG, "socket name too long: %s", h->unixsocket);
+    SET_NEXT_STATE (%.DEAD);
+    return -1;
+  }
+  memcpy (sun.sun_path, h->unixsocket, namelen);
+  len = sizeof sun;
 
   memcpy (&h->connaddr, &sun, len);
   h->connaddrlen = len;
