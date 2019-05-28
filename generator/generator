@@ -2946,7 +2946,7 @@ let print_python_binding name { args; ret } =
     | Callback (cb_name, args) ->
        pr "struct %s_%s_data {\n" name cb_name;
        pr "  PyObject *fn;\n";
-       pr "  void *data;\n";
+       pr "  PyObject *data;\n";
        pr "};\n";
        pr "\n";
        pr "static void\n";
