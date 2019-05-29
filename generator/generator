@@ -1900,7 +1900,9 @@ let (cache : (cache_key, cache_value) Hashtbl.t), save_cache =
       let ret = input_value chan in
       close_in chan;
       ret
-    with _ -> Hashtbl.create 13 in
+    with _ ->
+      printf "Regenerating the cache, this could take a little while ...\n%!";
+      Hashtbl.create 13 in
   let save_cache () =
     let chan = open_out cachefile in
     output_value chan cache;
