@@ -302,10 +302,10 @@ flushes all pending writes to disk and does not complete until that
 operation has finished.  It is similar to using L<sync(2)> on POSIX
 systems.
 
-A more efficient way to achieve this is to set the C<NBD_CMD_FLAG_FUA>
-on write-like calls (like write, trim and zero).  This flag means the
-call will not complete until committed to permanent storage, but it
-does not involve flushing the entire disk.
+A more efficient way to achieve this is to set the flag
+C<LIBNBD_CMD_FLAG_FUA> on write-like calls (like write, trim and
+zero).  This flag means the call will not complete until committed to
+permanent storage, but it does not involve flushing the entire disk.
 
 =item prefetching
 
