@@ -814,6 +814,11 @@ type call = {
    * field and does nothing else with the handle.
    *)
   is_locked : bool;
+  (* Most functions can call set_error.  For functions which are
+   * {b guaranteed} never to do that we can save a bit of time by
+   * setting this to false.
+   *)
+  can_set_error : bool;
 }
 and arg =
 | ArrayAndLen of arg * string (* array + number of entries *)
@@ -847,7 +852,7 @@ and ret =
 
 let default_call = { args = []; ret = RErr;
                      shortdesc = ""; longdesc = "";
-                     is_locked = true }
+                     is_locked = true; can_set_error = true }
 
 (* Calls.
  *
@@ -1679,7 +1684,7 @@ connection is writable.";
 
   "aio_is_created", {
     default_call with
-    args = []; ret = RBool; is_locked = false;
+    args = []; ret = RBool; is_locked = false; can_set_error = false;
     shortdesc = "check if the connection has just been created";
     longdesc = "\
 Return true if this connection has just been created.  This
@@ -1690,7 +1695,7 @@ by calling functions such as C<nbd_aio_connect>.";
 
   "aio_is_connecting", {
     default_call with
-    args = []; ret = RBool; is_locked = false;
+    args = []; ret = RBool; is_locked = false; can_set_error = false;
     shortdesc = "check if the connection is connecting or handshaking";
     longdesc = "\
 Return true if this connection is connecting to the server
@@ -1701,7 +1706,7 @@ issue commands (see C<nbd_aio_is_ready>).";
 
   "aio_is_ready", {
     default_call with
-    args = []; ret = RBool; is_locked = false;
+    args = []; ret = RBool; is_locked = false; can_set_error = false;
     shortdesc = "check if the connection is in the ready state";
     longdesc = "\
 Return true if this connection is connected to the NBD server,
@@ -1712,7 +1717,7 @@ issue commands.";
 
   "aio_is_processing", {
     default_call with
-    args = []; ret = RBool; is_locked = false;
+    args = []; ret = RBool; is_locked = false; can_set_error = false;
     shortdesc = "check if the connection is processing a command";
     longdesc = "\
 Return true if this connection is connected to the NBD server,
@@ -1726,7 +1731,7 @@ is processing them), but libnbd is not processing them.";
 
   "aio_is_dead", {
     default_call with
-    args = []; ret = RBool; is_locked = false;
+    args = []; ret = RBool; is_locked = false; can_set_error = false;
     shortdesc = "check if the connection is dead";
     longdesc = "\
 Return true if the connection has encountered a fatal
@@ -1736,7 +1741,7 @@ There is no way to recover a handle from the dead state.";
 
   "aio_is_closed", {
     default_call with
-    args = []; ret = RBool; is_locked = false;
+    args = []; ret = RBool; is_locked = false; can_set_error = false;
     shortdesc = "check if the connection is closed";
     longdesc = "\
 Return true if the connection has closed.  There is no way to
@@ -2661,7 +2666,7 @@ let generate_lib_unlocked_h () =
  * grab the thread mutex (lock) and do logging.
  *)
 let generate_lib_api_c () =
-  let print_wrapper (name, {args; ret; is_locked}) =
+  let print_wrapper (name, {args; ret; is_locked; can_set_error}) =
     (match ret with
      | RBool
      | RErr
@@ -2687,7 +2692,8 @@ let generate_lib_api_c () =
     pr "\n";
     if is_locked then
       pr "  pthread_mutex_lock (&h->lock);\n";
-    pr "  nbd_internal_reset_error (\"nbd_%s\");\n" name;
+    if can_set_error then
+      pr "  nbd_internal_reset_error (\"nbd_%s\");\n" name;
     pr "  ret = nbd_unlocked_%s (h" name;
     let argnames = List.flatten (List.map name_of_arg args) in
     List.iter (pr ", %s") argnames;
