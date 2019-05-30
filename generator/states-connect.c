@@ -37,6 +37,15 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+/* Disable Nagle's algorithm on the socket, but don't fail. */
+static void
+disable_nagle (int sock)
+{
+  const int flag = 1;
+
+  setsockopt (sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof flag);
+}
+
 /* STATE MACHINE */ {
  CONNECT.START:
   int fd;
@@ -53,6 +62,8 @@
     SET_NEXT_STATE (%.DEAD);
     return -1;
   }
+
+  disable_nagle (fd);
 
   if (connect (fd, (struct sockaddr *) &h->connaddr,
                h->connaddrlen) == -1) {
@@ -166,6 +177,9 @@
     SET_NEXT_STATE (%.DEAD);
     return -1;
   }
+
+  disable_nagle (fd);
+
   if (connect (fd, h->rp->ai_addr, h->rp->ai_addrlen) == -1) {
     if (errno != EINPROGRESS) {
       SET_NEXT_STATE (%NEXT_ADDRESS);
