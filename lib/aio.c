@@ -48,6 +48,7 @@ nbd_unlocked_aio_notify_write (struct nbd_handle *h)
   return nbd_internal_run (h, notify_write);
 }
 
+/* NB: is_locked = false. */
 int
 nbd_unlocked_aio_is_created (struct nbd_handle *h)
 {
@@ -72,6 +73,7 @@ is_connecting_group (enum state_group group)
   }
 }
 
+/* NB: is_locked = false. */
 int
 nbd_unlocked_aio_is_connecting (struct nbd_handle *h)
 {
@@ -80,6 +82,7 @@ nbd_unlocked_aio_is_connecting (struct nbd_handle *h)
   return is_connecting_group (group);
 }
 
+/* NB: is_locked = false. */
 int
 nbd_unlocked_aio_is_ready (struct nbd_handle *h)
 {
@@ -100,6 +103,7 @@ is_processing_group (enum state_group group)
   }
 }
 
+/* NB: is_locked = false. */
 int
 nbd_unlocked_aio_is_processing (struct nbd_handle *h)
 {
@@ -108,12 +112,14 @@ nbd_unlocked_aio_is_processing (struct nbd_handle *h)
   return is_processing_group (group);
 }
 
+/* NB: is_locked = false. */
 int
 nbd_unlocked_aio_is_dead (struct nbd_handle *h)
 {
   return h->state == STATE_DEAD;
 }
 
+/* NB: is_locked = false. */
 int
 nbd_unlocked_aio_is_closed (struct nbd_handle *h)
 {

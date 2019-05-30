@@ -807,9 +807,13 @@ and structured_reply_state_machine = [
 type call = {
   args : arg list;         (* parameters (except handle) *)
   ret : ret;               (* return value *)
-  is_locked : bool;        (* most functions need to take a lock *)
   shortdesc : string;      (* short description *)
   longdesc : string;       (* long description *)
+  (* Most functions must take a lock.  The only known exception is
+   * for a function which {b only} reads from the atomic [h->state]
+   * field and does nothing else with the handle.
+   *)
+  is_locked : bool;
 }
 and arg =
 | ArrayAndLen of arg * string (* array + number of entries *)
@@ -841,11 +845,18 @@ and ret =
 | RInt64                   (* 64 bit int, -1 = error *)
 | RString                  (* return a newly allocated string, caller frees *)
 
-let default_call = { args = []; ret = RErr; is_locked = true;
-                     shortdesc = ""; longdesc = "" }
+let default_call = { args = []; ret = RErr;
+                     shortdesc = ""; longdesc = "";
+                     is_locked = true }
 
-(* Calls - first parameter [struct nbd_handle *nbd] is implicit. *)
-let handle_calls = [
+(* Calls.
+ *
+ * The first parameter [struct nbd_handle *nbd] is implicit.
+ *
+ * Disable:
+ * Warning 23: all the fields are explicitly listed in this record:
+ *)
+let [@warning "-23"] handle_calls = [
   "set_debug", {
     default_call with
     args = [ Bool "debug" ]; ret = RErr;
@@ -1668,7 +1679,7 @@ connection is writable.";
 
   "aio_is_created", {
     default_call with
-    args = []; ret = RBool;
+    args = []; ret = RBool; is_locked = false;
     shortdesc = "check if the connection has just been created";
     longdesc = "\
 Return true if this connection has just been created.  This
@@ -1679,7 +1690,7 @@ by calling functions such as C<nbd_aio_connect>.";
 
   "aio_is_connecting", {
     default_call with
-    args = []; ret = RBool;
+    args = []; ret = RBool; is_locked = false;
     shortdesc = "check if the connection is connecting or handshaking";
     longdesc = "\
 Return true if this connection is connecting to the server
@@ -1690,7 +1701,7 @@ issue commands (see C<nbd_aio_is_ready>).";
 
   "aio_is_ready", {
     default_call with
-    args = []; ret = RBool;
+    args = []; ret = RBool; is_locked = false;
     shortdesc = "check if the connection is in the ready state";
     longdesc = "\
 Return true if this connection is connected to the NBD server,
@@ -1701,7 +1712,7 @@ issue commands.";
 
   "aio_is_processing", {
     default_call with
-    args = []; ret = RBool;
+    args = []; ret = RBool; is_locked = false;
     shortdesc = "check if the connection is processing a command";
     longdesc = "\
 Return true if this connection is connected to the NBD server,
@@ -1715,7 +1726,7 @@ is processing them), but libnbd is not processing them.";
 
   "aio_is_dead", {
     default_call with
-    args = []; ret = RBool;
+    args = []; ret = RBool; is_locked = false;
     shortdesc = "check if the connection is dead";
     longdesc = "\
 Return true if the connection has encountered a fatal
@@ -1725,7 +1736,7 @@ There is no way to recover a handle from the dead state.";
 
   "aio_is_closed", {
     default_call with
-    args = []; ret = RBool;
+    args = []; ret = RBool; is_locked = false;
     shortdesc = "check if the connection is closed";
     longdesc = "\
 Return true if the connection has closed.  There is no way to
@@ -2650,7 +2661,7 @@ let generate_lib_unlocked_h () =
  * grab the thread mutex (lock) and do logging.
  *)
 let generate_lib_api_c () =
-  let print_wrapper name args ret =
+  let print_wrapper (name, {args; ret; is_locked}) =
     (match ret with
      | RBool
      | RErr
@@ -2674,13 +2685,15 @@ let generate_lib_api_c () =
      | RString -> pr "  char *ret;\n"
     );
     pr "\n";
-    pr "  pthread_mutex_lock (&h->lock);\n";
+    if is_locked then
+      pr "  pthread_mutex_lock (&h->lock);\n";
     pr "  nbd_internal_reset_error (\"nbd_%s\");\n" name;
     pr "  ret = nbd_unlocked_%s (h" name;
     let argnames = List.flatten (List.map name_of_arg args) in
     List.iter (pr ", %s") argnames;
     pr ");\n";
-    pr "  pthread_mutex_unlock (&h->lock);\n";
+    if is_locked then
+      pr "  pthread_mutex_unlock (&h->lock);\n";
     pr "  return ret;\n";
     pr "}\n";
     pr "\n";
@@ -2698,10 +2711,7 @@ let generate_lib_api_c () =
   pr "#include \"libnbd.h\"\n";
   pr "#include \"internal.h\"\n";
   pr "\n";
-  List.iter (
-    fun (name, { args; ret }) ->
-      print_wrapper name args ret
-  ) handle_calls
+  List.iter print_wrapper handle_calls
 
 let print_api (name, { args; ret; shortdesc; longdesc }) =
   pr "=head2 %s —\n" name;

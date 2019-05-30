@@ -20,6 +20,7 @@
 #define LIBNBD_INTERNAL_H
 
 #include <stdbool.h>
+#include <stdatomic.h>
 #include <string.h>
 #include <netdb.h>
 #include <sys/types.h>
@@ -79,7 +80,7 @@ struct nbd_handle {
   /* Linked list of close callbacks. */
   struct close_callback *close_callbacks;
 
-  enum state state;             /* State machine. */
+  _Atomic enum state state;     /* State machine. */
 
   bool structured_replies;      /* If we negotiated NBD_OPT_STRUCTURED_REPLY */
 
