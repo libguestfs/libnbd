@@ -2690,10 +2690,10 @@ let generate_lib_api_c () =
      | RString -> pr "  char *ret;\n"
     );
     pr "\n";
-    if is_locked then
-      pr "  pthread_mutex_lock (&h->lock);\n";
     if may_set_error then
       pr "  nbd_internal_reset_error (\"nbd_%s\");\n" name;
+    if is_locked then
+      pr "  pthread_mutex_lock (&h->lock);\n";
     pr "  ret = nbd_unlocked_%s (h" name;
     let argnames = List.flatten (List.map name_of_arg args) in
     List.iter (pr ", %s") argnames;
