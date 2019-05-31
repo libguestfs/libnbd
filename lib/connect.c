@@ -111,26 +111,10 @@ nbd_unlocked_connect_command (struct nbd_handle *h, char **argv)
   return wait_until_connected (h);
 }
 
-static int
-error_unless_start (struct nbd_handle *h)
-{
-  if (!nbd_unlocked_aio_is_created (h)) {
-    set_error (EINVAL, "connection is not in the initially created state, "
-               "this is likely to be caused by a programming error "
-               "in the calling program");
-    return -1;
-  }
-
-  return 0;
-}
-
 int
 nbd_unlocked_aio_connect (struct nbd_handle *h,
                           const struct sockaddr *addr, socklen_t len)
 {
-  if (error_unless_start (h) == -1)
-    return -1;
-
   memcpy (&h->connaddr, addr, len);
   h->connaddrlen = len;
 
@@ -144,9 +128,6 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   xmlURIPtr uri = NULL;
   bool tcp, tls;
   int r;
-
-  if (error_unless_start (h) == -1)
-    goto error;
 
   uri = xmlParseURI (raw_uri);
   if (!uri) {
@@ -243,9 +224,6 @@ error:
 int
 nbd_unlocked_aio_connect_unix (struct nbd_handle *h, const char *unixsocket)
 {
-  if (error_unless_start (h) == -1)
-    return -1;
-
   if (h->unixsocket)
     free (h->unixsocket);
   h->unixsocket = strdup (unixsocket);
@@ -261,9 +239,6 @@ int
 nbd_unlocked_aio_connect_tcp (struct nbd_handle *h,
                               const char *hostname, const char *port)
 {
-  if (error_unless_start (h) == -1)
-    return -1;
-
   if (h->hostname)
     free (h->hostname);
   h->hostname = strdup (hostname);
@@ -286,9 +261,6 @@ int
 nbd_unlocked_aio_connect_command (struct nbd_handle *h, char **argv)
 {
   char **copy;
-
-  if (error_unless_start (h) == -1)
-    return -1;
 
   copy = nbd_internal_copy_string_list (argv);
   if (!copy) {

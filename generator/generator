@@ -809,6 +809,8 @@ type call = {
   ret : ret;               (* return value *)
   shortdesc : string;      (* short description *)
   longdesc : string;       (* long description *)
+  (* List of permitted states for making this call.  [[]] = Any state. *)
+  permitted_states : permitted_state list;
   (* Most functions must take a lock.  The only known exception is
    * for a function which {b only} reads from the atomic [h->state]
    * field and does nothing else with the handle.
@@ -849,9 +851,16 @@ and ret =
 | RInt                     (* return a small int, -1 = error *)
 | RInt64                   (* 64 bit int, -1 = error *)
 | RString                  (* return a newly allocated string, caller frees *)
+and permitted_state =
+| Created                  (* can be called in the START state *)
+| Connecting               (* can be called when connecting/handshaking *)
+| Connected                (* when connected and READY or processing, but
+                              not including CLOSED or DEAD *)
+| Closed | Dead            (* can be called when the handle is CLOSED or DEAD *)
 
 let default_call = { args = []; ret = RErr;
                      shortdesc = ""; longdesc = "";
+                     permitted_states = [];
                      is_locked = true; may_set_error = true }
 
 (* Calls.
@@ -906,13 +915,13 @@ be called while holding the handle lock and will cause a deadlock.";
   "set_export_name", {
     default_call with
     args = [ String "export_name" ]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "set the export name";
     longdesc = "\
 For servers which require an export name or can serve different
 content on different exports, set the C<export_name> to
-connect to.  This is only relevant for the newstyle protocol,
-and you must set this before connecting.  The default is to
-use the empty string.";
+connect to.  This is only relevant for the newstyle protocol.
+The default is to use the empty string.";
   };
 
   "get_export_name", {
@@ -926,6 +935,7 @@ Get the export name associated with the handle.";
   "set_tls", {
     default_call with
     args = [Int "tls"]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "enable or require TLS (authentication and encryption)";
     longdesc = "\
 Enable or require TLS (authenticated and encrypted connections) to the
@@ -972,6 +982,7 @@ Get the current TLS setting.  See C<nbd_set_tls>.";
   "set_tls_certificates", {
     default_call with
     args = [Path "dir"]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "set the path to the TLS certificates directory";
     longdesc = "\
 Set the path to the TLS certificates directory.  If not
@@ -996,6 +1007,7 @@ Get the current TLS directory.  See C<nbd_set_tls_certificates>.";
   "set_tls_verify_peer", {
     default_call with
     args = [Bool "verify"]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "set whether we verify the identity of the server";
     longdesc = "\
 Set this flag to control whether libnbd will verify the identity
@@ -1015,6 +1027,7 @@ Get the verify peer flag.";
   "set_tls_username", {
     default_call with
     args = [String "username"]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "set the TLS username";
     longdesc = "\
 Set the TLS client username.  This is used
@@ -1033,6 +1046,7 @@ Get the current TLS username.  See C<nbd_set_tls_username>.";
   "set_tls_psk_file", {
     default_call with
     args = [Path "filename"]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "set the TLS Pre-Shared Keys (PSK) filename";
     longdesc = "\
 Set the TLS Pre-Shared Keys (PSK) filename.  This is used
@@ -1055,6 +1069,7 @@ Get the current TLS PSK filename.  See C<nbd_set_tls_psk_file>.";
   "add_meta_context", {
     default_call with
     args = [ String "name" ]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "ask server to negotiate metadata context";
     longdesc = "\
 During connection libnbd can negotiate zero or more metadata
@@ -1067,8 +1082,7 @@ This call adds one metadata context to the list to be negotiated.
 You can call it as many times as needed.  The list is initially
 empty when the handle is created.
 
-You must call this before you connect to the server.  Not
-all servers support all metadata contexts.  To learn if a context
+Not all servers support all metadata contexts.  To learn if a context
 was actually negotiated, call C<nbd_can_meta_context> after
 connecting.
 
@@ -1083,6 +1097,7 @@ C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
   "connect_uri", {
     default_call with
     args = [ String "uri" ]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "connect to NBD URI";
     longdesc = "\
 Connect (synchronously) to an NBD server and export by specifying
@@ -1094,6 +1109,7 @@ connection has been made.";
   "connect_unix", {
     default_call with
     args = [ Path "unixsocket" ]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "connect to NBD server over a Unix domain socket";
     longdesc = "\
 Connect (synchronously) over the named Unix domain socket (C<unixsocket>)
@@ -1104,6 +1120,7 @@ when the connection has been made.";
   "connect_tcp", {
     default_call with
     args = [ String "hostname"; String "port" ]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "connect to NBD server over a TCP port";
     longdesc = "\
 Connect (synchronously) to the NBD server listening on
@@ -1116,6 +1133,7 @@ has been made.";
   "connect_command", {
     default_call with
     args = [ StringList "argv" ]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "connect to NBD server command";
     longdesc = "\
 Run the command as a subprocess and connect to it over
@@ -1126,77 +1144,76 @@ behave like inetd clients, such as C<nbdkit --single>.";
   "read_only", {
     default_call with
     args = []; ret = RBool;
+    permitted_states = [ Connected; Closed ];
     shortdesc = "is the NBD export read-only?";
     longdesc = "\
 Returns true if the NBD export is read-only; writes and
-write-like operations will fail.  Can return an error if we have not
-connected to and completed the handshake with the server.";
+write-like operations will fail.";
   };
 
   "can_flush", {
     default_call with
     args = []; ret = RBool;
+    permitted_states = [ Connected; Closed ];
     shortdesc = "does the server support the flush command?";
     longdesc = "\
 Returns true if the server supports the flush command
 (see C<nbd_flush>, C<nbd_aio_flush>).  Returns false if
-the server does not.  Can return an error if we have not
-connected to and completed the handshake with the server.";
+the server does not.";
   };
 
   "can_fua", {
     default_call with
     args = []; ret = RBool;
+    permitted_states = [ Connected; Closed ];
     shortdesc = "does the server support the FUA flag?";
     longdesc = "\
 Returns true if the server supports the FUA flag on
-certain commands (see C<nbd_pwrite>).  Can return an error
-if we have not connected to and completed the handshake with the server.";
+certain commands (see C<nbd_pwrite>).";
   };
 
   "is_rotational", {
     default_call with
     args = []; ret = RBool;
+    permitted_states = [ Connected; Closed ];
     shortdesc = "is the NBD disk rotational (like a disk)?";
     longdesc = "\
 Returns true if the disk exposed over NBD is rotational
 (like a traditional floppy or hard disk).  Returns false if
 the disk has no penalty for random access (like an SSD or
-RAM disk).  Can return an error if we have not connected
-to and completed the handshake with the server.";
+RAM disk).";
   };
 
   "can_trim", {
     default_call with
     args = []; ret = RBool;
+    permitted_states = [ Connected; Closed ];
     shortdesc = "does the server support the trim command?";
     longdesc = "\
 Returns true if the server supports the trim command
 (see C<nbd_trim>, C<nbd_aio_trim>).  Returns false if
-the server does not.  Can return an error if we have not
-connected to and completed the handshake with the server.";
+the server does not.";
   };
 
   "can_zero", {
     default_call with
     args = []; ret = RBool;
+    permitted_states = [ Connected; Closed ];
     shortdesc = "does the server support the zero command?";
     longdesc = "\
 Returns true if the server supports the zero command
 (see C<nbd_zero>, C<nbd_aio_zero>).  Returns false if
-the server does not.  Can return an error if we have not
-connected to and completed the handshake with the server.";
+the server does not.";
   };
 
   "can_multi_conn", {
     default_call with
     args = []; ret = RBool;
+    permitted_states = [ Connected; Closed ];
     shortdesc = "does the server support multi-conn?";
     longdesc = "\
 Returns true if the server supports multi-conn.  Returns
-false if the server does not.  Can return an error if we
-have not connected to and completed the handshake with
-the server.
+false if the server does not.
 
 It is not safe to open multiple handles connecting to the
 same server if you will write to the server and the
@@ -1209,23 +1226,23 @@ required.";
   "can_cache", {
     default_call with
     args = []; ret = RBool;
+    permitted_states = [ Connected; Closed ];
     shortdesc = "does the server support the cache command?";
     longdesc = "\
 Returns true if the server supports the cache command
 (see C<nbd_cache>, C<nbd_aio_cache>).  Returns false if
-the server does not.  Can return an error if we have not
-connected to and completed the handshake with the server.";
+the server does not.";
   };
 
   "can_meta_context", {
     default_call with
     args = [String "metacontext"]; ret = RBool;
+    permitted_states = [ Connected; Closed ];
     shortdesc = "does the server support a specific meta context?";
     longdesc = "\
 Returns true if the server supports the given meta context
 (see C<nbd_add_meta_context>).  Returns false if
-the server does not.  Can return an error if we have not
-connected to and completed the handshake with the server.
+the server does not..
 
 The single parameter is the name of the metadata context,
 for example C<\"base:allocation\">.";
@@ -1234,17 +1251,17 @@ for example C<\"base:allocation\">.";
   "get_size", {
     default_call with
     args = []; ret = RInt64;
+    permitted_states = [ Connected; Closed ];
     shortdesc = "return the export size";
     longdesc = "\
-Returns the size in bytes of the NBD export.  Can return an
-error if we have not connected to and completed the handshake
-with the server.";
+Returns the size in bytes of the NBD export.";
   };
 
   "pread", {
     default_call with
     args = [ BytesOut ("buf", "count"); UInt64 "offset"; Flags "flags" ];
     ret = RErr;
+    permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
     longdesc = "\
 Issue a read command to the NBD server for the range starting
@@ -1261,6 +1278,7 @@ protocol extensions).";
     default_call with
     args = [ BytesIn ("buf", "count"); UInt64 "offset"; Flags "flags" ];
     ret = RErr;
+    permitted_states = [ Connected ];
     shortdesc = "write to the NBD server";
     longdesc = "\
 Issue a write command to the NBD server, writing the data in
@@ -1279,6 +1297,7 @@ C<nbd_can_fua>).";
   "shutdown", {
     default_call with
     args = []; ret = RErr;
+    permitted_states = [ Connected ];
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
 Issue the disconnect command to the NBD server.  This is
@@ -1295,6 +1314,7 @@ C<nbd_aio_disconnect>.";
   "flush", {
     default_call with
     args = [ Flags "flags" ]; ret = RErr;
+    permitted_states = [ Connected ];
     shortdesc = "send flush command to the NBD server";
     longdesc = "\
 Issue the flush command to the NBD server.  The function should
@@ -1310,6 +1330,7 @@ protocol extensions).";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RErr;
+    permitted_states = [ Connected ];
     shortdesc = "send trim command to the NBD server";
     longdesc = "\
 Issue a trim command to the NBD server, which if supported
@@ -1329,6 +1350,7 @@ C<nbd_can_fua>).";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RErr;
+    permitted_states = [ Connected ];
     shortdesc = "send cache (prefetch) command to the NBD server";
     longdesc = "\
 Issue the cache (prefetch) command to the NBD server, which
@@ -1346,6 +1368,7 @@ protocol extensions).";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RErr;
+    permitted_states = [ Connected ];
     shortdesc = "send write zeroes command to the NBD server";
     longdesc = "\
 Issue a write zeroes command to the NBD server, which if supported
@@ -1373,6 +1396,7 @@ punching a hole.";
                                                "nr_entries")]);
              Flags "flags" ];
     ret = RErr;
+    permitted_states = [ Connected ];
     shortdesc = "send block status command to the NBD server";
     longdesc = "\
 Issue the block status command to the NBD server.  If
@@ -1434,6 +1458,7 @@ main loop, rather than being intended as something you would use.";
   "aio_connect", {
     default_call with
     args = [ SockAddrAndLen ("addr", "addrlen") ]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "connect to the NBD server";
     longdesc = "\
 Begin connecting to the NBD server.
@@ -1447,6 +1472,7 @@ on the connection.";
   "aio_connect_uri", {
     default_call with
     args = [ String "uri" ]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "connect to an NBD URI";
     longdesc = "\
 Begin connecting to the NBD URI C<uri>.
@@ -1460,6 +1486,7 @@ on the connection.";
   "aio_connect_unix", {
     default_call with
     args = [ Path "unixsocket" ]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "connect to the NBD server over a Unix domain socket";
     longdesc = "\
 Begin connecting to the NBD server over Unix domain socket
@@ -1474,6 +1501,7 @@ on the connection.";
   "aio_connect_tcp", {
     default_call with
     args = [ String "hostname"; String "port" ]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "connect to the NBD server over a TCP port";
     longdesc = "\
 Begin connecting to the NBD server listening on C<hostname:port>.
@@ -1487,6 +1515,7 @@ on the connection.";
   "aio_connect_command", {
     default_call with
     args = [ StringList "argv" ]; ret = RErr;
+    permitted_states = [ Created ];
     shortdesc = "connect to the NBD server";
     longdesc = "\
 Run the command as a subprocess and begin connecting to it over
@@ -1503,6 +1532,7 @@ on the connection.";
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
              Flags "flags" ];
     ret = RInt64;
+    permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
     longdesc = "\
 Issue a read command to the NBD server.  This returns the
@@ -1517,6 +1547,7 @@ parameters behave as documented in C<nbd_pread>.";
     default_call with
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset"; Flags "flags" ];
     ret = RInt64;
+    permitted_states = [ Connected ];
     shortdesc = "write to the NBD server";
     longdesc = "\
 Issue a write command to the NBD server.  This returns the
@@ -1530,6 +1561,7 @@ parameters behave as documented in C<nbd_pwrite>.";
   "aio_disconnect", {
     default_call with
     args = [ Flags "flags" ]; ret = RErr;
+    permitted_states = [ Connected ];
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
 Issue the disconnect command to the NBD server.  This is
@@ -1545,6 +1577,7 @@ however, C<nbd_shutdown> will call this function if appropriate.";
   "aio_flush", {
     default_call with
     args = [ Flags "flags" ]; ret = RInt64;
+    permitted_states = [ Connected ];
     shortdesc = "send flush command to the NBD server";
     longdesc = "\
 Issue the flush command to the NBD server.  This returns the
@@ -1558,6 +1591,7 @@ in C<nbd_flush>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RInt64;
+    permitted_states = [ Connected ];
     shortdesc = "send trim command to the NBD server";
     longdesc = "\
 Issue a trim command to the NBD server.  This returns the
@@ -1571,6 +1605,7 @@ in C<nbd_trim>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RInt64;
+    permitted_states = [ Connected ];
     shortdesc = "send cache (prefetch) command to the NBD server";
     longdesc = "\
 Issue the cache (prefetch) command to the NBD server.  This
@@ -1584,6 +1619,7 @@ in C<nbd_cache>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
     ret = RInt64;
+    permitted_states = [ Connected ];
     shortdesc = "send write zeroes command to the NBD server";
     longdesc = "\
 Issue a write zeroes command to the NBD server.  This returns the
@@ -1603,6 +1639,7 @@ in C<nbd_zero>.";
                                                       "nr_entries")]);
              Flags "flags" ];
     ret = RInt64;
+    permitted_states = [ Connected ];
     shortdesc = "send block status command to the NBD server";
     longdesc = "\
 Send the block status command to the NBD server.  This returns the
@@ -2364,7 +2401,7 @@ let generate_lib_states_c () =
   ) states;
   pr "  }\n";
   pr "\n";
-  pr "  set_error (0, \"external event %%d is invalid in state %%s\",\n";
+  pr "  set_error (EINVAL, \"external event %%d is invalid in state %%s\",\n";
   pr "             ev, nbd_internal_state_short_string (h->state));\n";
   pr "  return -1;\n";
   pr "\n";
@@ -2527,6 +2564,18 @@ let () =
          if List.exists (function Flags _ -> true | _ -> false) xs then
            failwithf "%s: Flags must appear in final argument position only"
                      name
+  ) handle_calls;
+
+  (* !may_set_error is incompatible with permitted_states != [] because
+   * an incorrect state will result in set_error being called by the
+   * generated wrapper.
+   *)
+  List.iter (
+    function
+    | name, { permitted_states = (_::_); may_set_error = false } ->
+       failwithf "%s: if may_set_error is false, permitted_states must be empty (any permitted state)"
+                 name
+    | _ -> ()
   ) handle_calls
 
 let generate_lib_libnbd_syms () =
@@ -2662,20 +2711,37 @@ let generate_lib_unlocked_h () =
   pr "\n";
   pr "#endif /* LIBNBD_UNLOCKED_H */\n"
 
+let permitted_state_text permitted_states =
+  assert (permitted_states <> []);
+  String.concat
+    ", or "
+    (List.map (
+         function
+         | Created -> "newly created"
+         | Connecting -> "connecting"
+         | Connected -> "connected and finished handshaking with the server"
+         | Closed -> "closed"
+         | Dead -> "dead"
+       ) permitted_states
+    )
+
 (* Generate wrappers around each API call which are a place to
  * grab the thread mutex (lock) and do logging.
  *)
 let generate_lib_api_c () =
-  let print_wrapper (name, {args; ret; is_locked; may_set_error}) =
-    (match ret with
-     | RBool
-     | RErr
-     | RFd
-     | RInt -> pr "int\n"
-     | RConstString -> pr "const char *\n"
-     | RInt64 -> pr "int64_t\n"
-     | RString -> pr "char *\n"
-    );
+  let print_wrapper (name, {args; ret; permitted_states;
+                            is_locked; may_set_error}) =
+    let ret_c_type, errcode =
+      match ret with
+      | RBool
+      | RErr
+      | RFd
+      | RInt -> "int", "-1"
+      | RConstString -> "const char *", "NULL"
+      | RInt64 -> "int64_t", "-1"
+      | RString -> "char *", "NULL" in
+
+    pr "%s\n" ret_c_type;
     pr "nbd_%s " name;
     print_c_arg_list ~handle:true args;
     pr "\n";
@@ -2690,8 +2756,32 @@ let generate_lib_api_c () =
      | RString -> pr "  char *ret;\n"
     );
     pr "\n";
-    if may_set_error then
+    if may_set_error then (
       pr "  nbd_internal_reset_error (\"nbd_%s\");\n" name;
+      pr "\n"
+    );
+    if permitted_states <> [] then (
+      pr "  /* We can check the state outside the handle lock because the\n";
+      pr "   * the state is atomic.\n";
+      pr "   */\n";
+      let tests =
+        List.map (
+          function
+          | Created -> "nbd_aio_is_created (h)"
+          | Connecting -> "nbd_aio_is_connecting (h)"
+          | Connected -> "nbd_aio_is_ready (h) || nbd_aio_is_processing (h)"
+          | Closed -> "nbd_aio_is_closed (h)"
+          | Dead -> "nbd_aio_is_dead (h)"
+        ) permitted_states in
+      pr "  if (!(%s)) {\n" (String.concat " ||\n        " tests);
+      pr "    set_error (nbd_aio_is_created (h) ? ENOTCONN : EINVAL,\n";
+      pr "               \"invalid state: %%s: the handle must be %%s\",\n";
+      pr "               nbd_internal_state_short_string (h->state),\n";
+      pr "               \"%s\");\n" (permitted_state_text permitted_states);
+      pr "    return %s;\n" errcode;
+      pr "  }\n";
+      pr "\n"
+    );
     if is_locked then
       pr "  pthread_mutex_lock (&h->lock);\n";
     pr "  ret = nbd_unlocked_%s (h" name;
@@ -2711,6 +2801,7 @@ let generate_lib_api_c () =
   pr "\n";
   pr "#include <stdio.h>\n";
   pr "#include <stdlib.h>\n";
+  pr "#include <errno.h>\n";
   pr "\n";
   pr "#include <pthread.h>\n";
   pr "\n";
@@ -2719,7 +2810,7 @@ let generate_lib_api_c () =
   pr "\n";
   List.iter print_wrapper handle_calls
 
-let print_api (name, { args; ret; shortdesc; longdesc }) =
+let print_api (name, { args; ret; permitted_states; shortdesc; longdesc }) =
   pr "=head2 %s —\n" name;
   pr "%s\n" shortdesc;
   pr "\n";
@@ -2729,6 +2820,12 @@ let print_api (name, { args; ret; shortdesc; longdesc }) =
   pr "\n";
   pr "%s\n" longdesc;
   pr "\n";
+  if permitted_states <> [] then (
+    pr "The handle must be\n";
+    pr "%s,\n" (permitted_state_text permitted_states);
+    pr "otherwise this call will return an error.\n";
+    pr "\n"
+  );
   let errcode =
     match ret with
     | RBool ->

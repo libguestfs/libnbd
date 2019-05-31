@@ -167,12 +167,6 @@ nbd_unlocked_add_meta_context (struct nbd_handle *h, const char *name)
   size_t len;
   char **list;
 
-  if (!nbd_unlocked_aio_is_created (h)) {
-    set_error (EINVAL,
-               "requesting meta context must occur before connection");
-    return -1;
-  }
-
   copy = strdup (name);
   if (!copy) {
     set_error (errno, "strdup");

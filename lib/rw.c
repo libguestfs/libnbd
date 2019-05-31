@@ -147,19 +147,6 @@ nbd_internal_command_common (struct nbd_handle *h,
 {
   struct command_in_flight *cmd, *prev_cmd;
 
-  if (nbd_unlocked_aio_is_created (h)) {
-    set_error (ENOTCONN, "you must connect to the NBD server "
-               "before issuing commands");
-    return -1;
-  }
-  if (!nbd_unlocked_aio_is_ready (h) &&
-      !nbd_unlocked_aio_is_processing (h)) {
-    set_error (0, "command request %s is invalid in state %s",
-               nbd_internal_name_of_nbd_cmd (type),
-               nbd_internal_state_short_string (h->state));
-    return -1;
-  }
-
   switch (type) {
     /* Commands which send or receive data are limited to MAX_REQUEST_SIZE. */
   case NBD_CMD_READ:
