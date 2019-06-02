@@ -10,6 +10,8 @@
  * the first megabyte of the remote disk):
  *
  * ./threaded-reads-and-writes hostname port
+ *  or
+ * ./threaded-reads-and-writes nbd://hostname:port
  */
 
 #include <stdio.h>
@@ -76,7 +78,7 @@ main (int argc, char *argv[])
   srand (time (NULL));
 
   if (argc < 2 || argc > 3) {
-    fprintf (stderr, "%s socket | hostname port\n", argv[0]);
+    fprintf (stderr, "%s uri | socket | hostname port\n", argv[0]);
     exit (EXIT_FAILURE);
   }
 
@@ -88,7 +90,13 @@ main (int argc, char *argv[])
 
   /* Connect first to check if the server supports writes and multi-conn. */
   if (argc == 2) {
-    if (nbd_connect_unix (nbd, argv[1]) == -1) {
+    if (strstr (argv[1], "://")) {
+      if (nbd_connect_uri (nbd, argv[1]) == -1) {
+        fprintf (stderr, "%s\n", nbd_get_error ());
+        exit (EXIT_FAILURE);
+      }
+    }
+    else if (nbd_connect_unix (nbd, argv[1]) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
@@ -189,7 +197,13 @@ start_thread (void *arg)
   }
 
   if (status->argc == 2) {
-    if (nbd_connect_unix (nbd, status->argv[1]) == -1) {
+    if (strstr (status->argv[1], "://")) {
+      if (nbd_connect_uri (nbd, status->argv[1]) == -1) {
+        fprintf (stderr, "%s\n", nbd_get_error ());
+        exit (EXIT_FAILURE);
+      }
+    }
+    else if (nbd_connect_unix (nbd, status->argv[1]) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
