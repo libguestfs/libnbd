@@ -3122,7 +3122,7 @@ let print_python_binding name { args; ret } =
          | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
          | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
          | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
-         | UInt _ | UInt32 _ -> pr "  abort ();\n"
+         | UInt _ | UInt32 _ -> assert false
        ) args;
        pr "\n";
 
@@ -3137,7 +3137,7 @@ let print_python_binding name { args; ret } =
          | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
          | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
          | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
-         | UInt _ | UInt32 _ -> pr "  abort ();\n"
+         | UInt _ | UInt32 _ -> assert false
        ) args;
        pr " \")\"";
        List.iter (
@@ -3150,7 +3150,7 @@ let print_python_binding name { args; ret } =
          | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
          | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
          | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
-         | UInt _ | UInt32 _ -> pr "  abort ();\n"
+         | UInt _ | UInt32 _ -> assert false
        ) args;
        pr ");\n";
        pr "  Py_INCREF (py_args);\n";
@@ -3181,7 +3181,7 @@ let print_python_binding name { args; ret } =
          | ArrayAndLen _ | Bool _ | BytesIn _ | BytesOut _
          | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
          | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
-         | UInt _ | UInt32 _ -> ()
+         | UInt _ | UInt32 _ -> assert false
        ) args;
        pr "}\n";
        pr "\n"
