@@ -36,7 +36,7 @@
   h->rbuf = &h->sbuf;
   h->rlen = sizeof h->sbuf.simple_reply;
 
-  r = h->sock->ops->recv (h->sock, h->rbuf, h->rlen);
+  r = h->sock->ops->recv (h, h->sock, h->rbuf, h->rlen);
   if (r == -1) {
     /* This should never happen because when we enter this state we
      * should have notification that the socket is ready to read.

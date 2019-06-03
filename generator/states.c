@@ -61,7 +61,7 @@ recv_into_rbuf (struct nbd_handle *h)
     rlen = h->rlen > sizeof buf ? sizeof buf : h->rlen;
   }
 
-  r = h->sock->ops->recv (h->sock, rbuf, rlen);
+  r = h->sock->ops->recv (h, h->sock, rbuf, rlen);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK)
       return 1;                 /* more data */
@@ -92,7 +92,7 @@ send_from_wbuf (struct nbd_handle *h)
 
   if (h->wlen == 0)
     return 0;                   /* move to next state */
-  r = h->sock->ops->send (h->sock, h->wbuf, h->wlen);
+  r = h->sock->ops->send (h, h->sock, h->wbuf, h->wlen);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK)
       return 1;                 /* more data */

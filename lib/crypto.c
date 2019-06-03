@@ -145,7 +145,7 @@ nbd_unlocked_set_tls_psk_file (struct nbd_handle *h, const char *filename)
 #ifdef HAVE_GNUTLS
 
 static ssize_t
-tls_recv (struct socket *sock, void *buf, size_t len)
+tls_recv (struct nbd_handle *h, struct socket *sock, void *buf, size_t len)
 {
   ssize_t r;
 
@@ -163,7 +163,8 @@ tls_recv (struct socket *sock, void *buf, size_t len)
 }
 
 static ssize_t
-tls_send (struct socket *sock, const void *buf, size_t len)
+tls_send (struct nbd_handle *h,
+          struct socket *sock, const void *buf, size_t len)
 {
   ssize_t r;
 

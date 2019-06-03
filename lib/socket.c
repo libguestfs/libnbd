@@ -30,7 +30,7 @@
 #include "internal.h"
 
 static ssize_t
-socket_recv (struct socket *sock, void *buf, size_t len)
+socket_recv (struct nbd_handle *h, struct socket *sock, void *buf, size_t len)
 {
   ssize_t r;
 
@@ -41,7 +41,8 @@ socket_recv (struct socket *sock, void *buf, size_t len)
 }
 
 static ssize_t
-socket_send (struct socket *sock, const void *buf, size_t len)
+socket_send (struct nbd_handle *h,
+             struct socket *sock, const void *buf, size_t len)
 {
   ssize_t r;
 
