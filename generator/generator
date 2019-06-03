@@ -2833,6 +2833,7 @@ let print_api (name, { args; ret; permitted_states; shortdesc; longdesc }) =
        "-1"
    | RConstString ->
        pr "This call returns a statically allocated string.\n";
+       pr "You B<must not> try to free the string.\n";
        "NULL"
    | RErr ->
        pr "If the call is successful the function returns C<0>.\n";
