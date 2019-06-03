@@ -2714,6 +2714,12 @@ let print_extern name args ret =
   print_call name args ret;
   pr ";\n"
 
+let print_extern_and_define name args ret =
+  let name_upper = String.uppercase_ascii name in
+  print_extern name args ret;
+  pr "#define LIBNBD_HAVE_NBD_%s 1\n" name_upper;
+  pr "\n"
+
 let generate_include_libnbd_h () =
   generate_header CStyle;
 
@@ -2731,14 +2737,23 @@ let generate_include_libnbd_h () =
   List.iter (fun (n, i) -> pr "#define LIBNBD_%-30s %d\n" n i) constants;
   pr "\n";
   pr "extern struct nbd_handle *nbd_create (void);\n";
+  pr "#define LIBNBD_HAVE_NBD_CREATE 1\n";
+  pr "\n";
   pr "extern void nbd_close (struct nbd_handle *h);\n";
+  pr "#define LIBNBD_HAVE_NBD_CLOSE 1\n";
+  pr "\n";
   pr "extern const char *nbd_get_error (void);\n";
+  pr "#define LIBNBD_HAVE_NBD_GET_ERROR 1\n";
+  pr "\n";
   pr "extern int nbd_get_errno (void);\n";
+  pr "#define LIBNBD_HAVE_NBD_GET_ERRNO 1\n";
+  pr "\n";
   pr "extern int nbd_add_close_callback (struct nbd_handle *h,\n";
   pr "                                   nbd_close_callback cb, void *data);\n";
+  pr "#define LIBNBD_HAVE_NBD_ADD_CLOSE_CALLBACK 1\n";
   pr "\n";
   List.iter (
-    fun (name, { args; ret }) -> print_extern name args ret
+    fun (name, { args; ret }) -> print_extern_and_define name args ret
   ) handle_calls;
   pr "\n";
   pr "#endif /* LIBNBD_H */\n"
@@ -2934,6 +2949,13 @@ This manual page describes all of the libnbd API calls from C
 in detail.  If you want an overview of using the API, or to see
 how to call the API from other programming languages, start
 with libnbd(3).
+
+For the sake of conditional compilation across a range of libnbd
+versions, where a client may take advantage of newer API when present
+but gracefully continue to compile even when it is not, all functions
+declared in B<E<lt>libnbd.hE<gt>> have a corresponding witness macro
+with prefix C<LIBNBD_HAVE_>. For example, C<nbd_create> has a
+counterpart macro C<LIBNBD_HAVE_NBD_CREATE> defined to C<1>.
 
 =head1 CREATE, GET AND CLOSE HANDLES
 
