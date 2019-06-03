@@ -6,8 +6,7 @@
  * plugin using multi-conn, multiple threads and multiple requests in
  * flight on each thread.
  *
- * To run it against a remote server over TCP (note this will destroy
- * the first megabyte of the remote disk):
+ * To run it against a remote server over TCP:
  *
  * ./threaded-reads-and-writes hostname port
  *  or
