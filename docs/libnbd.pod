@@ -340,7 +340,36 @@ to prefetch.
 
 =back
 
-=head1 MULTI-CONN
+=head1 PERFORMANCE
+
+=head2 Issuing multiple in-flight requests
+
+NBD servers which properly implement the specification can handle
+multiple requests in flight over the same connection at the same time.
+Libnbd supports this when using the low level API.
+
+To use it you simply issue more requests as needed (eg. using calls
+like C<nbd_aio_pread>, C<nbd_aio_pwrite>) without waiting for previous
+commands to complete.  You need to be careful that requests in flight
+do not overlap with other write-like commands in flight — a parallel
+read may see indeterminate data, and a parallel write may even cause
+disk corruption where the resulting disk contents do not match either
+of the two writes.
+
+Each request is identified by a unique 64 bit handle (assigned by
+libnbd), allowing libnbd and callers to match replies to requests.
+Replies may arrive out of order.
+
+Although in theory you can have an indefinite number of requests in
+flight at the same time, in practice it's a good idea to limit them to
+some number.  It is suggested to start with a limit of 16 requests in
+flight (per NBD connection), and measure how adjusting the limit up
+and down affects performance for your local configuration.
+
+There is a full example using multiple in-flight requests available at
+L<https://github.com/libguestfs/libnbd/blob/master/examples/threaded-reads-and-writes.c>
+
+=head2 Multi-conn
 
 Some NBD servers advertise “multi-conn” which means that it is safe to
 make multiple connections to the server and load-balance commands
@@ -363,6 +392,10 @@ If multi-conn is supported then you can open further connections:
    nbd[i] = nbd_create ();
    nbd[i]_connect_tcp (nbd[i], "server", "10809");
  }
+
+If you are issuing multiple in-flight requests (see above) and
+limiting the number, then the limit should be applied to each
+individual NBD connection.
 
 =head1 ENCRYPTION AND AUTHENTICATION
 
