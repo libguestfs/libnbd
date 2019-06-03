@@ -186,13 +186,19 @@ start_thread (void *arg)
   struct nbd_handle *nbd;
   struct pollfd fds[1];
   struct thread_status *status = arg;
-  char buf[BUFFER_SIZE];
+  char *buf;
   size_t i, j;
   uint64_t offset, handle;
   uint64_t handles[MAX_IN_FLIGHT];
   size_t in_flight;        /* counts number of requests in flight */
   int dir, r, cmd;
   bool want_to_send;
+
+  buf = malloc (BUFFER_SIZE);
+  if (buf == NULL) {
+    perror ("malloc");
+    exit (EXIT_FAILURE);
+  }
 
   nbd = nbd_create ();
   if (nbd == NULL) {
@@ -310,10 +316,12 @@ start_thread (void *arg)
 
   printf ("thread %zu: finished OK\n", status->i);
 
+  free (buf);
   status->status = 0;
   pthread_exit (status);
 
  error:
+  free (buf);
   fprintf (stderr, "thread %zu: failed\n", status->i);
   status->status = -1;
   pthread_exit (status);
