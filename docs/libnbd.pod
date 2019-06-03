@@ -228,6 +228,8 @@ For C<nbd_connect_tcp> the third parameter is the port name or number,
 which can either be a name from F</etc/services> or the port number as
 a string (eg. C<"10809">).
 
+=head2 Connecting to a subprocess
+
 Some NBD servers — notably L<nbdkit(1)> with the C<-s> parameter — can
 also accept a single NBD connection on stdin/stdout.  You can run
 these servers as a subprocess of your main program.  This example
@@ -236,6 +238,29 @@ as the libnbd handle is closed:
 
  char *argv[] = { "nbdkit", "-s", "memory", "1G", NULL };
  nbd_connect_command (nbd, argv);
+
+=head2 Connecting to a URI
+
+libnbd supports the NBD URI specification.
+
+This specification is currently evolving, and discussion about it can
+be found on the L<NBD mailing list|https://lists.debian.org/nbd/>.  A
+final link to the specification will be added to this documentation
+when it is available.
+
+To connect to a URI via the high level API, use:
+
+ nbd_connect_uri (nbd, "nbd://example.com/");
+
+This feature is implemented by calling other libnbd APIs to set up the
+export name, TLS parameters, and finally connect over a Unix domain
+socket or TCP.
+
+URI support is an optional feature of the library, requiring libxml2
+at compile time.  The C<nbd_connect_uri> and C<nbd_aio_connect_uri>
+calls will raise an error (with errno = C<ENOTSUP>) if it was not
+built with this feature, and you can also test for it explicitly using
+C<nbd_supports_uri>.
 
 =head1 EXPORTS AND FLAGS
 
