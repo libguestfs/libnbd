@@ -214,3 +214,25 @@ nbd_add_close_callback (struct nbd_handle *h, nbd_close_callback cb, void *data)
   pthread_mutex_unlock (&h->lock);
   return ret;
 }
+
+const char *
+nbd_unlocked_get_package_name (struct nbd_handle *h)
+{
+  return PACKAGE_NAME;
+}
+
+const char *
+nbd_unlocked_get_version (struct nbd_handle *h)
+{
+  return PACKAGE_VERSION;
+}
+
+int
+nbd_unlocked_supports_uri (struct nbd_handle *h)
+{
+#ifdef HAVE_LIBXML2
+  return 1;
+#else
+  return 0;
+#endif
+}

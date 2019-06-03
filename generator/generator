@@ -1823,6 +1823,49 @@ can be used for debugging or troubleshooting, but you should not
 rely on the state of connections since it may change in future
 versions.";
   };
+
+  "get_package_name", {
+    default_call with
+    args = []; ret = RConstString; is_locked = false; may_set_error = false;
+    shortdesc = "return the name of the library";
+    longdesc = "\
+Returns the name of the library, always C<\"libnbd\"> unless
+the library was modified with another name at compile time.";
+  };
+
+  "get_version", {
+    default_call with
+    args = []; ret = RConstString; is_locked = false; may_set_error = false;
+    shortdesc = "return a descriptive string for the state of the connection";
+    longdesc = "\
+Return the version of libnbd.  This is returned as a string
+in the form C<\"major.minor.release\"> where each of major, minor
+and release is a small positive integer.  For example C<\"1.0.3\">.
+
+The major number is C<0> for the early experimental versions of
+libnbd where we still had an unstable API, or C<1> for the versions
+of libnbd with a long-term stable API and ABI.
+
+The minor number is even (C<0>, C<2>, etc) for stable releases,
+and odd (C<1>, C<3>, etc) for development versions.  Note that
+new APIs added in a development version remain experimental
+and subject to change in that branch until they appear in a stable
+release.
+
+The release number is incremented for each release along a particular
+branch.";
+  };
+
+  "supports_uri", {
+    default_call with
+    args = []; ret = RBool; is_locked = false; may_set_error = false;
+    shortdesc = "return true if libnbd was compiled with support for NBD URIs";
+    longdesc = "\
+Returns true if libnbd was compiled with libxml2 which is required
+to support NBD URIs, or false if not.  See C<nbd_connect_uri> and
+C<nbd_aio_connect_uri>.";
+  };
+
 ]
 
 (* Constants, flags, etc. *)
@@ -3008,7 +3051,7 @@ get_handle (PyObject *obj)
     fun name ->
       pr "extern PyObject *nbd_internal_py_%s (PyObject *self, PyObject *args);\n"
          name;
-  ) ([ "create"; "close"; "get_package_name"; "get_package_version";
+  ) ([ "create"; "close";
        "alloc_aio_buffer"; "aio_buffer_from_bytearray";
        "aio_buffer_to_bytearray" ] @ List.map fst handle_calls);
 
@@ -3036,7 +3079,7 @@ let generate_python_libnbdmod_c () =
     fun name ->
       pr "  { (char *) \"%s\", nbd_internal_py_%s, METH_VARARGS, NULL },\n"
          name name;
-  ) ([ "create"; "close"; "get_package_name"; "get_package_version";
+  ) ([ "create"; "close";
        "alloc_aio_buffer"; "aio_buffer_from_bytearray";
        "aio_buffer_to_bytearray" ] @ List.map fst handle_calls);
   pr "  { NULL, NULL, 0, NULL }\n";
@@ -3608,8 +3651,8 @@ class NBD (object):
 
   (* For nbdsh. *)
   pr "\
-package_name = libnbdmod.get_package_name ()
-__version__ = libnbdmod.get_package_version ()
+package_name = NBD().get_package_name()
+__version__ = NBD().get_version()
 
 if __name__ == \"__main__\":
     import argparse
