@@ -119,11 +119,13 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+#if NR_MULTI_CONN > 1
   if (nbd_can_multi_conn (nbd) == 0) {
     fprintf (stderr, "%s: error: "
              "this NBD export does not support multi-conn\n", argv[0]);
     exit (EXIT_FAILURE);
   }
+#endif
 
   nbd_close (nbd);
 
