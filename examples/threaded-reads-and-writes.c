@@ -1,6 +1,6 @@
 /* Example usage with nbdkit:
  *
- * nbdkit -U - memory 1M --run './threaded-reads-and-writes $unixsocket'
+ * nbdkit -U - memory 100M --run './threaded-reads-and-writes $unixsocket'
  *
  * This will read and write randomly over the first megabyte of the
  * plugin using multi-conn, multiple threads and multiple requests in
@@ -50,8 +50,11 @@ static int64_t exportsize;
  */
 #define MAX_IN_FLIGHT 16
 
+/* The size of reads and writes. */
+#define BUFFER_SIZE (1024*1024)
+
 /* Number of commands we issue (per thread). */
-#define NR_CYCLES 10000
+#define NR_CYCLES 100000
 
 struct thread_status {
   size_t i;                     /* Thread index, 0 .. NR_MULTI_CONN-1 */
@@ -183,7 +186,7 @@ start_thread (void *arg)
   struct nbd_handle *nbd;
   struct pollfd fds[1];
   struct thread_status *status = arg;
-  char buf[512];
+  char buf[BUFFER_SIZE];
   size_t i, j;
   uint64_t offset, handle;
   uint64_t handles[MAX_IN_FLIGHT];
