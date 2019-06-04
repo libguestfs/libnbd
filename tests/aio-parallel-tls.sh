@@ -20,5 +20,5 @@
 
 nbdkit -U - --tls=require --tls-verify-peer --tls-psk=keys.psk \
        --filter=cow \
-       pattern size=8M \
+       pattern size=64M \
        --run '$VG ./aio-parallel-tls $unixsocket'

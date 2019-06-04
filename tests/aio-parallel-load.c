@@ -44,7 +44,7 @@
 #define NR_MULTI_CONN 8
 
 /* Number of commands in flight per connection. */
-#define MAX_IN_FLIGHT 16
+#define MAX_IN_FLIGHT 64
 
 /* Unix socket. */
 static const char *unixsocket;
@@ -169,7 +169,7 @@ start_thread (void *arg)
   size_t in_flight;        /* counts number of requests in flight */
   int dir, r, cmd;
   time_t t;
-  bool expired = false, want_to_send;
+  bool expired = false;
 
   nbd = nbd_create ();
   if (nbd == NULL) {
@@ -219,37 +219,8 @@ start_thread (void *arg)
         break;
     }
 
-    /* Do we want to send another request and there's room to issue it
-     * and the connection is in the READY state so it can be used to
-     * issue a request.
-     */
-    want_to_send =
-      !expired && in_flight < MAX_IN_FLIGHT && nbd_aio_is_ready (nbd);
-
-    fds[0].fd = nbd_aio_get_fd (nbd);
-    fds[0].events = want_to_send ? POLLOUT : 0;
-    fds[0].revents = 0;
-    dir = nbd_aio_get_direction (nbd);
-    if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0)
-      fds[0].events |= POLLIN;
-    if ((dir & LIBNBD_AIO_DIRECTION_WRITE) != 0)
-      fds[0].events |= POLLOUT;
-
-    if (poll (fds, 1, -1) == -1) {
-      perror ("poll");
-      goto error;
-    }
-
-    if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0 &&
-        (fds[0].revents & POLLIN) != 0)
-      nbd_aio_notify_read (nbd);
-    else if ((dir & LIBNBD_AIO_DIRECTION_WRITE) != 0 &&
-             (fds[0].revents & POLLOUT) != 0)
-      nbd_aio_notify_write (nbd);
-
     /* If we can issue another request, do so. */
-    if (want_to_send && (fds[0].revents & POLLOUT) != 0 &&
-        nbd_aio_is_ready (nbd)) {
+    while (!expired && in_flight < MAX_IN_FLIGHT) {
       offset = rand () % (EXPORTSIZE - sizeof buf);
       cmd = rand () & 1;
       if (cmd == 0) {
@@ -269,6 +240,27 @@ start_thread (void *arg)
       if (in_flight > status->most_in_flight)
         status->most_in_flight = in_flight;
     }
+
+    fds[0].fd = nbd_aio_get_fd (nbd);
+    fds[0].events = 0;
+    fds[0].revents = 0;
+    dir = nbd_aio_get_direction (nbd);
+    if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0)
+      fds[0].events |= POLLIN;
+    if ((dir & LIBNBD_AIO_DIRECTION_WRITE) != 0)
+      fds[0].events |= POLLOUT;
+
+    if (poll (fds, 1, -1) == -1) {
+      perror ("poll");
+      goto error;
+    }
+
+    if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0 &&
+        (fds[0].revents & POLLIN) != 0)
+      nbd_aio_notify_read (nbd);
+    else if ((dir & LIBNBD_AIO_DIRECTION_WRITE) != 0 &&
+             (fds[0].revents & POLLOUT) != 0)
+      nbd_aio_notify_write (nbd);
 
     /* If a command is ready to retire, retire it. */
     for (i = 0; i < in_flight; ++i) {

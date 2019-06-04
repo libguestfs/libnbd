@@ -41,20 +41,16 @@ static int64_t exportsize;
 
 /* Number of commands that can be "in flight" at the same time on each
  * connection.  (Therefore the total number of requests in flight may
- * be up to NR_MULTI_CONN * MAX_IN_FLIGHT).  qemu's NBD client can
- * have up to 16 requests in flight.
- *
- * Some servers do not support multiple requests in flight and may
- * deadlock or even crash if this is larger than 1, but common NBD
- * servers should be OK.
+ * be up to NR_MULTI_CONN * MAX_IN_FLIGHT).  See libnbd(3) section
+ * "Issuing multiple in-flight requests".
  */
-#define MAX_IN_FLIGHT 16
+#define MAX_IN_FLIGHT 64
 
 /* The size of reads and writes. */
 #define BUFFER_SIZE (1024*1024)
 
 /* Number of commands we issue (per thread). */
-#define NR_CYCLES 100000
+#define NR_CYCLES 1000000
 
 struct thread_status {
   size_t i;                     /* Thread index, 0 .. NR_MULTI_CONN-1 */
@@ -192,7 +188,6 @@ start_thread (void *arg)
   uint64_t handles[MAX_IN_FLIGHT];
   size_t in_flight;        /* counts number of requests in flight */
   int dir, r, cmd;
-  bool want_to_send;
 
   buf = malloc (BUFFER_SIZE);
   if (buf == NULL) {
@@ -238,15 +233,31 @@ start_thread (void *arg)
       goto error;
     }
 
-    /* Do we want to send another request and there's room to issue it
-     * and the connection is in the READY state so it can be used to
-     * issue a request.
+    /* If we want to issue another request, do so.  Note that we reuse
+     * the same buffer for multiple in-flight requests.  It doesn't
+     * matter here because we're just trying to write random stuff,
+     * but that would be Very Bad in a real application.
      */
-    want_to_send =
-      i > 0 && in_flight < MAX_IN_FLIGHT && nbd_aio_is_ready (nbd);
+    while (i > 0 && in_flight < MAX_IN_FLIGHT) {
+      offset = rand () % (exportsize - sizeof buf);
+      cmd = rand () & 1;
+      if (cmd == 0)
+        handle = nbd_aio_pwrite (nbd, buf, sizeof buf, offset, 0);
+      else
+        handle = nbd_aio_pread (nbd, buf, sizeof buf, offset, 0);
+      if (handle == -1) {
+        fprintf (stderr, "%s\n", nbd_get_error ());
+        goto error;
+      }
+      handles[in_flight] = handle;
+      i--;
+      in_flight++;
+      if (in_flight > status->most_in_flight)
+        status->most_in_flight = in_flight;
+    }
 
     fds[0].fd = nbd_aio_get_fd (nbd);
-    fds[0].events = want_to_send ? POLLOUT : 0;
+    fds[0].events = 0;
     fds[0].revents = 0;
     dir = nbd_aio_get_direction (nbd);
     if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0)
@@ -265,30 +276,6 @@ start_thread (void *arg)
     else if ((dir & LIBNBD_AIO_DIRECTION_WRITE) != 0 &&
              (fds[0].revents & POLLOUT) != 0)
       nbd_aio_notify_write (nbd);
-
-    /* If we can issue another request, do so.  Note that we reuse the
-     * same buffer for multiple in-flight requests.  It doesn't matter
-     * here because we're just trying to write random stuff, but that
-     * would be Very Bad in a real application.
-     */
-    if (want_to_send && (fds[0].revents & POLLOUT) != 0 &&
-        nbd_aio_is_ready (nbd)) {
-      offset = rand () % (exportsize - sizeof buf);
-      cmd = rand () & 1;
-      if (cmd == 0)
-        handle = nbd_aio_pwrite (nbd, buf, sizeof buf, offset, 0);
-      else
-        handle = nbd_aio_pread (nbd, buf, sizeof buf, offset, 0);
-      if (handle == -1) {
-        fprintf (stderr, "%s\n", nbd_get_error ());
-        goto error;
-      }
-      handles[in_flight] = handle;
-      i--;
-      in_flight++;
-      if (in_flight > status->most_in_flight)
-        status->most_in_flight = in_flight;
-    }
 
     /* If a command is ready to retire, retire it. */
     for (j = 0; j < in_flight; ++j) {

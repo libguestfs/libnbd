@@ -362,9 +362,12 @@ Replies may arrive out of order.
 
 Although in theory you can have an indefinite number of requests in
 flight at the same time, in practice it's a good idea to limit them to
-some number.  It is suggested to start with a limit of 16 requests in
-flight (per NBD connection), and measure how adjusting the limit up
-and down affects performance for your local configuration.
+some number.  Libnbd will queue commands in the handle even if it
+cannot write them to the server, so this limit is largely to prevent a
+backlog of commands from consuming too much memory.  It is suggested
+to start with a limit of 64 requests in flight (per NBD connection),
+and measure how adjusting the limit up and down affects performance
+for your local configuration.
 
 There is a full example using multiple in-flight requests available at
 L<https://github.com/libguestfs/libnbd/blob/master/examples/threaded-reads-and-writes.c>
