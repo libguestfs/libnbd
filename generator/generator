@@ -1242,7 +1242,7 @@ the server does not.";
     longdesc = "\
 Returns true if the server supports the given meta context
 (see C<nbd_add_meta_context>).  Returns false if
-the server does not..
+the server does not.
 
 The single parameter is the name of the metadata context,
 for example C<\"base:allocation\">.";
@@ -2472,7 +2472,7 @@ let generate_lib_states_c () =
   pr "\n";
 
   pr "/* Returns whether in the current state read or write would be valid.\n";
-  pr " * NB: is_locked = false, can_set_error = false.\n";
+  pr " * NB: is_locked = false, may_set_error = false.\n";
   pr " */\n";
   pr "int\n";
   pr "nbd_unlocked_aio_get_direction (struct nbd_handle *h)\n";
