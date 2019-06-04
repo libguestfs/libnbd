@@ -357,34 +357,37 @@
     assert (h->bs_entries);
     assert (length >= 12);
 
-    /* Need to byte-swap the entries returned, but apart from that we
-     * don't validate them.
-     */
-    for (i = 0; i < length/4; ++i)
-      h->bs_entries[i] = be32toh (h->bs_entries[i]);
-
-    /* Look up the context ID. */
-    context_id = h->bs_entries[0];
-    for (meta_context = h->meta_contexts;
-         meta_context;
-         meta_context = meta_context->next)
-      if (context_id == meta_context->context_id)
-        break;
-
-    if (meta_context) {
-      /* Call the caller's extent function. */
-      if (cmd->extent_fn (cmd->data, meta_context->name, cmd->offset,
-                          &h->bs_entries[1], (length-4) / 4) == -1) {
-        SET_NEXT_STATE (%.DEAD); /* XXX We should be able to recover. */
-        if (errno == 0) errno = EPROTO;
-        set_error (errno, "extent function failed");
-        return -1;
-      }
-    }
-    else
+    if (cmd->error)
       /* Emit a debug message, but ignore it. */
-      debug (h, "server sent unexpected meta context ID %" PRIu32,
-             context_id);
+      debug (h, "ignoring meta context ID %" PRIu32 " after callback failure",
+             be32toh (h->bs_entries[0]));
+    else {
+      /* Need to byte-swap the entries returned, but apart from that we
+       * don't validate them.
+       */
+      for (i = 0; i < length/4; ++i)
+        h->bs_entries[i] = be32toh (h->bs_entries[i]);
+
+      /* Look up the context ID. */
+      context_id = h->bs_entries[0];
+      for (meta_context = h->meta_contexts;
+           meta_context;
+           meta_context = meta_context->next)
+        if (context_id == meta_context->context_id)
+          break;
+
+      if (meta_context) {
+        /* Call the caller's extent function. */
+        errno = 0;
+        if (cmd->extent_fn (cmd->data, meta_context->name, cmd->offset,
+                            &h->bs_entries[1], (length-4) / 4) == -1)
+          cmd->error = errno ? errno : EPROTO;
+      }
+      else
+        /* Emit a debug message, but ignore it. */
+        debug (h, "server sent unexpected meta context ID %" PRIu32,
+               context_id);
+    }
 
     if (flags & NBD_REPLY_FLAG_DONE)
       SET_NEXT_STATE (%^FINISH_COMMAND);

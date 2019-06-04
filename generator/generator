@@ -1423,7 +1423,10 @@ supported by the server (see C<nbd_can_meta_context>) this call
 returns information about extents by calling back to the
 extent function.  The callback cannot call C<nbd_*> APIs on the
 same handle since it holds the handle lock and will
-cause a deadlock.
+cause a deadlock.  If the callback returns C<-1>, any remaining
+contexts will be ignored and the overall block status command
+will fail with the same value of C<errno> left after the
+failing callback.
 
 The extent function is called once per type of metadata
 available.  The C<metacontext> parameter is a string

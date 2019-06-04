@@ -23,6 +23,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <assert.h>
+#include <stdbool.h>
+#include <errno.h>
 
 #include <libnbd.h>
 
@@ -30,21 +32,35 @@ static const char *unixsocket;
 static const char *bitmap;
 static const char *base_allocation = "base:allocation";
 
-static int calls; /* Track which contexts passed through callback */
+struct data {
+  bool req_one;    /* input: true if req_one was passed to request */
+  int count;       /* input: count of expected remaining calls */
+  bool fail;       /* input: true to return failure */
+  bool seen_base;  /* output: true if base:allocation encountered */
+  bool seen_dirty; /* output: true if qemu:dirty-bitmap encountered */
+};
 
 static int
-cb (void *data, const char *metacontext, uint64_t offset,
+cb (void *opaque, const char *metacontext, uint64_t offset,
     uint32_t *entries, size_t len)
 {
-  /* Hack: data is non-NULL if request included REQ_ONE flag */
+  struct data *data = opaque;
+
+  /* libnbd does not actually verify that a server is fully compliant
+   * to the spec; the asserts marked [qemu-nbd] are thus dependent on
+   * the fact that qemu-nbd is compliant.
+   */
   assert (offset == 0);
+  assert (data->count-- > 0); /* [qemu-nbd] */
+
   if (strcmp (metacontext, base_allocation) == 0) {
-    calls += 0x1;
-    assert (len == (data ? 2 : 8));
+    assert (!data->seen_base); /* [qemu-nbd] */
+    data->seen_base = true;
+    assert (len == (data->req_one ? 2 : 8)); /* [qemu-nbd] */
 
     /* Data block offset 0 size 128k */
     assert (entries[0] == 131072); assert (entries[1] == 0);
-    if (!data) {
+    if (!data->req_one) {
       /* hole|zero offset 128k size 384k */
       assert (entries[2] == 393216); assert (entries[3] == 3);
       /* allocated zero offset 512k size 64k */
@@ -54,11 +70,12 @@ cb (void *data, const char *metacontext, uint64_t offset,
     }
   }
   else if (strcmp (metacontext, bitmap) == 0) {
-    calls += 0x10;
-    assert (len == (data ? 2 : 10));
+    assert (!data->seen_dirty); /* [qemu-nbd] */
+    data->seen_dirty = true;
+    assert (len == (data->req_one ? 2 : 10)); /* [qemu-nbd] */
 
     assert (entries[0] ==  65536); assert (entries[1] == 0);
-    if (!data) {
+    if (!data->req_one) {
       /* dirty block offset 64K size 64K */
       assert (entries[2] ==  65536); assert (entries[3] == 1);
       assert (entries[4] == 393216); assert (entries[5] == 0);
@@ -72,6 +89,10 @@ cb (void *data, const char *metacontext, uint64_t offset,
     exit (EXIT_FAILURE);
   }
 
+  if (data->fail) {
+    errno = EPROTO; /* Something NBD servers can't send */
+    return -1;
+  }
   return 0;
 }
 
@@ -80,6 +101,8 @@ main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
   int64_t exportsize;
+  struct data data;
+  char c;
 
   if (argc != 3) {
     fprintf (stderr, "%s unixsocket bitmap\n", argv[0]);
@@ -108,17 +131,37 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  if (nbd_block_status (nbd, exportsize, 0, NULL, cb, 0) == -1) {
+  data = (struct data) { .count = 2, };
+  if (nbd_block_status (nbd, exportsize, 0, &data, cb, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  assert (calls == 0x11);
-  if (nbd_block_status (nbd, exportsize, 0, &exportsize, cb,
+  assert (data.seen_base && data.seen_dirty);
+
+  data = (struct data) { .req_one = true, .count = 2, };
+  if (nbd_block_status (nbd, exportsize, 0, &data, cb,
                         LIBNBD_CMD_FLAG_REQ_ONE) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  assert (calls == 0x22);
+  assert (data.seen_base && data.seen_dirty);
+
+  /* Trigger a failed callback, to prove connection stays up. No way
+   * to know which context will respond first, but we can check that
+   * the other one did not get visited.
+   */
+  data = (struct data) { .count = 1, .fail = true, };
+  if (nbd_block_status (nbd, exportsize, 0, &data, cb, 0) != -1) {
+    fprintf (stderr, "unexpected block status success\n");
+    exit (EXIT_FAILURE);
+  }
+  assert (nbd_get_errno () == EPROTO && nbd_aio_is_ready (nbd));
+  assert (data.seen_base ^ data.seen_dirty);
+
+  if (nbd_pread (nbd, &c, 1, 0, 0) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
 
   if (nbd_shutdown (nbd) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
