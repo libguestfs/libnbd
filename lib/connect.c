@@ -164,6 +164,9 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   /* TLS */
   if (tls && nbd_unlocked_set_tls (h, 2) == -1)
     goto error;
+  /* XXX If uri->query_raw includes TLS parameters, we should call
+   * nbd_unlocked_set_tls_* to match...
+   */
 
   /* Export name. */
   if (uri->path) {

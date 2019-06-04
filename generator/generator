@@ -921,7 +921,9 @@ be called while holding the handle lock and will cause a deadlock.";
 For servers which require an export name or can serve different
 content on different exports, set the C<export_name> to
 connect to.  This is only relevant for the newstyle protocol.
-The default is to use the empty string.";
+This call may be skipped if using C<nbd_connect_uri> to connect
+to a URI that includes an export name.  The default is to use
+the empty string.";
   };
 
   "get_export_name", {
@@ -945,7 +947,8 @@ NBD server.  The possible settings are:
 
 =item C<tls=0>
 
-Disable TLS.  (The default setting)
+Disable TLS.  (The default setting, unless using C<nbd_connect_uri> with
+a URI that requires TLS)
 
 =item C<tls=1>
 
@@ -966,7 +969,9 @@ and authenticated.
 As well as calling this you may also need to supply
 the path to the certificates directory (C<nbd_set_tls_certificates>),
 the username (C<nbd_set_tls_username>) and/or
-the Pre-Shared Keys (PSK) file (C<nbd_set_tls_psk_file>).
+the Pre-Shared Keys (PSK) file (C<nbd_set_tls_psk_file>).  For now,
+when using C<nbd_connect_uri>, any URI query parameters related to
+TLS are not handled automatically.
 
 For more information see L<libnbd(3)/ENCRYPTION AND AUTHENTICATION>.";
   };
@@ -1101,9 +1106,13 @@ C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
     shortdesc = "connect to NBD URI";
     longdesc = "\
 Connect (synchronously) to an NBD server and export by specifying
-the NBD URI.  This call parses the URI and may call C<nbd_connect_tcp>,
-C<nbd_connect_unix> and C<nbd_set_tls>.  This call returns when the
-connection has been made.";
+the NBD URI.  This call parses the URI and may call
+C<nbd_set_export_name> and C<nbd_set_tls> as needed, followed by
+C<nbd_connect_tcp> or C<nbd_connect_unix>.  This call returns when
+the connection has been made.
+
+This call will fail if libnbd was not compiled with libxml2; you can
+test whether this is the case with C<nbd_supports_uri>.";
   };
 
   "connect_unix", {
@@ -1461,7 +1470,8 @@ main loop, rather than being intended as something you would use.";
     permitted_states = [ Created ];
     shortdesc = "connect to the NBD server";
     longdesc = "\
-Begin connecting to the NBD server.
+Begin connecting to the NBD server.  Parameters behave as documented
+in C<nbd_connect>.
 
 You can check if the connection is still connecting by calling
 C<nbd_aio_is_connecting>, or if it has connected to the server
@@ -1475,12 +1485,16 @@ on the connection.";
     permitted_states = [ Created ];
     shortdesc = "connect to an NBD URI";
     longdesc = "\
-Begin connecting to the NBD URI C<uri>.
+Begin connecting to the NBD URI C<uri>.  Parameters behave as
+documented in C<nbd_connect_uri>.
 
 You can check if the connection is still connecting by calling
 C<nbd_aio_is_connecting>, or if it has connected to the server
 and completed the NBD handshake by calling C<nbd_aio_is_ready>,
-on the connection.";
+on the connection.
+
+This call will fail if libnbd was not compiled with libxml2; you can
+test whether this is the case with C<nbd_supports_uri>.";
   };
 
   "aio_connect_unix", {
@@ -1490,7 +1504,8 @@ on the connection.";
     shortdesc = "connect to the NBD server over a Unix domain socket";
     longdesc = "\
 Begin connecting to the NBD server over Unix domain socket
-(C<unixsocket>).
+(C<unixsocket>).  Parameters behave as documented in
+C<nbd_connect_unix>.
 
 You can check if the connection is still connecting by calling
 C<nbd_aio_is_connecting>, or if it has connected to the server
@@ -1505,6 +1520,7 @@ on the connection.";
     shortdesc = "connect to the NBD server over a TCP port";
     longdesc = "\
 Begin connecting to the NBD server listening on C<hostname:port>.
+Parameters behave as documented in C<nbd_connect_tcp>.
 
 You can check if the connection is still connecting by calling
 C<nbd_aio_is_connecting>, or if it has connected to the server
@@ -1519,7 +1535,8 @@ on the connection.";
     shortdesc = "connect to the NBD server";
     longdesc = "\
 Run the command as a subprocess and begin connecting to it over
-stdin/stdout.
+stdin/stdout.  Parameters behave as documented in
+C<nbd_connect_command>.
 
 You can check if the connection is still connecting by calling
 C<nbd_aio_is_connecting>, or if it has connected to the server
