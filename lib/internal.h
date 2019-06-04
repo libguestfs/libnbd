@@ -223,7 +223,7 @@ struct command_in_flight {
   uint32_t count;
   void *data; /* Buffer for read/write, opaque for block status */
   extent_fn extent_fn;
-  uint32_t error;
+  uint32_t error; /* Local errno value */
 };
 
 /* crypto.c */

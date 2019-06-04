@@ -45,7 +45,7 @@
     return 0;
   }
 
-  cmd->error = error;
+  cmd->error = nbd_internal_errno_of_nbd_error (error);
   if (cmd->error == 0 && cmd->type == NBD_CMD_READ) {
     h->rbuf = cmd->data;
     h->rlen = cmd->count;

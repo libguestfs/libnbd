@@ -165,7 +165,6 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
     return 1;
 
   /* The command failed, set an error indication and return an error. */
-  error = nbd_internal_errno_of_nbd_error (error);
   set_error (error, "%s: command failed: %s",
              nbd_internal_name_of_nbd_cmd (type), strerror (error));
   return -1;

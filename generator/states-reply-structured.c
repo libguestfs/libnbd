@@ -179,7 +179,9 @@
     }
     assert (cmd); /* guaranteed by CHECK */
 
-    cmd->error = error;
+    /* Preserve first error encountered */
+    if (cmd->error == 0)
+      cmd->error = nbd_internal_errno_of_nbd_error (error);
 
     if (flags & NBD_REPLY_FLAG_DONE)
       SET_NEXT_STATE (%^FINISH_COMMAND);
