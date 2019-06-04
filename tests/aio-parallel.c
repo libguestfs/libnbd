@@ -37,6 +37,9 @@
 /* We keep a shadow of the RAM disk so we can check integrity of the data. */
 static char *ramdisk;
 
+/* Size of read and write buffer. */
+#define BUFFERSIZE 16384
+
 /* This is also defined in aio-parallel.sh and checked here. */
 #define EXPORTSIZE (8*1024*1024)
 
@@ -48,6 +51,10 @@ static char *ramdisk;
 
 /* Number of commands in flight per connection. */
 #define MAX_IN_FLIGHT 16
+
+#if BUFFERSIZE >= EXPORTSIZE / NR_MULTI_CONN / MAX_IN_FLIGHT
+#error "EXPORTSIZE too small"
+#endif
 
 /* Unix socket. */
 static const char *unixsocket;
@@ -172,8 +179,6 @@ main (int argc, char *argv[])
 
   exit (errors == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
-
-#define BUFFERSIZE 16384
 
 struct command {
   char buf[BUFFERSIZE];
