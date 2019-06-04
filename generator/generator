@@ -2418,11 +2418,11 @@ let generate_lib_states_c () =
       pr "  enum state next_state = %s;\n" state_enum;
       pr "\n";
       pr "  r = _enter_%s (h, &next_state, blocked);\n" state_enum;
-      pr "  if (h->state != next_state) {\n";
+      pr "  if (get_state (h) != next_state) {\n";
       pr "    debug (h, \"transition: %%s -> %%s\",\n";
       pr "           \"%s\",\n" display_name;
       pr "           nbd_internal_state_short_string (next_state));\n";
-      pr "    h->state = next_state;\n";
+      pr "    set_state (h, next_state);\n";
       pr "  }\n";
       pr "  return r;\n";
       pr "}\n";
@@ -2437,7 +2437,7 @@ let generate_lib_states_c () =
   pr "  bool blocked;\n";
   pr "\n";
   pr "  /* Validate and handle the external event. */\n";
-  pr "  switch (h->state)\n";
+  pr "  switch (get_state (h))\n";
   pr "  {\n";
   List.iter (
     fun ({ parsed = { display_name; state_enum; events } } as state) ->
@@ -2449,7 +2449,7 @@ let generate_lib_states_c () =
           fun (e, next_state) ->
             pr "    case %s:\n" (c_string_of_external_event e);
             if state != next_state then (
-              pr "      h->state = %s;\n" next_state.parsed.state_enum;
+              pr "      set_state (h, %s);\n" next_state.parsed.state_enum;
               pr "      debug (h, \"event %%s: %%s -> %%s\",\n";
               pr "             \"%s\", \"%s\", \"%s\");\n"
                  (string_of_external_event e)
@@ -2465,7 +2465,7 @@ let generate_lib_states_c () =
   pr "  }\n";
   pr "\n";
   pr "  set_error (EINVAL, \"external event %%d is invalid in state %%s\",\n";
-  pr "             ev, nbd_internal_state_short_string (h->state));\n";
+  pr "             ev, nbd_internal_state_short_string (get_state (h)));\n";
   pr "  return -1;\n";
   pr "\n";
   pr " ok:\n";
@@ -2473,7 +2473,7 @@ let generate_lib_states_c () =
   pr "    blocked = true;\n";
   pr "\n";
   pr "    /* Run a single step. */\n";
-  pr "    switch (h->state)\n";
+  pr "    switch (get_state (h))\n";
   pr "    {\n";
   List.iter (
     fun { parsed = { state_enum } } ->
@@ -2499,7 +2499,7 @@ let generate_lib_states_c () =
   pr "{\n";
   pr "  int r = 0;\n";
   pr "\n";
-  pr "  switch (h->state)\n";
+  pr "  switch (get_state (h))\n";
   pr "  {\n";
   List.iter (
     fun ({ parsed = { state_enum; events } }) ->
@@ -2545,7 +2545,7 @@ let generate_lib_states_c () =
   pr "const char *\n";
   pr "nbd_unlocked_connection_state (struct nbd_handle *h)\n";
   pr "{\n";
-  pr "  switch (h->state)\n";
+  pr "  switch (get_state (h))\n";
   pr "  {\n";
   List.iter (
     fun ({ comment; parsed = { display_name; state_enum } }) ->
@@ -2844,7 +2844,7 @@ let generate_lib_api_c () =
       pr "  /* We can check the state outside the handle lock because the\n";
       pr "   * the state is atomic.\n";
       pr "   */\n";
-      pr "  enum state state = h->state;\n";
+      pr "  enum state state = get_state (h);\n";
       let tests =
         List.map (
           function

@@ -291,6 +291,9 @@ extern const char *nbd_internal_state_short_string (enum state state);
 extern enum state_group nbd_internal_state_group (enum state state);
 extern enum state_group nbd_internal_state_group_parent (enum state_group group);
 
+#define set_state(h,next_state) ((h)->state) = (next_state)
+#define get_state(h) ((h)->state)
+
 /* utils.c */
 extern void nbd_internal_hexdump (const void *data, size_t len, FILE *fp);
 extern size_t nbd_internal_string_list_length (char **argv);

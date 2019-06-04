@@ -102,40 +102,40 @@ nbd_internal_is_state_closed (enum state state)
 int
 nbd_unlocked_aio_is_created (struct nbd_handle *h)
 {
-  return nbd_internal_is_state_created (h->state);
+  return nbd_internal_is_state_created (get_state (h));
 }
 
 /* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_aio_is_connecting (struct nbd_handle *h)
 {
-  return nbd_internal_is_state_connecting (h->state);
+  return nbd_internal_is_state_connecting (get_state (h));
 }
 
 /* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_aio_is_ready (struct nbd_handle *h)
 {
-  return nbd_internal_is_state_ready (h->state);
+  return nbd_internal_is_state_ready (get_state (h));
 }
 
 /* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_aio_is_processing (struct nbd_handle *h)
 {
-  return nbd_internal_is_state_processing (h->state);
+  return nbd_internal_is_state_processing (get_state (h));
 }
 
 /* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_aio_is_dead (struct nbd_handle *h)
 {
-  return nbd_internal_is_state_dead (h->state);
+  return nbd_internal_is_state_dead (get_state (h));
 }
 
 /* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_aio_is_closed (struct nbd_handle *h)
 {
-  return nbd_internal_is_state_closed (h->state);
+  return nbd_internal_is_state_closed (get_state (h));
 }

@@ -201,7 +201,7 @@ nbd_internal_command_common (struct nbd_handle *h,
    * be handled automatically on a future cycle around to READY.
    */
   if (h->cmds_to_issue != NULL) {
-    assert (nbd_internal_is_state_processing (h->state));
+    assert (nbd_internal_is_state_processing (get_state (h)));
     prev_cmd = h->cmds_to_issue;
     while (prev_cmd->next)
       prev_cmd = prev_cmd->next;
@@ -209,7 +209,7 @@ nbd_internal_command_common (struct nbd_handle *h,
   }
   else {
     h->cmds_to_issue = cmd;
-    if (nbd_internal_is_state_ready (h->state) &&
+    if (nbd_internal_is_state_ready (get_state (h)) &&
         nbd_internal_run (h, cmd_issue) == -1)
       return -1;
   }
