@@ -80,7 +80,17 @@ struct nbd_handle {
   /* Linked list of close callbacks. */
   struct close_callback *close_callbacks;
 
-  _Atomic enum state state;     /* State machine. */
+  /* State machine.
+   *
+   * The actual current state is ‘state’.  ‘public_state’ is updated
+   * before we release the lock.
+   *
+   * Note don't access these fields directly, use the SET_NEXT_STATE
+   * macro in generator/states* code, or the set_next_state,
+   * get_next_state and get_public_state macros in regular code.
+   */
+  _Atomic enum state public_state;
+  enum state state;
 
   bool structured_replies;      /* If we negotiated NBD_OPT_STRUCTURED_REPLY */
 
@@ -292,8 +302,9 @@ extern const char *nbd_internal_state_short_string (enum state state);
 extern enum state_group nbd_internal_state_group (enum state state);
 extern enum state_group nbd_internal_state_group_parent (enum state_group group);
 
-#define set_state(h,next_state) ((h)->state) = (next_state)
-#define get_state(h) ((h)->state)
+#define set_next_state(h,next_state) ((h)->state) = (next_state)
+#define get_next_state(h) ((h)->state)
+#define get_public_state(h) ((h)->public_state)
 
 /* utils.c */
 extern void nbd_internal_hexdump (const void *data, size_t len, FILE *fp);

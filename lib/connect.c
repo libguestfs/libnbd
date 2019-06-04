@@ -38,16 +38,16 @@
 static int
 error_unless_ready (struct nbd_handle *h)
 {
-  if (nbd_internal_is_state_ready (get_state (h)))
+  if (nbd_internal_is_state_ready (get_next_state (h)))
     return 0;
 
   /* Why did it fail? */
-  if (nbd_internal_is_state_closed (get_state (h))) {
+  if (nbd_internal_is_state_closed (get_next_state (h))) {
     set_error (0, "connection is closed");
     return -1;
   }
 
-  if (nbd_internal_is_state_dead (get_state (h)))
+  if (nbd_internal_is_state_dead (get_next_state (h)))
     /* Don't set the error here, keep the error set when
      * the connection died.
      */
@@ -55,14 +55,14 @@ error_unless_ready (struct nbd_handle *h)
 
   /* Should probably never happen. */
   set_error (0, "connection in an unexpected state (%s)",
-             nbd_internal_state_short_string (get_state (h)));
+             nbd_internal_state_short_string (get_next_state (h)));
   return -1;
 }
 
 static int
 wait_until_connected (struct nbd_handle *h)
 {
-  while (nbd_internal_is_state_connecting (get_state (h))) {
+  while (nbd_internal_is_state_connecting (get_next_state (h))) {
     if (nbd_unlocked_poll (h, -1) == -1)
       return -1;
   }

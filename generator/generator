@@ -811,9 +811,10 @@ type call = {
   longdesc : string;       (* long description *)
   (* List of permitted states for making this call.  [[]] = Any state. *)
   permitted_states : permitted_state list;
-  (* Most functions must take a lock.  The only known exception is
-   * for a function which {b only} reads from the atomic [h->state]
-   * field and does nothing else with the handle.
+  (* Most functions must take a lock.  The only known exceptions are:
+   * - functions which return a constant (eg. [nbd_supports_uri])
+   * - functions which {b only} read from the atomic
+   *   [get_public_state] and do nothing else with the handle.
    *)
   is_locked : bool;
   (* Most functions can call set_error.  For functions which are
@@ -2449,11 +2450,11 @@ let generate_lib_states_c () =
       pr "  enum state next_state = %s;\n" state_enum;
       pr "\n";
       pr "  r = _enter_%s (h, &next_state, blocked);\n" state_enum;
-      pr "  if (get_state (h) != next_state) {\n";
+      pr "  if (get_next_state (h) != next_state) {\n";
       pr "    debug (h, \"transition: %%s -> %%s\",\n";
       pr "           \"%s\",\n" display_name;
       pr "           nbd_internal_state_short_string (next_state));\n";
-      pr "    set_state (h, next_state);\n";
+      pr "    set_next_state (h, next_state);\n";
       pr "  }\n";
       pr "  return r;\n";
       pr "}\n";
@@ -2468,7 +2469,7 @@ let generate_lib_states_c () =
   pr "  bool blocked;\n";
   pr "\n";
   pr "  /* Validate and handle the external event. */\n";
-  pr "  switch (get_state (h))\n";
+  pr "  switch (get_next_state (h))\n";
   pr "  {\n";
   List.iter (
     fun ({ parsed = { display_name; state_enum; events } } as state) ->
@@ -2480,7 +2481,7 @@ let generate_lib_states_c () =
           fun (e, next_state) ->
             pr "    case %s:\n" (c_string_of_external_event e);
             if state != next_state then (
-              pr "      set_state (h, %s);\n" next_state.parsed.state_enum;
+              pr "      set_next_state (h, %s);\n" next_state.parsed.state_enum;
               pr "      debug (h, \"event %%s: %%s -> %%s\",\n";
               pr "             \"%s\", \"%s\", \"%s\");\n"
                  (string_of_external_event e)
@@ -2496,7 +2497,7 @@ let generate_lib_states_c () =
   pr "  }\n";
   pr "\n";
   pr "  set_error (EINVAL, \"external event %%d is invalid in state %%s\",\n";
-  pr "             ev, nbd_internal_state_short_string (get_state (h)));\n";
+  pr "             ev, nbd_internal_state_short_string (get_next_state (h)));\n";
   pr "  return -1;\n";
   pr "\n";
   pr " ok:\n";
@@ -2504,7 +2505,7 @@ let generate_lib_states_c () =
   pr "    blocked = true;\n";
   pr "\n";
   pr "    /* Run a single step. */\n";
-  pr "    switch (get_state (h))\n";
+  pr "    switch (get_next_state (h))\n";
   pr "    {\n";
   List.iter (
     fun { parsed = { state_enum } } ->
@@ -2530,7 +2531,7 @@ let generate_lib_states_c () =
   pr "{\n";
   pr "  int r = 0;\n";
   pr "\n";
-  pr "  switch (get_state (h))\n";
+  pr "  switch (get_next_state (h))\n";
   pr "  {\n";
   List.iter (
     fun ({ parsed = { state_enum; events } }) ->
@@ -2576,7 +2577,7 @@ let generate_lib_states_c () =
   pr "const char *\n";
   pr "nbd_unlocked_connection_state (struct nbd_handle *h)\n";
   pr "{\n";
-  pr "  switch (get_state (h))\n";
+  pr "  switch (get_next_state (h))\n";
   pr "  {\n";
   List.iter (
     fun ({ comment; parsed = { display_name; state_enum } }) ->
@@ -2842,6 +2843,33 @@ let permitted_state_text permitted_states =
 let generate_lib_api_c () =
   let print_wrapper (name, {args; ret; permitted_states;
                             is_locked; may_set_error}) =
+    if permitted_states <> [] then (
+      pr "static inline bool\n";
+      pr "%s_in_permitted_state (struct nbd_handle *h)\n" name;
+      pr "{\n";
+      pr "  const enum state state = get_public_state (h);\n";
+      pr "\n";
+      let tests =
+        List.map (
+          function
+          | Created -> "nbd_internal_is_state_created (state)"
+          | Connecting -> "nbd_internal_is_state_connecting (state)"
+          | Connected -> "nbd_internal_is_state_ready (state) || nbd_internal_is_state_processing (state)"
+          | Closed -> "nbd_internal_is_state_closed (state)"
+          | Dead -> "nbd_internal_is_state_dead (state)"
+        ) permitted_states in
+      pr "  if (!(%s)) {\n" (String.concat " ||\n        " tests);
+      pr "    set_error (nbd_internal_is_state_created (state) ? ENOTCONN : EINVAL,\n";
+      pr "               \"invalid state: %%s: the handle must be %%s\",\n";
+      pr "               nbd_internal_state_short_string (state),\n";
+      pr "               \"%s\");\n" (permitted_state_text permitted_states);
+      pr "    return false;\n";
+      pr "  }\n";
+      pr "  return true;\n";
+      pr "}\n";
+      pr "\n"
+    );
+
     let ret_c_type, errcode =
       match ret with
       | RBool
@@ -2871,37 +2899,25 @@ let generate_lib_api_c () =
       pr "  nbd_internal_reset_error (\"nbd_%s\");\n" name;
       pr "\n"
     );
-    if permitted_states <> [] then (
-      pr "  /* We can check the state outside the handle lock because the\n";
-      pr "   * the state is atomic.\n";
-      pr "   */\n";
-      pr "  enum state state = get_state (h);\n";
-      let tests =
-        List.map (
-          function
-          | Created -> "nbd_internal_is_state_created (state)"
-          | Connecting -> "nbd_internal_is_state_connecting (state)"
-          | Connected -> "nbd_internal_is_state_ready (state) || nbd_internal_is_state_processing (state)"
-          | Closed -> "nbd_internal_is_state_closed (state)"
-          | Dead -> "nbd_internal_is_state_dead (state)"
-        ) permitted_states in
-      pr "  if (!(%s)) {\n" (String.concat " ||\n        " tests);
-      pr "    set_error (nbd_internal_is_state_created (state) ? ENOTCONN : EINVAL,\n";
-      pr "               \"invalid state: %%s: the handle must be %%s\",\n";
-      pr "               nbd_internal_state_short_string (state),\n";
-      pr "               \"%s\");\n" (permitted_state_text permitted_states);
-      pr "    return %s;\n" errcode;
-      pr "  }\n";
-      pr "\n"
-    );
     if is_locked then
       pr "  pthread_mutex_lock (&h->lock);\n";
+    if permitted_states <> [] then (
+      pr "  if (!%s_in_permitted_state (h)) {\n" name;
+      pr "    ret = %s;\n" errcode;
+      pr "    goto out;\n";
+      pr "  }\n"
+    );
     pr "  ret = nbd_unlocked_%s (h" name;
     let argnames = List.flatten (List.map name_of_arg args) in
     List.iter (pr ", %s") argnames;
     pr ");\n";
-    if is_locked then
-      pr "  pthread_mutex_unlock (&h->lock);\n";
+    if permitted_states <> [] then
+      pr " out:\n";
+    if is_locked then (
+      pr "  if (h->public_state != get_next_state (h))\n";
+      pr "    h->public_state = get_next_state (h);\n";
+      pr "  pthread_mutex_unlock (&h->lock);\n"
+    );
     pr "  return ret;\n";
     pr "}\n";
     pr "\n";

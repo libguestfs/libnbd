@@ -98,44 +98,48 @@ nbd_internal_is_state_closed (enum state state)
   return state == STATE_CLOSED;
 }
 
-/* NB: is_locked = false, may_set_error = false. */
+/* The nbd_unlocked_aio_is_* calls are the public APIs
+ * for reading the state of the handle.
+ *
+ * They all have: is_locked = false, may_set_error = false.
+ *
+ * They all read the public state, not the real state.  Therefore you
+ * SHOULD NOT call these functions from elsewhere in the library (use
+ * nbd_internal_is_* instead).
+ */
+
 int
 nbd_unlocked_aio_is_created (struct nbd_handle *h)
 {
-  return nbd_internal_is_state_created (get_state (h));
+  return nbd_internal_is_state_created (get_public_state (h));
 }
 
-/* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_aio_is_connecting (struct nbd_handle *h)
 {
-  return nbd_internal_is_state_connecting (get_state (h));
+  return nbd_internal_is_state_connecting (get_public_state (h));
 }
 
-/* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_aio_is_ready (struct nbd_handle *h)
 {
-  return nbd_internal_is_state_ready (get_state (h));
+  return nbd_internal_is_state_ready (get_public_state (h));
 }
 
-/* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_aio_is_processing (struct nbd_handle *h)
 {
-  return nbd_internal_is_state_processing (get_state (h));
+  return nbd_internal_is_state_processing (get_public_state (h));
 }
 
-/* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_aio_is_dead (struct nbd_handle *h)
 {
-  return nbd_internal_is_state_dead (get_state (h));
+  return nbd_internal_is_state_dead (get_public_state (h));
 }
 
-/* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_aio_is_closed (struct nbd_handle *h)
 {
-  return nbd_internal_is_state_closed (get_state (h));
+  return nbd_internal_is_state_closed (get_public_state (h));
 }

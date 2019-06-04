@@ -29,14 +29,14 @@
 int
 nbd_unlocked_shutdown (struct nbd_handle *h)
 {
-  if (nbd_internal_is_state_ready (get_state (h)) ||
-      nbd_internal_is_state_processing (get_state (h))) {
+  if (nbd_internal_is_state_ready (get_next_state (h)) ||
+      nbd_internal_is_state_processing (get_next_state (h))) {
     if (nbd_unlocked_aio_disconnect (h, 0) == -1)
       return -1;
   }
 
-  while (!nbd_internal_is_state_closed (get_state (h)) &&
-         !nbd_internal_is_state_dead (get_state (h))) {
+  while (!nbd_internal_is_state_closed (get_next_state (h)) &&
+         !nbd_internal_is_state_dead (get_next_state (h))) {
     if (nbd_unlocked_poll (h, -1) == -1)
       return -1;
   }
