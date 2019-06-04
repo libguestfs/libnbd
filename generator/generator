@@ -830,7 +830,7 @@ and arg =
                               written by the function *)
 | BytesPersistIn of string * string (* same as above, but buffer persists *)
 | BytesPersistOut of string * string
-| Callback of string * arg list (* callback function returning void *)
+| Callback of string * arg list (* callback function returning int *)
 | CallbackPersist of string * arg list (* as above, but callback persists *)
 | Flags of string          (* NBD_CMD_FLAG_* flags *)
 | Int of string            (* small int *)
@@ -2680,7 +2680,7 @@ let rec print_c_arg_list ?(handle = false) args =
       | BytesPersistOut (n, len) -> pr "void *%s, size_t %s" n len
       | Callback (n, args)
       | CallbackPersist (n, args) ->
-         pr "void (*%s) " n; print_c_arg_list args
+         pr "int (*%s) " n; print_c_arg_list args
       | Flags n -> pr "uint32_t %s" n
       | Int n -> pr "int %s" n
       | Int64 n -> pr "int64_t %s" n
@@ -3168,11 +3168,12 @@ let print_python_binding name { args; ret } =
        pr "  PyObject *data;\n";
        pr "};\n";
        pr "\n";
-       pr "static void\n";
+       pr "static int\n";
        pr "%s_%s_wrapper " name cb_name;
        print_c_arg_list args;
        pr "\n";
        pr "{\n";
+       pr "  int ret;\n";
        pr "  PyGILState_STATE py_save = PyGILState_UNLOCKED;\n";
        pr "  PyObject *py_args, *py_ret;\n";
        List.iter (
@@ -3235,10 +3236,14 @@ let print_python_binding name { args; ret } =
        pr "\n";
        pr "  Py_DECREF (py_args);\n";
        pr "\n";
-       pr "  if (py_ret != NULL)\n";
+       pr "  if (py_ret != NULL) {\n";
+       pr "    ret = 0;\n";
        pr "    Py_DECREF (py_ret); /* return value is discarded */\n";
-       pr "  else\n";
+       pr "  }\n";
+       pr "  else {\n";
+       pr "    ret = -1;\n";
        pr "    PyErr_PrintEx (0); /* print exception */\n";
+       pr "  };\n";
        pr "\n";
        List.iter (
          function
@@ -3254,6 +3259,7 @@ let print_python_binding name { args; ret } =
          | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> assert false
        ) args;
+       pr "  return ret;\n";
        pr "}\n";
        pr "\n"
     | _ -> ()
@@ -3939,7 +3945,7 @@ let print_ocaml_binding (name, { args; ret }) =
            | UInt _ | UInt32 _ -> assert false
          ) args in
 
-       pr "static void\n";
+       pr "static int\n";
        pr "%s_%s_wrapper_locked " name cb_name;
        print_c_arg_list args;
        pr "\n";
@@ -3979,24 +3985,34 @@ let print_ocaml_binding (name, { args; ret }) =
 
        pr "  rv = caml_callbackN_exn (fnv, %d, args);\n"
           (List.length argnames);
-       pr "  if (Is_exception_result (rv))\n";
+       pr "  if (Is_exception_result (rv)) {\n";
+       pr "    /* XXX This is not really an error as callbacks can return\n";
+       pr "     * an error indication.  But perhaps we should direct this\n";
+       pr "     * to a more suitable place or formalize what exception\n";
+       pr "     * means error versus unexpected failure.\n";
+       pr "     */\n";
        pr "    fprintf (stderr,\n";
        pr "             \"libnbd: uncaught OCaml exception: %%s\",\n";
        pr "             caml_format_exception (Extract_exception (rv)));\n";
+       pr "    CAMLreturnT (int, -1);\n";
+       pr "  }\n";
        pr "\n";
-       pr "  CAMLreturn0;\n";
+       pr "  CAMLreturnT (int, 0);\n";
        pr "}\n";
        pr "\n";
-       pr "static void\n";
+       pr "static int\n";
        pr "%s_%s_wrapper " name cb_name;
        print_c_arg_list args;
        pr "\n";
        pr "{\n";
+       pr "  int ret;\n";
+       pr "\n";
        pr "  caml_leave_blocking_section ();\n";
        let c_argnames = List.flatten (List.map name_of_arg args) in
-       pr "  %s_%s_wrapper_locked (%s);\n" name cb_name
+       pr "  ret = %s_%s_wrapper_locked (%s);\n" name cb_name
           (String.concat ", " c_argnames);
        pr "  caml_enter_blocking_section ();\n";
+       pr "  return ret;\n";
        pr "}\n"
     | _ -> ()
   ) args;

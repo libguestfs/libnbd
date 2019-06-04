@@ -369,10 +369,16 @@
       if (context_id == meta_context->context_id)
         break;
 
-    if (meta_context)
+    if (meta_context) {
       /* Call the caller's extent function. */
-      cmd->extent_fn (cmd->data, meta_context->name, cmd->offset,
-                      &h->bs_entries[1], (length-4) / 4);
+      if (cmd->extent_fn (cmd->data, meta_context->name, cmd->offset,
+                          &h->bs_entries[1], (length-4) / 4) == -1) {
+        SET_NEXT_STATE (%.DEAD); /* XXX We should be able to recover. */
+        if (errno == 0) errno = EPROTO;
+        set_error (errno, "extent function failed");
+        return -1;
+      }
+    }
     else
       /* Emit a debug message, but ignore it. */
       debug (h, "server sent unexpected meta context ID %" PRIu32,

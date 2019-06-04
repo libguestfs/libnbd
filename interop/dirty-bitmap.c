@@ -32,7 +32,7 @@ static const char *base_allocation = "base:allocation";
 
 static int calls; /* Track which contexts passed through callback */
 
-static void
+static int
 cb (void *data, const char *metacontext, uint64_t offset,
     uint32_t *entries, size_t len)
 {
@@ -71,6 +71,8 @@ cb (void *data, const char *metacontext, uint64_t offset,
     fprintf (stderr, "unexpected context %s\n", metacontext);
     exit (EXIT_FAILURE);
   }
+
+  return 0;
 }
 
 int

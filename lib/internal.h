@@ -75,7 +75,7 @@ struct nbd_handle {
   /* For debugging. */
   bool debug;
   void *debug_data;
-  void (*debug_fn) (void *, const char *, const char *);
+  int (*debug_fn) (void *, const char *, const char *);
 
   /* Linked list of close callbacks. */
   struct close_callback *close_callbacks;
@@ -212,7 +212,7 @@ struct socket {
   const struct socket_ops *ops;
 };
 
-typedef void (*extent_fn) (void *data, const char *metacontext, uint64_t offset, uint32_t *entries, size_t nr_entries);
+typedef int (*extent_fn) (void *data, const char *metacontext, uint64_t offset, uint32_t *entries, size_t nr_entries);
 
 struct command_in_flight {
   struct command_in_flight *next;

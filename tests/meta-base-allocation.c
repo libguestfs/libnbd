@@ -28,9 +28,9 @@
 
 #include <libnbd.h>
 
-static void check_extent (void *data, const char *metacontext,
-                          uint64_t offset,
-                          uint32_t *entries, size_t nr_entries);
+static int check_extent (void *data, const char *metacontext,
+                         uint64_t offset,
+                         uint32_t *entries, size_t nr_entries);
 
 int
 main (int argc, char *argv[])
@@ -125,7 +125,7 @@ main (int argc, char *argv[])
   exit (EXIT_SUCCESS);
 }
 
-static void
+static int
 check_extent (void *data, const char *metacontext,
               uint64_t offset,
               uint32_t *entries, size_t nr_entries)
@@ -173,4 +173,6 @@ check_extent (void *data, const char *metacontext,
   else
     fprintf (stderr, "warning: ignored unexpected meta context %s\n",
              metacontext);
+
+  return 0;
 }
