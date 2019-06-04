@@ -71,6 +71,10 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+  if (nbd_supports_uri (nbd) != 1) {
+    fprintf (stderr, "skip: compiled without URI support\n");
+    exit (77);
+  }
 
   snprintf (uri, sizeof uri, "nbd://localhost:%d", port);
 

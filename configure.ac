@@ -118,7 +118,6 @@ AS_IF([test "$with_libxml2" != "no"],[
         AC_MSG_WARN([libxml2 not found, NBD URI support will be disabled.])
     ])
 ])
-AM_CONDITIONAL([HAVE_LIBXML2], [test "x$LIBXML2_LIBS" != "x"])
 
 dnl nbdkit, nbdkit-sh-plugin and development headers are only needed
 dnl to run the test suite.
