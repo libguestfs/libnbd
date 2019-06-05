@@ -42,6 +42,7 @@ libnbd_la_SOURCES = \
 	flags.c \
 	handle.c \
 	internal.h \
+	is-state.c \
 	nbd-protocol.h \
 	poll.c \
 	protocol.c \
