@@ -1705,7 +1705,7 @@ Do not do anything else with the file descriptor.";
 
   "aio_get_direction", {
     default_call with
-    args = []; ret = RErr; is_locked = false; may_set_error = false;
+    args = []; ret = RInt; is_locked = false; may_set_error = false;
     shortdesc = "return the read or write direction";
     longdesc = "\
 Return the current direction of this connection, which means
