@@ -2922,7 +2922,8 @@ let generate_lib_api_c () =
   pr "\n";
   List.iter print_wrapper handle_calls
 
-let print_api (name, { args; ret; permitted_states; shortdesc; longdesc }) =
+let print_api (name, { args; ret; permitted_states; shortdesc; longdesc;
+                       may_set_error }) =
   pr "=head2 %s —\n" name;
   pr "%s\n" shortdesc;
   pr "\n";
@@ -2965,9 +2966,13 @@ let print_api (name, { args; ret; permitted_states; shortdesc; longdesc }) =
        "NULL"
   in
   pr "\n";
-  pr "On error C<%s> is returned.\n" errcode;
-  pr "See L<libnbd(3)/ERROR HANDLING> for how to get further details\n";
-  pr "of the error.\n";
+  if may_set_error then (
+    pr "On error C<%s> is returned.\n" errcode;
+    pr "See L<libnbd(3)/ERROR HANDLING> for how to get further details\n";
+    pr "of the error.\n"
+  )
+  else
+    pr "This function does not fail.\n";
   pr "\n"
 
 let generate_docs_libnbd_api_pod () =
