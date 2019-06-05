@@ -668,8 +668,9 @@ nbd_internal_crypto_debug_tls_enabled (struct nbd_handle *h)
 /* These functions should never be called from the state machine if
  * !HAVE_GNUTLS.
  */
-int
-nbd_internal_crypto_create_session (struct nbd_handle *h)
+struct socket *
+nbd_internal_crypto_create_session (struct nbd_handle *h,
+                                    struct socket *oldsock)
 {
   abort ();
 }
