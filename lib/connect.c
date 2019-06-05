@@ -38,16 +38,16 @@
 static int
 error_unless_ready (struct nbd_handle *h)
 {
-  if (nbd_unlocked_aio_is_ready (h))
+  if (nbd_internal_is_state_ready (h->state))
     return 0;
 
   /* Why did it fail? */
-  if (nbd_unlocked_aio_is_closed (h)) {
+  if (nbd_internal_is_state_closed (h->state)) {
     set_error (0, "connection is closed");
     return -1;
   }
 
-  if (nbd_unlocked_aio_is_dead (h))
+  if (nbd_internal_is_state_dead (h->state))
     /* Don't set the error here, keep the error set when
      * the connection died.
      */
@@ -62,7 +62,7 @@ error_unless_ready (struct nbd_handle *h)
 static int
 wait_until_connected (struct nbd_handle *h)
 {
-  while (nbd_unlocked_aio_is_connecting (h)) {
+  while (nbd_internal_is_state_connecting (h->state)) {
     if (nbd_unlocked_poll (h, -1) == -1)
       return -1;
   }

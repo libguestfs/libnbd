@@ -24,11 +24,12 @@
 
 #include "internal.h"
 
-/* NB: is_locked = false, may_set_error = false. */
-int
-nbd_unlocked_aio_is_created (struct nbd_handle *h)
+/* Internal functions to test state or groups of states. */
+
+bool
+nbd_internal_is_state_created (enum state state)
 {
-  return h->state == STATE_START;
+  return state == STATE_START;
 }
 
 static int
@@ -49,20 +50,18 @@ is_connecting_group (enum state_group group)
   }
 }
 
-/* NB: is_locked = false, may_set_error = false. */
-int
-nbd_unlocked_aio_is_connecting (struct nbd_handle *h)
+bool
+nbd_internal_is_state_connecting (enum state state)
 {
-  enum state_group group = nbd_internal_state_group (h->state);
+  enum state_group group = nbd_internal_state_group (state);
 
   return is_connecting_group (group);
 }
 
-/* NB: is_locked = false, may_set_error = false. */
-int
-nbd_unlocked_aio_is_ready (struct nbd_handle *h)
+bool
+nbd_internal_is_state_ready (enum state state)
 {
-  return h->state == STATE_READY;
+  return state == STATE_READY;
 }
 
 static int
@@ -79,25 +78,64 @@ is_processing_group (enum state_group group)
   }
 }
 
+bool
+nbd_internal_is_state_processing (enum state state)
+{
+  enum state_group group = nbd_internal_state_group (state);
+
+  return is_processing_group (group);
+}
+
+bool
+nbd_internal_is_state_dead (enum state state)
+{
+  return state == STATE_DEAD;
+}
+
+bool
+nbd_internal_is_state_closed (enum state state)
+{
+  return state == STATE_CLOSED;
+}
+
+/* NB: is_locked = false, may_set_error = false. */
+int
+nbd_unlocked_aio_is_created (struct nbd_handle *h)
+{
+  return nbd_internal_is_state_created (h->state);
+}
+
+/* NB: is_locked = false, may_set_error = false. */
+int
+nbd_unlocked_aio_is_connecting (struct nbd_handle *h)
+{
+  return nbd_internal_is_state_connecting (h->state);
+}
+
+/* NB: is_locked = false, may_set_error = false. */
+int
+nbd_unlocked_aio_is_ready (struct nbd_handle *h)
+{
+  return nbd_internal_is_state_ready (h->state);
+}
+
 /* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_aio_is_processing (struct nbd_handle *h)
 {
-  enum state_group group = nbd_internal_state_group (h->state);
-
-  return is_processing_group (group);
+  return nbd_internal_is_state_processing (h->state);
 }
 
 /* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_aio_is_dead (struct nbd_handle *h)
 {
-  return h->state == STATE_DEAD;
+  return nbd_internal_is_state_dead (h->state);
 }
 
 /* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_aio_is_closed (struct nbd_handle *h)
 {
-  return h->state == STATE_CLOSED;
+  return nbd_internal_is_state_closed (h->state);
 }

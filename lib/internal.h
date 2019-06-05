@@ -264,6 +264,14 @@ extern int nbd_internal_set_size_and_flags (struct nbd_handle *h,
                                             uint64_t exportsize,
                                             uint16_t eflags);
 
+/* is-state.c */
+extern bool nbd_internal_is_state_created (enum state state);
+extern bool nbd_internal_is_state_connecting (enum state state);
+extern bool nbd_internal_is_state_ready (enum state state);
+extern bool nbd_internal_is_state_processing (enum state state);
+extern bool nbd_internal_is_state_dead (enum state state);
+extern bool nbd_internal_is_state_closed (enum state state);
+
 /* protocol.c */
 extern int nbd_internal_errno_of_nbd_error (uint32_t error);
 extern const char *nbd_internal_name_of_nbd_cmd (uint16_t type);

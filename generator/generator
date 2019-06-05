@@ -2844,19 +2844,20 @@ let generate_lib_api_c () =
       pr "  /* We can check the state outside the handle lock because the\n";
       pr "   * the state is atomic.\n";
       pr "   */\n";
+      pr "  enum state state = h->state;\n";
       let tests =
         List.map (
           function
-          | Created -> "nbd_aio_is_created (h)"
-          | Connecting -> "nbd_aio_is_connecting (h)"
-          | Connected -> "nbd_aio_is_ready (h) || nbd_aio_is_processing (h)"
-          | Closed -> "nbd_aio_is_closed (h)"
-          | Dead -> "nbd_aio_is_dead (h)"
+          | Created -> "nbd_internal_is_state_created (state)"
+          | Connecting -> "nbd_internal_is_state_connecting (state)"
+          | Connected -> "nbd_internal_is_state_ready (state) || nbd_internal_is_state_processing (state)"
+          | Closed -> "nbd_internal_is_state_closed (state)"
+          | Dead -> "nbd_internal_is_state_dead (state)"
         ) permitted_states in
       pr "  if (!(%s)) {\n" (String.concat " ||\n        " tests);
-      pr "    set_error (nbd_aio_is_created (h) ? ENOTCONN : EINVAL,\n";
+      pr "    set_error (nbd_internal_is_state_created (state) ? ENOTCONN : EINVAL,\n";
       pr "               \"invalid state: %%s: the handle must be %%s\",\n";
-      pr "               nbd_internal_state_short_string (h->state),\n";
+      pr "               nbd_internal_state_short_string (state),\n";
       pr "               \"%s\");\n" (permitted_state_text permitted_states);
       pr "    return %s;\n" errcode;
       pr "  }\n";
