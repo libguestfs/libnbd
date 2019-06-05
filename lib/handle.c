@@ -227,6 +227,18 @@ nbd_unlocked_get_version (struct nbd_handle *h)
   return PACKAGE_VERSION;
 }
 
+/* NB: is_locked = false, may_set_error = false. */
+int
+nbd_unlocked_supports_tls (struct nbd_handle *h)
+{
+#ifdef HAVE_GNUTLS
+  return 1;
+#else
+  return 0;
+#endif
+}
+
+/* NB: is_locked = false, may_set_error = false. */
 int
 nbd_unlocked_supports_uri (struct nbd_handle *h)
 {

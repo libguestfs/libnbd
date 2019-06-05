@@ -71,6 +71,10 @@ main (int argc, char *argv[])
   /* Require TLS on the handle and fail if not available or if the
    * handshake fails.
    */
+  if (nbd_supports_tls (nbd) != 1) {
+    fprintf (stderr, "skip: compiled without TLS support\n");
+    exit (77);
+  }
   if (nbd_set_tls (nbd, 2) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);

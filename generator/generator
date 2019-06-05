@@ -971,7 +971,9 @@ the path to the certificates directory (C<nbd_set_tls_certificates>),
 the username (C<nbd_set_tls_username>) and/or
 the Pre-Shared Keys (PSK) file (C<nbd_set_tls_psk_file>).  For now,
 when using C<nbd_connect_uri>, any URI query parameters related to
-TLS are not handled automatically.
+TLS are not handled automatically.  Setting the level higher than
+zero will fail if libnbd was not compiled against gnutls; you can
+test whether this is the case with C<nbd_supports_tls>.
 
 For more information see L<libnbd(3)/ENCRYPTION AND AUTHENTICATION>.";
   };
@@ -995,7 +997,11 @@ set and TLS is used then a compiled in default is used.
 For root this is C</etc/pki/libnbd/>.  For non-root this is
 C<$HOME/.pki/libnbd> and C<$HOME/.config/pki/libnbd>.  If
 none of these directories can be found then the system
-trusted CAs are used.";
+trusted CAs are used.
+
+This function may be called regardless of whether TLS is
+supported, but will have no effect unless C<nbd_set_tls>
+is also used to request or require TLS.";
   };
 
 (* Can't implement this because we need a way to return string that
@@ -1018,7 +1024,11 @@ Get the current TLS directory.  See C<nbd_set_tls_certificates>.";
 Set this flag to control whether libnbd will verify the identity
 of the server from the server's certificate and the certificate
 authority.  This defaults to true when connecting to TCP servers
-using TLS certificate authentication, and false otherwise.";
+using TLS certificate authentication, and false otherwise.
+
+This function may be called regardless of whether TLS is
+supported, but will have no effect unless C<nbd_set_tls>
+is also used to request or require TLS.";
   };
 
   "get_tls_verify_peer", {
@@ -1037,7 +1047,11 @@ Get the verify peer flag.";
     longdesc = "\
 Set the TLS client username.  This is used
 if authenticating with PSK over TLS is enabled.
-If not set then the local username is used.";
+If not set then the local username is used.
+
+This function may be called regardless of whether TLS is
+supported, but will have no effect unless C<nbd_set_tls>
+is also used to request or require TLS.";
   };
 
   "get_tls_username", {
@@ -1057,7 +1071,11 @@ Get the current TLS username.  See C<nbd_set_tls_username>.";
 Set the TLS Pre-Shared Keys (PSK) filename.  This is used
 if trying to authenticate to the server using with a pre-shared
 key.  There is no default so if this is not set then PSK
-authentication cannot be used to connect to the server.";
+authentication cannot be used to connect to the server.
+
+This function may be called regardless of whether TLS is
+supported, but will have no effect unless C<nbd_set_tls>
+is also used to request or require TLS.";
   };
 
 (* Can't implement this because we need a way to return string that
@@ -1112,7 +1130,9 @@ C<nbd_connect_tcp> or C<nbd_connect_unix>.  This call returns when
 the connection has been made.
 
 This call will fail if libnbd was not compiled with libxml2; you can
-test whether this is the case with C<nbd_supports_uri>.";
+test whether this is the case with C<nbd_supports_uri>.  Support for
+URIs that require TLS will fail if libnbd was not compiled with
+gnutls; you can test whether this is the case with C<nbd_supports_tls>.";
   };
 
   "connect_unix", {
@@ -1497,7 +1517,9 @@ and completed the NBD handshake by calling C<nbd_aio_is_ready>,
 on the connection.
 
 This call will fail if libnbd was not compiled with libxml2; you can
-test whether this is the case with C<nbd_supports_uri>.";
+test whether this is the case with C<nbd_supports_uri>.  Support for
+URIs that require TLS will fail if libnbd was not compiled with
+gnutls; you can test whether this is the case with C<nbd_supports_tls>.";
   };
 
   "aio_connect_unix", {
@@ -1874,6 +1896,15 @@ release.
 
 The release number is incremented for each release along a particular
 branch.";
+  };
+
+  "supports_tls", {
+    default_call with
+    args = []; ret = RBool; is_locked = false; may_set_error = false;
+    shortdesc = "return true if libnbd was compiled with support for TLS";
+    longdesc = "\
+Returns true if libnbd was compiled with gnutls which is required
+to support TLS encryption, or false if not.  See C<nbd_set_tls>.";
   };
 
   "supports_uri", {
