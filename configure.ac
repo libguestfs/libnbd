@@ -60,12 +60,19 @@ if test "x$gcc_warnings" = "xyes"; then
 fi
 
 dnl Check for GnuTLS (optional, for TLS support).
-PKG_CHECK_MODULES([GNUTLS], [gnutls >= 3.3.0], [
-    AC_SUBST([GNUTLS_CFLAGS])
-    AC_SUBST([GNUTLS_LIBS])
-    AC_DEFINE([HAVE_GNUTLS],[1],[gnutls found at compile time.])
-], [
-    AC_MSG_WARN([gnutls not found or < 3.3.0, TLS support will be disabled.])
+AC_ARG_WITH([gnutls],
+    [AS_HELP_STRING([--without-gnutls],
+                    [disable use of gnutls @<:@default=check@:>@])],
+    [],
+    [with_gnutls=check])
+AS_IF([test "$with_gnutls" != "no"],[
+    PKG_CHECK_MODULES([GNUTLS], [gnutls >= 3.3.0], [
+        AC_SUBST([GNUTLS_CFLAGS])
+        AC_SUBST([GNUTLS_LIBS])
+        AC_DEFINE([HAVE_GNUTLS],[1],[gnutls found at compile time.])
+    ], [
+        AC_MSG_WARN([gnutls not found or < 3.3.0, TLS support will be disabled.])
+    ])
 ])
 AM_CONDITIONAL([HAVE_GNUTLS], [test "x$GNUTLS_LIBS" != "x"])
 
@@ -97,12 +104,19 @@ AC_CHECK_PROG([PSKTOOL], [psktool], [psktool])
 AM_CONDITIONAL([HAVE_PSKTOOL], [test "x$PSKTOOL" != "x"])
 
 dnl Check for libxml2 (optional, for NBD URI support)
-PKG_CHECK_MODULES([LIBXML2], [libxml-2.0], [
-    AC_SUBST([LIBXML2_CFLAGS])
-    AC_SUBST([LIBXML2_LIBS])
-    AC_DEFINE([HAVE_LIBXML2],[1],[libxml2 found at compile time.])
-], [
-    AC_MSG_WARN([libxml2 not found, NBD URI support will be disabled.])
+AC_ARG_WITH([libxml2],
+    [AS_HELP_STRING([--without-libxml2],
+                    [disable use of libxml2 for URI support @<:@default=check@:>@])],
+    [],
+    [with_libxml2=check])
+AS_IF([test "$with_libxml2" != "no"],[
+    PKG_CHECK_MODULES([LIBXML2], [libxml-2.0], [
+        AC_SUBST([LIBXML2_CFLAGS])
+        AC_SUBST([LIBXML2_LIBS])
+        AC_DEFINE([HAVE_LIBXML2],[1],[libxml2 found at compile time.])
+    ], [
+        AC_MSG_WARN([libxml2 not found, NBD URI support will be disabled.])
+    ])
 ])
 AM_CONDITIONAL([HAVE_LIBXML2], [test "x$LIBXML2_LIBS" != "x"])
 
