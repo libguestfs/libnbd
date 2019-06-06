@@ -46,8 +46,8 @@
 /* Number of commands in flight per connection. */
 #define MAX_IN_FLIGHT 64
 
-/* Unix socket. */
-static const char *unixsocket;
+/* Unix socket or uri. */
+static const char *connection;
 
 struct thread_status {
   size_t i;                     /* Thread index, 0 .. NR_MULTI_CONN-1 */
@@ -81,7 +81,7 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s socket\n", argv[0]);
     exit (EXIT_FAILURE);
   }
-  unixsocket = argv[1];
+  connection = argv[1];
 
   /* Get the current time and the end time. */
   time (&t);
@@ -193,7 +193,12 @@ start_thread (void *arg)
 #endif
 
   /* Connect to nbdkit. */
-  if (nbd_connect_unix (nbd, unixsocket) == -1) {
+  if (strstr (connection, "://")) {
+    if (nbd_connect_uri (nbd, connection) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+  } else if (nbd_connect_unix (nbd, connection) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
