@@ -68,10 +68,10 @@ socket_close (struct socket *sock)
 }
 
 static struct socket_ops socket_ops = {
-  recv: socket_recv,
-  send: socket_send,
-  get_fd: socket_get_fd,
-  close: socket_close,
+  .recv = socket_recv,
+  .send = socket_send,
+  .get_fd = socket_get_fd,
+  .close = socket_close,
 };
 
 struct socket *

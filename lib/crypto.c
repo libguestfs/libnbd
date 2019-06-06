@@ -207,10 +207,10 @@ tls_close (struct socket *sock)
 }
 
 static struct socket_ops crypto_ops = {
-  recv: tls_recv,
-  send: tls_send,
-  get_fd: tls_get_fd,
-  close: tls_close,
+  .recv = tls_recv,
+  .send = tls_send,
+  .get_fd = tls_get_fd,
+  .close = tls_close,
 };
 
 /* Look up the user's key in the PSK file. */
