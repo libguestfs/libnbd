@@ -181,6 +181,12 @@ tls_send (struct nbd_handle *h,
   return r;
 }
 
+static bool
+tls_pending (struct socket *sock)
+{
+  return gnutls_record_check_pending (sock->u.tls.session) > 0;
+}
+
 static int
 tls_get_fd (struct socket *sock)
 {
@@ -209,6 +215,7 @@ tls_close (struct socket *sock)
 static struct socket_ops crypto_ops = {
   .recv = tls_recv,
   .send = tls_send,
+  .pending = tls_pending,
   .get_fd = tls_get_fd,
   .close = tls_close,
 };

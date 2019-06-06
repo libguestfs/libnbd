@@ -113,6 +113,11 @@ send_from_wbuf (struct nbd_handle *h)
  READY:
   if (h->cmds_to_issue)
     SET_NEXT_STATE (%ISSUE_COMMAND.START);
+  else {
+    assert (h->sock);
+    if (h->sock->ops->pending && h->sock->ops->pending (h->sock))
+      SET_NEXT_STATE (%REPLY.START);
+  }
   return 0;
 
  DEAD:
