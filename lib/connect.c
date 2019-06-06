@@ -121,18 +121,132 @@ nbd_unlocked_aio_connect (struct nbd_handle *h,
   return nbd_internal_run (h, cmd_connect_sockaddr);
 }
 
+#ifdef HAVE_LIBXML2
+struct uri_query {
+  char *name;
+  char *value;
+};
+
+/* Parse the query_raw substring of a URI into a list of decoded queries.
+ * Return the length of the list, or -1 on error.
+ */
+static int
+parse_uri_queries (const char *query_raw, struct uri_query **list)
+{
+  /* Borrows from libvirt's viruri.c:virURIParseParams() */
+  const char *end, *eq;
+  const char *query = query_raw;
+  int nqueries = 0;
+  struct uri_query *tmp;
+
+  if (!query || !*query)
+    return 0;
+
+  while (*query) {
+    char *name = NULL, *value = NULL;
+
+    /* Find the next separator, or end of the string. */
+    end = strchr (query, '&');
+    if (!end)
+      end = strchr (query, ';');
+    if (!end)
+      end = query + strlen (query);
+
+    /* Find the first '=' character between here and end. */
+    eq = strchr (query, '=');
+    if (eq && eq >= end) eq = NULL;
+
+    if (end == query) {
+      /* Empty section (eg. "&&"). */
+      goto next;
+    } else if (!eq) {
+      /* If there is no '=' character, then we have just "name"
+       * and consistent with CGI.pm we assume value is "".
+       */
+      name = xmlURIUnescapeString (query, end - query, NULL);
+      if (!name) goto error;
+    } else if (eq+1 == end) {
+      /* Or if we have "name=" here (works around annoying
+       * problem when calling xmlURIUnescapeString with len = 0).
+       */
+      name = xmlURIUnescapeString (query, eq - query, NULL);
+      if (!name) goto error;
+    } else if (query == eq) {
+      /* If the '=' character is at the beginning then we have
+       * "=value" and consistent with CGI.pm we _ignore_ this.
+       */
+      goto next;
+    } else {
+      /* Otherwise it's "name=value". */
+      name = xmlURIUnescapeString (query, eq - query, NULL);
+      if (!name)
+        goto error;
+      value = xmlURIUnescapeString (eq+1, end - (eq+1), NULL);
+      if (!value) {
+        free (name);
+        goto error;
+      }
+    }
+    if (!value) {
+      value = strdup ("");
+      if (!value) {
+        free (name);
+        goto error;
+      }
+    }
+
+    /* Append to the parameter set. */
+    tmp = realloc (*list, sizeof (*tmp) * (nqueries + 1));
+    if (tmp == NULL) {
+      free (name);
+      free (value);
+      goto error;
+    }
+    *list = tmp;
+    tmp[nqueries].name = name;
+    tmp[nqueries].value = value;
+    nqueries++;
+
+  next:
+    query = end;
+    if (*query) query++; /* skip '&' separator */
+  }
+
+  return nqueries;
+
+error:
+  tmp = *list;
+  while (nqueries-- > 0) {
+    free (tmp[nqueries].name);
+    free (tmp[nqueries].value);
+  }
+  free (tmp);
+  *list = NULL;
+  return -1;
+}
+#endif
+
 int
 nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
 {
 #ifdef HAVE_LIBXML2
   xmlURIPtr uri = NULL;
   bool tcp, tls;
-  int r;
+  struct uri_query *queries = NULL;
+  int nqueries = -1;
+  int i, r;
+  int ret = -1;
+  const char *unixsocket = NULL;
 
   uri = xmlParseURI (raw_uri);
   if (!uri) {
     set_error (EINVAL, "unable to parse URI: %s", raw_uri);
-    goto error;
+    goto cleanup;
+  }
+  nqueries = parse_uri_queries (uri->query_raw, &queries);
+  if (nqueries == -1) {
+    set_error (EINVAL, "unable to parse URI queries: %s", uri->query_raw);
+    goto cleanup;
   }
 
   /* Scheme. */
@@ -158,12 +272,21 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   else {
   unknown_scheme:
     set_error (EINVAL, "unknown URI scheme: %s", uri->scheme ? : "NULL");
-    goto error;
+    goto cleanup;
+  }
+
+  for (i = 0; i < nqueries; i++) {
+    if (strcmp (queries[i].name, "socket") == 0)
+      unixsocket = queries[i].value;
+    else
+      /* XXX Parse tls_ queries. */
+      debug (h, "ignoring query parameter %s=%s",
+             queries[i].name, queries[i].value);
   }
 
   /* TLS */
   if (tls && nbd_unlocked_set_tls (h, 2) == -1)
-    goto error;
+    goto cleanup;
   /* XXX If uri->query_raw includes TLS parameters, we should call
    * nbd_unlocked_set_tls_* to match...
    */
@@ -178,44 +301,43 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   else
     r = nbd_unlocked_set_export_name (h, "");
   if (r == -1)
-    goto error;
+    goto cleanup;
 
   if (tcp) {
     char port_str[32];
 
+    if (unixsocket) {
+      set_error (EINVAL, "socket=%s URI query is incompatible with TCP scheme",
+                 unixsocket);
+      goto cleanup;
+    }
     snprintf (port_str, sizeof port_str,
               "%d", uri->port > 0 ? uri->port : 10809);
     if (nbd_unlocked_aio_connect_tcp (h, uri->server ? : "localhost",
                                       port_str) == -1)
-      goto error;
+      goto cleanup;
   }
   else /* Unix domain socket */ {
-    const char *p, *unixsocket = NULL;
-
-    /* XXX parsing and unquoting are all wrong.  This will only work
-     * in trivial cases.
-     */
-    if (uri->query_raw) {
-      p = strstr (uri->query_raw, "socket=");
-      if (p)
-        unixsocket = p+7;
-    }
     if (!unixsocket) {
       set_error (EINVAL, "cannot parse socket parameter from NBD URI: %s",
                  uri->query_raw ? : "NULL");
-      goto error;
+      goto cleanup;
     }
 
     if (nbd_unlocked_aio_connect_unix (h, unixsocket) == -1)
-      goto error;
+      goto cleanup;
   }
 
-  xmlFreeURI (uri);
-  return 0;
+  ret = 0;
 
-error:
+cleanup:
+  while (nqueries-- > 0) {
+    free (queries[nqueries].name);
+    free (queries[nqueries].value);
+  }
+  free (queries);
   xmlFreeURI (uri);
-  return -1;
+  return ret;
 
 #else /* !HAVE_LIBXML2 */
   set_error (ENOTSUP, "libnbd was compiled without libxml2 support, "
