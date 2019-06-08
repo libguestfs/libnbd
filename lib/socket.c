@@ -42,11 +42,11 @@ socket_recv (struct nbd_handle *h, struct socket *sock, void *buf, size_t len)
 
 static ssize_t
 socket_send (struct nbd_handle *h,
-             struct socket *sock, const void *buf, size_t len)
+             struct socket *sock, const void *buf, size_t len, int flags)
 {
   ssize_t r;
 
-  r = send (sock->u.fd, buf, len, 0);
+  r = send (sock->u.fd, buf, len, flags);
   if (r == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
     set_error (errno, "send");
   return r;

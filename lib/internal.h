@@ -201,7 +201,7 @@ struct socket_ops {
   ssize_t (*recv) (struct nbd_handle *h,
                    struct socket *sock, void *buf, size_t len);
   ssize_t (*send) (struct nbd_handle *h,
-                   struct socket *sock, const void *buf, size_t len);
+                   struct socket *sock, const void *buf, size_t len, int flags);
   bool (*pending) (struct socket *sock);
   int (*get_fd) (struct socket *sock);
   int (*close) (struct socket *sock);

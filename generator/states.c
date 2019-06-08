@@ -92,7 +92,7 @@ send_from_wbuf (struct nbd_handle *h)
 
   if (h->wlen == 0)
     return 0;                   /* move to next state */
-  r = h->sock->ops->send (h, h->sock, h->wbuf, h->wlen);
+  r = h->sock->ops->send (h, h->sock, h->wbuf, h->wlen, 0);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK)
       return 1;                 /* more data */
