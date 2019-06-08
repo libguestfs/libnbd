@@ -26,6 +26,7 @@
     htobe32 (/* exportnamelen */ 4 + strlen (h->export_name) + /* nrinfos */ 2);
   h->wbuf = &h->sbuf;
   h->wlen = sizeof h->sbuf.option;
+  h->wflags = MSG_MORE;
   SET_NEXT_STATE (%SEND);
   return 0;
 
@@ -38,6 +39,7 @@
     h->sbuf.len = htobe32 (exportnamelen);
     h->wbuf = &h->sbuf;
     h->wlen = 4;
+    h->wflags = MSG_MORE;
     SET_NEXT_STATE (%SEND_EXPORTNAMELEN);
   }
   return 0;
@@ -48,6 +50,7 @@
   case 0:
     h->wbuf = h->export_name;
     h->wlen = strlen (h->export_name);
+    h->wflags = MSG_MORE;
     SET_NEXT_STATE (%SEND_EXPORT);
   }
   return 0;

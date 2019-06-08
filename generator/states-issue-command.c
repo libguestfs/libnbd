@@ -42,6 +42,8 @@
   h->request.count = htobe32 ((uint32_t) cmd->count);
   h->wbuf = &h->request;
   h->wlen = sizeof (h->request);
+  if (cmd->type == NBD_CMD_WRITE)
+    h->wflags = MSG_MORE;
   SET_NEXT_STATE (%SEND_REQUEST);
   return 0;
 

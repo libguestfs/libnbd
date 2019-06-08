@@ -25,6 +25,7 @@
   h->sbuf.option.optlen = strlen (h->export_name);
   h->wbuf = &h->sbuf;
   h->wlen = sizeof h->sbuf.option;
+  h->wflags = MSG_MORE;
   SET_NEXT_STATE (%SEND);
   return 0;
 

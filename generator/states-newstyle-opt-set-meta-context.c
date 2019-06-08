@@ -47,6 +47,7 @@
   h->sbuf.option.optlen = htobe32 (len);
   h->wbuf = &h->sbuf;
   h->wlen = sizeof (h->sbuf.option);
+  h->wflags = MSG_MORE;
   SET_NEXT_STATE (%SEND);
   return 0;
 
@@ -57,6 +58,7 @@
     h->sbuf.len = htobe32 (strlen (h->export_name));
     h->wbuf = &h->sbuf.len;
     h->wlen = sizeof h->sbuf.len;
+    h->wflags = MSG_MORE;
     SET_NEXT_STATE (%SEND_EXPORTNAMELEN);
   }
   return 0;
@@ -67,6 +69,7 @@
   case 0:
     h->wbuf = h->export_name;
     h->wlen = strlen (h->export_name);
+    h->wflags = MSG_MORE;
     SET_NEXT_STATE (%SEND_EXPORTNAME);
   }
   return 0;
@@ -79,6 +82,7 @@
       htobe32 (nbd_internal_string_list_length (h->request_meta_contexts));
     h->wbuf = &h->sbuf;
     h->wlen = sizeof h->sbuf.nrqueries;
+    h->wflags = MSG_MORE;
     SET_NEXT_STATE (%SEND_NRQUERIES);
   }
   return 0;
@@ -103,6 +107,7 @@
   h->sbuf.len = htobe32 (strlen (query));
   h->wbuf = &h->sbuf.len;
   h->wlen = sizeof h->sbuf.len;
+  h->wflags = MSG_MORE;
   SET_NEXT_STATE (%SEND_QUERYLEN);
   return 0;
 
