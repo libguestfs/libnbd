@@ -110,6 +110,7 @@ struct nbd_handle {
   /* As above, but for writing using send_from_wbuf. */
   const void *wbuf;
   size_t wlen;
+  int wflags;
 
   /* Static buffer used for short amounts of data, such as handshake
    * and commands.

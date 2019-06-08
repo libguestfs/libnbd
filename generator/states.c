@@ -91,8 +91,8 @@ send_from_wbuf (struct nbd_handle *h)
   ssize_t r;
 
   if (h->wlen == 0)
-    return 0;                   /* move to next state */
-  r = h->sock->ops->send (h, h->sock, h->wbuf, h->wlen, 0);
+    goto next_state;
+  r = h->sock->ops->send (h, h->sock, h->wbuf, h->wlen, h->wflags);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK)
       return 1;                 /* more data */
@@ -102,9 +102,13 @@ send_from_wbuf (struct nbd_handle *h)
   h->wbuf += r;
   h->wlen -= r;
   if (h->wlen == 0)
-    return 0;                   /* move to next state */
+    goto next_state;
   else
     return 1;                   /* more data */
+
+ next_state:
+  h->wflags = 0;                /* reset this when moving to next state */
+  return 0;                     /* move to next state */
 }
 
 /*----- End of prologue. -----*/
