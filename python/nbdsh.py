@@ -25,6 +25,10 @@ def shell():
 
     description = '''Network Block Device (NBD) shell'''
     parser = argparse.ArgumentParser (prog='nbdsh', description=description)
+    parser.add_argument ('--connect',
+                         help="connect to NBD URI")
+    parser.add_argument ('-c', '--command', action='append',
+                         help="run a command")
     parser.add_argument ('-V', '--version', action='version',
                          version=nbd.package_name + ' ' + nbd.__version__)
     args = parser.parse_args ()
@@ -46,4 +50,12 @@ exit() or Ctrl-D                    # Quit the shell
 help (nbd)                          # Display documentation
 '''
 
-    code.interact (banner = banner, local = locals(), exitmsg = '')
+    if args.connect is not None:
+        h.connect_uri (args.connect)
+    # If there are no -c or --command parameters, go interactive,
+    # otherwise we run the commands and exit.
+    if not args.command:
+        code.interact (banner = banner, local = locals(), exitmsg = '')
+    else:
+        for c in args.command:
+            eval (c)

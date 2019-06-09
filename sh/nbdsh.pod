@@ -19,6 +19,9 @@ nbdsh - network block device (NBD) shell
  nbd> h.pwrite (buf, 0, 0)
  nbd> exit()
 
+ $ nbdsh --connect nbd://localhost -c 'print (h.get_size ())'
+ 1073741824
+
 =head1 DESCRIPTION
 
 nbdsh is a Python-based client shell for accessing Network Block
@@ -37,6 +40,18 @@ For documentation about the libnbd API please open the shell and type:
 =item B<--help>
 
 Display brief command line help and exit.
+
+=item B<-c> 'COMMAND ...'
+
+=item B<--command> 'COMMAND ...'
+
+Instead of starting an interactive shell, run a command.  This option
+can be specified multiple times in order to run multiple commands.
+
+=item B<--connect> URI
+
+Connect to the given NBD URI.  This is equivalent to the
+S<C<h.connect_uri (URI)>> command in the shell.
 
 =item B<-V>
 
