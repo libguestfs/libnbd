@@ -30,12 +30,13 @@ generator_built = \
 
 EXTRA_DIST = \
 	$(generator_built) \
+	nbdsh.py \
 	t/*.py
 
 if HAVE_PYTHON
 
 pythondir = $(PYTHON_INSTALLDIR)
-python_DATA = nbd.py
+python_DATA = nbd.py nbdsh.py
 
 python_LTLIBRARIES = libnbdmod.la
 
