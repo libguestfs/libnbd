@@ -256,7 +256,7 @@ AS_IF([test "x$enable_python" != "xno"],[
     AC_SUBST(PYTHON_EXT_SUFFIX)
 ])
 AM_CONDITIONAL([HAVE_PYTHON],
-    [test "x$PYTHON" != "xno" && test "x$have_python_module" != "x1" ])
+    [test "x$PYTHON" != "xno" && test "x$have_python_module" = "x1" ])
 
 dnl Produce output files.
 AC_CONFIG_HEADERS([config.h])
