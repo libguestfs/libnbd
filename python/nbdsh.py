@@ -58,4 +58,7 @@ help (nbd)                          # Display documentation
         code.interact (banner = banner, local = locals(), exitmsg = '')
     else:
         for c in args.command:
-            eval (c)
+            if c != '-':
+                exec (c)
+            else:
+                exec (sys.stdin.read ())

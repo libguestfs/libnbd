@@ -48,6 +48,12 @@ Display brief command line help and exit.
 Instead of starting an interactive shell, run a command.  This option
 can be specified multiple times in order to run multiple commands.
 
+=item B<-c ->
+
+=item B<--command ->
+
+Read standard input and execute it as a command.
+
 =item B<--connect> URI
 
 Connect to the given NBD URI.  This is equivalent to the
