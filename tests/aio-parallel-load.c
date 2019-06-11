@@ -52,6 +52,7 @@ static const char *connection;
 struct thread_status {
   size_t i;                     /* Thread index, 0 .. NR_MULTI_CONN-1 */
   time_t end_time;              /* Threads run until this end time. */
+  size_t buf_size;              /* Size of requests. */
   int status;                   /* Return status. */
   unsigned requests;            /* Total number of requests made. */
   unsigned most_in_flight;      /* Most requests seen in flight. */
@@ -62,7 +63,7 @@ struct thread_status {
  * realistic, but this test is not about data integrity but the
  * protocol handling under load.
  */
-static char buf[65536];
+static char *buf;
 
 static void *start_thread (void *arg);
 
@@ -76,12 +77,32 @@ main (int argc, char *argv[])
   int err;
   unsigned requests, most_in_flight, errors;
   uint64_t bytes_sent, bytes_received;
+  size_t buf_size;
 
-  if (argc != 2) {
-    fprintf (stderr, "%s socket\n", argv[0]);
+  if (argc < 2 || argc > 3) {
+    fprintf (stderr, "%s socket [buf-size]\n", argv[0]);
     exit (EXIT_FAILURE);
   }
   connection = argv[1];
+  if (argc == 3) {
+    char *end;
+
+    errno = 0;
+    buf_size = strtoul (argv[2], &end, 0);
+    if (errno || argv[2] == end || buf_size == 0 || buf_size >= EXPORTSIZE) {
+      fprintf (stderr, "invalid buf-size %s, must be positive integer < %d\n",
+               argv[2], EXPORTSIZE);
+      exit (EXIT_FAILURE);
+    }
+  }
+  else
+    buf_size = 64 * 1024;
+
+  buf = malloc (buf_size);
+  if (!buf) {
+    perror ("malloc");
+    exit (EXIT_FAILURE);
+  }
 
   /* Get the current time and the end time. */
   time (&t);
@@ -89,13 +110,14 @@ main (int argc, char *argv[])
 
   /* Initialize the buffer with random data. */
   srand (t + getpid ());
-  for (i = 0; i < sizeof buf; ++i)
+  for (i = 0; i < buf_size; ++i)
     buf[i] = rand ();
 
   /* Start the worker threads, one per connection. */
   for (i = 0; i < NR_MULTI_CONN; ++i) {
     status[i].i = i;
     status[i].end_time = t;
+    status[i].buf_size = buf_size;
     status[i].status = 0;
     status[i].requests = 0;
     status[i].most_in_flight = 0;
@@ -162,6 +184,7 @@ start_thread (void *arg)
 {
   struct pollfd fds[1];
   struct thread_status *status = arg;
+  size_t buf_size = status->buf_size;
   struct nbd_handle *nbd;
   size_t i;
   uint64_t offset, handle;
@@ -226,15 +249,15 @@ start_thread (void *arg)
 
     /* If we can issue another request, do so. */
     while (!expired && in_flight < MAX_IN_FLIGHT) {
-      offset = rand () % (EXPORTSIZE - sizeof buf);
+      offset = rand () % (EXPORTSIZE - buf_size);
       cmd = rand () & 1;
       if (cmd == 0) {
-        handle = nbd_aio_pwrite (nbd, buf, sizeof buf, offset, 0);
-        status->bytes_sent += sizeof buf;
+        handle = nbd_aio_pwrite (nbd, buf, buf_size, offset, 0);
+        status->bytes_sent += buf_size;
       }
       else {
-        handle = nbd_aio_pread (nbd, buf, sizeof buf, offset, 0);
-        status->bytes_received += sizeof buf;
+        handle = nbd_aio_pread (nbd, buf, buf_size, offset, 0);
+        status->bytes_received += buf_size;
       }
       if (handle == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
