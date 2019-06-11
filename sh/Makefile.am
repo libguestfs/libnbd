@@ -17,7 +17,10 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
-EXTRA_DIST = nbdsh.pod
+EXTRA_DIST = \
+	nbdsh.pod \
+	examples/LICENSE-FOR-EXAMPLES \
+	examples/hexdump.sh
 
 if HAVE_PYTHON
 
@@ -31,6 +34,7 @@ CLEANFILES += $(man_MANS)
 nbdsh.1: nbdsh.pod
 	$(PODWRAPPER) --section=1 --man $@ \
 	    --html $(top_builddir)/html/$@.html \
+	    --verbatim $(srcdir)/examples/hexdump.sh:__EXAMPLES_HEXDUMP__ \
 	    $<
 
 endif HAVE_POD

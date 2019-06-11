@@ -19,9 +19,6 @@ nbdsh - network block device (NBD) shell
  nbd> h.pwrite (buf, 0, 0)
  nbd> exit()
 
- $ nbdsh --connect nbd://localhost -c 'print (h.get_size ())'
- 1073741824
-
 =head1 DESCRIPTION
 
 nbdsh is a Python-based client shell for accessing Network Block
@@ -30,6 +27,24 @@ Device (NBD) servers.
 For documentation about the libnbd API please open the shell and type:
 
  help (nbd)
+
+=head1 EXAMPLES
+
+=head2 Print the size of an NBD export
+
+The I<--connect> option connects to an NBD URI.  The I<-c> option lets
+you execute single Python statements from the command line.  Combining
+these two options lets you print the size in bytes of an NBD export:
+
+ $ nbdsh --connect nbd://localhost -c 'print (h.get_size ())'
+ 1073741824
+
+=head2 Hexdump the boot sector of an NBD export
+
+Using I<-c -> you can feed a whole Python program to the standard
+input of nbdsh:
+
+__EXAMPLES_HEXDUMP__
 
 =head1 OPTIONS
 
