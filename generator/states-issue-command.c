@@ -42,7 +42,7 @@
   h->request.count = htobe32 ((uint32_t) cmd->count);
   h->wbuf = &h->request;
   h->wlen = sizeof (h->request);
-  if (cmd->type == NBD_CMD_WRITE)
+  if (cmd->type == NBD_CMD_WRITE || cmd->next)
     h->wflags = MSG_MORE;
   SET_NEXT_STATE (%SEND_REQUEST);
   return 0;
@@ -70,6 +70,8 @@
   if (cmd->type == NBD_CMD_WRITE) {
     h->wbuf = cmd->data;
     h->wlen = cmd->count;
+    if (cmd->next && cmd->count < 64 * 1024)
+      h->wflags = MSG_MORE;
     SET_NEXT_STATE (%SEND_WRITE_PAYLOAD);
   }
   else
