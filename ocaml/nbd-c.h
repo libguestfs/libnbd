@@ -27,6 +27,11 @@
 #include <caml/memory.h>
 #include <caml/mlvalues.h>
 
+// Workaround for OCaml < 4.06.0
+#ifndef Bytes_val
+#define Bytes_val(x) String_val(x)
+#endif
+
 extern void libnbd_finalize (value);
 extern void nbd_buffer_finalize (value);
 
