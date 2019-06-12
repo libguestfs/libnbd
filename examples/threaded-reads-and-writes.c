@@ -50,7 +50,7 @@ static int64_t exportsize;
 #define BUFFER_SIZE (1024*1024)
 
 /* Number of commands we issue (per thread). */
-#define NR_CYCLES 1000000
+#define NR_CYCLES 10000
 
 struct thread_status {
   size_t i;                     /* Thread index, 0 .. NR_MULTI_CONN-1 */
@@ -220,7 +220,7 @@ start_thread (void *arg)
     }
   }
 
-  for (i = 0; i < sizeof buf; ++i)
+  for (i = 0; i < BUFFER_SIZE; ++i)
     buf[i] = rand ();
 
   /* Issue commands. */
@@ -239,12 +239,12 @@ start_thread (void *arg)
      * but that would be Very Bad in a real application.
      */
     while (i > 0 && in_flight < MAX_IN_FLIGHT) {
-      offset = rand () % (exportsize - sizeof buf);
+      offset = rand () % (exportsize - BUFFER_SIZE);
       cmd = rand () & 1;
       if (cmd == 0)
-        handle = nbd_aio_pwrite (nbd, buf, sizeof buf, offset, 0);
+        handle = nbd_aio_pwrite (nbd, buf, BUFFER_SIZE, offset, 0);
       else
-        handle = nbd_aio_pread (nbd, buf, sizeof buf, offset, 0);
+        handle = nbd_aio_pread (nbd, buf, BUFFER_SIZE, offset, 0);
       if (handle == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
