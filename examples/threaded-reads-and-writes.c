@@ -46,7 +46,7 @@ static int64_t exportsize;
  */
 #define MAX_IN_FLIGHT 64
 
-/* The size of reads and writes. */
+/* The size of large reads and writes, must be > 512. */
 #define BUFFER_SIZE (1024*1024)
 
 /* Number of commands we issue (per thread). */
@@ -192,7 +192,9 @@ start_thread (void *arg)
   uint64_t handles[MAX_IN_FLIGHT];
   size_t in_flight;        /* counts number of requests in flight */
   int dir, r, cmd;
+  size_t size;
 
+  assert (512 < BUFFER_SIZE);
   buf = malloc (BUFFER_SIZE);
   if (buf == NULL) {
     perror ("malloc");
@@ -241,14 +243,16 @@ start_thread (void *arg)
      * the same buffer for multiple in-flight requests.  It doesn't
      * matter here because we're just trying to write random stuff,
      * but that would be Very Bad in a real application.
+     * Simulate a mix of large and small requests.
      */
     while (i > 0 && in_flight < MAX_IN_FLIGHT) {
-      offset = rand () % (exportsize - BUFFER_SIZE);
+      size = (rand() & 1) ? BUFFER_SIZE : 512;
+      offset = rand () % (exportsize - size);
       cmd = rand () & 1;
       if (cmd == 0)
-        handle = nbd_aio_pwrite (nbd, buf, BUFFER_SIZE, offset, 0);
+        handle = nbd_aio_pwrite (nbd, buf, size, offset, 0);
       else
-        handle = nbd_aio_pread (nbd, buf, BUFFER_SIZE, offset, 0);
+        handle = nbd_aio_pread (nbd, buf, size, offset, 0);
       if (handle == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
