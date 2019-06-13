@@ -1305,7 +1305,79 @@ Issue a read command to the NBD server for the range starting
 at C<offset> and ending at C<offset> + C<count> - 1.  NBD
 can only read all or nothing using this call.  The call
 returns when the data has been read fully into C<buf> or there is an
-error.
+error.  See also C<nbd_pread_structured>, if finer visibility is
+required into the server's replies.
+
+The C<flags> parameter must be C<0> for now (it exists for future NBD
+protocol extensions).";
+  };
+
+  "pread_structured", {
+    default_call with
+    args = [ BytesOut ("buf", "count"); UInt64 "offset";
+             Opaque "data";
+             Callback ("chunk", [ Opaque "data"; BytesIn ("subbuf", "count");
+                                  UInt64 "offset"; Int "error";
+                                  Int "status" ]);
+             Flags "flags" ];
+    ret = RErr;
+    permitted_states = [ Connected ];
+    shortdesc = "read from the NBD server";
+    longdesc = "\
+Issue a read command to the NBD server for the range starting
+at C<offset> and ending at C<offset> + C<count> - 1.  The server's
+response may be subdivided into chunks which may arrive out of order
+before reassembly into the original buffer; the C<chunk> callback
+is used for notification after each chunk arrives, and may perform
+additional sanity checking on the server's reply. The callback cannot
+call C<nbd_*> APIs on the same handle since it holds the handle lock
+and will cause a deadlock.  If the callback returns C<-1>, and no
+earlier error has been detected, then the overall read command will
+fail with the same value of C<errno> left after the failing callback;
+but any further chunks will still invoke the callback.
+
+The C<chunk> function is called once per chunk of data received.  The
+C<subbuf> and C<count> parameters represent the subset of the original
+buffer which has just been populated by results from the server (in C,
+C<subbuf> always points within the original C<buf>; but this guarantee
+may not extend to other language bindings). The C<offset> parameter
+represents the absolute offset at which C<subbuf> begins within the
+image (note that this is not the relative offset of C<subbuf> within
+the original buffer C<buf>). The C<error> parameter is controlled by
+the C<status> parameter, which is one of
+
+=over 4
+
+=item C<LIBNBD_READ_DATA> = 1
+
+C<subbuf> was populated with C<count> bytes of data. C<error> is the
+errno value of any earlier detected error, or zero.
+
+=item C<LIBNBD_READ_HOLE> = 2
+
+C<subbuf> represents a hole, and contains C<count> NUL bytes. C<error>
+is the errno value of any earlier detected error, or zero.
+
+=item C<LIBNBD_READ_ERROR> = 3
+
+C<count> is 0, so C<subbuf> is unusable. C<error> is the errno value
+reported by the server as occurring while reading that C<offset>.
+
+=back
+
+Future NBD extensions may permit other values for C<status>, but those
+will not be returned to a client that has not opted in to requesting
+such extensions. If the server is non-compliant, it is possible for
+the C<chunk> function to be called more times than you expect or with
+C<count> 0 for C<LIBNBD_READ_DATA> or C<LIBNBD_READ_HOLE>. It is also
+possible that the C<chunk> function is not called at all (in
+particular, C<LIBNBD_READ_ERROR> is used only when an error is
+associated with a particular offset, and not when the server reports a
+generic error), but you are guaranteed that the callback was called at
+least once if the overall read succeeds. Libnbd does not validate that
+the server obeyed the requirement that a read call must not have
+overlapping chunks and must not succeed without enough chunks to cover
+the entire request.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
@@ -1589,6 +1661,26 @@ error.  To check if the command completed, call
 C<nbd_aio_command_completed>.  Note that you must ensure
 C<buf> is valid until the command has completed.  Other
 parameters behave as documented in C<nbd_pread>.";
+  };
+
+  "aio_pread_structured", {
+    default_call with
+    args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
+             Opaque "data";
+             CallbackPersist ("chunk", [ Opaque "data";
+                                         BytesIn ("subbuf", "count");
+                                         UInt64 "offset"; Int "error";
+                                         Int "status" ]);
+             Flags "flags" ];
+    ret = RInt64;
+    permitted_states = [ Connected ];
+    shortdesc = "read from the NBD server";
+    longdesc = "\
+Issue a read command to the NBD server.  This returns the
+unique positive 64 bit handle for this command, or C<-1> on
+error.  To check if the command completed, call
+C<nbd_aio_command_completed>.  Parameters behave as documented
+in C<nbd_pread_structured>.";
   };
 
   "aio_pwrite", {

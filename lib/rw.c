@@ -55,6 +55,22 @@ nbd_unlocked_pread (struct nbd_handle *h, void *buf,
   return wait_for_command (h, ch);
 }
 
+/* Issue a read command with callbacks and wait for the reply. */
+int
+nbd_unlocked_pread_structured (struct nbd_handle *h, void *buf,
+                               size_t count, uint64_t offset,
+                               void *opaque, read_fn read, uint32_t flags)
+{
+  int64_t ch;
+
+  ch = nbd_unlocked_aio_pread_structured (h, buf, count, offset,
+                                          opaque, read, flags);
+  if (ch == -1)
+    return -1;
+
+  return wait_for_command (h, ch);
+}
+
 /* Issue a write command and wait for the reply. */
 int
 nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
@@ -229,6 +245,22 @@ nbd_unlocked_aio_pread (struct nbd_handle *h, void *buf,
 
   return nbd_internal_command_common (h, 0, NBD_CMD_READ, offset, count,
                                       buf, NULL);
+}
+
+int64_t
+nbd_unlocked_aio_pread_structured (struct nbd_handle *h, void *buf,
+                                   size_t count, uint64_t offset,
+                                   void *opaque, read_fn read, uint32_t flags)
+{
+  struct command_cb cb = { .opaque = opaque, .fn.read = read, };
+
+  if (flags != 0) {
+    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
+    return -1;
+  }
+
+  return nbd_internal_command_common (h, 0, NBD_CMD_READ, offset, count,
+                                      buf, &cb);
 }
 
 int64_t
