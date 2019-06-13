@@ -95,6 +95,10 @@
     return 0;
   }
   else if (type == NBD_REPLY_TYPE_OFFSET_DATA) {
+    /* The spec states that 0-length requests are unspecified, but
+     * 0-length replies are broken. Still, it's easy enough to support
+     * them as an extension, so we use < instead of <=.
+     */
     if (length < sizeof h->sbuf.sr.payload.offset_data) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "too short length in NBD_REPLY_TYPE_OFFSET_DATA");
@@ -106,9 +110,9 @@
     return 0;
   }
   else if (type == NBD_REPLY_TYPE_OFFSET_HOLE) {
-    if (length != 12) {
+    if (length != sizeof h->sbuf.sr.payload.offset_hole) {
       SET_NEXT_STATE (%.DEAD);
-      set_error (0, "invalid length in NBD_REPLY_TYPE_NONE");
+      set_error (0, "invalid length in NBD_REPLY_TYPE_OFFSET_HOLE");
       return -1;
     }
     h->rbuf = &h->sbuf.sr.payload.offset_hole;
@@ -269,6 +273,7 @@
       return -1;
     }
     assert (cmd->data);
+    cmd->data_seen = true;
 
     /* Length of the data following. */
     length -= 8;
@@ -331,6 +336,7 @@
       return -1;
     }
     assert (cmd->data);
+    cmd->data_seen = true;
 
     /* Is the data within bounds? */
     if (offset < cmd->offset) {
@@ -354,6 +360,10 @@
       return -1;
     }
 
+    /* The spec states that 0-length requests are unspecified, but
+     * 0-length replies are broken. Still, it's easy enough to support
+     * them as an extension, and this works even when length == 0.
+     */
     memset (cmd->data + offset, 0, length);
 
     SET_NEXT_STATE(%FINISH);

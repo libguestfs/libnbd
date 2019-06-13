@@ -242,6 +242,7 @@ struct command_in_flight {
   uint32_t count;
   void *data; /* Buffer for read/write, opaque for block status */
   extent_fn extent_fn;
+  bool data_seen; /* For read, true if at least one data chunk seen */
   uint32_t error; /* Local errno value */
 };
 

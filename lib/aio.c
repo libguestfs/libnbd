@@ -73,6 +73,11 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
 
   type = cmd->type;
   error = cmd->error;
+  /* The spec states that a 0-length read request is unspecified; but
+   * it is easy enough to treat it as successful as an extension.
+   */
+  if (type == NBD_CMD_READ && !cmd->data_seen && cmd->count && !error)
+    error = EIO;
 
   /* Retire it from the list and free it. */
   if (prev_cmd != NULL)

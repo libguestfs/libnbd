@@ -40,6 +40,7 @@
   if (cmd->error == 0 && cmd->type == NBD_CMD_READ) {
     h->rbuf = cmd->data;
     h->rlen = cmd->count;
+    cmd->data_seen = true;
     SET_NEXT_STATE (%RECV_READ_PAYLOAD);
   }
   else {
