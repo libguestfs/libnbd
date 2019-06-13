@@ -111,6 +111,10 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+  else if (exportsize <= BUFFER_SIZE) {
+    fprintf (stderr, "export too small, must be larger than %d\n", BUFFER_SIZE);
+    exit (EXIT_FAILURE);
+  }
 
   if (nbd_read_only (nbd) == 1) {
     fprintf (stderr, "%s: error: this NBD export is read-only\n", argv[0]);
