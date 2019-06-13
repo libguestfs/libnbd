@@ -143,7 +143,7 @@ int64_t
 nbd_internal_command_common (struct nbd_handle *h,
                              uint16_t flags, uint16_t type,
                              uint64_t offset, uint64_t count, void *data,
-                             extent_fn extent)
+                             struct command_cb *cb)
 {
   struct command_in_flight *cmd, *prev_cmd;
 
@@ -183,7 +183,8 @@ nbd_internal_command_common (struct nbd_handle *h,
   cmd->offset = offset;
   cmd->count = count;
   cmd->data = data;
-  cmd->extent_fn = extent;
+  if (cb)
+    cmd->cb = *cb;
 
   /* If structured replies were negotiated then we trust the server to
    * send back sufficient data to cover the whole buffer.  It's tricky
@@ -360,6 +361,8 @@ nbd_unlocked_aio_block_status (struct nbd_handle *h,
                                void *data, extent_fn extent,
                                uint32_t flags)
 {
+  struct command_cb cb = { .opaque = data, .fn.extent = extent, };
+
   if (!h->structured_replies) {
     set_error (ENOTSUP, "server does not support structured replies");
     return -1;
@@ -383,5 +386,5 @@ nbd_unlocked_aio_block_status (struct nbd_handle *h,
   }
 
   return nbd_internal_command_common (h, flags, NBD_CMD_BLOCK_STATUS, offset,
-                                      count, data, extent);
+                                      count, NULL, &cb);
 }

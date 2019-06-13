@@ -127,7 +127,7 @@
       set_error (0, "invalid length in NBD_REPLY_TYPE_BLOCK_STATUS");
       return -1;
     }
-    if (cmd->extent_fn == NULL) {
+    if (cmd->cb.fn.extent == NULL) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "not expecting NBD_REPLY_TYPE_BLOCK_STATUS here");
       return -1;
@@ -383,7 +383,7 @@
     length = be32toh (h->sbuf.sr.structured_reply.length);
 
     assert (cmd); /* guaranteed by CHECK */
-    assert (cmd->extent_fn);
+    assert (cmd->cb.fn.extent);
     assert (h->bs_entries);
     assert (length >= 12);
 
@@ -409,8 +409,8 @@
       if (meta_context) {
         /* Call the caller's extent function. */
         errno = 0;
-        if (cmd->extent_fn (cmd->data, meta_context->name, cmd->offset,
-                            &h->bs_entries[1], (length-4) / 4) == -1)
+        if (cmd->cb.fn.extent (cmd->cb.opaque, meta_context->name, cmd->offset,
+                               &h->bs_entries[1], (length-4) / 4) == -1)
           cmd->error = errno ? errno : EPROTO;
       }
       else

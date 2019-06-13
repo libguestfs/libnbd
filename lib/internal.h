@@ -231,7 +231,16 @@ struct socket {
   const struct socket_ops *ops;
 };
 
-typedef int (*extent_fn) (void *data, const char *metacontext, uint64_t offset, uint32_t *entries, size_t nr_entries);
+typedef int (*extent_fn) (void *data, const char *metacontext, uint64_t offset,
+                          uint32_t *entries, size_t nr_entries);
+
+struct command_cb {
+  void *opaque;
+  union {
+    extent_fn extent;
+    /* More to come */
+  } fn;
+};
 
 struct command_in_flight {
   struct command_in_flight *next;
@@ -240,8 +249,8 @@ struct command_in_flight {
   uint64_t handle;
   uint64_t offset;
   uint32_t count;
-  void *data; /* Buffer for read/write, opaque for block status */
-  extent_fn extent_fn;
+  void *data; /* Buffer for read/write */
+  struct command_cb cb;
   bool data_seen; /* For read, true if at least one data chunk seen */
   uint32_t error; /* Local errno value */
 };
@@ -300,7 +309,7 @@ extern const char *nbd_internal_name_of_nbd_cmd (uint16_t type);
 extern int64_t nbd_internal_command_common (struct nbd_handle *h,
                                             uint16_t flags, uint16_t type,
                                             uint64_t offset, uint64_t count,
-                                            void *data, extent_fn extent);
+                                            void *data, struct command_cb *cb);
 
 /* socket.c */
 struct socket *nbd_internal_socket_create (int fd);
