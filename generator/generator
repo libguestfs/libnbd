@@ -1442,24 +1442,22 @@ Depending on which metadata contexts were enabled before
 connecting (see C<nbd_add_meta_context>) and which are
 supported by the server (see C<nbd_can_meta_context>) this call
 returns information about extents by calling back to the
-extent function.  The callback cannot call C<nbd_*> APIs on the
+C<extent> function.  The callback cannot call C<nbd_*> APIs on the
 same handle since it holds the handle lock and will
 cause a deadlock.  If the callback returns C<-1>, any remaining
 contexts will be ignored and the overall block status command
 will fail with the same value of C<errno> left after the
 failing callback.
 
-The extent function is called once per type of metadata
-available.  The C<metacontext> parameter is a string
-such as C<\"base:allocation\">.  The C<entries> array
-is an array of pairs of integers with the first entry
-in each pair being the length (in bytes) of the block
-and the second entry being a status/flags field which
-is specific to the metadata context.  (The number of
-pairs passed to the function is C<nr_entries/2>.)
-The NBD protocol document in the section about
-C<NBD_REPLY_TYPE_BLOCK_STATUS> describes the meaning
-of this array.
+The C<extent> function is called once per type of metadata available,
+with the C<data> passed to this function.  The C<metacontext>
+parameter is a string such as C<\"base:allocation\">.  The C<entries>
+array is an array of pairs of integers with the first entry in each
+pair being the length (in bytes) of the block and the second entry
+being a status/flags field which is specific to the metadata context.
+(The number of pairs passed to the function is C<nr_entries/2>.)  The
+NBD protocol document in the section about
+C<NBD_REPLY_TYPE_BLOCK_STATUS> describes the meaning of this array.
 
 It is possible for the extent function to be called
 more times than you expect (if the server is buggy),
