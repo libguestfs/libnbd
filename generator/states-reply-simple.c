@@ -49,9 +49,22 @@
   return 0;
 
  REPLY.SIMPLE_REPLY.RECV_READ_PAYLOAD:
+  struct command_in_flight *cmd = h->reply_cmd;
+
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
-  case 0:  SET_NEXT_STATE (%^FINISH_COMMAND);
+  case 0:
+    /* guaranteed by START */
+    assert (cmd);
+    if (cmd->cb.fn.read) {
+      assert (cmd->error == 0);
+      errno = 0;
+      if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data, cmd->count,
+                           cmd->offset, 0, LIBNBD_READ_DATA) == -1)
+        cmd->error = errno ? errno : EPROTO;
+    }
+
+    SET_NEXT_STATE (%^FINISH_COMMAND);
   }
   return 0;
 

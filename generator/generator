@@ -1934,6 +1934,10 @@ let constants = [
   "CMD_FLAG_FUA",        1 lsl 0;
   "CMD_FLAG_NO_HOLE",    1 lsl 1;
   "CMD_FLAG_REQ_ONE",    1 lsl 3;
+
+  "READ_DATA",           1;
+  "READ_HOLE",           2;
+  "READ_ERROR",          3;
 ]
 
 (*----------------------------------------------------------------------*)

@@ -228,6 +228,7 @@
     type = be16toh (h->sbuf.sr.structured_reply.type);
 
     assert (cmd); /* guaranteed by CHECK */
+    error = nbd_internal_errno_of_nbd_error (error);
 
     /* The spec requires the server to send a non-zero error */
     if (error == NBD_SUCCESS) {
@@ -236,7 +237,9 @@
     }
     error = nbd_internal_errno_of_nbd_error (error);
 
-    /* Sanity check that any error offset is in range */
+    /* Sanity check that any error offset is in range, then invoke
+     * user callback if present.
+     */
     if (type == NBD_REPLY_TYPE_ERROR_OFFSET) {
       offset = be64toh (h->sbuf.sr.payload.error.offset);
       if (offset < cmd->offset || offset >= cmd->offset + cmd->count) {
@@ -247,6 +250,17 @@
                    "this is likely to be a bug in the server",
                    offset, cmd->offset, cmd->count);
         return -1;
+      }
+      if (cmd->cb.fn.read) {
+        /* Different from successful reads: inform the callback about the
+         * current error rather than any earlier one. If the callback fails
+         * without setting errno, then use the server's error below.
+         */
+        errno = 0;
+        if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data + (offset - cmd->offset),
+                             0, offset, error, LIBNBD_READ_ERROR) == -1)
+          if (cmd->error == 0)
+            cmd->error = errno;
       }
     }
 
@@ -315,9 +329,27 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_OFFSET_DATA_DATA:
+  struct command_in_flight *cmd = h->reply_cmd;
+  uint64_t offset;
+  uint32_t length;
+
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
-  case 0:  SET_NEXT_STATE (%FINISH);
+  case 0:
+    length = be32toh (h->sbuf.sr.structured_reply.length);
+    offset = be64toh (h->sbuf.sr.payload.offset_data.offset);
+
+    assert (cmd); /* guaranteed by CHECK */
+    if (cmd->cb.fn.read) {
+      errno = 0;
+      if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data + (offset - cmd->offset),
+                           length - sizeof offset, offset, cmd->error,
+                           LIBNBD_READ_DATA) == -1)
+        if (cmd->error == 0)
+          cmd->error = errno ? errno : EPROTO;
+    }
+
+    SET_NEXT_STATE (%FINISH);
   }
   return 0;
 
@@ -372,6 +404,14 @@
      * them as an extension, and this works even when length == 0.
      */
     memset (cmd->data + offset, 0, length);
+    if (cmd->cb.fn.read) {
+      errno = 0;
+      if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data + offset, length,
+                           cmd->offset + offset, cmd->error,
+                           LIBNBD_READ_HOLE) == -1)
+        if (cmd->error == 0)
+          cmd->error = errno ? errno : EPROTO;
+    }
 
     SET_NEXT_STATE(%FINISH);
   }
