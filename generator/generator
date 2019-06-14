@@ -798,6 +798,13 @@ and structured_reply_state_machine = [
     comment = "Receive a structured reply block-status payload";
     external_events = [ NotifyRead, "" ];
   };
+
+  State {
+    default_state with
+    name = "FINISH";
+    comment = "Finish receiving a structured reply";
+    external_events = [];
+  };
 ]
 
 (*----------------------------------------------------------------------*)

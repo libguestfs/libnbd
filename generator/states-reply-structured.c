@@ -103,7 +103,7 @@
       set_error (0, "NBD_REPLY_FLAG_DONE must be set in NBD_REPLY_TYPE_NONE");
       return -1;
     }
-    SET_NEXT_STATE (%^FINISH_COMMAND);
+    SET_NEXT_STATE (%FINISH);
     return 0;
   }
   else if (type == NBD_REPLY_TYPE_OFFSET_DATA) {
@@ -225,7 +225,6 @@
 
  REPLY.STRUCTURED_REPLY.RECV_ERROR_TAIL:
   struct command_in_flight *cmd;
-  uint16_t flags;
   uint64_t handle;
   uint32_t error;
   uint64_t offset;
@@ -234,7 +233,6 @@
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    flags = be16toh (h->sbuf.sr.structured_reply.flags);
     handle = be64toh (h->sbuf.sr.structured_reply.handle);
     error = be32toh (h->sbuf.sr.payload.error.error.error);
     type = be16toh (h->sbuf.sr.structured_reply.type);
@@ -264,10 +262,7 @@
     if (cmd->error == 0)
       cmd->error = nbd_internal_errno_of_nbd_error (error);
 
-    if (flags & NBD_REPLY_FLAG_DONE)
-      SET_NEXT_STATE (%^FINISH_COMMAND);
-    else
-      SET_NEXT_STATE (%.READY);
+    SET_NEXT_STATE(%FINISH);
   }
   return 0;
 
@@ -334,24 +329,15 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_OFFSET_DATA_DATA:
-  uint16_t flags;
-
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
-  case 0:
-    flags = be16toh (h->sbuf.sr.structured_reply.flags);
-
-    if (flags & NBD_REPLY_FLAG_DONE)
-      SET_NEXT_STATE (%^FINISH_COMMAND);
-    else
-      SET_NEXT_STATE (%.READY);
+  case 0:  SET_NEXT_STATE (%FINISH);
   }
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_OFFSET_HOLE:
   struct command_in_flight *cmd;
   uint64_t handle;
-  uint16_t flags;
   uint64_t offset;
   uint32_t length;
 
@@ -359,7 +345,6 @@
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     handle = be64toh (h->sbuf.sr.structured_reply.handle);
-    flags = be16toh (h->sbuf.sr.structured_reply.flags);
     offset = be64toh (h->sbuf.sr.payload.offset_hole.offset);
     length = be32toh (h->sbuf.sr.payload.offset_hole.length);
 
@@ -404,17 +389,13 @@
 
     memset (cmd->data + offset, 0, length);
 
-    if (flags & NBD_REPLY_FLAG_DONE)
-      SET_NEXT_STATE (%^FINISH_COMMAND);
-    else
-      SET_NEXT_STATE (%.READY);
+    SET_NEXT_STATE(%FINISH);
   }
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_BS_ENTRIES:
   struct command_in_flight *cmd;
   uint64_t handle;
-  uint16_t flags;
   uint32_t length;
   size_t i;
   uint32_t context_id;
@@ -424,7 +405,6 @@
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     handle = be64toh (h->sbuf.sr.structured_reply.handle);
-    flags = be16toh (h->sbuf.sr.structured_reply.flags);
     length = be32toh (h->sbuf.sr.structured_reply.length);
 
     /* Find the command amongst the commands in flight. */
@@ -470,11 +450,18 @@
                context_id);
     }
 
-    if (flags & NBD_REPLY_FLAG_DONE)
-      SET_NEXT_STATE (%^FINISH_COMMAND);
-    else
-      SET_NEXT_STATE (%.READY);
+    SET_NEXT_STATE(%FINISH);
   }
+  return 0;
+
+ REPLY.STRUCTURED_REPLY.FINISH:
+  uint16_t flags;
+
+  flags = be16toh (h->sbuf.sr.structured_reply.flags);
+  if (flags & NBD_REPLY_FLAG_DONE)
+    SET_NEXT_STATE (%^FINISH_COMMAND);
+  else
+    SET_NEXT_STATE (%.READY);
   return 0;
 
 } /* END STATE MACHINE */
