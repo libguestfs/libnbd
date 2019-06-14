@@ -170,6 +170,12 @@
       /* If it's too long, skip over it. */
       if (len > maxlen)
         h->rbuf = NULL;
+      else if (len <= sizeof h->sbuf.or.payload.context.context) {
+        /* A valid reply has at least one byte in payload.context.str */
+        set_error (0, "NBD_REP_META_CONTEXT reply length too small");
+        SET_NEXT_STATE (%.DEAD);
+        return -1;
+      }
       else
         h->rbuf = &h->sbuf.or.payload.context;
       h->rlen = len;
