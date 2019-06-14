@@ -33,6 +33,9 @@
    * check the magic in CHECK_SIMPLE_OR_STRUCTURED_REPLY below.
    * This works because the structured_reply header is larger.
    */
+  assert (h->reply_cmd == NULL);
+  assert (h->rlen == 0);
+
   h->rbuf = &h->sbuf;
   h->rlen = sizeof h->sbuf.simple_reply;
 
@@ -69,22 +72,45 @@
   return 0;
 
  REPLY.CHECK_SIMPLE_OR_STRUCTURED_REPLY:
+  struct command_in_flight *cmd;
   uint32_t magic;
+  uint64_t handle;
 
   magic = be32toh (h->sbuf.simple_reply.magic);
   if (magic == NBD_SIMPLE_REPLY_MAGIC) {
     SET_NEXT_STATE (%SIMPLE_REPLY.START);
-    return 0;
   }
   else if (magic == NBD_STRUCTURED_REPLY_MAGIC) {
     SET_NEXT_STATE (%STRUCTURED_REPLY.START);
-    return 0;
   }
   else {
     SET_NEXT_STATE (%.DEAD); /* We've probably lost synchronization. */
     set_error (0, "invalid reply magic");
     return -1;
   }
+
+  /* NB: This works for both simple and structured replies because the
+   * handle is stored at the same offset.
+   */
+  handle = be64toh (h->sbuf.simple_reply.handle);
+  /* Find the command amongst the commands in flight. */
+  for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
+    if (cmd->handle == handle)
+      break;
+  }
+  if (cmd == NULL) {
+    /* An unexpected structured reply could be skipped, since it
+     * includes a length; similarly an unexpected simple reply can be
+     * skipped if we assume it was not a read. However, it's more
+     * likely we've lost synchronization with the server.
+     */
+    SET_NEXT_STATE (%.DEAD);
+    set_error (0, "no matching handle found for server reply, "
+               "this is probably a bug in the server");
+    return -1;
+  }
+  h->reply_cmd = cmd;
+  return 0;
 
  REPLY.FINISH_COMMAND:
   struct command_in_flight *prev_cmd, *cmd;
@@ -102,6 +128,8 @@
       break;
   }
   assert (cmd != NULL);
+  assert (h->reply_cmd == cmd);
+  h->reply_cmd = NULL;
 
   /* Move it to the end of the cmds_done list. */
   if (prev_cmd != NULL)

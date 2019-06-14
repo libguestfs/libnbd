@@ -43,7 +43,7 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.CHECK:
-  struct command_in_flight *cmd;
+  struct command_in_flight *cmd = h->reply_cmd;
   uint16_t flags, type;
   uint64_t handle;
   uint32_t length;
@@ -53,20 +53,8 @@
   handle = be64toh (h->sbuf.sr.structured_reply.handle);
   length = be32toh (h->sbuf.sr.structured_reply.length);
 
-  /* Find the command amongst the commands in flight. */
-  for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
-    if (cmd->handle == handle)
-      break;
-  }
-  if (cmd == NULL) {
-    /* Unlike for simple replies, this is difficult to recover from.  We
-     * would need an extra state to read and ignore length bytes. XXX
-     */
-    SET_NEXT_STATE (%.DEAD);
-    set_error (0, "no matching handle found for server reply, "
-               "this is probably a bug in the server");
-    return -1;
-  }
+  assert (cmd);
+  assert (cmd->handle == handle);
 
   /* Reject a server that replies with too much information, but don't
    * reject a single structured reply to NBD_CMD_READ on the largest
@@ -224,8 +212,7 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_ERROR_TAIL:
-  struct command_in_flight *cmd;
-  uint64_t handle;
+  struct command_in_flight *cmd = h->reply_cmd;
   uint32_t error;
   uint64_t offset;
   uint16_t type;
@@ -233,15 +220,9 @@
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    handle = be64toh (h->sbuf.sr.structured_reply.handle);
     error = be32toh (h->sbuf.sr.payload.error.error.error);
     type = be16toh (h->sbuf.sr.structured_reply.type);
 
-    /* Find the command amongst the commands in flight. */
-    for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
-      if (cmd->handle == handle)
-        break;
-    }
     assert (cmd); /* guaranteed by CHECK */
 
     /* Sanity check that any error offset is in range */
@@ -267,23 +248,16 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_OFFSET_DATA:
-  struct command_in_flight *cmd;
-  uint64_t handle;
+  struct command_in_flight *cmd = h->reply_cmd;
   uint64_t offset;
   uint32_t length;
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    handle = be64toh (h->sbuf.sr.structured_reply.handle);
     length = be32toh (h->sbuf.sr.structured_reply.length);
     offset = be64toh (h->sbuf.sr.payload.offset_data.offset);
 
-    /* Find the command amongst the commands in flight. */
-    for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
-      if (cmd->handle == handle)
-        break;
-    }
     assert (cmd); /* guaranteed by CHECK */
 
     if (cmd->type != NBD_CMD_READ) {
@@ -336,23 +310,16 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_OFFSET_HOLE:
-  struct command_in_flight *cmd;
-  uint64_t handle;
+  struct command_in_flight *cmd = h->reply_cmd;
   uint64_t offset;
   uint32_t length;
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    handle = be64toh (h->sbuf.sr.structured_reply.handle);
     offset = be64toh (h->sbuf.sr.payload.offset_hole.offset);
     length = be32toh (h->sbuf.sr.payload.offset_hole.length);
 
-    /* Find the command amongst the commands in flight. */
-    for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
-      if (cmd->handle == handle)
-        break;
-    }
     assert (cmd); /* guaranteed by CHECK */
 
     if (cmd->type != NBD_CMD_READ) {
@@ -394,8 +361,7 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_BS_ENTRIES:
-  struct command_in_flight *cmd;
-  uint64_t handle;
+  struct command_in_flight *cmd = h->reply_cmd;
   uint32_t length;
   size_t i;
   uint32_t context_id;
@@ -404,16 +370,9 @@
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    handle = be64toh (h->sbuf.sr.structured_reply.handle);
     length = be32toh (h->sbuf.sr.structured_reply.length);
 
-    /* Find the command amongst the commands in flight. */
-    for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
-      if (cmd->handle == handle)
-        break;
-    }
-    /* guaranteed by CHECK */
-    assert (cmd);
+    assert (cmd); /* guaranteed by CHECK */
     assert (cmd->extent_fn);
     assert (h->bs_entries);
     assert (length >= 12);
@@ -460,8 +419,10 @@
   flags = be16toh (h->sbuf.sr.structured_reply.flags);
   if (flags & NBD_REPLY_FLAG_DONE)
     SET_NEXT_STATE (%^FINISH_COMMAND);
-  else
+  else {
+    h->reply_cmd = NULL;
     SET_NEXT_STATE (%.READY);
+  }
   return 0;
 
 } /* END STATE MACHINE */

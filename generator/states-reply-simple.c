@@ -20,24 +20,15 @@
 
 /* STATE MACHINE */ {
  REPLY.SIMPLE_REPLY.START:
-  struct command_in_flight *cmd;
+  struct command_in_flight *cmd = h->reply_cmd;
   uint32_t error;
   uint64_t handle;
 
   error = be32toh (h->sbuf.simple_reply.error);
   handle = be64toh (h->sbuf.simple_reply.handle);
 
-  /* Find the command amongst the commands in flight. */
-  for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
-    if (cmd->handle == handle)
-      break;
-  }
-  if (cmd == NULL) {
-    SET_NEXT_STATE (%.READY);
-    set_error (0, "no matching handle found for server reply, "
-               "this is probably a bug in the server");
-    return -1;
-  }
+  assert (cmd);
+  assert (cmd->handle == handle);
 
   if (cmd->type == NBD_CMD_READ && h->structured_replies) {
     set_error (0, "server sent unexpected simple reply for read");

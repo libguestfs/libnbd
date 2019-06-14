@@ -189,6 +189,8 @@ struct nbd_handle {
    * acknowledge them.
    */
   struct command_in_flight *cmds_to_issue, *cmds_in_flight, *cmds_done;
+  /* Current command during a REPLY cycle */
+  struct command_in_flight *reply_cmd;
 };
 
 struct meta_context {
