@@ -519,15 +519,8 @@ and newstyle_opt_set_meta_context_state_machine = [
 
   State {
     default_state with
-    name = "RECV_SKIP_PAYLOAD";
-    comment = "Ignore newstyle NBD_OPT_SET_META_CONTEXT option reply payload";
-    external_events = [ NotifyRead, "" ];
-  };
-
-  State {
-    default_state with
-    name = "FINISH";
-    comment = "Finish newstyle NBD_OPT_SET_META_CONTEXT option parsing";
+    name = "CHECK_REPLY";
+    comment = "Check newstyle NBD_OPT_SET_META_CONTEXT option reply";
     external_events = [];
   };
 ]

@@ -30,7 +30,7 @@
   if (!h->structured_replies ||
       h->request_meta_contexts == NULL ||
       nbd_internal_string_list_length (h->request_meta_contexts) == 0) {
-    SET_NEXT_STATE (%FINISH);
+    SET_NEXT_STATE (%^OPT_GO.START);
     return 0;
   }
 
@@ -139,67 +139,68 @@
   return 0;
 
  NEWSTYLE.OPT_SET_META_CONTEXT.RECV_REPLY:
-  uint64_t magic;
-  uint32_t option;
-  uint32_t reply;
   uint32_t len;
-  const uint32_t maxlen = sizeof h->sbuf.or.payload.context;
+  const uint32_t maxpayload = sizeof h->sbuf.or.payload.context;
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    magic = be64toh (h->sbuf.or.option_reply.magic);
-    option = be32toh (h->sbuf.or.option_reply.option);
-    reply = be32toh (h->sbuf.or.option_reply.reply);
+    /* Read the following payload if it is short enough to fit in the
+     * static buffer.  If it's too long, skip it.
+     */
     len = be32toh (h->sbuf.or.option_reply.replylen);
-    if (magic != NBD_REP_MAGIC || option != NBD_OPT_SET_META_CONTEXT) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "handshake: invalid option reply magic or option");
-      return -1;
-    }
-    switch (reply) {
-    case NBD_REP_ACK:           /* End of list of replies. */
-      if (len != 0) {
-        SET_NEXT_STATE (%.DEAD);
-        set_error (0, "handshake: invalid option reply length");
-        return -1;
-      }
-      SET_NEXT_STATE (%FINISH);
-      break;
-    case NBD_REP_META_CONTEXT:  /* A context. */
-      /* If it's too long, skip over it. */
-      if (len > maxlen)
-        h->rbuf = NULL;
-      else if (len <= sizeof h->sbuf.or.payload.context.context) {
-        /* A valid reply has at least one byte in payload.context.str */
-        set_error (0, "NBD_REP_META_CONTEXT reply length too small");
-        SET_NEXT_STATE (%.DEAD);
-        return -1;
-      }
-      else
-        h->rbuf = &h->sbuf.or.payload.context;
-      h->rlen = len;
-      SET_NEXT_STATE (%RECV_REPLY_PAYLOAD);
-      break;
-    default:
-      /* Anything else is an error, ignore it */
-      debug (h, "handshake: unexpected error from "
-             "NBD_OPT_SET_META_CONTEXT (%" PRIu32 ")", reply);
+    if (len <= maxpayload)
+      h->rbuf = &h->sbuf.or.payload;
+    else
       h->rbuf = NULL;
-      h->rlen = len;
-      SET_NEXT_STATE (%RECV_SKIP_PAYLOAD);
-    }
+    h->rlen = len;
+    SET_NEXT_STATE (%RECV_REPLY_PAYLOAD);
   }
   return 0;
 
  NEWSTYLE.OPT_SET_META_CONTEXT.RECV_REPLY_PAYLOAD:
-  struct meta_context *meta_context;
-  uint32_t len;
-
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
-  case 0:
-    if (h->rbuf != NULL) {
+  case 0:  SET_NEXT_STATE (%CHECK_REPLY);
+  }
+  return 0;
+
+ NEWSTYLE.OPT_SET_META_CONTEXT.CHECK_REPLY:
+  uint64_t magic;
+  uint32_t option;
+  uint32_t reply;
+  uint32_t len;
+  const size_t maxpayload = sizeof h->sbuf.or.payload.context;
+  struct meta_context *meta_context;
+
+  magic = be64toh (h->sbuf.or.option_reply.magic);
+  option = be32toh (h->sbuf.or.option_reply.option);
+  reply = be32toh (h->sbuf.or.option_reply.reply);
+  len = be32toh (h->sbuf.or.option_reply.replylen);
+  if (magic != NBD_REP_MAGIC || option != NBD_OPT_SET_META_CONTEXT) {
+    SET_NEXT_STATE (%.DEAD);
+    set_error (0, "handshake: invalid option reply magic or option");
+    return -1;
+  }
+  switch (reply) {
+  case NBD_REP_ACK:           /* End of list of replies. */
+    if (len != 0) {
+      SET_NEXT_STATE (%.DEAD);
+      set_error (0, "handshake: invalid option reply length");
+      return -1;
+    }
+    SET_NEXT_STATE (%^OPT_GO.START);
+    break;
+  case NBD_REP_META_CONTEXT:  /* A context. */
+    if (len > maxpayload)
+      debug (h, "skipping too large meta context");
+    else if (len <= sizeof h->sbuf.or.payload.context.context) {
+      /* A valid reply has at least one byte in payload.context.str */
+      set_error (0, "handshake: NBD_REP_META_CONTEXT reply length too small");
+      SET_NEXT_STATE (%.DEAD);
+      return -1;
+    }
+    else {
       len = be32toh (h->sbuf.or.option_reply.replylen);
 
       meta_context = malloc (sizeof *meta_context);
@@ -225,20 +226,15 @@
       h->meta_contexts = meta_context;
     }
     SET_NEXT_STATE (%PREPARE_FOR_REPLY);
+    break;
+  default:
+    /* Anything else is an error, ignore it */
+    /* XXX display any error message if NBD_REP_ERR_? */
+    debug (h, "handshake: unexpected error from "
+           "NBD_OPT_SET_META_CONTEXT (%" PRIu32 ")", reply);
+    SET_NEXT_STATE (%^OPT_GO.START);
+    break;
   }
-  return 0;
-
- NEWSTYLE.OPT_SET_META_CONTEXT.RECV_SKIP_PAYLOAD:
-  switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
-  case 0:  SET_NEXT_STATE (%FINISH);
-    /* XXX: capture instead of skip server's payload to NBD_REP_ERR*? */
-  }
-  return 0;
-
- NEWSTYLE.OPT_SET_META_CONTEXT.FINISH:
-  /* Jump to the next option. */
-  SET_NEXT_STATE (%^OPT_GO.START);
   return 0;
 
 } /* END STATE MACHINE */
