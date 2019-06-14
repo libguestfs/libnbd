@@ -69,13 +69,13 @@
   }
 
   if (NBD_REPLY_TYPE_IS_ERR (type)) {
-    if (length < sizeof h->sbuf.sr.payload.error) {
+    if (length < sizeof h->sbuf.sr.payload.error.error) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "too short length in structured reply error");
       return -1;
     }
-    h->rbuf = &h->sbuf.sr.payload.error;
-    h->rlen = sizeof h->sbuf.sr.payload.error;
+    h->rbuf = &h->sbuf.sr.payload.error.error;
+    h->rlen = sizeof h->sbuf.sr.payload.error.error;
     SET_NEXT_STATE (%RECV_ERROR);
     return 0;
   }
@@ -155,15 +155,15 @@
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     length = be32toh (h->sbuf.sr.structured_reply.length);
-    msglen = be16toh (h->sbuf.sr.payload.error.len);
-    if (msglen > length - sizeof h->sbuf.sr.payload.error) {
+    msglen = be16toh (h->sbuf.sr.payload.error.error.len);
+    if (msglen > length - sizeof h->sbuf.sr.payload.error.error ||
+        msglen > sizeof h->sbuf.sr.payload.error.msg) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "error message length too large");
       return -1;
     }
 
-    /* We skip the human readable error for now. XXX */
-    h->rbuf = NULL;
+    h->rbuf = h->sbuf.sr.payload.error.msg;
     h->rlen = msglen;
     SET_NEXT_STATE (%RECV_ERROR_MESSAGE);
   }
@@ -177,10 +177,14 @@
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
     length = be32toh (h->sbuf.sr.structured_reply.length);
-    msglen = be16toh (h->sbuf.sr.payload.error.len);
+    msglen = be16toh (h->sbuf.sr.payload.error.error.len);
     type = be16toh (h->sbuf.sr.structured_reply.type);
 
-    length -= sizeof h->sbuf.sr.payload.error - msglen;
+    length -= sizeof h->sbuf.sr.payload.error.error - msglen;
+
+    if (msglen)
+      debug (h, "structured error server message: %.*s", (int) msglen,
+             h->sbuf.sr.payload.error.msg);
 
     /* Special case two specific errors; ignore the tail for all others */
     h->rbuf = NULL;
@@ -194,12 +198,12 @@
       }
       break;
     case NBD_REPLY_TYPE_ERROR_OFFSET:
-      if (length != sizeof h->offset) {
+      if (length != sizeof h->sbuf.sr.payload.error.offset) {
         SET_NEXT_STATE (%.DEAD);
         set_error (0, "invalid error payload length");
         return -1;
       }
-      h->rbuf = &h->offset;
+      h->rbuf = &h->sbuf.sr.payload.error.offset;
       break;
     }
     SET_NEXT_STATE (%RECV_ERROR_TAIL);
@@ -218,7 +222,7 @@
   case 0:
     flags = be16toh (h->sbuf.sr.structured_reply.flags);
     handle = be64toh (h->sbuf.sr.structured_reply.handle);
-    error = be32toh (h->sbuf.sr.payload.error.error);
+    error = be32toh (h->sbuf.sr.payload.error.error.error);
 
     /* Find the command amongst the commands in flight. */
     for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
@@ -233,7 +237,7 @@
 
     /* Sanity check that any error offset is in range */
     if (error == NBD_REPLY_TYPE_ERROR_OFFSET) {
-      offset = be64toh (h->offset);
+      offset = be64toh (h->sbuf.sr.payload.error.offset);
       if (offset < cmd->offset || offset >= cmd->offset + cmd->count) {
         SET_NEXT_STATE (%.DEAD);
         set_error (0, "offset of error reply is out of bounds, "

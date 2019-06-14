@@ -136,7 +136,11 @@ struct nbd_handle {
       union {
         struct nbd_structured_reply_offset_data offset_data;
         struct nbd_structured_reply_offset_hole offset_hole;
-        struct nbd_structured_reply_error error;
+        struct {
+          struct nbd_structured_reply_error error;
+          char msg[NBD_MAX_STRING]; /* Common to all error types */
+          uint64_t offset; /* Only used for NBD_REPLY_TYPE_ERROR_OFFSET */
+        } __attribute__((packed)) error;
       } payload;
     }  __attribute__((packed)) sr;
     uint32_t cflags;
@@ -173,9 +177,6 @@ struct nbd_handle {
 
   /* When sending metadata contexts, this is used. */
   size_t querynum;
-
-  /* When receiving structured replies, this is used. */
-  uint64_t offset;
 
   /* When receiving block status, this is used. */
   uint32_t *bs_entries;
