@@ -45,20 +45,18 @@
   return 0;
 
  NEWSTYLE.OPT_STARTTLS.RECV_REPLY:
-  uint32_t len;
-
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    /* Discard the payload if there is one. */
-    len = be32toh (h->sbuf.or.option_reply.replylen);
-    h->rbuf = NULL;
-    h->rlen = len;
-    SET_NEXT_STATE (%SKIP_REPLY_PAYLOAD);
+    if (prepare_for_reply_payload (h, NBD_OPT_STARTTLS) == -1) {
+      SET_NEXT_STATE (%.DEAD);
+      return -1;
+    }
+    SET_NEXT_STATE (%RECV_REPLY_PAYLOAD);
   }
   return 0;
 
- NEWSTYLE.OPT_STARTTLS.SKIP_REPLY_PAYLOAD:
+ NEWSTYLE.OPT_STARTTLS.RECV_REPLY_PAYLOAD:
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:  SET_NEXT_STATE (%CHECK_REPLY);
@@ -66,29 +64,12 @@
   return 0;
 
  NEWSTYLE.OPT_STARTTLS.CHECK_REPLY:
-  uint64_t magic;
-  uint32_t option;
   uint32_t reply;
-  uint32_t len;
   struct socket *new_sock;
 
-  magic = be64toh (h->sbuf.or.option_reply.magic);
-  option = be32toh (h->sbuf.or.option_reply.option);
   reply = be32toh (h->sbuf.or.option_reply.reply);
-  len = be32toh (h->sbuf.or.option_reply.replylen);
-  if (magic != NBD_REP_MAGIC || option != NBD_OPT_STARTTLS) {
-    SET_NEXT_STATE (%.DEAD);
-    set_error (0, "handshake: invalid option reply magic or option");
-    return -1;
-  }
   switch (reply) {
   case NBD_REP_ACK:
-    if (len != 0) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "handshake: invalid option reply length");
-      return -1;
-    }
-
     new_sock = nbd_internal_crypto_create_session (h, h->sock);
     if (new_sock == NULL) {
       SET_NEXT_STATE (%.DEAD);

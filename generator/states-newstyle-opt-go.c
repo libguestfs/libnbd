@@ -77,21 +77,13 @@
   return 0;
 
  NEWSTYLE.OPT_GO.RECV_REPLY:
-  uint32_t len;
-  const size_t maxpayload = sizeof h->sbuf.or.payload;
-
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
-    /* Read the following payload if it is short enough to fit in the
-     * static buffer.  If it's too long, skip it.
-     */
-    len = be32toh (h->sbuf.or.option_reply.replylen);
-    if (len <= maxpayload)
-      h->rbuf = &h->sbuf.or.payload;
-    else
-      h->rbuf = NULL;
-    h->rlen = len;
+    if (prepare_for_reply_payload (h, NBD_OPT_GO) == -1) {
+      SET_NEXT_STATE (%.DEAD);
+      return -1;
+    }
     SET_NEXT_STATE (%RECV_REPLY_PAYLOAD);
   }
   return 0;
@@ -104,8 +96,6 @@
   return 0;
 
  NEWSTYLE.OPT_GO.CHECK_REPLY:
-  uint64_t magic;
-  uint32_t option;
   uint32_t reply;
   uint32_t len;
   const size_t maxpayload = sizeof h->sbuf.or.payload;
@@ -113,34 +103,18 @@
   uint64_t exportsize;
   uint16_t eflags;
 
-  magic = be64toh (h->sbuf.or.option_reply.magic);
-  option = be32toh (h->sbuf.or.option_reply.option);
   reply = be32toh (h->sbuf.or.option_reply.reply);
   len = be32toh (h->sbuf.or.option_reply.replylen);
-  if (magic != NBD_REP_MAGIC || option != NBD_OPT_GO) {
-    SET_NEXT_STATE (%.DEAD);
-    set_error (0, "handshake: invalid option reply magic or option");
-    return -1;
-  }
+
   switch (reply) {
   case NBD_REP_ACK:
-    if (len != 0) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "handshake: invalid option reply length");
-      return -1;
-    }
     SET_NEXT_STATE (%.READY);
     return 0;
   case NBD_REP_INFO:
-    if (len > maxpayload /* see RECV_NEWSTYLE_OPT_GO_REPLY */) {
+    if (len > maxpayload /* see RECV_NEWSTYLE_OPT_GO_REPLY */)
       debug (h, "skipping large NBD_REP_INFO");
-    }
-    else if (len < sizeof h->sbuf.or.payload.export.info) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "handshake: NBD_REP_INFO reply length too small");
-      return -1;
-    }
     else {
+      assert (len >= sizeof h->sbuf.or.payload.export.info);
       info = be16toh (h->sbuf.or.payload.export.info);
       switch (info) {
       case NBD_INFO_EXPORT:

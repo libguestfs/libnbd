@@ -373,8 +373,8 @@ and newstyle_opt_starttls_state_machine = [
 
   State {
     default_state with
-    name = "SKIP_REPLY_PAYLOAD";
-    comment = "Skip newstyle NBD_OPT_STARTTLS reply payload";
+    name = "RECV_REPLY_PAYLOAD";
+    comment = "Receive any newstyle NBD_OPT_STARTTLS reply payload";
     external_events = [ NotifyRead, "" ];
   };
 
@@ -425,8 +425,8 @@ and newstyle_opt_structured_reply_state_machine = [
 
   State {
     default_state with
-    name = "SKIP_REPLY_PAYLOAD";
-    comment = "Skip newstyle NBD_OPT_STRUCTURED_REPLY reply payload";
+    name = "RECV_REPLY_PAYLOAD";
+    comment = "Receive any newstyle NBD_OPT_STRUCTURED_REPLY reply payload";
     external_events = [ NotifyRead, "" ];
   };
 
