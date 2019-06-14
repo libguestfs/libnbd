@@ -174,6 +174,9 @@ struct nbd_handle {
   /* When sending metadata contexts, this is used. */
   size_t querynum;
 
+  /* When receiving structured replies, this is used. */
+  uint64_t offset;
+
   /* When receiving block status, this is used. */
   uint32_t *bs_entries;
 

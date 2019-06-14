@@ -149,21 +149,69 @@
   }
 
  REPLY.STRUCTURED_REPLY.RECV_ERROR:
+  uint32_t length, msglen;
+
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
   case 0:
+    length = be32toh (h->sbuf.sr.structured_reply.length);
+    msglen = be16toh (h->sbuf.sr.payload.error.len);
+    if (msglen > length - sizeof h->sbuf.sr.payload.error) {
+      SET_NEXT_STATE (%.DEAD);
+      set_error (0, "error message length too large");
+      return -1;
+    }
+
     /* We skip the human readable error for now. XXX */
     h->rbuf = NULL;
-    h->rlen = be16toh (h->sbuf.sr.payload.error.len);
+    h->rlen = msglen;
     SET_NEXT_STATE (%RECV_ERROR_MESSAGE);
   }
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_ERROR_MESSAGE:
+  uint32_t length, msglen;
+  uint16_t type;
+
+  switch (recv_into_rbuf (h)) {
+  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 0:
+    length = be32toh (h->sbuf.sr.structured_reply.length);
+    msglen = be16toh (h->sbuf.sr.payload.error.len);
+    type = be16toh (h->sbuf.sr.structured_reply.type);
+
+    length -= sizeof h->sbuf.sr.payload.error - msglen;
+
+    /* Special case two specific errors; ignore the tail for all others */
+    h->rbuf = NULL;
+    h->rlen = length;
+    switch (type) {
+    case NBD_REPLY_TYPE_ERROR:
+      if (length != 0) {
+        SET_NEXT_STATE (%.DEAD);
+        set_error (0, "error payload length too large");
+        return -1;
+      }
+      break;
+    case NBD_REPLY_TYPE_ERROR_OFFSET:
+      if (length != sizeof h->offset) {
+        SET_NEXT_STATE (%.DEAD);
+        set_error (0, "invalid error payload length");
+        return -1;
+      }
+      h->rbuf = &h->offset;
+      break;
+    }
+    SET_NEXT_STATE (%RECV_ERROR_TAIL);
+  }
+  return 0;
+
+ REPLY.STRUCTURED_REPLY.RECV_ERROR_TAIL:
   struct command_in_flight *cmd;
   uint16_t flags;
   uint64_t handle;
   uint32_t error;
+  uint64_t offset;
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
@@ -182,6 +230,20 @@
     /* Preserve first error encountered */
     if (cmd->error == 0)
       cmd->error = nbd_internal_errno_of_nbd_error (error);
+
+    /* Sanity check that any error offset is in range */
+    if (error == NBD_REPLY_TYPE_ERROR_OFFSET) {
+      offset = be64toh (h->offset);
+      if (offset < cmd->offset || offset >= cmd->offset + cmd->count) {
+        SET_NEXT_STATE (%.DEAD);
+        set_error (0, "offset of error reply is out of bounds, "
+                   "offset=%" PRIu64 ", cmd->offset=%" PRIu64 ", "
+                   "cmd->count=%" PRIu32 ", "
+                   "this is likely to be a bug in the server",
+                   offset, cmd->offset, cmd->count);
+        return -1;
+      }
+    }
 
     if (flags & NBD_REPLY_FLAG_DONE)
       SET_NEXT_STATE (%^FINISH_COMMAND);

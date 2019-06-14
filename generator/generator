@@ -773,6 +773,13 @@ and structured_reply_state_machine = [
 
   State {
     default_state with
+    name = "RECV_ERROR_TAIL";
+    comment = "Receive a structured reply error tail";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  State {
+    default_state with
     name = "RECV_OFFSET_DATA";
     comment = "Receive a structured reply offset-data header";
     external_events = [ NotifyRead, "" ];
