@@ -202,16 +202,17 @@
         SET_NEXT_STATE (%.DEAD);
         return -1;
       }
+      meta_context->context_id =
+        be32toh (h->sbuf.or.payload.context.context.context_id);
       /* String payload is not NUL-terminated. */
-      meta_context->name = strndup (h->sbuf.or.payload.context.str, len);
+      meta_context->name = strndup (h->sbuf.or.payload.context.str,
+                                    len - sizeof meta_context->context_id);
       if (meta_context->name == NULL) {
         set_error (errno, "strdup");
         SET_NEXT_STATE (%.DEAD);
         free (meta_context);
         return -1;
       }
-      meta_context->context_id =
-        be32toh (h->sbuf.or.payload.context.context.context_id);
       debug (h, "negotiated %s with context ID %" PRIu32,
              meta_context->name, meta_context->context_id);
       meta_context->next = h->meta_contexts;
