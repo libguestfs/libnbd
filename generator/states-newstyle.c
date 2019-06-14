@@ -64,9 +64,12 @@ prepare_for_reply_payload (struct nbd_handle *h, uint32_t opt)
   /* Read the following payload if it is short enough to fit in the
    * static buffer.  If it's too long, skip it.
    */
-  /* XXX Move to DEAD if len > MAX_REQUEST_SIZE */
   len = be32toh (h->sbuf.or.option_reply.replylen);
-  if (len <= maxpayload)
+  if (len > MAX_REQUEST_SIZE) {
+    set_error (0, "handshake: invalid option reply length");
+    return -1;
+  }
+  else if (len <= maxpayload)
     h->rbuf = &h->sbuf.or.payload;
   else
     h->rbuf = NULL;

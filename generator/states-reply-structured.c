@@ -68,6 +68,19 @@
     return -1;
   }
 
+  /* Reject a server that replies with too much information, but don't
+   * reject a single structured reply to NBD_CMD_READ on the largest
+   * size we were willing to send. The most likely culprit is a server
+   * that replies with block status with way too many extents, but any
+   * oversized reply is going to take long enough to resync that it is
+   * not worth keeping the connection alive.
+   */
+  if (length > MAX_REQUEST_SIZE + sizeof h->sbuf.sr.payload.offset_data) {
+    set_error (0, "invalid server reply length");
+    SET_NEXT_STATE (%.DEAD);
+    return -1;
+  }
+
   if (NBD_REPLY_TYPE_IS_ERR (type)) {
     if (length < sizeof h->sbuf.sr.payload.error.error) {
       SET_NEXT_STATE (%.DEAD);
