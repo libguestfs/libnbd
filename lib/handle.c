@@ -136,6 +136,11 @@ nbd_unlocked_set_export_name (struct nbd_handle *h, const char *export_name)
 {
   char *new_name;
 
+  if (strnlen (export_name, NBD_MAX_STRING + 1) > NBD_MAX_STRING) {
+    set_error (ENAMETOOLONG, "export name too long for NBD protocol");
+    return -1;
+  }
+
   new_name = strdup (export_name);
   if (!new_name) {
     set_error (errno, "strdup");
@@ -166,6 +171,11 @@ nbd_unlocked_add_meta_context (struct nbd_handle *h, const char *name)
   char *copy;
   size_t len;
   char **list;
+
+  if (strnlen (name, NBD_MAX_STRING + 1) > NBD_MAX_STRING) {
+    set_error (ENAMETOOLONG, "meta context name too long for NBD protocol");
+    return -1;
+  }
 
   copy = strdup (name);
   if (!copy) {

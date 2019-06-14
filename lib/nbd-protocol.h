@@ -45,6 +45,8 @@
  * these structures.
  */
 
+#define NBD_MAX_STRING 4096 /* Maximum length of a string field */
+
 /* Old-style handshake. */
 struct nbd_old_handshake {
   char nbdmagic[8];           /* "NBDMAGIC" */

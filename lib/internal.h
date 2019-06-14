@@ -34,7 +34,7 @@
 #include "unlocked.h"
 
 /* XXX This is the same as nbdkit, but probably it should be detected
- * from the server or made configurable.
+ * from the server (NBD_INFO_BLOCK_SIZE) or made configurable.
  */
 #define MAX_REQUEST_SIZE (64 * 1024 * 1024)
 
