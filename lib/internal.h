@@ -127,6 +127,7 @@ struct nbd_handle {
           struct nbd_fixed_new_option_reply_meta_context context;
           char str[NBD_MAX_STRING];
         }  __attribute__((packed)) context;
+        char err_msg[NBD_MAX_STRING];
       } payload;
     }  __attribute__((packed)) or;
     struct nbd_export_name_option_reply export_name_reply;

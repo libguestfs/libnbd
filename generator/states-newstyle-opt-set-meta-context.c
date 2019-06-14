@@ -200,7 +200,11 @@
     break;
   default:
     /* Anything else is an error, ignore it */
-    /* XXX display any error message if NBD_REP_ERR_? */
+    if (handle_reply_error (h) == -1) {
+      SET_NEXT_STATE (%.DEAD);
+      return -1;
+    }
+
     debug (h, "handshake: unexpected error from "
            "NBD_OPT_SET_META_CONTEXT (%" PRIu32 ")", reply);
     SET_NEXT_STATE (%^OPT_GO.START);

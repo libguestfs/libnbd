@@ -67,7 +67,11 @@
     h->structured_replies = true;
     break;
   default:
-    /* XXX: capture instead of skip server's payload to NBD_REP_ERR*? */
+    if (handle_reply_error (h) == -1) {
+      SET_NEXT_STATE (%.DEAD);
+      return -1;
+    }
+
     debug (h, "structured replies are not supported by this server");
     h->structured_replies = false;
     break;

@@ -83,9 +83,10 @@
     return 0;
 
   default:
-    if (!NBD_REP_IS_ERR (reply))
-      debug (h,
-             "server is confused by NBD_OPT_STARTTLS, continuing anyway");
+    if (handle_reply_error (h) == -1) {
+      SET_NEXT_STATE (%.DEAD);
+      return -1;
+    }
 
     /* Server refused to upgrade to TLS.  If h->tls is not require (2)
      * then we can continue unencrypted.
@@ -100,7 +101,6 @@
     debug (h,
            "server refused TLS (%s), continuing with unencrypted connection",
            reply == NBD_REP_ERR_POLICY ? "policy" : "not supported");
-    /* XXX: capture instead of skip server's payload to NBD_REP_ERR*? */
     SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
     return 0;
   }

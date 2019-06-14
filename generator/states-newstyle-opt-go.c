@@ -147,9 +147,10 @@
     SET_NEXT_STATE (%^OPT_EXPORT_NAME.START);
     return 0;
   default:
+    if (handle_reply_error (h) == 0)
+      set_error (0, "handshake: unknown reply from NBD_OPT_GO: 0x%" PRIx32,
+                 reply);
     SET_NEXT_STATE (%.DEAD);
-    set_error (0, "handshake: unknown reply from NBD_OPT_GO: 0x%" PRIx32,
-               reply);
     return -1;
   }
 

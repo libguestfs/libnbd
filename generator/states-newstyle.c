@@ -16,6 +16,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <assert.h>
+
 #include "internal.h"
 
 /* Common code for parsing a reply to NBD_OPT_*. */
@@ -74,6 +76,35 @@ prepare_for_reply_payload (struct nbd_handle *h, uint32_t opt)
   else
     h->rbuf = NULL;
   h->rlen = len;
+  return 0;
+}
+
+/* Check an unexpected server reply. If it is an error, log any
+ * message from the server and return 0; otherwise, return -1.
+ */
+static int
+handle_reply_error (struct nbd_handle *h)
+{
+  uint32_t len;
+  uint32_t reply;
+
+  len = be32toh (h->sbuf.or.option_reply.replylen);
+  reply = be32toh (h->sbuf.or.option_reply.reply);
+  if (!NBD_REP_IS_ERR (reply)) {
+    set_error (0, "handshake: unexpected option reply type %d", reply);
+    return -1;
+  }
+
+  assert (NBD_MAX_STRING < sizeof h->sbuf.or.payload);
+  if (len > NBD_MAX_STRING) {
+    set_error (0, "handshake: option error string too long");
+    return -1;
+  }
+
+  if (len > 0)
+    debug (h, "handshake: server error message: %.*s", (int) len,
+           h->sbuf.or.payload.err_msg);
+
   return 0;
 }
 
