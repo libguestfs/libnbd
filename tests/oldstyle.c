@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <string.h>
+#include <errno.h>
 
 #include <libnbd.h>
 
@@ -30,14 +31,56 @@
 #define XSTR(s) #s
 #define STR(s) XSTR(s)
 
+static char wbuf[512] = { 1, 2, 3, 4 }, rbuf[512];
+static const char *progname;
+
+static int
+pread_cb (void *data, const void *buf, size_t count, uint64_t offset,
+          int error, int status)
+{
+  int *calls = data;
+  ++*calls;
+
+  if (buf != rbuf || count != sizeof rbuf) {
+    fprintf (stderr, "%s: callback called with wrong buffer\n", progname);
+    exit (EXIT_FAILURE);
+  }
+  if (offset != 2 * sizeof rbuf) {
+    fprintf (stderr, "%s: callback called with wrong offset\n", progname);
+    exit (EXIT_FAILURE);
+  }
+  if (error != 0) {
+    fprintf (stderr, "%s: callback called with unexpected error\n", progname);
+    exit (EXIT_FAILURE);
+  }
+  if (status != LIBNBD_READ_DATA) {
+    fprintf (stderr, "%s: callback called with wrong status\n", progname);
+    exit (EXIT_FAILURE);
+  }
+
+  if (memcmp (rbuf, wbuf, sizeof rbuf) != 0) {
+    fprintf (stderr, "%s: DATA INTEGRITY ERROR!\n", progname);
+    exit (EXIT_FAILURE);
+  }
+
+  if (*calls > 1) {
+    errno = EPROTO; /* Something NBD servers can't send */
+    return -1;
+  }
+
+  return 0;
+}
+
 int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
-  char wbuf[512] = { 1, 2, 3, 4 }, rbuf[512];
   int64_t r;
   char *args[] = { "nbdkit", "-s", "-o", "--exit-with-parent", "-v",
                    "memory", "size=" STR(SIZE), NULL };
+  int calls = 0;
+
+  progname = argv[0];
 
   nbd = nbd_create ();
   if (nbd == NULL) {
@@ -61,18 +104,47 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  if (nbd_pwrite (nbd, wbuf, sizeof wbuf, 0, 0) == -1) {
+  /* Plain I/O */
+  if (nbd_pwrite (nbd, wbuf, sizeof wbuf, 2 * sizeof wbuf, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
-  if (nbd_pread (nbd, rbuf, sizeof rbuf, 0, 0) == -1) {
+  if (nbd_pread (nbd, rbuf, sizeof rbuf, 2 * sizeof rbuf, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   if (memcmp (rbuf, wbuf, sizeof rbuf) != 0) {
     fprintf (stderr, "%s: DATA INTEGRITY ERROR!\n", argv[0]);
+    exit (EXIT_FAILURE);
+  }
+
+  /* Test again for callback operation. */
+  memset (rbuf, 0, sizeof rbuf);
+  if (nbd_pread_structured (nbd, rbuf, sizeof rbuf, 2 * sizeof rbuf,
+                            &calls, pread_cb, 0) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  if (calls != 1) {
+    fprintf (stderr, "%s: callback called wrong number of times\n", argv[0]);
+    exit (EXIT_FAILURE);
+  }
+  if (memcmp (rbuf, wbuf, sizeof rbuf) != 0) {
+    fprintf (stderr, "%s: DATA INTEGRITY ERROR!\n", argv[0]);
+    exit (EXIT_FAILURE);
+  }
+
+  /* Also test that callback errors are reflected correctly. */
+  if (nbd_pread_structured (nbd, rbuf, sizeof rbuf, 2 * sizeof rbuf,
+                            &calls, pread_cb, 0) != -1) {
+    fprintf (stderr, "%s: expected failure from callback\n", argv[0]);
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_get_errno () != EPROTO) {
+    fprintf (stderr, "%s: wrong errno value after failed callback\n", argv[0]);
     exit (EXIT_FAILURE);
   }
 

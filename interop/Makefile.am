@@ -47,10 +47,12 @@ check_PROGRAMS += \
 	interop-qemu-nbd \
 	interop-qemu-nbd-tls-certs \
 	interop-qemu-nbd-tls-psk \
-	dirty-bitmap
+	dirty-bitmap \
+	structured-read
 TESTS += \
 	interop-qemu-nbd \
-	dirty-bitmap.sh
+	dirty-bitmap.sh \
+	structured-read.sh
 
 # tls tests assume the pre-existence of files created in ../tests/Makefile.am,
 # so we can only run them under the same conditions used there
@@ -106,6 +108,11 @@ dirty_bitmap_SOURCES = dirty-bitmap.c
 dirty_bitmap_CPPFLAGS = -I$(top_srcdir)/include
 dirty_bitmap_CFLAGS = $(WARNINGS_CFLAGS)
 dirty_bitmap_LDADD = $(top_builddir)/lib/libnbd.la
+
+structured_read_SOURCES = structured-read.c
+structured_read_CPPFLAGS = -I$(top_srcdir)/include
+structured_read_CFLAGS = $(WARNINGS_CFLAGS)
+structured_read_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_QEMU_NBD
 

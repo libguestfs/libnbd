@@ -53,6 +53,7 @@ Makefile.in
 /interop/interop-qemu-nbd
 /interop/interop-qemu-nbd-tls-certs
 /interop/interop-qemu-nbd-tls-psk
+/interop/structured-read
 /lib/api.c
 /lib/libnbd.pc
 /lib/libnbd.syms
