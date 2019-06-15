@@ -93,9 +93,9 @@ if HAVE_OCAMLOPT
 	$(OCAMLFIND) ocamlopt $(OCAMLFLAGS) -cclib -L$(top_builddir)/lib/.libs -I . -package unix -linkpkg mlnbd.cmxa $< -o $@
 endif
 
-endif HAVE_OCAML
-
 # Dependencies.
 .depend: $(srcdir)/*.mli $(srcdir)/*.ml
 	$(OCAMLFIND) ocamldep $^ > $@
 -include .depend
+
+endif HAVE_OCAML
