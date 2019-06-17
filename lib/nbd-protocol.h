@@ -202,7 +202,7 @@ struct nbd_structured_reply_offset_hole {
 struct nbd_structured_reply_error {
   uint32_t error;               /* NBD_E* error number */
   uint16_t len;                 /* Length of human readable error. */
-  /* Followed by human readable error string. */
+  /* Followed by human readable error string, and possibly more structure. */
 } __attribute__((packed));
 
 #define NBD_REQUEST_MAGIC           0x25609513

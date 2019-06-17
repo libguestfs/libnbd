@@ -193,7 +193,7 @@
     msglen = be16toh (h->sbuf.sr.payload.error.error.len);
     type = be16toh (h->sbuf.sr.structured_reply.type);
 
-    length -= sizeof h->sbuf.sr.payload.error.error - msglen;
+    length -= sizeof h->sbuf.sr.payload.error.error + msglen;
 
     if (msglen)
       debug (h, "structured error server message: %.*s", (int) msglen,
