@@ -229,6 +229,7 @@
   uint64_t handle;
   uint32_t error;
   uint64_t offset;
+  uint16_t type;
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
@@ -236,6 +237,7 @@
     flags = be16toh (h->sbuf.sr.structured_reply.flags);
     handle = be64toh (h->sbuf.sr.structured_reply.handle);
     error = be32toh (h->sbuf.sr.payload.error.error.error);
+    type = be16toh (h->sbuf.sr.structured_reply.type);
 
     /* Find the command amongst the commands in flight. */
     for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
@@ -244,12 +246,8 @@
     }
     assert (cmd); /* guaranteed by CHECK */
 
-    /* Preserve first error encountered */
-    if (cmd->error == 0)
-      cmd->error = nbd_internal_errno_of_nbd_error (error);
-
     /* Sanity check that any error offset is in range */
-    if (error == NBD_REPLY_TYPE_ERROR_OFFSET) {
+    if (type == NBD_REPLY_TYPE_ERROR_OFFSET) {
       offset = be64toh (h->sbuf.sr.payload.error.offset);
       if (offset < cmd->offset || offset >= cmd->offset + cmd->count) {
         SET_NEXT_STATE (%.DEAD);
@@ -261,6 +259,10 @@
         return -1;
       }
     }
+
+    /* Preserve first error encountered */
+    if (cmd->error == 0)
+      cmd->error = nbd_internal_errno_of_nbd_error (error);
 
     if (flags & NBD_REPLY_FLAG_DONE)
       SET_NEXT_STATE (%^FINISH_COMMAND);
