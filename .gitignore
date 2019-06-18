@@ -44,6 +44,7 @@ Makefile.in
 /examples/threaded-reads-and-writes
 /examples/simple-fetch-first-sector
 /examples/simple-reads-and-writes
+/examples/strict-structured-reads
 /generator/generator-cache.v1
 /generator/stamp-generator
 /html/*.?.html

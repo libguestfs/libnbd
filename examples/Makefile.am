@@ -24,6 +24,7 @@ noinst_PROGRAMS = \
 	simple-fetch-first-sector \
 	simple-reads-and-writes \
 	threaded-reads-and-writes \
+	strict-structured-reads \
 	$(NULL)
 
 simple_fetch_first_sector_SOURCES = \
@@ -49,6 +50,19 @@ simple_reads_and_writes_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
 	$(NULL)
 simple_reads_and_writes_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(NULL)
+
+strict_structured_reads_SOURCES = \
+	strict-structured-reads.c \
+	$(NULL)
+strict_structured_reads_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	$(NULL)
+strict_structured_reads_CFLAGS = \
+	$(WARNINGS_CFLAGS) \
+	$(NULL)
+strict_structured_reads_LDADD = \
 	$(top_builddir)/lib/libnbd.la \
 	$(NULL)
 
