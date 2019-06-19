@@ -682,14 +682,14 @@ and reply_state_machine = [
     default_state with
     name = "START";
     comment = "Prepare to receive a reply from the remote server";
-    external_events = [ NotifyRead, "" ];
+    external_events = [];
   };
 
   State {
     default_state with
     name = "RECV_REPLY";
     comment = "Receive a reply from the remote server";
-    external_events = [ NotifyRead, "" ];
+    external_events = [];
   };
 
   State {
@@ -723,7 +723,7 @@ and simple_reply_state_machine = [
     default_state with
     name = "RECV_READ_PAYLOAD";
     comment = "Receiving the read payload for a simple reply";
-    external_events = [ NotifyRead, "" ];
+    external_events = [];
   };
 ]
 
@@ -740,7 +740,7 @@ and structured_reply_state_machine = [
     default_state with
     name = "RECV_REMAINING";
     comment = "Receiving the remaining part of a structured reply";
-    external_events = [ NotifyRead, "" ];
+    external_events = [];
   };
 
   State {
@@ -754,49 +754,49 @@ and structured_reply_state_machine = [
     default_state with
     name = "RECV_ERROR";
     comment = "Receive a structured reply error header";
-    external_events = [ NotifyRead, "" ];
+    external_events = []
   };
 
   State {
     default_state with
     name = "RECV_ERROR_MESSAGE";
     comment = "Receive a structured reply error message";
-    external_events = [ NotifyRead, "" ];
+    external_events = [];
   };
 
   State {
     default_state with
     name = "RECV_ERROR_TAIL";
     comment = "Receive a structured reply error tail";
-    external_events = [ NotifyRead, "" ];
+    external_events = [];
   };
 
   State {
     default_state with
     name = "RECV_OFFSET_DATA";
     comment = "Receive a structured reply offset-data header";
-    external_events = [ NotifyRead, "" ];
+    external_events = [];
   };
 
   State {
     default_state with
     name = "RECV_OFFSET_DATA_DATA";
     comment = "Receive a structured reply offset-data block of data";
-    external_events = [ NotifyRead, "" ];
+    external_events = [];
   };
 
   State {
     default_state with
     name = "RECV_OFFSET_HOLE";
     comment = "Receive a structured reply offset-hole header";
-    external_events = [ NotifyRead, "" ];
+    external_events = [];
   };
 
   State {
     default_state with
     name = "RECV_BS_ENTRIES";
     comment = "Receive a structured reply block-status payload";
-    external_events = [ NotifyRead, "" ];
+    external_events = [];
   };
 
   State {

@@ -16,10 +16,43 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* State machine for receiving reply messages from the server. */
+#include <assert.h>
+
+/* State machine for receiving reply messages from the server.
+ *
+ * Note that we never block while in this sub-group. If there is
+ * insufficient data to finish parsing a reply, requiring us to block
+ * until POLLIN, we instead track where in the state machine we left
+ * off, then return to READY to actually block. Then, on entry to
+ * REPLY.START, we can tell if this is the start of a new reply (rlen
+ * is 0, stay put), a continuation of the preamble (reply_cmd is NULL,
+ * resume with RECV_REPLY), or a continuation from any other location
+ * (reply_cmd contains the state to jump to).
+ */
+
+static void
+save_reply_state (struct nbd_handle *h)
+{
+  assert (h->reply_cmd);
+  assert (h->rlen);
+  h->reply_cmd->state = get_next_state (h);
+}
+
+/*----- End of prologue. -----*/
 
 /* STATE MACHINE */ {
  REPLY.START:
+  /* If rlen is non-zero, we are resuming an earlier reply cycle. */
+  if (h->rlen > 0) {
+    if (h->reply_cmd) {
+      assert (nbd_internal_is_state_processing (h->reply_cmd->state));
+      SET_NEXT_STATE (h->reply_cmd->state);
+    }
+    else
+      SET_NEXT_STATE (%RECV_REPLY);
+    return 0;
+  }
+
   /* This state is entered when a read notification is received in the
    * READY state.  Therefore we know the socket is readable here.
    * Reading a zero length now would indicate that the socket has been
@@ -67,6 +100,7 @@
  REPLY.RECV_REPLY:
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 1: SET_NEXT_STATE (%.READY); return 0;
   case 0: SET_NEXT_STATE (%CHECK_SIMPLE_OR_STRUCTURED_REPLY);
   }
   return 0;

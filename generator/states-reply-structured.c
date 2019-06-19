@@ -38,6 +38,10 @@
  REPLY.STRUCTURED_REPLY.RECV_REMAINING:
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 1:
+    save_reply_state (h);
+    SET_NEXT_STATE (%.READY);
+    return 0;
   case 0:  SET_NEXT_STATE (%CHECK);
   }
   return 0;
@@ -158,6 +162,10 @@
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 1:
+    save_reply_state (h);
+    SET_NEXT_STATE (%.READY);
+    return 0;
   case 0:
     length = be32toh (h->sbuf.sr.structured_reply.length);
     msglen = be16toh (h->sbuf.sr.payload.error.error.len);
@@ -180,6 +188,10 @@
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 1:
+    save_reply_state (h);
+    SET_NEXT_STATE (%.READY);
+    return 0;
   case 0:
     length = be32toh (h->sbuf.sr.structured_reply.length);
     msglen = be16toh (h->sbuf.sr.payload.error.error.len);
@@ -223,6 +235,10 @@
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 1:
+    save_reply_state (h);
+    SET_NEXT_STATE (%.READY);
+    return 0;
   case 0:
     error = be32toh (h->sbuf.sr.payload.error.error.error);
     type = be16toh (h->sbuf.sr.structured_reply.type);
@@ -279,6 +295,10 @@
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 1:
+    save_reply_state (h);
+    SET_NEXT_STATE (%.READY);
+    return 0;
   case 0:
     length = be32toh (h->sbuf.sr.structured_reply.length);
     offset = be64toh (h->sbuf.sr.payload.offset_data.offset);
@@ -335,6 +355,10 @@
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 1:
+    save_reply_state (h);
+    SET_NEXT_STATE (%.READY);
+    return 0;
   case 0:
     length = be32toh (h->sbuf.sr.structured_reply.length);
     offset = be64toh (h->sbuf.sr.payload.offset_data.offset);
@@ -360,6 +384,10 @@
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 1:
+    save_reply_state (h);
+    SET_NEXT_STATE (%.READY);
+    return 0;
   case 0:
     offset = be64toh (h->sbuf.sr.payload.offset_hole.offset);
     length = be32toh (h->sbuf.sr.payload.offset_hole.length);
@@ -426,6 +454,10 @@
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case 1:
+    save_reply_state (h);
+    SET_NEXT_STATE (%.READY);
+    return 0;
   case 0:
     length = be32toh (h->sbuf.sr.structured_reply.length);
 

@@ -253,6 +253,7 @@ struct command_in_flight {
   uint32_t count;
   void *data; /* Buffer for read/write */
   struct command_cb cb;
+  enum state state; /* State to resume with on next POLLIN */
   bool data_seen; /* For read, true if at least one data chunk seen */
   uint32_t error; /* Local errno value */
 };
