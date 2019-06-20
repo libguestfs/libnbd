@@ -35,7 +35,7 @@ nbd_unlocked_poll (struct nbd_handle *h, int timeout)
 
   /* fd might be negative, and poll will ignore it. */
   fds[0].fd = nbd_unlocked_aio_get_fd (h);
-  switch (nbd_unlocked_aio_get_direction (h)) {
+  switch (nbd_internal_aio_get_direction (get_next_state (h))) {
   case LIBNBD_AIO_DIRECTION_READ:
     fds[0].events = POLLIN;
     break;

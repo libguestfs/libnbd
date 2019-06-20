@@ -319,6 +319,7 @@ extern int nbd_internal_run (struct nbd_handle *h, enum external_event ev);
 extern const char *nbd_internal_state_short_string (enum state state);
 extern enum state_group nbd_internal_state_group (enum state state);
 extern enum state_group nbd_internal_state_group_parent (enum state_group group);
+extern int nbd_internal_aio_get_direction (enum state state);
 
 #define set_next_state(h,next_state) ((h)->state) = (next_state)
 #define get_next_state(h) ((h)->state)

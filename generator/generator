@@ -2528,15 +2528,15 @@ let generate_lib_states_c () =
   pr "}\n";
   pr "\n";
 
-  pr "/* Returns whether in the current state read or write would be valid.\n";
+  pr "/* Returns whether in the given state read or write would be valid.\n";
   pr " * NB: is_locked = false, may_set_error = false.\n";
   pr " */\n";
   pr "int\n";
-  pr "nbd_unlocked_aio_get_direction (struct nbd_handle *h)\n";
+  pr "nbd_internal_aio_get_direction (enum state state)\n";
   pr "{\n";
   pr "  int r = 0;\n";
   pr "\n";
-  pr "  switch (get_next_state (h))\n";
+  pr "  switch (state)\n";
   pr "  {\n";
   List.iter (
     fun ({ parsed = { state_enum; events } }) ->

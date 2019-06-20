@@ -98,14 +98,14 @@ nbd_internal_is_state_closed (enum state state)
   return state == STATE_CLOSED;
 }
 
-/* The nbd_unlocked_aio_is_* calls are the public APIs
- * for reading the state of the handle.
+/* The nbd_unlocked_aio_is_* and nbd_unlocked_aio_get_direction calls are
+ * the public APIs for reading the state of the handle.
  *
  * They all have: is_locked = false, may_set_error = false.
  *
  * They all read the public state, not the real state.  Therefore you
  * SHOULD NOT call these functions from elsewhere in the library (use
- * nbd_internal_is_* instead).
+ * nbd_internal_is_* and nbd_internal_aio_get_direction instead).
  */
 
 int
@@ -142,4 +142,10 @@ int
 nbd_unlocked_aio_is_closed (struct nbd_handle *h)
 {
   return nbd_internal_is_state_closed (get_public_state (h));
+}
+
+int
+nbd_unlocked_aio_get_direction (struct nbd_handle *h)
+{
+  return nbd_internal_aio_get_direction (get_public_state (h));
 }
