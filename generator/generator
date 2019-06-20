@@ -1243,6 +1243,17 @@ Returns true if the server supports the zero command
 the server does not.";
   };
 
+  "can_df", {
+    default_call with
+    args = []; ret = RBool;
+    shortdesc = "does the server support the don't fragment flag to pread?";
+    longdesc = "\
+Returns true if the server supports structured reads with an
+ability to request a non-fragmented read (see C<nbd_pread_structured>,
+C<nbd_aio_pread_structured>).  Returns false if the server either lacks
+structured reads or if it does not support a non-fragmented read request.";
+  };
+
   "can_multi_conn", {
     default_call with
     args = []; ret = RBool;
@@ -1306,7 +1317,8 @@ at C<offset> and ending at C<offset> + C<count> - 1.  NBD
 can only read all or nothing using this call.  The call
 returns when the data has been read fully into C<buf> or there is an
 error.  See also C<nbd_pread_structured>, if finer visibility is
-required into the server's replies.
+required into the server's replies, or if you want to use
+C<LIBNBD_CMD_FLAG_DF>.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
@@ -1379,8 +1391,11 @@ the server obeyed the requirement that a read call must not have
 overlapping chunks and must not succeed without enough chunks to cover
 the entire request.
 
-The C<flags> parameter must be C<0> for now (it exists for future NBD
-protocol extensions).";
+The C<flags> parameter may be C<0> for no flags, or may contain
+C<LIBNBD_CMD_FLAG_DF> meaning that the server should not reply with
+more than one fragment (if that is supported - some servers cannot do
+this, see C<nbd_can_df>). Libnbd does not validate that the server
+actually obeys the flag.";
   };
 
   "pwrite", {
@@ -2025,6 +2040,7 @@ let constants = [
 
   "CMD_FLAG_FUA",        1 lsl 0;
   "CMD_FLAG_NO_HOLE",    1 lsl 1;
+  "CMD_FLAG_DF",         1 lsl 2;
   "CMD_FLAG_REQ_ONE",    1 lsl 3;
 
   "READ_DATA",           1;

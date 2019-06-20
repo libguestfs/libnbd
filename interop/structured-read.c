@@ -38,7 +38,7 @@ static const char *unixsocket;
 static char rbuf[1024];
 
 struct data {
-  //XXX  bool df;    /* input: true if DF flag was passed to request */
+  bool df;         /* input: true if DF flag was passed to request */
   int count;       /* input: count of expected remaining calls */
   bool fail;       /* input: true to return failure */
   bool seen_hole;  /* output: true if hole encountered */
@@ -60,15 +60,24 @@ read_cb (void *opaque, const void *bufv, size_t count, uint64_t offset,
 
   switch (status) {
   case LIBNBD_READ_DATA:
-    // XXX if (df...)
-    assert (buf == rbuf + 512);
-    assert (count == 512);
-    assert (offset == 2048 + 512);
-    assert (buf[0] == 1 && memcmp (buf, buf + 1, 511) == 0);
+    if (data->df) {
+      assert (buf == rbuf);
+      assert (count == 1024);
+      assert (offset == 2048);
+      assert (buf[0] == 0 && memcmp (buf, buf + 1, 511) == 0);
+      assert (buf[512] == 1 && memcmp (buf + 512, buf + 513, 511) == 0);
+    }
+    else {
+      assert (buf == rbuf + 512);
+      assert (count == 512);
+      assert (offset == 2048 + 512);
+      assert (buf[0] == 1 && memcmp (buf, buf + 1, 511) == 0);
+    }
     assert (!data->seen_data);
     data->seen_data = true;
     break;
   case LIBNBD_READ_HOLE:
+    assert (!data->df); /* Relies on qemu-nbd's behavior */
     assert (buf == rbuf);
     assert (count == 512);
     assert (offset == 2048);
@@ -134,7 +143,15 @@ main (int argc, char *argv[])
   }
   assert (data.seen_data && data.seen_hole);
 
-  // XXX Repeat with DF flag
+  /* Repeat with DF flag. */
+  memset (rbuf, 2, sizeof rbuf);
+  data = (struct data) { .df = true, .count = 1, };
+  if (nbd_pread_structured (nbd, rbuf, sizeof rbuf, 2048, &data, read_cb,
+                            LIBNBD_CMD_FLAG_DF) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  assert (data.seen_data && !data.seen_hole);
 
   /* Trigger a failed callback, to prove connection stays up. With
    * reads, all chunks trigger a callback even after failure, but the

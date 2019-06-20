@@ -35,6 +35,7 @@ nbd_internal_errno_of_nbd_error (uint32_t error)
   case NBD_ENOMEM: return ENOMEM;
   case NBD_EINVAL: return EINVAL;
   case NBD_ENOSPC: return ENOSPC;
+  case NBD_EOVERFLOW: return EOVERFLOW;
   case NBD_ESHUTDOWN: return ESHUTDOWN;
   default: return EINVAL;
   }

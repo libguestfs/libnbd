@@ -238,6 +238,10 @@ int64_t
 nbd_unlocked_aio_pread (struct nbd_handle *h, void *buf,
                         size_t count, uint64_t offset, uint32_t flags)
 {
+  /* We could silently accept flag DF, but it really only makes sense
+   * with callbacks, because otherwise there is no observable change
+   * except that the server may fail where it would otherwise succeed.
+   */
   if (flags != 0) {
     set_error (EINVAL, "invalid flag: %" PRIu32, flags);
     return -1;
@@ -254,12 +258,18 @@ nbd_unlocked_aio_pread_structured (struct nbd_handle *h, void *buf,
 {
   struct command_cb cb = { .opaque = opaque, .fn.read = read, };
 
-  if (flags != 0) {
+  if ((flags & ~LIBNBD_CMD_FLAG_DF) != 0) {
     set_error (EINVAL, "invalid flag: %" PRIu32, flags);
     return -1;
   }
 
-  return nbd_internal_command_common (h, 0, NBD_CMD_READ, offset, count,
+  if ((flags & LIBNBD_CMD_FLAG_DF) != 0 &&
+      nbd_unlocked_can_df (h) != 1) {
+    set_error (EINVAL, "server does not support the DF flag");
+    return -1;
+  }
+
+  return nbd_internal_command_common (h, flags, NBD_CMD_READ, offset, count,
                                       buf, &cb);
 }
 

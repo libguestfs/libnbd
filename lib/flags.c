@@ -42,6 +42,11 @@ nbd_internal_set_size_and_flags (struct nbd_handle *h,
     return -1;
   }
 
+  if (eflags & NBD_FLAG_SEND_DF && !h->structured_replies) {
+    debug (h, "server lacks structured replies, ignoring claim of df");
+    eflags &= ~NBD_FLAG_SEND_DF;
+  }
+
   h->exportsize = exportsize;
   h->eflags = eflags;
   return 0;
@@ -93,6 +98,12 @@ int
 nbd_unlocked_can_zero (struct nbd_handle *h)
 {
   return get_flag (h, NBD_FLAG_SEND_WRITE_ZEROES);
+}
+
+int
+nbd_unlocked_can_df (struct nbd_handle *h)
+{
+  return get_flag (h, NBD_FLAG_SEND_DF);
 }
 
 int

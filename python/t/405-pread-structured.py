@@ -35,3 +35,9 @@ buf = h.pread_structured (512, 0, 42, f)
 print ("%r" % buf)
 
 assert buf == expected
+
+buf = h.pread_structured (512, 0, 42, f, nbd.CMD_FLAG_DF)
+
+print ("%r" % buf)
+
+assert buf == expected
