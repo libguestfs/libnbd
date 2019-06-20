@@ -4,7 +4,7 @@ let () =
   let nbd = NBD.create () in
   NBD.add_meta_context nbd "base:allocation";
   NBD.connect_command nbd
-                      ["nbdkit"; "-s"; "--exit-with-parent"; "memory"; "128K"];
+                      ["nbdkit"; "-s"; "--exit-with-parent"; "memory"; "size=128K"];
 
   (* Write some sectors. *)
   let data_sector = Bytes.make 512 'a' in
