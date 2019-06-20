@@ -275,17 +275,18 @@ extern const char *nbd_internal_get_error_context (void);
 extern void nbd_internal_set_last_error (int errnum, char *error);
 #define set_error(errnum, fs, ...)                                      \
   do {                                                                  \
+    int _e = (errnum);                                                  \
     const char *_context =                                              \
       nbd_internal_get_error_context () ? : "unknown";                  \
     char *_errp;                                                        \
     int _r;                                                             \
-    if ((errnum) == 0)                                                  \
+    if (_e == 0)                                                        \
       _r = asprintf (&_errp, "%s: " fs, _context, ##__VA_ARGS__);       \
     else                                                                \
       _r = asprintf (&_errp, "%s: " fs ": %s",                          \
-                     _context, ##__VA_ARGS__, strerror ((errnum)));     \
+                     _context, ##__VA_ARGS__, strerror (_e));           \
     if (_r >= 0)                                                        \
-      nbd_internal_set_last_error ((errnum), _errp);                    \
+      nbd_internal_set_last_error (_e, _errp);                          \
   } while (0)
 
 /* flags.c */
