@@ -1827,11 +1827,30 @@ data to the server, or both.  It returns
 
 =over 4
 
+=item 0
+
+We are not expected to interact with the server file descriptor from
+the current state. It is not worth attempting to use L<poll(2)>; if
+the connection is not dead, then state machine progress must instead
+come from some other means such as C<nbd_aio_connect>.
+
 =item C<LIBNBD_AIO_DIRECTION_READ> = 1
 
 We are expected next to read from the server.  If using L<poll(2)>
 you would set C<events = POLLIN>.  If C<revents> returns C<POLLIN>
 you would then call C<nbd_aio_notify_read>.
+
+Note that once libnbd reaches C<nbd_aio_is_ready>, this direction is
+returned even before a command is issued via C<nbd_aio_pwrite> and
+friends. In a single-threaded use of libnbd, it is not worth polling
+until after issuing a command, as otherwise the server will never wake
+up the poll. In a multi-threaded scenario, you can have one thread
+begin a polling loop prior to any commands, but any other thread that
+issues a command will need a way to kick the polling thread out of
+poll in case issuing the command changes the needed polling
+direction. Possible ways to do this include polling for activity on a
+pipe-to-self, or using L<pthread_kill(3)> to send a signal that is
+masked except during L<ppoll(2)>.
 
 =item C<LIBNBD_AIO_DIRECTION_WRITE> = 2
 
@@ -1841,13 +1860,12 @@ you would then call C<nbd_aio_notify_write>.
 
 =item C<LIBNBD_AIO_DIRECTION_BOTH> = 3
 
-We are expected next to either read or write to the server.
-If using L<poll(2)> you would set C<events = POLLIN|POLLOUT>.
-If one of C<POLLIN> or C<POLLOUT> is returned, then see above.
-However note that you shouldn't call C<nbd_aio_notify_read>
-and C<nbd_aio_notify_write> because calling the first one will
-change the state of the connection, possibly invalidating the second
-notification.
+We are expected next to either read or write to the server.  If using
+L<poll(2)> you would set C<events = POLLIN|POLLOUT>.  If only one of
+C<POLLIN> or C<POLLOUT> is returned, then see above.  However, if both
+are returned, it is better to call only C<nbd_aio_notify_read>, as
+processing the server's reply may change the state of the connection
+and invalidate the need to write more commands.
 
 =back";
   };
