@@ -3260,7 +3260,8 @@ let print_python_binding name { args; ret } =
             pr "  PyObject *py_%s = PyList_New (%s);\n" n len;
             pr "  for (size_t i = 0; i < %s; ++i)\n" len;
             pr "    PyList_SET_ITEM (py_%s, i, PyLong_FromUnsignedLong (%s[i]));\n" n n
-         | BytesIn _ -> ()
+         | BytesIn _
+         | Int _ -> ()
          | Opaque n ->
             pr "  struct %s_%s_data *_data = %s;\n" name cb_name n
          | String n
@@ -3268,7 +3269,7 @@ let print_python_binding name { args; ret } =
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesOut _
          | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
-         | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | Flags _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> assert false
        ) args;
        pr "\n";
@@ -3278,13 +3279,14 @@ let print_python_binding name { args; ret } =
          function
          | ArrayAndLen (UInt32 n, len) -> pr " \"O\""
          | BytesIn (n, len) -> pr " \"y#\""
+         | Int n -> pr " \"i\""
          | Opaque n -> pr " \"O\""
          | String n -> pr " \"s\""
          | UInt64 n -> pr " \"K\""
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesOut _
          | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
-         | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | Flags _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> assert false
        ) args;
        pr " \")\"";
@@ -3293,12 +3295,13 @@ let print_python_binding name { args; ret } =
          | ArrayAndLen (UInt32 n, _) -> pr ", py_%s" n
          | BytesIn (n, len) -> pr ", %s, (int) %s" n len
          | Opaque _ -> pr ", _data->data"
+         | Int n
          | String n
          | UInt64 n -> pr ", %s" n
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesOut _
          | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
-         | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | Flags _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> assert false
        ) args;
        pr ");\n";
@@ -3328,13 +3331,14 @@ let print_python_binding name { args; ret } =
          | ArrayAndLen (UInt32 n, _) ->
             pr "  Py_DECREF (py_%s);\n" n
          | BytesIn _
+         | Int _
+         | Opaque _
          | String _
-         | UInt64 _
-         | Opaque _ -> ()
+         | UInt64 _ -> ()
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesOut _
          | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
-         | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | Flags _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> assert false
        ) args;
        pr "  return ret;\n";
@@ -3985,13 +3989,13 @@ let print_ocaml_binding (name, { args; ret }) =
          List.map (
            function
            | ArrayAndLen (UInt32 n, _) | BytesIn (n, _)
-           | String n | UInt64 n | Opaque n ->
+           | Int n | Opaque n | String n | UInt64 n ->
               n ^ "v"
            (* The following not yet implemented for callbacks XXX *)
            | ArrayAndLen _ | Bool _ | BytesOut _
            | BytesPersistIn _ | BytesPersistOut _
            | Callback _ | CallbackPersist _
-           | Flags _ | Int _ | Int64 _ | Path _
+           | Flags _ | Int64 _ | Path _
            | SockAddrAndLen _ | StringList _
            | UInt _ | UInt32 _ -> assert false
          ) args in
@@ -4017,6 +4021,8 @@ let print_ocaml_binding (name, { args; ret }) =
          | BytesIn (n, len) ->
             pr "  %sv = caml_alloc_string (%s);\n" n len;
             pr "  memcpy (String_val (%sv), %s, %s);\n" n n len
+         | Int n ->
+            pr "  %sv = Val_int (%s);\n" n n
          | String n ->
             pr "  %sv = caml_copy_string (%s);\n" n n
          | UInt64 n ->
@@ -4028,7 +4034,7 @@ let print_ocaml_binding (name, { args; ret }) =
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesOut _
          | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
-         | Flags _ | Int _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | Flags _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> assert false
        ) args;
 
