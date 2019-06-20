@@ -25,12 +25,17 @@
   assert (h->cmds_to_issue != NULL);
   cmd = h->cmds_to_issue;
 
-  /* Were we interrupted by reading a reply to an earlier command? */
+  /* Were we interrupted by reading a reply to an earlier command? If
+   * so, we can only get back here after a non-blocking jaunt through
+   * the REPLY engine, which means we are unlikely to be unblocked for
+   * writes yet; we want to advance back to the correct state but
+   * without trying a send_from_wbuf that will likely return 1.
+   */
   if (h->wlen) {
     if (h->in_write_payload)
-      SET_NEXT_STATE(%SEND_WRITE_PAYLOAD);
+      SET_NEXT_STATE_AND_BLOCK (%SEND_WRITE_PAYLOAD);
     else
-      SET_NEXT_STATE(%SEND_REQUEST);
+      SET_NEXT_STATE_AND_BLOCK (%SEND_REQUEST);
     return 0;
   }
 

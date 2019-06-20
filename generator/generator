@@ -2541,6 +2541,7 @@ let generate_lib_states_c () =
   pr "%s\n" state_machine_prologue;
   pr "\n";
   pr "#define SET_NEXT_STATE(s) (*blocked = false, *next_state = (s))\n";
+  pr "#define SET_NEXT_STATE_AND_BLOCK(s) (*next_state = (s))\n";
   pr "\n";
 
   (* The state machine C code fragments. *)
