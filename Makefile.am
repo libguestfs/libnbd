@@ -38,6 +38,8 @@ SUBDIRS = \
 	ocaml/examples \
 	interop
 
+noinst_SCRIPTS = run
+
 # Check no files are missing from EXTRA_DIST rules, and that all
 # generated files have been included in the tarball.  (Note you must
 # have done 'make dist')

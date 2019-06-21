@@ -67,6 +67,10 @@ prepend PYTHONPATH "$b/python"
 prepend PYTHONPATH "$s/python"
 export PYTHONPATH
 
+# For OCaml.
+prepend CAML_LD_LIBRARY_PATH "$b/ocaml"
+export CAML_LD_LIBRARY_PATH
+
 # This is a cheap way to find some use-after-free and uninitialized
 # read problems when using glibc.
 random_val="$(@AWK@ 'BEGIN{srand(); print 1+int(255*rand())}' < /dev/null)"
