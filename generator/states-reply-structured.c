@@ -230,9 +230,11 @@
     assert (cmd); /* guaranteed by CHECK */
 
     /* The spec requires the server to send a non-zero error */
-    if (error == NBD_SUCCESS)
+    if (error == NBD_SUCCESS) {
       debug (h, "server forgot to set error; using EINVAL");
-    error = nbd_internal_errno_of_nbd_error (error ? error : EINVAL);
+      error = NBD_EINVAL;
+    }
+    error = nbd_internal_errno_of_nbd_error (error);
 
     /* Sanity check that any error offset is in range */
     if (type == NBD_REPLY_TYPE_ERROR_OFFSET) {
