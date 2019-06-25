@@ -843,6 +843,7 @@ and arg =
 | Flags of string          (* NBD_CMD_FLAG_* flags *)
 | Int of string            (* small int *)
 | Int64 of string          (* 64 bit signed int *)
+| Mutable of arg           (* mutable argument, eg. int* *)
 | Opaque of string         (* opaque object, void* in C *)
 | Path of string           (* filename or path *)
 | SockAddrAndLen of string * string (* struct sockaddr * + socklen_t *)
@@ -2862,6 +2863,7 @@ let rec name_of_arg = function
 | Int n -> [n]
 | Int64 n -> [n]
 | Opaque n -> [n]
+| Mutable arg -> name_of_arg arg
 | Path n -> [n]
 | SockAddrAndLen (n, len) -> [n; len]
 | String n -> [n]
@@ -2895,6 +2897,8 @@ let rec print_c_arg_list ?(handle = false) args =
       | Flags n -> pr "uint32_t %s" n
       | Int n -> pr "int %s" n
       | Int64 n -> pr "int64_t %s" n
+      | Mutable (Int n) -> pr "int *%s" n
+      | Mutable arg -> assert false
       | Opaque n -> pr "void *%s" n
       | Path n
       | String n -> pr "const char *%s" n
@@ -3439,14 +3443,24 @@ let print_python_binding name { args; ret } =
             pr "    PyList_SET_ITEM (py_%s, i, PyLong_FromUnsignedLong (%s[i]));\n" n n
          | BytesIn _
          | Int _ -> ()
+         | Mutable (Int n) ->
+            pr "  PyObject *py_%s_modname = PyUnicode_FromString (\"ctypes\");\n" n;
+            pr "  if (!py_%s_modname) { PyErr_PrintEx (0); return -1; }\n" n;
+            pr "  PyObject *py_%s_mod = PyImport_Import (py_%s_modname);\n" n n;
+            pr "  Py_DECREF (py_%s_modname);\n" n;
+            pr "  if (!py_%s_mod) { PyErr_PrintEx (0); return -1; }\n" n;
+            pr "  PyObject *py_%s = PyObject_CallMethod (py_%s_mod, \"c_int\", \"i\", *%s);\n" n n n;
+            pr "  if (!py_%s) { PyErr_PrintEx (0); return -1; }\n" n;
          | Opaque n ->
             pr "  struct %s_%s_data *_data = %s;\n" name cb_name n
          | String n
          | UInt64 n -> ()
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
-         | Flags _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | BytesPersistIn _ | BytesPersistOut _
+         | Callback _ | CallbackPersist _
+         | Flags _ | Int64 _ | Mutable _
+         | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> assert false
        ) args;
        pr "\n";
@@ -3457,13 +3471,16 @@ let print_python_binding name { args; ret } =
          | ArrayAndLen (UInt32 n, len) -> pr " \"O\""
          | BytesIn (n, len) -> pr " \"y#\""
          | Int n -> pr " \"i\""
+         | Mutable (Int n) -> pr " \"O\""
          | Opaque n -> pr " \"O\""
          | String n -> pr " \"s\""
          | UInt64 n -> pr " \"K\""
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
-         | Flags _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | BytesPersistIn _ | BytesPersistOut _
+         | Callback _ | CallbackPersist _
+         | Flags _ | Int64 _ | Mutable _
+         | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> assert false
        ) args;
        pr " \")\"";
@@ -3471,14 +3488,17 @@ let print_python_binding name { args; ret } =
          function
          | ArrayAndLen (UInt32 n, _) -> pr ", py_%s" n
          | BytesIn (n, len) -> pr ", %s, (int) %s" n len
+         | Mutable (Int n) -> pr ", py_%s" n
          | Opaque _ -> pr ", _data->data"
          | Int n
          | String n
          | UInt64 n -> pr ", %s" n
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
-         | Flags _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | BytesPersistIn _ | BytesPersistOut _
+         | Callback _ | CallbackPersist _
+         | Flags _ | Int64 _ | Mutable _
+         | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> assert false
        ) args;
        pr ");\n";
@@ -3507,6 +3527,11 @@ let print_python_binding name { args; ret } =
          function
          | ArrayAndLen (UInt32 n, _) ->
             pr "  Py_DECREF (py_%s);\n" n
+         | Mutable (Int n) ->
+            pr "  PyObject *py_%s_ret = PyObject_GetAttrString (py_%s, \"value\");\n" n n;
+            pr "  *%s = PyLong_AsLong (py_%s_ret);\n" n n;
+            pr "  Py_DECREF (py_%s_ret);\n" n;
+            pr "  Py_DECREF (py_%s);\n" n
          | BytesIn _
          | Int _
          | Opaque _
@@ -3514,8 +3539,10 @@ let print_python_binding name { args; ret } =
          | UInt64 _ -> ()
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
-         | Flags _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | BytesPersistIn _ | BytesPersistOut _
+         | Callback _ | CallbackPersist _
+         | Flags _ | Int64 _ | Mutable _
+         | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> assert false
        ) args;
        pr "  return ret;\n";
@@ -3569,6 +3596,8 @@ let print_python_binding name { args; ret } =
     | Int64 n ->
        pr "  int64_t %s_i64;\n" n;
        pr "  long long %s; /* really int64_t */\n" n
+    | Mutable arg ->
+       pr "  PyObject *%s;\n" (List.hd (name_of_arg arg))
     | Opaque _ -> ()
     | Path n -> pr "  char *%s = NULL;\n" n
     | SockAddrAndLen (n, _) ->
@@ -3610,6 +3639,7 @@ let print_python_binding name { args; ret } =
     | Int _
     | Int64 _
     | Opaque _
+    | Mutable _
     | Path _
     | SockAddrAndLen _
     | String _
@@ -3633,6 +3663,7 @@ let print_python_binding name { args; ret } =
     | Flags n -> pr " \"I\""
     | Int n -> pr " \"i\""
     | Int64 n -> pr " \"L\""
+    | Mutable _ -> pr " \"O\""
     | Opaque _ -> pr " \"O\""
     | Path n -> pr " \"O&\""
     | SockAddrAndLen (n, _) -> pr " \"O\""
@@ -3657,6 +3688,7 @@ let print_python_binding name { args; ret } =
     | Flags n -> pr ", &%s" n
     | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
+    | Mutable arg -> pr ", &%s" (List.hd (name_of_arg arg))
     | Opaque n -> pr ", &%s_data->data" (find_callback n)
     | Path n -> pr ", PyUnicode_FSConverter, &%s" n
     | SockAddrAndLen (n, _) -> pr ", &%s" n
@@ -3706,6 +3738,8 @@ let print_python_binding name { args; ret } =
     | Flags n -> pr "  %s_u32 = %s;\n" n n
     | Int _ -> ()
     | Int64 n -> pr "  %s_i64 = %s;\n" n n
+    | Mutable _ ->
+       pr "  abort (); /* Mutable for normal Python parameters not impl */\n"
     | Opaque n -> ()
     | Path _ -> ()
     | SockAddrAndLen _ ->
@@ -3734,6 +3768,7 @@ let print_python_binding name { args; ret } =
     | Flags n -> pr ", %s_u32" n
     | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
+    | Mutable arg -> pr ", /* XXX */ (void *) %s" (List.hd (name_of_arg arg))
     | Opaque n -> pr ", %s_data" (find_callback n)
     | Path n -> pr ", %s" n
     | SockAddrAndLen (n, _) -> pr ", /* XXX */ (void *) %s, 0" n
@@ -3768,6 +3803,7 @@ let print_python_binding name { args; ret } =
     | Flags _
     | Int _
     | Int64 _
+    | Mutable _
     | Opaque _
     | Path _
     | SockAddrAndLen _
@@ -3813,6 +3849,7 @@ let print_python_binding name { args; ret } =
     | Flags _ -> ()
     | Int _ -> ()
     | Int64 _ -> ()
+    | Mutable _ -> ()
     | Opaque _ -> ()
     | Path n -> pr "  free (%s);\n" n
     | SockAddrAndLen _ -> ()
@@ -3911,6 +3948,7 @@ class NBD (object):
                      | Flags n -> n, Some "0"
                      | Int n -> n, None
                      | Int64 n -> n, None
+                     | Mutable arg -> List.hd (name_of_arg arg), None
                      | Opaque n -> n, None
                      | Path n -> n, None
                      | SockAddrAndLen (n, _) -> n, None
@@ -4001,6 +4039,7 @@ and ocaml_arg_to_string = function
   | OCamlArg (Flags _) -> assert false (* see above *)
   | OCamlArg (Int _) -> "int"
   | OCamlArg (Int64 _) -> "int64"
+  | OCamlArg (Mutable arg) -> ocaml_arg_to_string (OCamlArg arg) ^ " ref"
   | OCamlArg (Opaque n) -> sprintf "'%s" n
   | OCamlArg (Path _) -> "string"
   | OCamlArg (SockAddrAndLen _) -> "string" (* XXX not impl *)
@@ -4166,13 +4205,13 @@ let print_ocaml_binding (name, { args; ret }) =
          List.map (
            function
            | ArrayAndLen (UInt32 n, _) | BytesIn (n, _)
-           | Int n | Opaque n | String n | UInt64 n ->
+           | Int n | Mutable (Int n) | Opaque n | String n | UInt64 n ->
               n ^ "v"
            (* The following not yet implemented for callbacks XXX *)
            | ArrayAndLen _ | Bool _ | BytesOut _
            | BytesPersistIn _ | BytesPersistOut _
            | Callback _ | CallbackPersist _
-           | Flags _ | Int64 _ | Path _
+           | Flags _ | Int64 _ | Path _ | Mutable _
            | SockAddrAndLen _ | StringList _
            | UInt _ | UInt32 _ -> assert false
          ) args in
@@ -4208,10 +4247,15 @@ let print_ocaml_binding (name, { args; ret }) =
             pr "  const struct callback_data *_%s = %s;\n" n n;
             pr "  fnv = *_%s->cb;\n" n;
             pr "  %sv = *_%s->data;\n" n n
+         | Mutable (Int n) ->
+            pr "  %sv = caml_alloc_tuple (1);\n" n;
+            pr "  Store_field (%sv, 0, Val_int (*%s));\n" n n
          (* The following not yet implemented for callbacks XXX *)
          | ArrayAndLen _ | Bool _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _ | Callback _ | CallbackPersist _
-         | Flags _ | Int64 _ | Path _ | SockAddrAndLen _ | StringList _
+         | BytesPersistIn _ | BytesPersistOut _
+         | Callback _ | CallbackPersist _
+         | Flags _ | Int64 _ | Mutable _
+         | Path _ | SockAddrAndLen _ | StringList _
          | UInt _ | UInt32 _ -> assert false
        ) args;
 
@@ -4230,6 +4274,15 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "             caml_format_exception (Extract_exception (rv)));\n";
        pr "    CAMLreturnT (int, -1);\n";
        pr "  }\n";
+
+       List.iter (
+         function
+         (* Mutable must be copied back to the C pointer. *)
+         | Mutable (Int n) ->
+            pr "  *%s = Int_val (Field (%sv, 0));\n" n n
+         | _ -> ()
+       ) args;
+
        pr "\n";
        pr "  CAMLreturnT (int, 0);\n";
        pr "}\n";
@@ -4336,6 +4389,7 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "  int %s = Int_val (%sv);\n" n n
     | OCamlArg (Int64 n) ->
        pr "  int64_t %s = Int64_val (%sv);\n" n n
+    | OCamlArg (Mutable _) -> assert false
     | OCamlArg (Opaque n) ->
        (match find_callback n with
         | Callback (cb_name, _) ->
@@ -4435,6 +4489,7 @@ let print_ocaml_binding (name, { args; ret }) =
     | OCamlArg (Flags _)
     | OCamlArg (Int _)
     | OCamlArg (Int64 _)
+    | OCamlArg (Mutable _)
     | OCamlArg (Opaque _)
     | OCamlArg (Path _)
     | OCamlArg (String _)
