@@ -61,11 +61,12 @@
     /* guaranteed by START */
     assert (cmd);
     if (cmd->cb.fn.read) {
+      int error = 0;
+
       assert (cmd->error == 0);
-      errno = 0;
       if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data, cmd->count,
-                           cmd->offset, 0, LIBNBD_READ_DATA) == -1)
-        cmd->error = errno ? errno : EPROTO;
+                           cmd->offset, &error, LIBNBD_READ_DATA) == -1)
+        cmd->error = error ? error : EPROTO;
     }
 
     SET_NEXT_STATE (%^FINISH_COMMAND);

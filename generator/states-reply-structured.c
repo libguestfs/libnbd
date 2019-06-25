@@ -292,15 +292,16 @@
         return -1;
       }
       if (cmd->type == NBD_CMD_READ && cmd->cb.fn.read) {
+        int scratch = error;
+
         /* Different from successful reads: inform the callback about the
          * current error rather than any earlier one. If the callback fails
          * without setting errno, then use the server's error below.
          */
-        errno = 0;
         if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data + (offset - cmd->offset),
-                             0, offset, error, LIBNBD_READ_ERROR) == -1)
+                             0, offset, &scratch, LIBNBD_READ_ERROR) == -1)
           if (cmd->error == 0)
-            cmd->error = errno;
+            cmd->error = scratch;
       }
     }
 
@@ -381,12 +382,13 @@
 
     assert (cmd); /* guaranteed by CHECK */
     if (cmd->cb.fn.read) {
-      errno = 0;
+      int error = cmd->error;
+
       if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data + (offset - cmd->offset),
-                           length - sizeof offset, offset, cmd->error,
+                           length - sizeof offset, offset, &error,
                            LIBNBD_READ_DATA) == -1)
         if (cmd->error == 0)
-          cmd->error = errno ? errno : EPROTO;
+          cmd->error = error ? error : EPROTO;
     }
 
     SET_NEXT_STATE (%FINISH);
@@ -441,12 +443,13 @@
      */
     memset (cmd->data + offset, 0, length);
     if (cmd->cb.fn.read) {
-      errno = 0;
+      int error = cmd->error;
+
       if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data + offset, length,
-                           cmd->offset + offset, cmd->error,
+                           cmd->offset + offset, &error,
                            LIBNBD_READ_HOLE) == -1)
         if (cmd->error == 0)
-          cmd->error = errno ? errno : EPROTO;
+          cmd->error = error ? error : EPROTO;
     }
 
     SET_NEXT_STATE(%FINISH);

@@ -36,7 +36,7 @@ static const char *progname;
 
 static int
 pread_cb (void *data, const void *buf, size_t count, uint64_t offset,
-          int error, int status)
+          int *error, int status)
 {
   int *calls = data;
   ++*calls;
@@ -49,7 +49,7 @@ pread_cb (void *data, const void *buf, size_t count, uint64_t offset,
     fprintf (stderr, "%s: callback called with wrong offset\n", progname);
     exit (EXIT_FAILURE);
   }
-  if (error != 0) {
+  if (*error != 0) {
     fprintf (stderr, "%s: callback called with unexpected error\n", progname);
     exit (EXIT_FAILURE);
   }
@@ -64,7 +64,7 @@ pread_cb (void *data, const void *buf, size_t count, uint64_t offset,
   }
 
   if (*calls > 1) {
-    errno = EPROTO; /* Something NBD servers can't send */
+    *error = ECONNREFUSED; /* Something NBD servers can't send */
     return -1;
   }
 
@@ -143,7 +143,7 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s: expected failure from callback\n", argv[0]);
     exit (EXIT_FAILURE);
   }
-  if (nbd_get_errno () != EPROTO) {
+  if (nbd_get_errno () != ECONNREFUSED) {
     fprintf (stderr, "%s: wrong errno value after failed callback\n", argv[0]);
     exit (EXIT_FAILURE);
   }

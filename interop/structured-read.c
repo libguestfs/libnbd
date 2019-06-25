@@ -47,7 +47,7 @@ struct data {
 
 static int
 read_cb (void *opaque, const void *bufv, size_t count, uint64_t offset,
-         int error, int status)
+         int *error, int status)
 {
   struct data *data = opaque;
   const char *buf = bufv;
@@ -55,7 +55,7 @@ read_cb (void *opaque, const void *bufv, size_t count, uint64_t offset,
   /* The NBD spec allows chunks to be reordered; we are relying on the
    * fact that qemu-nbd does not do so.
    */
-  assert (!error || (data->fail && data->count == 1));
+  assert (!*error || (data->fail && data->count == 1 && *error == EPROTO));
   assert (data->count-- > 0);
 
   switch (status) {
@@ -93,7 +93,7 @@ read_cb (void *opaque, const void *bufv, size_t count, uint64_t offset,
 
   if (data->fail) {
     /* Something NBD servers can't send */
-    errno = data->count == 1 ? EPROTO : ECONNREFUSED;
+    *error = data->count == 1 ? EPROTO : ECONNREFUSED;
     return -1;
   }
   return 0;
