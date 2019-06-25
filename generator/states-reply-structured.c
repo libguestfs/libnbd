@@ -103,6 +103,14 @@
      * 0-length replies are broken. Still, it's easy enough to support
      * them as an extension, so we use < instead of <=.
      */
+    if (cmd->type != NBD_CMD_READ) {
+      SET_NEXT_STATE (%.DEAD);
+      set_error (0, "invalid command for receiving offset-data chunk, "
+                 "cmd->type=%" PRIu16 ", "
+                 "this is likely to be a bug in the server",
+                 cmd->type);
+      return -1;
+    }
     if (length < sizeof h->sbuf.sr.payload.offset_data) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "too short length in NBD_REPLY_TYPE_OFFSET_DATA");
@@ -114,6 +122,14 @@
     return 0;
   }
   else if (type == NBD_REPLY_TYPE_OFFSET_HOLE) {
+    if (cmd->type != NBD_CMD_READ) {
+      SET_NEXT_STATE (%.DEAD);
+      set_error (0, "invalid command for receiving offset-hole chunk, "
+                 "cmd->type=%" PRIu16 ", "
+                 "this is likely to be a bug in the server",
+                 cmd->type);
+      return -1;
+    }
     if (length != sizeof h->sbuf.sr.payload.offset_hole) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "invalid length in NBD_REPLY_TYPE_OFFSET_HOLE");
@@ -125,6 +141,14 @@
     return 0;
   }
   else if (type == NBD_REPLY_TYPE_BLOCK_STATUS) {
+    if (cmd->type != NBD_CMD_BLOCK_STATUS) {
+      SET_NEXT_STATE (%.DEAD);
+      set_error (0, "invalid command for receiving block-status chunk, "
+                 "cmd->type=%" PRIu16 ", "
+                 "this is likely to be a bug in the server",
+                 cmd->type);
+      return -1;
+    }
     /* XXX We should be able to skip the bad reply in these two cases. */
     if (length < 12 || ((length-4) & 7) != 0) {
       SET_NEXT_STATE (%.DEAD);
@@ -267,7 +291,7 @@
                    offset, cmd->offset, cmd->count);
         return -1;
       }
-      if (cmd->cb.fn.read) {
+      if (cmd->type == NBD_CMD_READ && cmd->cb.fn.read) {
         /* Different from successful reads: inform the callback about the
          * current error rather than any earlier one. If the callback fails
          * without setting errno, then use the server's error below.
@@ -305,15 +329,7 @@
 
     assert (cmd); /* guaranteed by CHECK */
 
-    if (cmd->type != NBD_CMD_READ) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "invalid command for receiving offset-data chunk, "
-                 "cmd->type=%" PRIu16 ", "
-                 "this is likely to be a bug in the server",
-                 cmd->type);
-      return -1;
-    }
-    assert (cmd->data);
+    assert (cmd->data && cmd->type == NBD_CMD_READ);
     cmd->data_seen = true;
 
     /* Length of the data following. */
@@ -394,15 +410,7 @@
 
     assert (cmd); /* guaranteed by CHECK */
 
-    if (cmd->type != NBD_CMD_READ) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "invalid command for receiving offset-hole chunk, "
-                 "cmd->type=%" PRIu16 ", "
-                 "this is likely to be a bug in the server",
-                 cmd->type);
-      return -1;
-    }
-    assert (cmd->data);
+    assert (cmd->data && cmd->type == NBD_CMD_READ);
     cmd->data_seen = true;
 
     /* Is the data within bounds? */
@@ -462,6 +470,7 @@
     length = be32toh (h->sbuf.sr.structured_reply.length);
 
     assert (cmd); /* guaranteed by CHECK */
+    assert (cmd->type == NBD_CMD_BLOCK_STATUS);
     assert (cmd->cb.fn.extent);
     assert (h->bs_entries);
     assert (length >= 12);
