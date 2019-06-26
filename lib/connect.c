@@ -28,6 +28,7 @@
 #include <netinet/tcp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <assert.h>
 
 #ifdef HAVE_LIBXML2
 #include <libxml/uri.h>
@@ -275,6 +276,12 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
     goto cleanup;
   }
 
+  /* Insist on the scheme://[authority][/absname][?queries] form. */
+  if (strncmp (raw_uri + strlen (uri->scheme), "://", 3)) {
+    set_error (EINVAL, "URI must begin with '%s://'", uri->scheme);
+    goto cleanup;
+  }
+
   for (i = 0; i < nqueries; i++) {
     if (strcmp (queries[i].name, "socket") == 0)
       unixsocket = queries[i].value;
@@ -293,10 +300,9 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
 
   /* Export name. */
   if (uri->path) {
-    if (uri->path[0] == '/')
-      r = nbd_unlocked_set_export_name (h, &uri->path[1]);
-    else
-      r = nbd_unlocked_set_export_name (h, uri->path);
+    /* Since we require scheme://authority above, any path is absolute */
+    assert (uri->path[0] == '/');
+    r = nbd_unlocked_set_export_name (h, &uri->path[1]);
   }
   else
     r = nbd_unlocked_set_export_name (h, "");
