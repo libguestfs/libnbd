@@ -18,7 +18,8 @@
 include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
-	dirty-bitmap.sh
+	dirty-bitmap.sh \
+	structured-read.sh
 
 TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
 LOG_COMPILER = $(top_builddir)/run
