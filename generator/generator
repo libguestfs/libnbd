@@ -2066,6 +2066,13 @@ let constants = [
   "READ_ERROR",          3;
 ]
 
+let metadata_namespaces = [
+  "base", [ "allocation", [
+    "STATE_HOLE", 1 lsl 0;
+    "STATE_ZERO", 1 lsl 1;
+  ] ];
+]
+
 (*----------------------------------------------------------------------*)
 
 (* Helper functions. *)
@@ -2908,6 +2915,25 @@ let print_extern_and_define name args ret =
   pr "#define LIBNBD_HAVE_NBD_%s 1\n" name_upper;
   pr "\n"
 
+let print_ns_ctxt ns ns_upper ctxt consts =
+  let ctxt_upper = String.uppercase_ascii ctxt in
+  pr "#define LIBNBD_CONTEXT_%s_%s \"%s:%s\"\n"
+    ns_upper ctxt_upper ns ctxt;
+  pr "\n";
+  pr "/* \"%s:%s\" context related constants */\n" ns ctxt;
+  List.iter (fun (n, i) -> pr "#define LIBNBD_%-30s %d\n" n i) consts
+
+let print_ns ns ctxts =
+  let ns_upper = String.uppercase_ascii ns in
+  pr "/* \"%s\" namespace */\n" ns;
+  pr "#define LIBNBD_NAMESPACE_%s \"%s\"\n" ns_upper ns;
+  pr "\n";
+  pr "/* \"%s\" namespace contexts */\n" ns;
+  List.iter (
+    fun (ctxt, consts) -> print_ns_ctxt ns ns_upper ctxt consts
+  ) ctxts;
+  pr "\n"
+
 let generate_include_libnbd_h () =
   generate_header CStyle;
 
@@ -2943,6 +2969,10 @@ let generate_include_libnbd_h () =
   List.iter (
     fun (name, { args; ret }) -> print_extern_and_define name args ret
   ) handle_calls;
+  pr "\n";
+  List.iter (
+    fun (ns, ctxts) -> print_ns ns ctxts
+  ) metadata_namespaces;
   pr "\n";
   pr "#endif /* LIBNBD_H */\n"
 
