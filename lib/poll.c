@@ -45,6 +45,10 @@ nbd_unlocked_poll (struct nbd_handle *h, int timeout)
   case LIBNBD_AIO_DIRECTION_BOTH:
     fds[0].events = POLLIN|POLLOUT;
     break;
+  default:
+    set_error (EINVAL, "nothing to poll for in state %s",
+               nbd_internal_state_short_string (get_next_state (h)));
+    return -1;
   }
   fds[0].revents = 0;
 
