@@ -54,7 +54,7 @@
 
  ISSUE_COMMAND.SEND_REQUEST:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:  SET_NEXT_STATE (%PREPARE_WRITE_PAYLOAD);
   }
   return 0;
@@ -85,7 +85,7 @@
 
  ISSUE_COMMAND.SEND_WRITE_PAYLOAD:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:  SET_NEXT_STATE (%FINISH);
   }
   return 0;

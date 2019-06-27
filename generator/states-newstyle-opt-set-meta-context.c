@@ -53,7 +53,7 @@
 
  NEWSTYLE.OPT_SET_META_CONTEXT.SEND:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->sbuf.len = htobe32 (strlen (h->export_name));
     h->wbuf = &h->sbuf.len;
@@ -65,7 +65,7 @@
 
  NEWSTYLE.OPT_SET_META_CONTEXT.SEND_EXPORTNAMELEN:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->wbuf = h->export_name;
     h->wlen = strlen (h->export_name);
@@ -76,7 +76,7 @@
 
  NEWSTYLE.OPT_SET_META_CONTEXT.SEND_EXPORTNAME:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->sbuf.nrqueries =
       htobe32 (nbd_internal_string_list_length (h->request_meta_contexts));
@@ -89,7 +89,7 @@
 
  NEWSTYLE.OPT_SET_META_CONTEXT.SEND_NRQUERIES:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->querynum = 0;
     SET_NEXT_STATE (%PREPARE_NEXT_QUERY);
@@ -115,7 +115,7 @@
   const char *query = h->request_meta_contexts[h->querynum];
 
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->wbuf = query;
     h->wlen = strlen (query);
@@ -125,7 +125,7 @@
 
  NEWSTYLE.OPT_SET_META_CONTEXT.SEND_QUERY:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->querynum++;
     SET_NEXT_STATE (%PREPARE_NEXT_QUERY);
@@ -140,11 +140,11 @@
 
  NEWSTYLE.OPT_SET_META_CONTEXT.RECV_REPLY:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     if (prepare_for_reply_payload (h, NBD_OPT_SET_META_CONTEXT) == -1) {
       SET_NEXT_STATE (%.DEAD);
-      return -1;
+      return 0;
     }
     SET_NEXT_STATE (%RECV_REPLY_PAYLOAD);
   }
@@ -152,7 +152,7 @@
 
  NEWSTYLE.OPT_SET_META_CONTEXT.RECV_REPLY_PAYLOAD:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:  SET_NEXT_STATE (%CHECK_REPLY);
   }
   return 0;
@@ -178,7 +178,7 @@
       if (meta_context == NULL) {
         set_error (errno, "malloc");
         SET_NEXT_STATE (%.DEAD);
-        return -1;
+        return 0;
       }
       meta_context->context_id =
         be32toh (h->sbuf.or.payload.context.context.context_id);
@@ -189,7 +189,7 @@
         set_error (errno, "strdup");
         SET_NEXT_STATE (%.DEAD);
         free (meta_context);
-        return -1;
+        return 0;
       }
       debug (h, "negotiated %s with context ID %" PRIu32,
              meta_context->name, meta_context->context_id);
@@ -202,7 +202,7 @@
     /* Anything else is an error, ignore it */
     if (handle_reply_error (h) == -1) {
       SET_NEXT_STATE (%.DEAD);
-      return -1;
+      return 0;
     }
 
     debug (h, "handshake: unexpected error from "

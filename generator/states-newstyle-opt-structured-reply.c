@@ -30,7 +30,7 @@
 
  NEWSTYLE.OPT_STRUCTURED_REPLY.SEND:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->rbuf = &h->sbuf;
     h->rlen = sizeof h->sbuf.or.option_reply;
@@ -40,11 +40,11 @@
 
  NEWSTYLE.OPT_STRUCTURED_REPLY.RECV_REPLY:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     if (prepare_for_reply_payload (h, NBD_OPT_STRUCTURED_REPLY) == -1) {
       SET_NEXT_STATE (%.DEAD);
-      return -1;
+      return 0;
     }
     SET_NEXT_STATE (%RECV_REPLY_PAYLOAD);
   }
@@ -52,7 +52,7 @@
 
  NEWSTYLE.OPT_STRUCTURED_REPLY.RECV_REPLY_PAYLOAD:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:  SET_NEXT_STATE (%CHECK_REPLY);
   }
   return 0;
@@ -69,7 +69,7 @@
   default:
     if (handle_reply_error (h) == -1) {
       SET_NEXT_STATE (%.DEAD);
-      return -1;
+      return 0;
     }
 
     debug (h, "structured replies are not supported by this server");

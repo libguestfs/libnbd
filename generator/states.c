@@ -125,11 +125,13 @@ send_from_wbuf (struct nbd_handle *h)
   return 0;
 
  DEAD:
+  /* The caller should have used set_error() before reaching here */
+  assert (nbd_get_error ());
   if (h->sock) {
     h->sock->ops->close (h->sock);
     h->sock = NULL;
   }
-  return 0;
+  return -1;
 
  CLOSED:
   if (h->sock) {

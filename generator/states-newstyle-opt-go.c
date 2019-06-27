@@ -34,7 +34,7 @@
   const uint32_t exportnamelen = strlen (h->export_name);
 
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->sbuf.len = htobe32 (exportnamelen);
     h->wbuf = &h->sbuf;
@@ -46,7 +46,7 @@
 
  NEWSTYLE.OPT_GO.SEND_EXPORTNAMELEN:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->wbuf = h->export_name;
     h->wlen = strlen (h->export_name);
@@ -57,7 +57,7 @@
 
  NEWSTYLE.OPT_GO.SEND_EXPORT:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->sbuf.nrinfos = 0;
     h->wbuf = &h->sbuf;
@@ -68,7 +68,7 @@
 
  NEWSTYLE.OPT_GO.SEND_NRINFOS:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->rbuf = &h->sbuf;
     h->rlen = sizeof h->sbuf.or.option_reply;
@@ -78,11 +78,11 @@
 
  NEWSTYLE.OPT_GO.RECV_REPLY:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     if (prepare_for_reply_payload (h, NBD_OPT_GO) == -1) {
       SET_NEXT_STATE (%.DEAD);
-      return -1;
+      return 0;
     }
     SET_NEXT_STATE (%RECV_REPLY_PAYLOAD);
   }
@@ -90,7 +90,7 @@
 
  NEWSTYLE.OPT_GO.RECV_REPLY_PAYLOAD:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:  SET_NEXT_STATE (%CHECK_REPLY);
   }
   return 0;
@@ -121,13 +121,13 @@
         if (len != sizeof h->sbuf.or.payload.export) {
           SET_NEXT_STATE (%.DEAD);
           set_error (0, "handshake: incorrect NBD_INFO_EXPORT option reply length");
-          return -1;
+          return 0;
         }
         exportsize = be64toh (h->sbuf.or.payload.export.exportsize);
         eflags = be16toh (h->sbuf.or.payload.export.eflags);
         if (nbd_internal_set_size_and_flags (h, exportsize, eflags) == -1) {
           SET_NEXT_STATE (%.DEAD);
-          return -1;
+          return 0;
         }
         break;
       default:
@@ -177,7 +177,7 @@
       }
     }
     SET_NEXT_STATE (%.DEAD);
-    return -1;
+    return 0;
   }
 
 } /* END STATE MACHINE */

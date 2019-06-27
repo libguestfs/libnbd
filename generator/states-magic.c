@@ -27,7 +27,7 @@
 
  MAGIC.RECV_MAGIC:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:  SET_NEXT_STATE (%CHECK_MAGIC);
   }
   return 0;
@@ -38,7 +38,7 @@
   if (strncmp (h->sbuf.new_handshake.nbdmagic, "NBDMAGIC", 8) != 0) {
     SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: server did not send expected NBD magic");
-    return -1;
+    return 0;
   }
 
   version = be64toh (h->sbuf.new_handshake.version);
@@ -49,7 +49,7 @@
   else {
     SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: server is not either an oldstyle or fixed newstyle NBD server");
-    return -1;
+    return 0;
   }
   return 0;
 

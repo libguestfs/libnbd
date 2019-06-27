@@ -36,7 +36,7 @@
 
  NEWSTYLE.OPT_STARTTLS.SEND:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->rbuf = &h->sbuf;
     h->rlen = sizeof (h->sbuf.or.option_reply);
@@ -46,11 +46,11 @@
 
  NEWSTYLE.OPT_STARTTLS.RECV_REPLY:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     if (prepare_for_reply_payload (h, NBD_OPT_STARTTLS) == -1) {
       SET_NEXT_STATE (%.DEAD);
-      return -1;
+      return 0;
     }
     SET_NEXT_STATE (%RECV_REPLY_PAYLOAD);
   }
@@ -58,7 +58,7 @@
 
  NEWSTYLE.OPT_STARTTLS.RECV_REPLY_PAYLOAD:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:  SET_NEXT_STATE (%CHECK_REPLY);
   }
   return 0;
@@ -73,7 +73,7 @@
     new_sock = nbd_internal_crypto_create_session (h, h->sock);
     if (new_sock == NULL) {
       SET_NEXT_STATE (%.DEAD);
-      return -1;
+      return 0;
     }
     h->sock = new_sock;
     if (nbd_internal_crypto_is_reading (h))
@@ -85,7 +85,7 @@
   default:
     if (handle_reply_error (h) == -1) {
       SET_NEXT_STATE (%.DEAD);
-      return -1;
+      return 0;
     }
 
     /* Server refused to upgrade to TLS.  If h->tls is not require (2)
@@ -95,7 +95,7 @@
       SET_NEXT_STATE (%.DEAD);
       set_error (ENOTSUP, "handshake: server refused TLS, "
                  "but handle TLS setting is require (2)");
-      return -1;
+      return 0;
     }
 
     debug (h,
@@ -112,7 +112,7 @@
   r = nbd_internal_crypto_handshake (h);
   if (r == -1) {
     SET_NEXT_STATE (%.DEAD);
-    return -1;
+    return 0;
   }
   if (r == 0) {
     /* Finished handshake. */
@@ -135,7 +135,7 @@
   r = nbd_internal_crypto_handshake (h);
   if (r == -1) {
     SET_NEXT_STATE (%.DEAD);
-    return -1;
+    return 0;
   }
   if (r == 0) {
     /* Finished handshake. */

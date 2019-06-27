@@ -85,7 +85,7 @@ save_reply_state (struct nbd_handle *h)
 
     /* sock->ops->recv called set_error already. */
     SET_NEXT_STATE (%.DEAD);
-    return -1;
+    return 0;
   }
   if (r == 0) {
     SET_NEXT_STATE (%.CLOSED);
@@ -99,7 +99,7 @@ save_reply_state (struct nbd_handle *h)
 
  REPLY.RECV_REPLY:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 1: SET_NEXT_STATE (%.READY); return 0;
   case 0: SET_NEXT_STATE (%CHECK_SIMPLE_OR_STRUCTURED_REPLY);
   }
@@ -120,7 +120,7 @@ save_reply_state (struct nbd_handle *h)
   else {
     SET_NEXT_STATE (%.DEAD); /* We've probably lost synchronization. */
     set_error (0, "invalid reply magic");
-    return -1;
+    return 0;
   }
 
   /* NB: This works for both simple and structured replies because the
@@ -141,7 +141,7 @@ save_reply_state (struct nbd_handle *h)
     SET_NEXT_STATE (%.DEAD);
     set_error (0, "no matching handle found for server reply, "
                "this is probably a bug in the server");
-    return -1;
+    return 0;
   }
   h->reply_cmd = cmd;
   return 0;

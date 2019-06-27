@@ -55,12 +55,12 @@ disable_nagle (int sock)
   if (fd == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "socket");
-    return -1;
+    return 0;
   }
   h->sock = nbd_internal_socket_create (fd);
   if (!h->sock) {
     SET_NEXT_STATE (%.DEAD);
-    return -1;
+    return 0;
   }
 
   disable_nagle (fd);
@@ -70,7 +70,7 @@ disable_nagle (int sock)
     if (errno != EINPROGRESS) {
       SET_NEXT_STATE (%.DEAD);
       set_error (errno, "connect");
-      return -1;
+      return 0;
     }
   }
   return 0;
@@ -83,7 +83,7 @@ disable_nagle (int sock)
                   SOL_SOCKET, SO_ERROR, &status, &len) == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "getsockopt: SO_ERROR");
-    return -1;
+    return 0;
   }
   /* This checks the status of the original connect call. */
   if (status == 0) {
@@ -93,7 +93,7 @@ disable_nagle (int sock)
   else {
     SET_NEXT_STATE (%.DEAD);
     set_error (status, "connect");
-    return -1;
+    return 0;
   }
 
  CONNECT_UNIX.START:
@@ -107,7 +107,7 @@ disable_nagle (int sock)
   if (namelen > sizeof sun.sun_path) {
     set_error (ENAMETOOLONG, "socket name too long: %s", h->unixsocket);
     SET_NEXT_STATE (%.DEAD);
-    return -1;
+    return 0;
   }
   memcpy (sun.sun_path, h->unixsocket, namelen);
   len = sizeof sun;
@@ -175,7 +175,7 @@ disable_nagle (int sock)
   h->sock = nbd_internal_socket_create (fd);
   if (!h->sock) {
     SET_NEXT_STATE (%.DEAD);
-    return -1;
+    return 0;
   }
 
   disable_nagle (fd);
@@ -198,7 +198,7 @@ disable_nagle (int sock)
                   SOL_SOCKET, SO_ERROR, &status, &len) == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "getsockopt: SO_ERROR");
-    return -1;
+    return 0;
   }
   /* This checks the status of the original connect call. */
   if (status == 0)
@@ -228,7 +228,7 @@ disable_nagle (int sock)
   if (socketpair (AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0, sv) == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "socketpair");
-    return -1;
+    return 0;
   }
 
   pid = fork ();
@@ -237,7 +237,7 @@ disable_nagle (int sock)
     set_error (errno, "fork");
     close (sv[0]);
     close (sv[1]);
-    return -1;
+    return 0;
   }
   if (pid == 0) {         /* child - run command */
     close (0);
@@ -268,14 +268,14 @@ disable_nagle (int sock)
       fcntl (sv[0], F_SETFL, flags|O_NONBLOCK) == -1) {
     SET_NEXT_STATE (%.DEAD);
     close (sv[0]);
-    return -1;
+    return 0;
   }
 
   h->sock = nbd_internal_socket_create (sv[0]);
   if (!h->sock) {
     SET_NEXT_STATE (%.DEAD);
     close (sv[0]);
-    return -1;
+    return 0;
   }
 
   /* The sockets are connected already, we can jump directly to

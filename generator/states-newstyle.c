@@ -119,7 +119,7 @@ handle_reply_error (struct nbd_handle *h)
 
  NEWSTYLE.RECV_GFLAGS:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:  SET_NEXT_STATE (%CHECK_GFLAGS);
   }
   return 0;
@@ -133,7 +133,7 @@ handle_reply_error (struct nbd_handle *h)
     SET_NEXT_STATE (%.DEAD);
     set_error (ENOTSUP, "handshake: server is not fixed newstyle, "
                "but handle TLS setting is require (2)");
-    return -1;
+    return 0;
   }
 
   cflags = h->gflags & (NBD_FLAG_FIXED_NEWSTYLE|NBD_FLAG_NO_ZEROES);
@@ -145,7 +145,7 @@ handle_reply_error (struct nbd_handle *h)
 
  NEWSTYLE.SEND_CFLAGS:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     /* Start sending options. */
     if ((h->gflags & NBD_FLAG_FIXED_NEWSTYLE) == 0)

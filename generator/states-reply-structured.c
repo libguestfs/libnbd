@@ -37,7 +37,7 @@
 
  REPLY.STRUCTURED_REPLY.RECV_REMAINING:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 1:
     save_reply_state (h);
     SET_NEXT_STATE (%.READY);
@@ -70,14 +70,14 @@
   if (length > MAX_REQUEST_SIZE + sizeof h->sbuf.sr.payload.offset_data) {
     set_error (0, "invalid server reply length");
     SET_NEXT_STATE (%.DEAD);
-    return -1;
+    return 0;
   }
 
   if (NBD_REPLY_TYPE_IS_ERR (type)) {
     if (length < sizeof h->sbuf.sr.payload.error.error) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "too short length in structured reply error");
-      return -1;
+      return 0;
     }
     h->rbuf = &h->sbuf.sr.payload.error.error;
     h->rlen = sizeof h->sbuf.sr.payload.error.error;
@@ -88,12 +88,12 @@
     if (length != 0) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "invalid length in NBD_REPLY_TYPE_NONE");
-      return -1;
+      return 0;
     }
     if (!(flags & NBD_REPLY_FLAG_DONE)) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "NBD_REPLY_FLAG_DONE must be set in NBD_REPLY_TYPE_NONE");
-      return -1;
+      return 0;
     }
     SET_NEXT_STATE (%FINISH);
     return 0;
@@ -109,12 +109,12 @@
                  "cmd->type=%" PRIu16 ", "
                  "this is likely to be a bug in the server",
                  cmd->type);
-      return -1;
+      return 0;
     }
     if (length < sizeof h->sbuf.sr.payload.offset_data) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "too short length in NBD_REPLY_TYPE_OFFSET_DATA");
-      return -1;
+      return 0;
     }
     h->rbuf = &h->sbuf.sr.payload.offset_data;
     h->rlen = sizeof h->sbuf.sr.payload.offset_data;
@@ -128,12 +128,12 @@
                  "cmd->type=%" PRIu16 ", "
                  "this is likely to be a bug in the server",
                  cmd->type);
-      return -1;
+      return 0;
     }
     if (length != sizeof h->sbuf.sr.payload.offset_hole) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "invalid length in NBD_REPLY_TYPE_OFFSET_HOLE");
-      return -1;
+      return 0;
     }
     h->rbuf = &h->sbuf.sr.payload.offset_hole;
     h->rlen = sizeof h->sbuf.sr.payload.offset_hole;
@@ -147,18 +147,18 @@
                  "cmd->type=%" PRIu16 ", "
                  "this is likely to be a bug in the server",
                  cmd->type);
-      return -1;
+      return 0;
     }
     /* XXX We should be able to skip the bad reply in these two cases. */
     if (length < 12 || ((length-4) & 7) != 0) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "invalid length in NBD_REPLY_TYPE_BLOCK_STATUS");
-      return -1;
+      return 0;
     }
     if (cmd->cb.fn.extent == NULL) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "not expecting NBD_REPLY_TYPE_BLOCK_STATUS here");
-      return -1;
+      return 0;
     }
     /* We read the context ID followed by all the entries into a
      * single array and deal with it at the end.
@@ -168,7 +168,7 @@
     if (h->bs_entries == NULL) {
       SET_NEXT_STATE (%.DEAD);
       set_error (errno, "malloc");
-      return -1;
+      return 0;
     }
     h->rbuf = h->bs_entries;
     h->rlen = length;
@@ -178,14 +178,14 @@
   else {
     SET_NEXT_STATE (%.DEAD);
     set_error (0, "unknown structured reply type (%" PRIu16 ")", type);
-    return -1;
+    return 0;
   }
 
  REPLY.STRUCTURED_REPLY.RECV_ERROR:
   uint32_t length, msglen;
 
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 1:
     save_reply_state (h);
     SET_NEXT_STATE (%.READY);
@@ -197,7 +197,7 @@
         msglen > sizeof h->sbuf.sr.payload.error.msg) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "error message length too large");
-      return -1;
+      return 0;
     }
 
     h->rbuf = h->sbuf.sr.payload.error.msg;
@@ -211,7 +211,7 @@
   uint16_t type;
 
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 1:
     save_reply_state (h);
     SET_NEXT_STATE (%.READY);
@@ -235,14 +235,14 @@
       if (length != 0) {
         SET_NEXT_STATE (%.DEAD);
         set_error (0, "error payload length too large");
-        return -1;
+        return 0;
       }
       break;
     case NBD_REPLY_TYPE_ERROR_OFFSET:
       if (length != sizeof h->sbuf.sr.payload.error.offset) {
         SET_NEXT_STATE (%.DEAD);
         set_error (0, "invalid error payload length");
-        return -1;
+        return 0;
       }
       h->rbuf = &h->sbuf.sr.payload.error.offset;
       break;
@@ -258,7 +258,7 @@
   uint16_t type;
 
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 1:
     save_reply_state (h);
     SET_NEXT_STATE (%.READY);
@@ -289,7 +289,7 @@
                    "cmd->count=%" PRIu32 ", "
                    "this is likely to be a bug in the server",
                    offset, cmd->offset, cmd->count);
-        return -1;
+        return 0;
       }
       if (cmd->type == NBD_CMD_READ && cmd->cb.fn.read) {
         int scratch = error;
@@ -319,7 +319,7 @@
   uint32_t length;
 
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 1:
     save_reply_state (h);
     SET_NEXT_STATE (%.READY);
@@ -343,7 +343,7 @@
                  "offset=%" PRIu64 ", cmd->offset=%" PRIu64 ", "
                  "this is likely to be a bug in the server",
                  offset, cmd->offset);
-      return -1;
+      return 0;
     }
     /* Now this is the byte offset in the read buffer. */
     offset -= cmd->offset;
@@ -355,7 +355,7 @@
                  "cmd->count=%" PRIu32 ", "
                  "this is likely to be a bug in the server",
                  offset, length, cmd->count);
-      return -1;
+      return 0;
     }
 
     /* Set up to receive the data directly to the user buffer. */
@@ -371,7 +371,7 @@
   uint32_t length;
 
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 1:
     save_reply_state (h);
     SET_NEXT_STATE (%.READY);
@@ -401,7 +401,7 @@
   uint32_t length;
 
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 1:
     save_reply_state (h);
     SET_NEXT_STATE (%.READY);
@@ -422,7 +422,7 @@
                  "offset=%" PRIu64 ", cmd->offset=%" PRIu64 ", "
                  "this is likely to be a bug in the server",
                  offset, cmd->offset);
-      return -1;
+      return 0;
     }
     /* Now this is the byte offset in the read buffer. */
     offset -= cmd->offset;
@@ -434,7 +434,7 @@
                  "cmd->count=%" PRIu32 ", "
                  "this is likely to be a bug in the server",
                  offset, length, cmd->count);
-      return -1;
+      return 0;
     }
 
     /* The spec states that 0-length requests are unspecified, but
@@ -464,7 +464,7 @@
   struct meta_context *meta_context;
 
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 1:
     save_reply_state (h);
     SET_NEXT_STATE (%.READY);

@@ -31,7 +31,7 @@
 
  NEWSTYLE.OPT_EXPORT_NAME.SEND:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->wbuf = h->export_name;
     h->wlen = strlen (h->export_name);
@@ -41,7 +41,7 @@
 
  NEWSTYLE.OPT_EXPORT_NAME.SEND_EXPORT:
   switch (send_from_wbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     h->rbuf = &h->sbuf;
     h->rlen = sizeof h->sbuf.export_name_reply;
@@ -53,7 +53,7 @@
 
  NEWSTYLE.OPT_EXPORT_NAME.RECV_REPLY:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:  SET_NEXT_STATE (%CHECK_REPLY);
   }
   return 0;
@@ -66,7 +66,7 @@
   eflags = be16toh (h->sbuf.export_name_reply.eflags);
   if (nbd_internal_set_size_and_flags (h, exportsize, eflags) == -1) {
     SET_NEXT_STATE (%.DEAD);
-    return -1;
+    return 0;
   }
   SET_NEXT_STATE (%.READY);
   return 0;

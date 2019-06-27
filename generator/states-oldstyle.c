@@ -32,7 +32,7 @@
 
  OLDSTYLE.RECV_REMAINING:
   switch (recv_into_rbuf (h)) {
-  case -1: SET_NEXT_STATE (%.DEAD); return -1;
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:  SET_NEXT_STATE (%CHECK);
   }
   return 0;
@@ -51,7 +51,7 @@
 
   if (nbd_internal_set_size_and_flags (h, exportsize, eflags) == -1) {
     SET_NEXT_STATE (%.DEAD);
-    return -1;
+    return 0;
   }
 
   SET_NEXT_STATE (%.READY);
