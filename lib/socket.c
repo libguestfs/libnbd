@@ -46,6 +46,11 @@ socket_send (struct nbd_handle *h,
 {
   ssize_t r;
 
+  /* We don't want to die from SIGPIPE, but also don't want to force a
+   * changed signal handler on the rest of the application.
+   */
+  flags |= MSG_NOSIGNAL;
+
   r = send (sock->u.fd, buf, len, flags);
   if (r == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
     set_error (errno, "send");
