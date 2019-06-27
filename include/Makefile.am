@@ -24,4 +24,5 @@ EXTRA_DIST = $(generator_built)
 BUILT_SOURCES = $(generator_built)
 
 include_HEADERS = \
-	libnbd.h
+	libnbd.h \
+	$(NULL)

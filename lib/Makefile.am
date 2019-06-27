@@ -21,11 +21,13 @@ generator_built = \
 	api.c \
 	states.c \
 	states.h \
-	unlocked.h
+	unlocked.h \
+	$(NULL)
 
 EXTRA_DIST = \
 	$(generator_built) \
-	libnbd.syms
+	libnbd.syms \
+	$(NULL)
 
 lib_LTLIBRARIES = libnbd.la
 
@@ -51,22 +53,27 @@ libnbd_la_SOURCES = \
 	states.c \
 	states.h \
 	unlocked.h \
-	utils.c
+	utils.c \
+	$(NULL)
 libnbd_la_CPPFLAGS = \
 	-I$(top_srcdir)/include \
-	-Dsysconfdir=\"$(sysconfdir)\"
+	-Dsysconfdir=\"$(sysconfdir)\" \
+	$(NULL)
 libnbd_la_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
 	$(PTHREAD_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
-	$(LIBXML2_CFLAGS)
+	$(LIBXML2_CFLAGS) \
+	$(NULL)
 libnbd_la_LIBADD = \
 	$(GNUTLS_LIBS) \
-	$(LIBXML2_LIBS)
+	$(LIBXML2_LIBS) \
+	$(NULL)
 libnbd_la_LDFLAGS = \
 	$(PTHREAD_LIBS) \
 	-Wl,--version-script=$(srcdir)/libnbd.syms \
-	-version-info 0:0:0
+	-version-info 0:0:0 \
+	$(NULL)
 
 # pkg-config / pkgconf
 

@@ -23,42 +23,59 @@ noinst_PROGRAMS = \
 	batched-read-write \
 	simple-fetch-first-sector \
 	simple-reads-and-writes \
-	threaded-reads-and-writes
+	threaded-reads-and-writes \
+	$(NULL)
 
 simple_fetch_first_sector_SOURCES = \
-	simple-fetch-first-sector.c
+	simple-fetch-first-sector.c \
+	$(NULL)
 simple_fetch_first_sector_CPPFLAGS = \
-	-I$(top_srcdir)/include
+	-I$(top_srcdir)/include \
+	$(NULL)
 simple_fetch_first_sector_CFLAGS = \
-	$(WARNINGS_CFLAGS)
+	$(WARNINGS_CFLAGS) \
+	$(NULL)
 simple_fetch_first_sector_LDADD = \
-	$(top_builddir)/lib/libnbd.la
+	$(top_builddir)/lib/libnbd.la \
+	$(NULL)
 
 simple_reads_and_writes_SOURCES = \
-	simple-reads-and-writes.c
+	simple-reads-and-writes.c \
+	$(NULL)
 simple_reads_and_writes_CPPFLAGS = \
-	-I$(top_srcdir)/include
+	-I$(top_srcdir)/include \
+	$(NULL)
 simple_reads_and_writes_CFLAGS = \
-	$(WARNINGS_CFLAGS)
+	$(WARNINGS_CFLAGS) \
+	$(NULL)
 simple_reads_and_writes_LDADD = \
-	$(top_builddir)/lib/libnbd.la
+	$(top_builddir)/lib/libnbd.la \
+	$(NULL)
 
 threaded_reads_and_writes_SOURCES = \
-	threaded-reads-and-writes.c
+	threaded-reads-and-writes.c \
+	$(NULL)
 threaded_reads_and_writes_CPPFLAGS = \
-	-I$(top_srcdir)/include
+	-I$(top_srcdir)/include \
+	$(NULL)
 threaded_reads_and_writes_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
-	$(PTHREAD_CFLAGS)
+	$(PTHREAD_CFLAGS) \
+	$(NULL)
 threaded_reads_and_writes_LDADD = \
 	$(top_builddir)/lib/libnbd.la \
-	$(PTHREAD_LIBS)
+	$(PTHREAD_LIBS) \
+	$(NULL)
 
 batched_read_write_SOURCES = \
-	batched-read-write.c
+	batched-read-write.c \
+	$(NULL)
 batched_read_write_CPPFLAGS = \
-	-I$(top_srcdir)/include
+	-I$(top_srcdir)/include \
+	$(NULL)
 batched_read_write_CFLAGS = \
-	$(WARNINGS_CFLAGS)
+	$(WARNINGS_CFLAGS) \
+	$(NULL)
 batched_read_write_LDADD = \
-	$(top_builddir)/lib/libnbd.la
+	$(top_builddir)/lib/libnbd.la \
+	$(NULL)

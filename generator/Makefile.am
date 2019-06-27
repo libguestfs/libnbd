@@ -35,11 +35,13 @@ states_code = \
 	states-oldstyle.c \
 	states-reply-simple.c \
 	states-reply-structured.c \
-	states-reply.c
+	states-reply.c \
+	$(NULL)
 
 EXTRA_DIST = \
 	generator \
-	$(states_code)
+	$(states_code) \
+	$(NULL)
 
 if HAVE_OCAML_TOPLEVEL
 

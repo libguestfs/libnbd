@@ -18,6 +18,9 @@
 # common-rules.mk is included in every Makefile.am.
 # subdir-rules.mk is included only in subdirectories.
 
+# Convenient list terminator
+NULL =
+
 CLEANFILES = *~
 
 $(generator_built): $(top_builddir)/generator/stamp-generator

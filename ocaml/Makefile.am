@@ -20,10 +20,12 @@ include $(top_srcdir)/subdir-rules.mk
 generator_built = \
 	NBD.mli \
 	NBD.ml \
-	nbd-c.c
+	nbd-c.c \
+	$(NULL)
 
 EXTRA_DIST = \
-	$(generator_built)
+	$(generator_built) \
+	$(NULL)
 
 CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so
 
@@ -71,18 +73,21 @@ endif
 libnbdocaml_a_CPPFLAGS = \
 	-I$(top_builddir) -I$(OCAMLLIB) -I$(top_srcdir)/ocaml \
 	-I$(top_srcdir)/include \
-	-DCAML_NAME_SPACE
+	-DCAML_NAME_SPACE \
+	$(NULL)
 
 libnbdocaml_a_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
-	-fPIC
+	-fPIC \
+	$(NULL)
 
 libnbdocaml_a_SOURCES = \
 	nbd-c.c \
 	nbd-c.h \
 	buffer.c \
 	handle.c \
-	helpers.c
+	helpers.c \
+	$(NULL)
 
 %.bc: %.cmo mlnbd.cma
 	$(top_builddir)/libtool -dlopen $(top_builddir)/lib/.libs/libnbd.la --mode=execute \

@@ -22,7 +22,8 @@ ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = \
 	.dir-locals.el \
 	.gitignore \
-	html/pod.css
+	html/pod.css \
+	$(NULL)
 
 SUBDIRS = \
 	generator \
@@ -36,7 +37,8 @@ SUBDIRS = \
 	sh \
 	ocaml \
 	ocaml/examples \
-	interop
+	interop \
+	$(NULL)
 
 noinst_SCRIPTS = run
 

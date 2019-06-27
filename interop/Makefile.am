@@ -19,7 +19,8 @@ include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
 	dirty-bitmap.sh \
-	structured-read.sh
+	structured-read.sh \
+	$(NULL)
 
 TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
 LOG_COMPILER = $(top_builddir)/run
@@ -49,11 +50,13 @@ check_PROGRAMS += \
 	interop-qemu-nbd-tls-certs \
 	interop-qemu-nbd-tls-psk \
 	dirty-bitmap \
-	structured-read
+	structured-read \
+	$(NULL)
 TESTS += \
 	interop-qemu-nbd \
 	dirty-bitmap.sh \
-	structured-read.sh
+	structured-read.sh \
+	$(NULL)
 
 # tls tests assume the pre-existence of files created in ../tests/Makefile.am,
 # so we can only run them under the same conditions used there
@@ -62,11 +65,13 @@ if HAVE_NBDKIT
 if HAVE_GNUTLS
 if HAVE_CERTTOOL
 TESTS += \
-	interop-qemu-nbd-tls-certs
+	interop-qemu-nbd-tls-certs \
+	$(NULL)
 endif
 if HAVE_PSKTOOL
 TESTS += \
-	interop-qemu-nbd-tls-psk
+	interop-qemu-nbd-tls-psk \
+	$(NULL)
 endif
 endif
 endif
@@ -77,7 +82,8 @@ interop_qemu_nbd_CPPFLAGS = \
 	-DSERVE_OVER_TCP=1 \
 	-DSERVER=\"$(QEMU_NBD)\" \
 	-DSERVER_PARAMS='"-f", "raw", "-x", "/", "-p", port_str, tmpfile' \
-	-DEXPORT_NAME='"/"'
+	-DEXPORT_NAME='"/"' \
+	$(NULL)
 interop_qemu_nbd_CFLAGS = $(WARNINGS_CFLAGS)
 interop_qemu_nbd_LDADD = $(top_builddir)/lib/libnbd.la
 
@@ -89,7 +95,8 @@ interop_qemu_nbd_tls_certs_CPPFLAGS = \
 	-DSERVER=\"$(QEMU_NBD)\" \
 	-DSERVER_PARAMS='"--object", "tls-creds-x509,id=tls0,endpoint=server,dir=$(abs_top_builddir)/tests/pki", "--tls-creds", "tls0", "-f", "raw", "-x", "/", "-p", port_str, tmpfile' \
 	-DEXPORT_NAME='"/"' \
-	-DCERTS=1
+	-DCERTS=1 \
+	$(NULL)
 interop_qemu_nbd_tls_certs_CFLAGS = $(WARNINGS_CFLAGS)
 interop_qemu_nbd_tls_certs_LDADD = $(top_builddir)/lib/libnbd.la
 
@@ -101,7 +108,8 @@ interop_qemu_nbd_tls_psk_CPPFLAGS = \
 	-DSERVER=\"$(QEMU_NBD)\" \
 	-DSERVER_PARAMS='"--object", "tls-creds-psk,id=tls0,endpoint=server,dir=$(abs_top_builddir)/tests", "--tls-creds", "tls0", "-f", "raw", "-x", "/", "-p", port_str, tmpfile' \
 	-DEXPORT_NAME='"/"' \
-	-DPSK=1
+	-DPSK=1 \
+	$(NULL)
 interop_qemu_nbd_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
 interop_qemu_nbd_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
 

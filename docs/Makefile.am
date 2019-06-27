@@ -18,17 +18,20 @@
 include $(top_srcdir)/subdir-rules.mk
 
 generator_built = \
-	libnbd-api.pod
+	libnbd-api.pod \
+	$(NULL)
 
 EXTRA_DIST = \
 	$(generator_built) \
-	libnbd.pod
+	libnbd.pod \
+	$(NULL)
 
 if HAVE_POD
 
 man_MANS = \
 	libnbd.3 \
-	libnbd-api.3
+	libnbd-api.3 \
+	$(NULL)
 CLEANFILES += $(man_MANS)
 
 libnbd.3: libnbd.pod

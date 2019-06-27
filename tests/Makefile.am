@@ -23,7 +23,8 @@ CLEANFILES += \
 	connect-unix.sock \
 	connect-uri-tcp.pid \
 	connect-uri-unix.pid \
-	connect-uri-unix.sock
+	connect-uri-unix.sock \
+	$(NULL)
 
 EXTRA_DIST = \
 	aio-parallel.sh \
@@ -35,7 +36,8 @@ EXTRA_DIST = \
 	make-pki.sh \
 	meta-base-allocation.sh \
 	synch-parallel.sh \
-	synch-parallel-tls.sh
+	synch-parallel-tls.sh \
+	$(NULL)
 
 if HAVE_NBDKIT
 
@@ -66,7 +68,8 @@ check_PROGRAMS = \
 	aio-parallel \
 	aio-parallel-load \
 	synch-parallel \
-	meta-base-allocation
+	meta-base-allocation \
+	$(NULL)
 #	can-cache-flag
 #	can-not-cache-flag
 
@@ -101,7 +104,8 @@ TESTS = \
 	aio-parallel.sh \
 	aio-parallel-load.sh \
 	synch-parallel.sh \
-	meta-base-allocation
+	meta-base-allocation \
+	$(NULL)
 #	can-cache-flag
 #	can-not-cache-flag
 
@@ -132,55 +136,64 @@ read_write_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 can_flush_flag_SOURCES = eflags.c
 can_flush_flag_CPPFLAGS = \
-	-I$(top_srcdir)/include -Dflag=can_flush
+	-I$(top_srcdir)/include -Dflag=can_flush \
+	$(NULL)
 can_flush_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_flush_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 can_not_flush_flag_SOURCES = eflags.c
 can_not_flush_flag_CPPFLAGS = \
-	-I$(top_srcdir)/include -Dflag=can_flush -Dvalue=false
+	-I$(top_srcdir)/include -Dflag=can_flush -Dvalue=false \
+	$(NULL)
 can_not_flush_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_flush_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 can_fua_flag_SOURCES = eflags.c
 can_fua_flag_CPPFLAGS = \
-	-I$(top_srcdir)/include -Dflag=can_fua -Dvalue=native
+	-I$(top_srcdir)/include -Dflag=can_fua -Dvalue=native \
+	$(NULL)
 can_fua_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_fua_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 can_not_fua_flag_SOURCES = eflags.c
 can_not_fua_flag_CPPFLAGS = \
-	-I$(top_srcdir)/include -Dflag=can_fua -Dvalue=none
+	-I$(top_srcdir)/include -Dflag=can_fua -Dvalue=none \
+	$(NULL)
 can_not_fua_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_fua_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 is_rotational_flag_SOURCES = eflags.c
 is_rotational_flag_CPPFLAGS = \
-	-I$(top_srcdir)/include -Dflag=is_rotational
+	-I$(top_srcdir)/include -Dflag=is_rotational \
+	$(NULL)
 is_rotational_flag_CFLAGS = $(WARNINGS_CFLAGS)
 is_rotational_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 is_not_rotational_flag_SOURCES = eflags.c
 is_not_rotational_flag_CPPFLAGS = \
-	-I$(top_srcdir)/include -Dflag=is_rotational -Dvalue=false
+	-I$(top_srcdir)/include -Dflag=is_rotational -Dvalue=false \
+	$(NULL)
 is_not_rotational_flag_CFLAGS = $(WARNINGS_CFLAGS)
 is_not_rotational_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 can_trim_flag_SOURCES = eflags.c
 can_trim_flag_CPPFLAGS = \
-	-I$(top_srcdir)/include -Dflag=can_trim
+	-I$(top_srcdir)/include -Dflag=can_trim \
+	$(NULL)
 can_trim_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_trim_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 can_not_trim_flag_SOURCES = eflags.c
 can_not_trim_flag_CPPFLAGS = \
-	-I$(top_srcdir)/include -Dflag=can_trim -Dvalue=false
+	-I$(top_srcdir)/include -Dflag=can_trim -Dvalue=false \
+	$(NULL)
 can_not_trim_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_trim_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 can_zero_flag_SOURCES = eflags.c
 can_zero_flag_CPPFLAGS = \
-	-I$(top_srcdir)/include -Dflag=can_zero
+	-I$(top_srcdir)/include -Dflag=can_zero \
+	$(NULL)
 can_zero_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_zero_flag_LDADD = $(top_builddir)/lib/libnbd.la
 # Note: can't test not-zero case because nbdkit emulates zero if the
@@ -188,26 +201,30 @@ can_zero_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 can_multi_conn_flag_SOURCES = eflags.c
 can_multi_conn_flag_CPPFLAGS = \
-	-I$(top_srcdir)/include -Dflag=can_multi_conn
+	-I$(top_srcdir)/include -Dflag=can_multi_conn \
+	$(NULL)
 can_multi_conn_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_multi_conn_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 can_not_multi_conn_flag_SOURCES = eflags.c
 can_not_multi_conn_flag_CPPFLAGS = \
-	-I$(top_srcdir)/include -Dflag=can_multi_conn -Dvalue=false
+	-I$(top_srcdir)/include -Dflag=can_multi_conn -Dvalue=false \
+	$(NULL)
 can_not_multi_conn_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_multi_conn_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 # Waiting for nbdkit to add support for can_cache.
 #can_cache_flag_SOURCES = eflags.c
 #can_cache_flag_CPPFLAGS = \
-#	-I$(top_srcdir)/include -Dflag=can_cache -Dvalue=native
+#	-I$(top_srcdir)/include -Dflag=can_cache -Dvalue=native \
+#	$(NULL)
 #can_cache_flag_CFLAGS = $(WARNINGS_CFLAGS)
 #can_cache_flag_LDADD = $(top_builddir)/lib/libnbd.la
 #
 #can_not_cache_flag_SOURCES = eflags.c
 #can_not_cache_flag_CPPFLAGS = \
-#	-I$(top_srcdir)/include -Dflag=can_cache -Dvalue=none
+#	-I$(top_srcdir)/include -Dflag=can_cache -Dvalue=none \
+#	$(NULL)
 #can_not_cache_flag_CFLAGS = $(WARNINGS_CFLAGS)
 #can_not_cache_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
@@ -283,12 +300,14 @@ check_PROGRAMS += \
 	connect-tls-psk \
 	aio-parallel-tls \
 	aio-parallel-load-tls \
-	synch-parallel-tls
+	synch-parallel-tls \
+	$(NULL)
 TESTS += \
 	connect-tls-psk \
 	aio-parallel-tls.sh \
 	aio-parallel-load-tls.sh \
-	synch-parallel-tls.sh
+	synch-parallel-tls.sh \
+	$(NULL)
 check_DATA += keys.psk
 
 connect_tls_psk_SOURCES = connect-tls.c

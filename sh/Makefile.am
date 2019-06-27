@@ -20,7 +20,8 @@ include $(top_srcdir)/subdir-rules.mk
 EXTRA_DIST = \
 	nbdsh.pod \
 	examples/LICENSE-FOR-EXAMPLES \
-	examples/hexdump.sh
+	examples/hexdump.sh \
+	$(NULL)
 
 if HAVE_PYTHON
 

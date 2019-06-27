@@ -19,7 +19,8 @@ include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
 	LICENSE-FOR-EXAMPLES \
-	extents.ml
+	extents.ml \
+	$(NULL)
 
 CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so *.bc *.opt
 
