@@ -61,21 +61,28 @@ nbd_unlocked_poll (struct nbd_handle *h, int timeout)
     set_error (errno, "poll");
     return -1;
   }
+  if (r == 0)
+    return 0;
 
   /* POLLIN and POLLOUT might both be set.  However we shouldn't call
    * both nbd_aio_notify_read and nbd_aio_notify_write at this time
    * since the first might change the handle state, making the second
    * notification invalid.  Nothing bad happens by ignoring one of the
    * notifications since if it's still valid it will be picked up by a
-   * subsequent poll.
+   * subsequent poll.  Prefer notifying on read, since the reply is
+   * for a command older than what we are trying to write.
    */
   r = 0;
-  if ((fds[0].revents & POLLIN) != 0)
+  if ((fds[0].revents & (POLLIN | POLLHUP)) != 0)
     r = nbd_unlocked_aio_notify_read (h);
   else if ((fds[0].revents & POLLOUT) != 0)
     r = nbd_unlocked_aio_notify_write (h);
+  else if ((fds[0].revents & (POLLERR | POLLNVAL)) != 0) {
+    set_error (ENOTCONN, "server closed socket unexpectedly");
+    return -1;
+  }
   if (r == -1)
     return -1;
 
-  return 0;
+  return 1;
 }

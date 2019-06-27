@@ -1579,13 +1579,21 @@ validate that the server obeyed the flag.";
 
   "poll", {
     default_call with
-    args = [ Int "timeout" ]; ret = RErr;
+    args = [ Int "timeout" ]; ret = RInt;
     shortdesc = "poll the handle once";
     longdesc = "\
 This is a simple implementation of L<poll(2)> which is used
-internally by synchronous API calls.  It is mainly useful as
-an example of how you might integrate libnbd with your own
-main loop, rather than being intended as something you would use.";
+internally by synchronous API calls.  On success, it returns
+C<0> if the C<timeout> (in milliseconds) occurs, or C<1> if
+the poll completed and the state machine progressed. Set
+C<timeout> to C<-1> to block indefinitely (but be careful
+that eventual action is actually expected - for example, if
+the connection is established but there are no commands in
+flight, using an infinite timeout will permanently block).
+
+This function is mainly useful as an example of how you might
+integrate libnbd with your own main loop, rather than being
+intended as something you would use.";
   };
 
   "aio_connect", {
@@ -1846,7 +1854,7 @@ come from some other means such as C<nbd_aio_connect>.
 
 We are expected next to read from the server.  If using L<poll(2)>
 you would set C<events = POLLIN>.  If C<revents> returns C<POLLIN>
-you would then call C<nbd_aio_notify_read>.
+or C<POLLHUP> you would then call C<nbd_aio_notify_read>.
 
 Note that once libnbd reaches C<nbd_aio_is_ready>, this direction is
 returned even before a command is issued via C<nbd_aio_pwrite> and
