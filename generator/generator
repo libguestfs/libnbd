@@ -1527,7 +1527,8 @@ punching a hole.";
              Callback ("extent", [Opaque "data"; String "metacontext";
                                   UInt64 "offset";
                                   ArrayAndLen (UInt32 "entries",
-                                               "nr_entries")]);
+                                               "nr_entries");
+                                  Mutable (Int "error")]);
              Flags "flags" ];
     ret = RErr;
     permitted_states = [ Connected ];
@@ -1548,10 +1549,11 @@ supported by the server (see C<nbd_can_meta_context>) this call
 returns information about extents by calling back to the
 C<extent> function.  The callback cannot call C<nbd_*> APIs on the
 same handle since it holds the handle lock and will
-cause a deadlock.  If the callback returns C<-1>, any remaining
-contexts will be ignored and the overall block status command
-will fail with the same value of C<errno> left after the
-failing callback.
+cause a deadlock.  If the callback returns C<-1>, and no earlier
+error has been detected, then the overall block status command
+will fail with any non-zero value stored into the callback's
+C<error> parameter (with a default of C<EPROTO>); but any further
+contexts will still invoke the callback.
 
 The C<extent> function is called once per type of metadata available,
 with the C<data> passed to this function.  The C<metacontext>
@@ -1564,6 +1566,8 @@ NBD protocol document in the section about
 C<NBD_REPLY_TYPE_BLOCK_STATUS> describes the meaning of this array;
 for contexts known to libnbd, B<E<lt>libnbd.hE<gt>> contains constants
 beginning with C<LIBNBD_STATE_> that may help decipher the values.
+On entry to the callback, the C<error> parameter contains the errno
+value of any previously detected error.
 
 It is possible for the extent function to be called
 more times than you expect (if the server is buggy),
@@ -1812,7 +1816,8 @@ in C<nbd_zero>.";
              CallbackPersist ("extent", [Opaque "data"; String "metacontext";
                                          UInt64 "offset";
                                          ArrayAndLen (UInt32 "entries",
-                                                      "nr_entries")]);
+                                                      "nr_entries");
+                                         Mutable (Int "error")]);
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];

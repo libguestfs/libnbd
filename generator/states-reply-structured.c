@@ -478,37 +478,33 @@
     assert (h->bs_entries);
     assert (length >= 12);
 
-    if (cmd->error)
-      /* Emit a debug message, but ignore it. */
-      debug (h, "ignoring meta context ID %" PRIu32 " after callback failure",
-             be32toh (h->bs_entries[0]));
-    else {
-      /* Need to byte-swap the entries returned, but apart from that we
-       * don't validate them.
-       */
-      for (i = 0; i < length/4; ++i)
-        h->bs_entries[i] = be32toh (h->bs_entries[i]);
+    /* Need to byte-swap the entries returned, but apart from that we
+     * don't validate them.
+     */
+    for (i = 0; i < length/4; ++i)
+      h->bs_entries[i] = be32toh (h->bs_entries[i]);
 
-      /* Look up the context ID. */
-      context_id = h->bs_entries[0];
-      for (meta_context = h->meta_contexts;
-           meta_context;
-           meta_context = meta_context->next)
-        if (context_id == meta_context->context_id)
-          break;
+    /* Look up the context ID. */
+    context_id = h->bs_entries[0];
+    for (meta_context = h->meta_contexts;
+         meta_context;
+         meta_context = meta_context->next)
+      if (context_id == meta_context->context_id)
+        break;
 
-      if (meta_context) {
-        /* Call the caller's extent function. */
-        errno = 0;
-        if (cmd->cb.fn.extent (cmd->cb.opaque, meta_context->name, cmd->offset,
-                               &h->bs_entries[1], (length-4) / 4) == -1)
-          cmd->error = errno ? errno : EPROTO;
-      }
-      else
-        /* Emit a debug message, but ignore it. */
-        debug (h, "server sent unexpected meta context ID %" PRIu32,
-               context_id);
+    if (meta_context) {
+      /* Call the caller's extent function. */
+      int error = cmd->error;
+
+      if (cmd->cb.fn.extent (cmd->cb.opaque, meta_context->name, cmd->offset,
+                             &h->bs_entries[1], (length-4) / 4, &error) == -1)
+        if (cmd->error == 0)
+          cmd->error = error ? error : EPROTO;
     }
+    else
+      /* Emit a debug message, but ignore it. */
+      debug (h, "server sent unexpected meta context ID %" PRIu32,
+             context_id);
 
     SET_NEXT_STATE(%FINISH);
   }

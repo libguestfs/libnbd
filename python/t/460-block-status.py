@@ -27,9 +27,10 @@ h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
                     "sh", script])
 
 entries = []
-def f (data, metacontext, offset, e):
+def f (data, metacontext, offset, e, err):
     global entries
     assert data == 42
+    assert err.value == 0
     if metacontext != "base:allocation":
         return
     entries = e

@@ -41,7 +41,7 @@ struct data {
 
 static int
 cb (void *opaque, const char *metacontext, uint64_t offset,
-    uint32_t *entries, size_t len)
+    uint32_t *entries, size_t len, int *error)
 {
   struct data *data = opaque;
 
@@ -50,6 +50,7 @@ cb (void *opaque, const char *metacontext, uint64_t offset,
    * the fact that qemu-nbd is compliant.
    */
   assert (offset == 0);
+  assert (!*error || (data->fail && data->count == 1 && *error == EPROTO));
   assert (data->count-- > 0); /* [qemu-nbd] */
 
   if (strcmp (metacontext, LIBNBD_CONTEXT_BASE_ALLOCATION) == 0) {
@@ -91,7 +92,8 @@ cb (void *opaque, const char *metacontext, uint64_t offset,
   }
 
   if (data->fail) {
-    errno = EPROTO; /* Something NBD servers can't send */
+    /* Something NBD servers can't send */
+    *error = data->count == 1 ? EPROTO : ECONNREFUSED;
     return -1;
   }
   return 0;
@@ -147,17 +149,14 @@ main (int argc, char *argv[])
   }
   assert (data.seen_base && data.seen_dirty);
 
-  /* Trigger a failed callback, to prove connection stays up. No way
-   * to know which context will respond first, but we can check that
-   * the other one did not get visited.
-   */
-  data = (struct data) { .count = 1, .fail = true, };
+  /* Trigger a failed callback, to prove connection stays up. */
+  data = (struct data) { .count = 2, .fail = true, };
   if (nbd_block_status (nbd, exportsize, 0, &data, cb, 0) != -1) {
     fprintf (stderr, "unexpected block status success\n");
     exit (EXIT_FAILURE);
   }
   assert (nbd_get_errno () == EPROTO && nbd_aio_is_ready (nbd));
-  assert (data.seen_base ^ data.seen_dirty);
+  assert (data.seen_base && data.seen_dirty);
 
   if (nbd_pread (nbd, &c, 1, 0, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());

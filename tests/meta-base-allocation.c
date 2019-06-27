@@ -30,7 +30,7 @@
 
 static int check_extent (void *data, const char *metacontext,
                          uint64_t offset,
-                         uint32_t *entries, size_t nr_entries);
+                         uint32_t *entries, size_t nr_entries, int *error);
 
 int
 main (int argc, char *argv[])
@@ -128,15 +128,16 @@ main (int argc, char *argv[])
 static int
 check_extent (void *data, const char *metacontext,
               uint64_t offset,
-              uint32_t *entries, size_t nr_entries)
+              uint32_t *entries, size_t nr_entries, int *error)
 {
   size_t i;
   int id = * (int *)data;
 
   printf ("extent: id=%d, metacontext=%s, offset=%" PRIu64 ", "
-          "nr_entries=%zu\n",
-          id, metacontext, offset, nr_entries);
+          "nr_entries=%zu, error=%d\n",
+          id, metacontext, offset, nr_entries, *error);
 
+  assert (*error == 0);
   if (strcmp (metacontext, LIBNBD_CONTEXT_BASE_ALLOCATION) == 0) {
     for (i = 0; i < nr_entries; i += 2) {
       printf ("\t%zu\tlength=%" PRIu32 ", status=%" PRIu32 "\n",
