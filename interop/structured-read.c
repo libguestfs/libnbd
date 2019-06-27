@@ -134,6 +134,11 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  if (nbd_can_df (nbd) != 1) {
+    fprintf (stderr, "skipping test: qemu too old to use structured reads\n");
+    exit (77);
+  }
+
   memset (rbuf, 2, sizeof rbuf);
   data = (struct data) { .count = 2, };
   if (nbd_pread_structured (nbd, rbuf, sizeof rbuf, 2048, &data, read_cb,
