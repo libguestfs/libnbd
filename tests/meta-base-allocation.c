@@ -56,7 +56,7 @@ main (int argc, char *argv[])
   /* Negotiate metadata context "base:allocation" with the server.
    * This is supported in nbdkit >= 1.12.
    */
-  if (nbd_add_meta_context (nbd, "base:allocation") == -1) {
+  if (nbd_add_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -85,7 +85,7 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  switch (nbd_can_meta_context (nbd, "base:allocation")) {
+  switch (nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION)) {
   case -1:
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -137,7 +137,7 @@ check_extent (void *data, const char *metacontext,
           "nr_entries=%zu\n",
           id, metacontext, offset, nr_entries);
 
-  if (strcmp (metacontext, "base:allocation") == 0) {
+  if (strcmp (metacontext, LIBNBD_CONTEXT_BASE_ALLOCATION) == 0) {
     for (i = 0; i < nr_entries; i += 2) {
       printf ("\t%zu\tlength=%" PRIu32 ", status=%" PRIu32 "\n",
               i, entries[i], entries[i+1]);
@@ -148,21 +148,24 @@ check_extent (void *data, const char *metacontext,
     case 1:
       assert (nr_entries == 10);
       assert (entries[0] == 8192);  assert (entries[1] == 0);
-      assert (entries[2] == 8192);  assert (entries[3] == 1);
-      assert (entries[4] == 16384); assert (entries[5] == 3);
-      assert (entries[6] == 16384); assert (entries[7] == 2);
+      assert (entries[2] == 8192);  assert (entries[3] == LIBNBD_STATE_HOLE);
+      assert (entries[4] == 16384); assert (entries[5] == (LIBNBD_STATE_HOLE|
+                                                           LIBNBD_STATE_ZERO));
+      assert (entries[6] == 16384); assert (entries[7] == LIBNBD_STATE_ZERO);
       assert (entries[8] == 16384); assert (entries[9] == 0);
       break;
 
     case 2:
       assert (nr_entries == 4);
-      assert (entries[0] == 512);   assert (entries[1] == 3);
-      assert (entries[2] == 16384); assert (entries[3] == 2);
+      assert (entries[0] == 512);   assert (entries[1] == (LIBNBD_STATE_HOLE|
+                                                           LIBNBD_STATE_ZERO));
+      assert (entries[2] == 16384); assert (entries[3] == LIBNBD_STATE_ZERO);
       break;
 
     case 3:
       assert (nr_entries == 2);
-      assert (entries[0] == 512);   assert (entries[1] == 3);
+      assert (entries[0] == 512);   assert (entries[1] == (LIBNBD_STATE_HOLE|
+                                                           LIBNBD_STATE_ZERO));
       break;
 
     default:

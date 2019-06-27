@@ -30,7 +30,6 @@
 
 static const char *unixsocket;
 static const char *bitmap;
-static const char *base_allocation = "base:allocation";
 
 struct data {
   bool req_one;    /* input: true if req_one was passed to request */
@@ -53,7 +52,7 @@ cb (void *opaque, const char *metacontext, uint64_t offset,
   assert (offset == 0);
   assert (data->count-- > 0); /* [qemu-nbd] */
 
-  if (strcmp (metacontext, base_allocation) == 0) {
+  if (strcmp (metacontext, LIBNBD_CONTEXT_BASE_ALLOCATION) == 0) {
     assert (!data->seen_base); /* [qemu-nbd] */
     data->seen_base = true;
     assert (len == (data->req_one ? 2 : 8)); /* [qemu-nbd] */
@@ -62,11 +61,13 @@ cb (void *opaque, const char *metacontext, uint64_t offset,
     assert (entries[0] == 131072); assert (entries[1] == 0);
     if (!data->req_one) {
       /* hole|zero offset 128k size 384k */
-      assert (entries[2] == 393216); assert (entries[3] == 3);
+      assert (entries[2] == 393216); assert (entries[3] == (LIBNBD_STATE_HOLE|
+                                                            LIBNBD_STATE_ZERO));
       /* allocated zero offset 512k size 64k */
-      assert (entries[4] ==  65536); assert (entries[5] == 2);
+      assert (entries[4] ==  65536); assert (entries[5] == LIBNBD_STATE_ZERO);
       /* hole|zero offset 576k size 448k */
-      assert (entries[6] == 458752); assert (entries[7] == 3);
+      assert (entries[6] == 458752); assert (entries[7] == (LIBNBD_STATE_HOLE|
+                                                            LIBNBD_STATE_ZERO));
     }
   }
   else if (strcmp (metacontext, bitmap) == 0) {
@@ -117,7 +118,7 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  nbd_add_meta_context (nbd, base_allocation);
+  nbd_add_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION);
   nbd_add_meta_context (nbd, bitmap);
 
   if (nbd_connect_unix (nbd, unixsocket) == -1) {

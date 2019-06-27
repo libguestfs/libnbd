@@ -1118,7 +1118,10 @@ was actually negotiated, call C<nbd_can_meta_context> after
 connecting.
 
 The single parameter is the name of the metadata context,
-for example C<\"base:allocation\">.
+for example C<LIBNBD_CONTEXT_BASE_ALLOCATION>.
+B<E<lt>libnbd.hE<gt>> includes defined constants beginning with
+C<LIBNBD_CONTEXT_> for some well-known contexts, but you are free
+to pass in other contexts.
 
 Other metadata contexts are server-specific, but include
 C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
@@ -1293,7 +1296,10 @@ Returns true if the server supports the given meta context
 the server does not.
 
 The single parameter is the name of the metadata context,
-for example C<\"base:allocation\">.";
+for example C<LIBNBD_CONTEXT_BASE_ALLOCATION>.
+B<E<lt>libnbd.hE<gt>> includes defined constants for well-known
+namespace contexts beginning with C<LIBNBD_CONTEXT_>, but you
+are free to pass in other contexts.";
   };
 
   "get_size", {
@@ -1551,7 +1557,9 @@ pair being the length (in bytes) of the block and the second entry
 being a status/flags field which is specific to the metadata context.
 (The number of pairs passed to the function is C<nr_entries/2>.)  The
 NBD protocol document in the section about
-C<NBD_REPLY_TYPE_BLOCK_STATUS> describes the meaning of this array.
+C<NBD_REPLY_TYPE_BLOCK_STATUS> describes the meaning of this array;
+for contexts known to libnbd, B<E<lt>libnbd.hE<gt>> contains constants
+beginning with C<LIBNBD_STATE_> that may help decipher the values.
 
 It is possible for the extent function to be called
 more times than you expect (if the server is buggy),
@@ -2926,7 +2934,7 @@ let print_ns_ctxt ns ns_upper ctxt consts =
 let print_ns ns ctxts =
   let ns_upper = String.uppercase_ascii ns in
   pr "/* \"%s\" namespace */\n" ns;
-  pr "#define LIBNBD_NAMESPACE_%s \"%s\"\n" ns_upper ns;
+  pr "#define LIBNBD_NAMESPACE_%s \"%s:\"\n" ns_upper ns;
   pr "\n";
   pr "/* \"%s\" namespace contexts */\n" ns;
   List.iter (
