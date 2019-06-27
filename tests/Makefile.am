@@ -43,6 +43,7 @@ check_DATA =
 
 check_PROGRAMS = \
 	errors \
+	server-death \
 	get-size \
 	read-only-flag \
 	read-write-flag \
@@ -77,6 +78,7 @@ LOG_COMPILER = $(top_builddir)/run
 
 TESTS = \
 	errors \
+	server-death \
 	get-size \
 	read-only-flag \
 	read-write-flag \
@@ -107,6 +109,11 @@ errors_SOURCES = errors.c
 errors_CPPFLAGS = -I$(top_srcdir)/include
 errors_CFLAGS = $(WARNINGS_CFLAGS)
 errors_LDADD = $(top_builddir)/lib/libnbd.la
+
+server_death_SOURCES = server-death.c
+server_death_CPPFLAGS = -I$(top_srcdir)/include
+server_death_CFLAGS = $(WARNINGS_CFLAGS)
+server_death_LDADD = $(top_builddir)/lib/libnbd.la
 
 get_size_SOURCES = get-size.c
 get_size_CPPFLAGS = -I$(top_srcdir)/include

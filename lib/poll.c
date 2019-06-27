@@ -51,12 +51,14 @@ nbd_unlocked_poll (struct nbd_handle *h, int timeout)
     return -1;
   }
   fds[0].revents = 0;
+  debug (h, "poll start: events=%x", fds[0].events);
 
   /* Note that it's not safe to release the handle lock here, as it
    * would allow other threads to close file descriptors which we have
    * passed to poll.
    */
   r = poll (fds, 1, timeout);
+  debug (h, "poll end: r=%d revents=%x", r, fds[0].revents);
   if (r == -1) {
     set_error (errno, "poll");
     return -1;
