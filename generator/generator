@@ -3608,7 +3608,9 @@ let print_python_binding name { args; ret } =
     | Mutable arg ->
        pr "  PyObject *%s;\n" (List.hd (name_of_arg arg))
     | Opaque _ -> ()
-    | Path n -> pr "  char *%s = NULL;\n" n
+    | Path n ->
+       pr "  PyObject *py_%s = NULL;\n" n;
+       pr "  char *%s = NULL;\n" n
     | SockAddrAndLen (n, _) ->
        pr "  /* XXX Complicated - Python uses a tuple of different\n";
        pr "   * lengths for the different socket types.\n";
@@ -3699,7 +3701,7 @@ let print_python_binding name { args; ret } =
     | Int64 n -> pr ", &%s" n
     | Mutable arg -> pr ", &%s" (List.hd (name_of_arg arg))
     | Opaque n -> pr ", &%s_data->data" (find_callback n)
-    | Path n -> pr ", PyUnicode_FSConverter, &%s" n
+    | Path n -> pr ", PyUnicode_FSConverter, &py_%s" n
     | SockAddrAndLen (n, _) -> pr ", &%s" n
     | String n -> pr ", &%s" n
     | StringList n -> pr ", &py_%s" n
@@ -3750,7 +3752,9 @@ let print_python_binding name { args; ret } =
     | Mutable _ ->
        pr "  abort (); /* Mutable for normal Python parameters not impl */\n"
     | Opaque n -> ()
-    | Path _ -> ()
+    | Path n ->
+       pr "  %s = PyBytes_AS_STRING (py_%s);\n" n n;
+       pr "  assert (%s != NULL);\n" n
     | SockAddrAndLen _ ->
        pr "  abort (); /* XXX SockAddrAndLen not implemented */\n";
     | String _ -> ()
@@ -3860,7 +3864,8 @@ let print_python_binding name { args; ret } =
     | Int64 _ -> ()
     | Mutable _ -> ()
     | Opaque _ -> ()
-    | Path n -> pr "  free (%s);\n" n
+    | Path n ->
+       pr "  Py_XDECREF (py_%s);\n" n
     | SockAddrAndLen _ -> ()
     | String n -> ()
     | StringList n -> pr "  nbd_internal_py_free_string_list (%s);\n" n
