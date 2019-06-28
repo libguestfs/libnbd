@@ -3337,6 +3337,19 @@ get_handle (PyObject *obj)
   return (struct nbd_handle *) PyCapsule_GetPointer(obj, \"nbd_handle\");
 }
 
+/* nbd.Error exception. */
+extern PyObject *nbd_internal_py_Error;
+
+static inline void
+raise_exception ()
+{
+  PyObject *args = PyTuple_New (2);
+
+  PyTuple_SetItem (args, 0, PyUnicode_FromString (nbd_get_error ()));
+  PyTuple_SetItem (args, 1, PyLong_FromLong (nbd_get_errno ()));
+  PyErr_SetObject (nbd_internal_py_Error, args);
+}
+
 ";
 
   List.iter (
@@ -3390,6 +3403,9 @@ static struct PyModuleDef moduledef = {
   NULL,                  /* m_free */
 };
 
+/* nbd.Error exception. */
+PyObject *nbd_internal_py_Error;
+
 extern PyMODINIT_FUNC PyInit_libnbdmod (void);
 
 PyMODINIT_FUNC
@@ -3400,6 +3416,11 @@ PyInit_libnbdmod (void)
   mod = PyModule_Create (&moduledef);
   if (mod == NULL)
     return NULL;
+
+  nbd_internal_py_Error = PyErr_NewException (\"nbd.Error\", NULL, NULL);
+  if (nbd_internal_py_Error == NULL)
+    return NULL;
+  PyModule_AddObject (mod, \"Error\", nbd_internal_py_Error);
 
   return mod;
 }
@@ -3796,7 +3817,7 @@ let print_python_binding name { args; ret } =
    | RBool | RErr | RFd | RInt | RInt64 -> pr "  if (ret == -1) {\n";
    | RConstString | RString -> pr "  if (ret == NULL) {\n";
   );
-  pr "    PyErr_SetString (PyExc_RuntimeError, nbd_get_error ());\n";
+  pr "    raise_exception ();\n";
   pr "    py_ret = NULL;\n";
   pr "    goto out;\n";
   pr "  }\n";
@@ -3916,6 +3937,36 @@ Read the libnbd(3) man page to find out how to use the API.
 '''
 
 import libnbdmod
+
+# Re-export Error exception as nbd.Error, adding some methods.
+from libnbdmod import Error
+
+Error.__doc__ = '''
+Exception thrown when the underlying libnbd call fails.
+
+This exception has two properties to query the error.  Use
+the .string property to return a printable string containing
+the error message.  Use the .errno property to return a
+Python errno (which may be None in some cases if the error
+did not correspond to a system call failure).
+'''
+
+Error.string = property (lambda self: self.args[0])
+
+def _errno (self):
+    import errno
+    try:
+        return errno.errorcode[self.args[1]]
+    except KeyError:
+        return None
+Error.errno = property (_errno)
+
+def _str (self):
+    if self.errno:
+        return (\"%%s (%%s)\" %% (self.string, self.errno))
+    else:
+        return (\"%%s\" %% self.string)
+Error.__str__ = _str
 
 ";
 
