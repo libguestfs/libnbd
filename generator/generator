@@ -3920,6 +3920,18 @@ import libnbdmod
 ";
 
   List.iter (fun (n, i) -> pr "%-30s = %d\n" n i) constants;
+  List.iter (
+    fun (ns, ctxts) ->
+      let ns_upper = String.uppercase_ascii ns in
+      pr "NAMESPACE_%-20s = \"%s:\"\n" ns_upper ns;
+      List.iter (
+        fun (ctxt, consts) ->
+          let ctxt_upper = String.uppercase_ascii ctxt in
+          pr "%-30s = \"%s:%s\"\n"
+             (sprintf "CONTEXT_%s_%s" ns_upper ctxt_upper) ns ctxt;
+          List.iter (fun (n, i) -> pr "%-30s = %d\n" n i) consts
+      ) ctxts;
+  ) metadata_namespaces;
 
   pr "\
 
@@ -4105,6 +4117,17 @@ exception Closed of string
   List.iter (
     fun (n, _) -> pr "val %s : int32\n" (String.lowercase_ascii n)
   ) constants;
+  List.iter (
+    fun (ns, ctxts) ->
+      pr "val namespace_%s : string\n" ns;
+      List.iter (
+        fun (ctxt, consts) ->
+          pr "val context_%s_%s : string\n" ns ctxt;
+          List.iter (fun (n, _) ->
+              pr "val %s : int32\n" (String.lowercase_ascii n)
+          ) consts
+      ) ctxts;
+  ) metadata_namespaces;
   pr "\n";
 
   pr "\
@@ -4167,6 +4190,17 @@ let () =
   List.iter (
     fun (n, i) -> pr "let %s = %d_l\n" (String.lowercase_ascii n) i
   ) constants;
+  List.iter (
+    fun (ns, ctxts) ->
+      pr "let namespace_%s = \"%s:\"\n" ns ns;
+      List.iter (
+        fun (ctxt, consts) ->
+          pr "let context_%s_%s = \"%s:%s\"\n" ns ctxt ns ctxt;
+          List.iter (fun (n, i) ->
+              pr "let %s = %d_l\n" (String.lowercase_ascii n) i
+          ) consts
+      ) ctxts;
+  ) metadata_namespaces;
   pr "\n";
 
   pr "\
