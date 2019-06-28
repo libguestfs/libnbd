@@ -2008,7 +2008,7 @@ for the command, as returned by a call such as C<nbd_aio_pread>.";
 Return the unique positive 64 bit handle of the first non-retired but
 completed command, C<0> if no command is awaiting retirement, or C<-1>
 on error. Any handle returned by this function must still be passed to
-C<aio_command_completed> to actually retire the command and learn
+C<nbd_aio_command_completed> to actually retire the command and learn
 whether the command was successful.";
   };
 
