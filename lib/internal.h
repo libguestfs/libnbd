@@ -191,6 +191,8 @@ struct nbd_handle {
   struct command_in_flight *cmds_to_issue, *cmds_in_flight, *cmds_done;
   /* Current command during a REPLY cycle */
   struct command_in_flight *reply_cmd;
+
+  bool disconnect_request;      /* True if we've queued NBD_CMD_DISC */
 };
 
 struct meta_context {

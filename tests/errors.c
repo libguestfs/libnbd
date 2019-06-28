@@ -168,7 +168,7 @@ main (int argc, char *argv[])
   check (ERANGE, "nbd_aio_pwrite: ");
 
   /* Queue up a write command so large that we block on POLLIN, then queue
-   * multiple disconnects. XXX The last one should fail.
+   * multiple disconnects.
    */
   if (nbd_aio_pwrite (nbd, buf, 2 * 1024 * 1024, 0, 0) == -1) {
     fprintf (stderr, "%s: %s\n", argv[0], nbd_get_error ());
@@ -184,10 +184,13 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s: %s\n", argv[0], nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if (nbd_aio_disconnect (nbd, 0) == -1) { /* XXX */
-    fprintf (stderr, "%s: %s\n", argv[0], nbd_get_error ());
+  if (nbd_aio_disconnect (nbd, 0) != -1) {
+    fprintf (stderr, "%s: test failed: "
+             "no diagnosis that nbd_aio_disconnect prevents new commands\n",
+             argv[0]);
     exit (EXIT_FAILURE);
   }
+  check (EINVAL, "nbd_aio_disconnect: ");
 
   /* Flush the queue (whether this one fails is a race with how fast
    * the server shuts down, so don't enforce status), then try to send

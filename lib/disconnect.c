@@ -29,8 +29,9 @@
 int
 nbd_unlocked_shutdown (struct nbd_handle *h)
 {
-  if (nbd_internal_is_state_ready (get_next_state (h)) ||
-      nbd_internal_is_state_processing (get_next_state (h))) {
+  if (!h->disconnect_request &&
+      (nbd_internal_is_state_ready (get_next_state (h)) ||
+       nbd_internal_is_state_processing (get_next_state (h)))) {
     if (nbd_unlocked_aio_disconnect (h, 0) == -1)
       return -1;
   }
@@ -57,6 +58,7 @@ nbd_unlocked_aio_disconnect (struct nbd_handle *h, uint32_t flags)
   id = nbd_internal_command_common (h, 0, NBD_CMD_DISC, 0, 0, NULL, NULL);
   if (id == -1)
     return -1;
+  h->disconnect_request = true;
 
   /* This will leave the command on the in-flight list.  Is this a
    * problem?  Probably it isn't.  If it is, we could add a flag to

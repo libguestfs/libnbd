@@ -163,6 +163,11 @@ nbd_internal_command_common (struct nbd_handle *h,
 {
   struct command_in_flight *cmd, *prev_cmd;
 
+  if (h->disconnect_request) {
+      set_error (EINVAL, "cannot request more commands after NBD_CMD_DISC");
+      return -1;
+  }
+
   switch (type) {
     /* Commands which send or receive data are limited to MAX_REQUEST_SIZE. */
   case NBD_CMD_READ:
