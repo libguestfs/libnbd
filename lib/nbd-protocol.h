@@ -123,15 +123,19 @@ struct nbd_fixed_new_option_reply {
 #define NBD_REP_ERR(val) (0x80000000 | (val))
 #define NBD_REP_IS_ERR(val) (!!((val) & 0x80000000))
 
-#define NBD_REP_ACK          1
-#define NBD_REP_SERVER       2
-#define NBD_REP_INFO         3
-#define NBD_REP_META_CONTEXT 4
-#define NBD_REP_ERR_UNSUP    NBD_REP_ERR (1)
-#define NBD_REP_ERR_POLICY   NBD_REP_ERR (2)
-#define NBD_REP_ERR_INVALID  NBD_REP_ERR (3)
-#define NBD_REP_ERR_PLATFORM NBD_REP_ERR (4)
-#define NBD_REP_ERR_TLS_REQD NBD_REP_ERR (5)
+#define NBD_REP_ACK                  1
+#define NBD_REP_SERVER               2
+#define NBD_REP_INFO                 3
+#define NBD_REP_META_CONTEXT         4
+#define NBD_REP_ERR_UNSUP            NBD_REP_ERR (1)
+#define NBD_REP_ERR_POLICY           NBD_REP_ERR (2)
+#define NBD_REP_ERR_INVALID          NBD_REP_ERR (3)
+#define NBD_REP_ERR_PLATFORM         NBD_REP_ERR (4)
+#define NBD_REP_ERR_TLS_REQD         NBD_REP_ERR (5)
+#define NBD_REP_ERR_UNKNOWN          NBD_REP_ERR (6)
+#define NBD_REP_ERR_SHUTDOWN         NBD_REP_ERR (7)
+#define NBD_REP_ERR_BLOCK_SIZE_REQD  NBD_REP_ERR (8)
+#define NBD_REP_ERR_TOO_BIG          NBD_REP_ERR (9)
 
 #define NBD_INFO_EXPORT      0
 
