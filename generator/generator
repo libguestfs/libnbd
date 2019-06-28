@@ -1708,9 +1708,40 @@ on the connection.";
 Issue a read command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>.  Note that you must ensure
+C<nbd_aio_command_completed>, or use C<nbd_aio_pread_notify>.
+Note that you must ensure C<buf> is valid until the command
+has completed.  Other parameters behave as documented in
+C<nbd_pread>.";
+  };
+
+  "aio_pread_notify", {
+    default_call with
+    args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
+             Opaque "data";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+                                          Mutable (Int "error") ]);
+             Flags "flags" ];
+    ret = RInt64;
+    permitted_states = [ Connected ];
+    shortdesc = "read from the NBD server, and notify on completion";
+    longdesc = "\
+Issue a read command to the NBD server.  This returns the
+unique positive 64 bit handle for this command, or C<-1> on
+error.  If this command returns a handle, then the C<notify>
+callback will be called when the server is done replying,
+although you must still use C<nbd_aio_command_completed> after
+the callback to retire the command.  Note that you must ensure
 C<buf> is valid until the command has completed.  Other
-parameters behave as documented in C<nbd_pread>.";
+parameters behave as documented in C<nbd_pread>.
+
+The C<notify> callback is called with the same C<data> passed to
+this function, C<handle> set to the return value of this function,
+and C<error> containing the command's result so far. The callback
+may modify the overall status of the command by storing into
+C<error> and returning C<-1>, although attempts to undo non-zero
+status back to zero are ignored. The callback cannot call C<nbd_*>
+APIs on the same handle since it holds the handle lock and will
+cause a deadlock.";
   };
 
   "aio_pread_structured", {
@@ -1730,8 +1761,43 @@ parameters behave as documented in C<nbd_pread>.";
 Issue a read command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>.  Parameters behave as documented
-in C<nbd_pread_structured>.";
+C<nbd_aio_command_completed>, or use
+C<nbd_aio_pread_structured_notify>.  Parameters behave as
+documented in C<nbd_pread_structured>.";
+  };
+
+  "aio_pread_structured_notify", {
+    default_call with
+    args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
+             Opaque "data";
+             CallbackPersist ("chunk", [ Opaque "data";
+                                         BytesIn ("subbuf", "count");
+                                         UInt64 "offset";
+                                         Mutable (Int "error");
+                                         Int "status" ]);
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+                                          Mutable (Int "error") ]);
+             Flags "flags" ];
+    ret = RInt64;
+    permitted_states = [ Connected ];
+    shortdesc = "read from the NBD server, and notify on completion";
+    longdesc = "\
+Issue a read command to the NBD server.  This returns the
+unique positive 64 bit handle for this command, or C<-1> on
+error.  If this command returns a handle, then the C<notify>
+callback will be called when the server is done replying,
+although you must still use C<nbd_aio_command_completed> after
+the callback to retire the command.  Other parameters behave as
+documented in C<nbd_pread_structured>.
+
+The C<notify> callback is called with the same C<data> passed to
+this function, C<handle> set to the return value of this function,
+and C<error> containing the command's result so far. The callback
+may modify the overall status of the command by storing into
+C<error> and returning C<-1>, although attempts to undo non-zero
+status back to zero are ignored. The callback cannot call C<nbd_*>
+APIs on the same handle since it holds the handle lock and will
+cause a deadlock.";
   };
 
   "aio_pwrite", {
@@ -1744,9 +1810,40 @@ in C<nbd_pread_structured>.";
 Issue a write command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>.  Note that you must ensure
+C<nbd_aio_command_completed>, or use C<nbd_aio_pwrite_notify>.
+Note that you must ensure C<buf> is valid until the command
+has completed.  Other parameters behave as documented in
+C<nbd_pwrite>.";
+  };
+
+  "aio_pwrite_notify", {
+    default_call with
+    args = [ BytesPersistIn ("buf", "count"); UInt64 "offset";
+             Opaque "data";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+                                          Mutable (Int "error") ]);
+             Flags "flags" ];
+    ret = RInt64;
+    permitted_states = [ Connected ];
+    shortdesc = "write to the NBD server, and notify on completion";
+    longdesc = "\
+Issue a write command to the NBD server.  This returns the
+unique positive 64 bit handle for this command, or C<-1> on
+error.    If this command returns a handle, then the C<notify>
+callback will be called when the server is done replying,
+although you must still use C<nbd_aio_command_completed> after
+the callback to retire the command.  Note that you must ensure
 C<buf> is valid until the command has completed.  Other
-parameters behave as documented in C<nbd_pwrite>.";
+parameters behave as documented in C<nbd_pwrite>.
+
+The C<notify> callback is called with the same C<data> passed to
+this function, C<handle> set to the return value of this function,
+and C<error> containing the command's result so far. The callback
+may modify the overall status of the command by storing into
+C<error> and returning C<-1>, although attempts to undo non-zero
+status back to zero are ignored. The callback cannot call C<nbd_*>
+APIs on the same handle since it holds the handle lock and will
+cause a deadlock.";
   };
 
   "aio_disconnect", {
@@ -1781,8 +1878,36 @@ however, C<nbd_shutdown> will call this function if appropriate.";
 Issue the flush command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>.  Parameters behave as documented
-in C<nbd_flush>.";
+C<nbd_aio_command_completed>, or use C<nbd_aio_flush_notify>.
+Parameters behave as documented in C<nbd_flush>.";
+  };
+
+  "aio_flush_notify", {
+    default_call with
+    args = [ Opaque "data";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+                                          Mutable (Int "error") ]);
+             Flags "flags" ];
+    ret = RInt64;
+    permitted_states = [ Connected ];
+    shortdesc = "send flush command to the NBD server, and notify on completion";
+    longdesc = "\
+Issue the flush command to the NBD server.  This returns the
+unique positive 64 bit handle for this command, or C<-1> on
+error.  If this command returns a handle, then the C<notify>
+callback will be called when the server is done replying,
+although you must still use C<nbd_aio_command_completed> after
+the callback to retire the command.  Other parameters behave as
+documented in C<nbd_flush>.
+
+The C<notify> callback is called with the same C<data> passed to
+this function, C<handle> set to the return value of this function,
+and C<error> containing the command's result so far. The callback
+may modify the overall status of the command by storing into
+C<error> and returning C<-1>, although attempts to undo non-zero
+status back to zero are ignored. The callback cannot call C<nbd_*>
+APIs on the same handle since it holds the handle lock and will
+cause a deadlock.";
   };
 
   "aio_trim", {
@@ -1795,8 +1920,37 @@ in C<nbd_flush>.";
 Issue a trim command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>.  Parameters behave as documented
-in C<nbd_trim>.";
+C<nbd_aio_command_completed>, or use C<nbd_aio_trim_notify>.
+Parameters behave as documented in C<nbd_trim>.";
+  };
+
+  "aio_trim_notify", {
+    default_call with
+    args = [ UInt64 "count"; UInt64 "offset";
+             Opaque "data";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+                                          Mutable (Int "error") ]);
+             Flags "flags" ];
+    ret = RInt64;
+    permitted_states = [ Connected ];
+    shortdesc = "send trim command to the NBD server, and notify on completion";
+    longdesc = "\
+Issue a trim command to the NBD server.  This returns the
+unique positive 64 bit handle for this command, or C<-1> on
+error.  If this command returns a handle, then the C<notify>
+callback will be called when the server is done replying,
+although you must still use C<nbd_aio_command_completed> after
+the callback to retire the command.  Other parameters behave as
+documented in C<nbd_trim>.
+
+The C<notify> callback is called with the same C<data> passed to
+this function, C<handle> set to the return value of this function,
+and C<error> containing the command's result so far. The callback
+may modify the overall status of the command by storing into
+C<error> and returning C<-1>, although attempts to undo non-zero
+status back to zero are ignored. The callback cannot call C<nbd_*>
+APIs on the same handle since it holds the handle lock and will
+cause a deadlock.";
   };
 
   "aio_cache", {
@@ -1809,8 +1963,37 @@ in C<nbd_trim>.";
 Issue the cache (prefetch) command to the NBD server.  This
 returns the unique positive 64 bit handle for this command, or
 C<-1> on error.  To check if the command completed, call
-C<nbd_aio_command_completed>.  Parameters behave as documented
-in C<nbd_cache>.";
+C<nbd_aio_command_completed>, or use C<nbd_aio_cache_notify>.
+Parameters behave as documented in C<nbd_cache>.";
+  };
+
+  "aio_cache_notify", {
+    default_call with
+    args = [ UInt64 "count"; UInt64 "offset";
+             Opaque "data";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+                                          Mutable (Int "error") ]);
+             Flags "flags" ];
+    ret = RInt64;
+    permitted_states = [ Connected ];
+    shortdesc = "send cache (prefetch) command to the NBD server, and notify on completion";
+    longdesc = "\
+Issue the cache (prefetch) command to the NBD server.  This
+returns the unique positive 64 bit handle for this command, or
+C<-1> on error.  If this command returns a handle, then the C<notify>
+callback will be called when the server is done replying,
+although you must still use C<nbd_aio_command_completed> after
+the callback to retire the command.  Other parameters behave as
+documented in C<nbd_cache>.
+
+The C<notify> callback is called with the same C<data> passed to
+this function, C<handle> set to the return value of this function,
+and C<error> containing the command's result so far. The callback
+may modify the overall status of the command by storing into
+C<error> and returning C<-1>, although attempts to undo non-zero
+status back to zero are ignored. The callback cannot call C<nbd_*>
+APIs on the same handle since it holds the handle lock and will
+cause a deadlock.";
   };
 
   "aio_zero", {
@@ -1823,8 +2006,37 @@ in C<nbd_cache>.";
 Issue a write zeroes command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>.  Parameters behave as documented
-in C<nbd_zero>.";
+C<nbd_aio_command_completed>, or use C<nbd_aio_zero_notify>.
+Parameters behave as documented in C<nbd_zero>.";
+  };
+
+  "aio_zero_notify", {
+    default_call with
+    args = [ UInt64 "count"; UInt64 "offset";
+             Opaque "data";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+                                          Mutable (Int "error") ]);
+             Flags "flags" ];
+    ret = RInt64;
+    permitted_states = [ Connected ];
+    shortdesc = "send write zeroes command to the NBD server, and notify on completion";
+    longdesc = "\
+Issue a write zeroes command to the NBD server.  This returns the
+unique positive 64 bit handle for this command, or C<-1> on
+error.  If this command returns a handle, then the C<notify>
+callback will be called when the server is done replying,
+although you must still use C<nbd_aio_command_completed> after
+the callback to retire the command.  Other parameters behave as
+documented in C<nbd_zero>.
+
+The C<notify> callback is called with the same C<data> passed to
+this function, C<handle> set to the return value of this function,
+and C<error> containing the command's result so far. The callback
+may modify the overall status of the command by storing into
+C<error> and returning C<-1>, although attempts to undo non-zero
+status back to zero are ignored. The callback cannot call C<nbd_*>
+APIs on the same handle since it holds the handle lock and will
+cause a deadlock.";
   };
 
   "aio_block_status", {
@@ -1844,8 +2056,42 @@ in C<nbd_zero>.";
 Send the block status command to the NBD server.  This returns the
 unique positive 64 bit handle for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>.  Parameters behave as documented
-in C<nbd_block_status>.";
+C<nbd_aio_command_completed>, or use C<nbd_aio_block_status_notify>.
+Parameters behave as documented in C<nbd_block_status>.";
+  };
+
+  "aio_block_status_notify", {
+    default_call with
+    args = [ UInt64 "count"; UInt64 "offset";
+             Opaque "data";
+             CallbackPersist ("extent", [Opaque "data"; String "metacontext";
+                                         UInt64 "offset";
+                                         ArrayAndLen (UInt32 "entries",
+                                                      "nr_entries");
+                                         Mutable (Int "error") ]);
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+                                          Mutable (Int "error") ]);
+             Flags "flags" ];
+    ret = RInt64;
+    permitted_states = [ Connected ];
+    shortdesc = "send block status command to the NBD server, and notify on completion";
+    longdesc = "\
+Send the block status command to the NBD server.  This returns the
+unique positive 64 bit handle for this command, or C<-1> on
+error.  If this command returns a handle, then the C<notify>
+callback will be called when the server is done replying,
+although you must still use C<nbd_aio_command_completed> after
+the callback to retire the command.  Other parameters behave as
+documented in C<nbd_block_status>.
+
+The C<notify> callback is called with the same C<data> passed to
+this function, C<handle> set to the return value of this function,
+and C<error> containing the command's result so far. The callback
+may modify the overall status of the command by storing into
+C<error> and returning C<-1>, although attempts to undo non-zero
+status back to zero are ignored. The callback cannot call C<nbd_*>
+APIs on the same handle since it holds the handle lock and will
+cause a deadlock.";
   };
 
   "aio_get_fd", {

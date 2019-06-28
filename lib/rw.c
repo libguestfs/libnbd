@@ -249,6 +249,17 @@ int64_t
 nbd_unlocked_aio_pread (struct nbd_handle *h, void *buf,
                         size_t count, uint64_t offset, uint32_t flags)
 {
+  return nbd_unlocked_aio_pread_notify (h, buf, count, offset, NULL, NULL,
+                                        flags);
+}
+
+int64_t
+nbd_unlocked_aio_pread_notify (struct nbd_handle *h, void *buf,
+                               size_t count, uint64_t offset,
+                               void *opaque, notify_fn notify, uint32_t flags)
+{
+  struct command_cb cb = { .opaque = opaque, .notify = notify, };
+
   /* We could silently accept flag DF, but it really only makes sense
    * with callbacks, because otherwise there is no observable change
    * except that the server may fail where it would otherwise succeed.
@@ -259,7 +270,7 @@ nbd_unlocked_aio_pread (struct nbd_handle *h, void *buf,
   }
 
   return nbd_internal_command_common (h, 0, NBD_CMD_READ, offset, count,
-                                      buf, NULL);
+                                      buf, &cb);
 }
 
 int64_t
@@ -267,7 +278,18 @@ nbd_unlocked_aio_pread_structured (struct nbd_handle *h, void *buf,
                                    size_t count, uint64_t offset,
                                    void *opaque, read_fn read, uint32_t flags)
 {
-  struct command_cb cb = { .opaque = opaque, .fn.read = read, };
+  return nbd_unlocked_aio_pread_structured_notify (h, buf, count, offset,
+                                                   opaque, read, NULL, flags);
+}
+
+int64_t
+nbd_unlocked_aio_pread_structured_notify (struct nbd_handle *h, void *buf,
+                                          size_t count, uint64_t offset,
+                                          void *opaque, read_fn read,
+                                          notify_fn notify, uint32_t flags)
+{
+  struct command_cb cb = { .opaque = opaque, .fn.read = read,
+                           .notify = notify, };
 
   if ((flags & ~LIBNBD_CMD_FLAG_DF) != 0) {
     set_error (EINVAL, "invalid flag: %" PRIu32, flags);
@@ -289,6 +311,17 @@ nbd_unlocked_aio_pwrite (struct nbd_handle *h, const void *buf,
                          size_t count, uint64_t offset,
                          uint32_t flags)
 {
+  return nbd_unlocked_aio_pwrite_notify (h, buf, count, offset, NULL, NULL,
+                                         flags);
+}
+
+int64_t
+nbd_unlocked_aio_pwrite_notify (struct nbd_handle *h, const void *buf,
+                                size_t count, uint64_t offset,
+                                void *opaque, notify_fn notify, uint32_t flags)
+{
+  struct command_cb cb = { .opaque = opaque, .notify = notify, };
+
   if (nbd_unlocked_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
     return -1;
@@ -306,12 +339,21 @@ nbd_unlocked_aio_pwrite (struct nbd_handle *h, const void *buf,
   }
 
   return nbd_internal_command_common (h, flags, NBD_CMD_WRITE, offset, count,
-                                      (void *) buf, NULL);
+                                      (void *) buf, &cb);
 }
 
 int64_t
 nbd_unlocked_aio_flush (struct nbd_handle *h, uint32_t flags)
 {
+  return nbd_unlocked_aio_flush_notify (h, NULL, NULL, flags);
+}
+
+int64_t
+nbd_unlocked_aio_flush_notify (struct nbd_handle *h, void *opaque,
+                               notify_fn notify, uint32_t flags)
+{
+  struct command_cb cb = { .opaque = opaque, .notify = notify, };
+
   if (nbd_unlocked_can_flush (h) != 1) {
     set_error (EINVAL, "server does not support flush operations");
     return -1;
@@ -323,7 +365,7 @@ nbd_unlocked_aio_flush (struct nbd_handle *h, uint32_t flags)
   }
 
   return nbd_internal_command_common (h, 0, NBD_CMD_FLUSH, 0, 0,
-                                      NULL, NULL);
+                                      NULL, &cb);
 }
 
 int64_t
@@ -331,6 +373,16 @@ nbd_unlocked_aio_trim (struct nbd_handle *h,
                        uint64_t count, uint64_t offset,
                        uint32_t flags)
 {
+  return nbd_unlocked_aio_trim_notify (h, count, offset, NULL, NULL, flags);
+}
+
+int64_t
+nbd_unlocked_aio_trim_notify (struct nbd_handle *h,
+                              uint64_t count, uint64_t offset,
+                              void *opaque, notify_fn notify, uint32_t flags)
+{
+  struct command_cb cb = { .opaque = opaque, .notify = notify, };
+
   if (nbd_unlocked_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
     return -1;
@@ -353,13 +405,23 @@ nbd_unlocked_aio_trim (struct nbd_handle *h,
   }
 
   return nbd_internal_command_common (h, flags, NBD_CMD_TRIM, offset, count,
-                                      NULL, NULL);
+                                      NULL, &cb);
 }
 
 int64_t
 nbd_unlocked_aio_cache (struct nbd_handle *h,
                         uint64_t count, uint64_t offset, uint32_t flags)
 {
+  return nbd_unlocked_aio_cache_notify (h, count, offset, NULL, NULL, flags);
+}
+
+int64_t
+nbd_unlocked_aio_cache_notify (struct nbd_handle *h,
+                               uint64_t count, uint64_t offset,
+                               void *opaque, notify_fn notify, uint32_t flags)
+{
+  struct command_cb cb = { .opaque = opaque, .notify = notify, };
+
   /* Actually according to the NBD protocol document, servers do exist
    * that support NBD_CMD_CACHE but don't advertise the
    * NBD_FLAG_SEND_CACHE bit, but we ignore those.
@@ -375,7 +437,7 @@ nbd_unlocked_aio_cache (struct nbd_handle *h,
   }
 
   return nbd_internal_command_common (h, 0, NBD_CMD_CACHE, offset, count,
-                                      NULL, NULL);
+                                      NULL, &cb);
 }
 
 int64_t
@@ -383,6 +445,16 @@ nbd_unlocked_aio_zero (struct nbd_handle *h,
                        uint64_t count, uint64_t offset,
                        uint32_t flags)
 {
+  return nbd_unlocked_aio_zero_notify (h, count, offset, NULL, NULL, flags);
+}
+
+int64_t
+nbd_unlocked_aio_zero_notify (struct nbd_handle *h,
+                              uint64_t count, uint64_t offset,
+                              void *opaque, notify_fn notify, uint32_t flags)
+{
+  struct command_cb cb = { .opaque = opaque, .notify = notify, };
+
   if (nbd_unlocked_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
     return -1;
@@ -405,7 +477,7 @@ nbd_unlocked_aio_zero (struct nbd_handle *h,
   }
 
   return nbd_internal_command_common (h, flags, NBD_CMD_WRITE_ZEROES, offset,
-                                      count, NULL, NULL);
+                                      count, NULL, &cb);
 }
 
 int64_t
@@ -414,7 +486,18 @@ nbd_unlocked_aio_block_status (struct nbd_handle *h,
                                void *data, extent_fn extent,
                                uint32_t flags)
 {
-  struct command_cb cb = { .opaque = data, .fn.extent = extent, };
+  return nbd_unlocked_aio_block_status_notify (h, count, offset, data, extent,
+                                               NULL, flags);
+}
+
+int64_t
+nbd_unlocked_aio_block_status_notify (struct nbd_handle *h,
+                                      uint64_t count, uint64_t offset,
+                                      void *data, extent_fn extent,
+                                      notify_fn notify, uint32_t flags)
+{
+  struct command_cb cb = { .opaque = data, .fn.extent = extent,
+                           .notify = notify, };
 
   if (!h->structured_replies) {
     set_error (ENOTSUP, "server does not support structured replies");
