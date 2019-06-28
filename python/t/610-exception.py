@@ -26,6 +26,7 @@ try:
 except nbd.Error as ex:
     print ("string = %s" % ex.string)
     print ("errno = %s" % ex.errno)
+    print ("errnum = %d" % ex.errnum)
     exit (0)
 
 # If we reach here then we didn't catch the exception above.

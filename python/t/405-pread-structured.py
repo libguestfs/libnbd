@@ -47,7 +47,5 @@ assert buf == expected
 try:
     buf = h.pread_structured (512, 0, 43, f, nbd.CMD_FLAG_DF)
     assert False
-except Exception:
-    # Need a way for python to access last NBD error...
-    # assert nbd.get_errno == errno.EPROTO
-    pass
+except nbd.Error as ex:
+    assert ex.errnum == errno.EPROTO
