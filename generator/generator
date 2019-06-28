@@ -3390,18 +3390,18 @@ static struct PyModuleDef moduledef = {
   NULL,                  /* m_free */
 };
 
-static PyObject *
-moduleinit (void)
-{
-  return PyModule_Create (&moduledef);
-}
-
 extern PyMODINIT_FUNC PyInit_libnbdmod (void);
 
 PyMODINIT_FUNC
 PyInit_libnbdmod (void)
 {
-  return moduleinit ();
+  PyObject *mod;
+
+  mod = PyModule_Create (&moduledef);
+  if (mod == NULL)
+    return NULL;
+
+  return mod;
 }
 "
 
