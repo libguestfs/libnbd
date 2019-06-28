@@ -3944,11 +3944,14 @@ from libnbdmod import Error
 Error.__doc__ = '''
 Exception thrown when the underlying libnbd call fails.
 
-This exception has two properties to query the error.  Use
+This exception has three properties to query the error.  Use
 the .string property to return a printable string containing
-the error message.  Use the .errno property to return a
-Python errno (which may be None in some cases if the error
-did not correspond to a system call failure).
+the error message.  Use the .errnum property for the associated
+numeric error value (which may be 0 if the error did not
+correspond to a system call failure), or the .errno property to
+return a string containing the Python errno name if one is known
+(which may be None if the numeric value does not correspond to
+a known errno name).
 '''
 
 Error.string = property (lambda self: self.args[0])
@@ -3960,6 +3963,8 @@ def _errno (self):
     except KeyError:
         return None
 Error.errno = property (_errno)
+
+Error.errnum = property (lambda self: self.args[1])
 
 def _str (self):
     if self.errno:
