@@ -25,6 +25,7 @@
 #include <inttypes.h>
 #include <errno.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "internal.h"
 
@@ -167,6 +168,10 @@ nbd_internal_command_common (struct nbd_handle *h,
       set_error (EINVAL, "cannot request more commands after NBD_CMD_DISC");
       return -1;
   }
+  if (h->in_flight == INT_MAX) {
+      set_error (ENOMEM, "too many commands already in flight");
+      return -1;
+  }
 
   switch (type) {
     /* Commands which send or receive data are limited to MAX_REQUEST_SIZE. */
@@ -236,6 +241,7 @@ nbd_internal_command_common (struct nbd_handle *h,
       return -1;
   }
 
+  h->in_flight++;
   return cmd->handle;
 }
 

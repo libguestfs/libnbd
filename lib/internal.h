@@ -186,9 +186,11 @@ struct nbd_handle {
    * to be issued.  The second list contains commands which have been
    * issued and waiting for replies.  The third list contains commands
    * which we have received replies, waiting for the main program to
-   * acknowledge them.
+   * acknowledge them.  in_flight tracks the combined length of the
+   * first two lists.
    */
   struct command_in_flight *cmds_to_issue, *cmds_in_flight, *cmds_done;
+  int in_flight;
   /* Current command during a REPLY cycle */
   struct command_in_flight *reply_cmd;
 

@@ -23,6 +23,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <assert.h>
 
 #include "internal.h"
 
@@ -84,6 +85,8 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
     prev_cmd->next = cmd->next;
   else
     h->cmds_done = cmd->next;
+  h->in_flight--;
+  assert (h->in_flight >= 0);
 
   free (cmd);
 
@@ -109,4 +112,10 @@ nbd_unlocked_aio_peek_command_completed (struct nbd_handle *h)
   }
   set_error (EINVAL, "no commands are in flight");
   return -1;
+}
+
+int
+nbd_unlocked_aio_in_flight (struct nbd_handle *h)
+{
+  return h->in_flight;
 }

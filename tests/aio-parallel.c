@@ -198,7 +198,6 @@ start_thread (void *arg)
   size_t i;
   int64_t offset, handle;
   char *buf;
-  size_t in_flight;        /* counts number of requests in flight */
   int dir, r, cmd;
   time_t t;
   bool expired = false;
@@ -238,8 +237,8 @@ start_thread (void *arg)
   assert (nbd_read_only (nbd) == 0);
 
   /* Issue commands. */
-  in_flight = 0;
-  while (!expired || in_flight > 0) {
+  assert (nbd_aio_in_flight (nbd) == 0);
+  while (!expired || nbd_aio_in_flight (nbd) > 0) {
     if (nbd_aio_is_dead (nbd) || nbd_aio_is_closed (nbd)) {
       fprintf (stderr, "thread %zu: connection is dead or closed\n",
                status->i);
@@ -250,12 +249,12 @@ start_thread (void *arg)
     time (&t);
     if (t > status->end_time) {
       expired = true;
-      if (!in_flight)
+      if (nbd_aio_in_flight (nbd) <= 0)
         break;
     }
 
     /* If we can issue another request, do so. */
-    while (!expired && in_flight < MAX_IN_FLIGHT) {
+    while (!expired && nbd_aio_in_flight (nbd) < MAX_IN_FLIGHT) {
       /* Find a free command slot. */
       for (i = 0; i < MAX_IN_FLIGHT; ++i)
         if (commands[status->i][i].offset == -1)
@@ -282,9 +281,8 @@ start_thread (void *arg)
       commands[status->i][i].offset = offset;
       commands[status->i][i].handle = handle;
       commands[status->i][i].cmd = cmd;
-      in_flight++;
-      if (in_flight > status->most_in_flight)
-        status->most_in_flight = in_flight;
+      if (nbd_aio_in_flight (nbd) > status->most_in_flight)
+        status->most_in_flight = nbd_aio_in_flight (nbd);
     }
 
     fds[0].fd = nbd_aio_get_fd (nbd);
@@ -329,7 +327,6 @@ start_thread (void *arg)
           }
 
           commands[status->i][i].offset = -1;
-          in_flight--;
           status->requests++;
         }
       }

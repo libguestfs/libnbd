@@ -1749,6 +1749,12 @@ not a normal command because NBD servers are not obliged
 to send a reply.  Instead you should wait for
 C<nbd_aio_is_closed> to become true on the connection.
 
+Although libnbd does not prevent you from issuing this command while
+still waiting on the replies to previous commands, the NBD protocol
+recommends that you wait until there are no other commands in flight
+(see C<nbd_aio_in_flight>), to give the server a better chance at a
+clean shutdown.
+
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).  There is no direct synchronous counterpart;
 however, C<nbd_shutdown> will call this function if appropriate.";
@@ -1867,16 +1873,16 @@ you would set C<events = POLLIN>.  If C<revents> returns C<POLLIN>
 or C<POLLHUP> you would then call C<nbd_aio_notify_read>.
 
 Note that once libnbd reaches C<nbd_aio_is_ready>, this direction is
-returned even before a command is issued via C<nbd_aio_pwrite> and
-friends. In a single-threaded use of libnbd, it is not worth polling
-until after issuing a command, as otherwise the server will never wake
-up the poll. In a multi-threaded scenario, you can have one thread
-begin a polling loop prior to any commands, but any other thread that
-issues a command will need a way to kick the polling thread out of
-poll in case issuing the command changes the needed polling
-direction. Possible ways to do this include polling for activity on a
-pipe-to-self, or using L<pthread_kill(3)> to send a signal that is
-masked except during L<ppoll(2)>.
+returned even when there are no commands in flight (see
+C<nbd_aio_in_flight>). In a single-threaded use of libnbd, it is not
+worth polling until after issuing a command, as otherwise the server
+will never wake up the poll. In a multi-threaded scenario, you can
+have one thread begin a polling loop prior to any commands, but any
+other thread that issues a command will need a way to kick the
+polling thread out of poll in case issuing the command changes the
+needed polling direction. Possible ways to do this include polling
+for activity on a pipe-to-self, or using L<pthread_kill(3)> to send
+a signal that is masked except during L<ppoll(2)>.
 
 =item C<LIBNBD_AIO_DIRECTION_WRITE> = 2
 
@@ -2010,6 +2016,22 @@ completed command, C<0> if no command is awaiting retirement, or C<-1>
 on error. Any handle returned by this function must still be passed to
 C<nbd_aio_command_completed> to actually retire the command and learn
 whether the command was successful.";
+  };
+
+  "aio_in_flight", {
+    default_call with
+    args = []; ret = RInt;
+    permitted_states = [ Connected; Closed; Dead ];
+    (* XXX is_locked = false ? *)
+    shortdesc = "check how many aio commands are still in flight";
+    longdesc = "\
+Return the number of in-flight aio commands that are still awaiting a
+response from the server before they can be retired.  If this returns
+a non-zero value when requesting a disconnect from the server (see
+C<nbd_aio_disconnect> and C<nbd_shutdown>), libnbd does not try to
+wait for those commands to complete gracefully; if the server strands
+commands while shutting down, C<nbd_aio_command_completed> will not
+be able to report status on those commands.";
   };
 
   "connection_state", {

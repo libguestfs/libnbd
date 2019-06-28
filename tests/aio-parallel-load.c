@@ -189,7 +189,6 @@ start_thread (void *arg)
   size_t i;
   uint64_t offset, handle;
   uint64_t handles[MAX_IN_FLIGHT];
-  size_t in_flight;        /* counts number of requests in flight */
   int dir, r, cmd;
   time_t t;
   bool expired = false;
@@ -231,8 +230,8 @@ start_thread (void *arg)
   assert (nbd_read_only (nbd) == 0);
 
   /* Issue commands. */
-  in_flight = 0;
-  while (!expired || in_flight > 0) {
+  assert (nbd_aio_in_flight (nbd) == 0);
+  while (!expired || nbd_aio_in_flight (nbd) > 0) {
     if (nbd_aio_is_dead (nbd) || nbd_aio_is_closed (nbd)) {
       fprintf (stderr, "thread %zu: connection is dead or closed\n",
                status->i);
@@ -243,12 +242,12 @@ start_thread (void *arg)
     time (&t);
     if (t > status->end_time) {
       expired = true;
-      if (!in_flight)
+      if (nbd_aio_in_flight (nbd) <= 0)
         break;
     }
 
     /* If we can issue another request, do so. */
-    while (!expired && in_flight < MAX_IN_FLIGHT) {
+    while (!expired && nbd_aio_in_flight (nbd) < MAX_IN_FLIGHT) {
       offset = rand () % (EXPORTSIZE - buf_size);
       cmd = rand () & 1;
       if (cmd == 0) {
@@ -263,10 +262,14 @@ start_thread (void *arg)
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
       }
-      handles[in_flight] = handle;
-      in_flight++;
-      if (in_flight > status->most_in_flight)
-        status->most_in_flight = in_flight;
+      for (i = 0; i < MAX_IN_FLIGHT; i++) {
+        if (handles[i] == 0) {
+          handles[i] = handle;
+          break;
+        }
+      }
+      if (nbd_aio_in_flight (nbd)  > status->most_in_flight)
+        status->most_in_flight = nbd_aio_in_flight (nbd);
     }
 
     fds[0].fd = nbd_aio_get_fd (nbd);
@@ -291,16 +294,16 @@ start_thread (void *arg)
       nbd_aio_notify_write (nbd);
 
     /* If a command is ready to retire, retire it. */
-    for (i = 0; i < in_flight; ++i) {
+    for (i = 0; i < MAX_IN_FLIGHT; ++i) {
+      if (handles[i] == 0)
+        continue;
       r = nbd_aio_command_completed (nbd, handles[i]);
       if (r == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
       }
       if (r) {
-        memmove (&handles[i], &handles[i+1],
-                 sizeof (handles[0]) * (in_flight - i - 1));
-        in_flight--;
+        handles[i] = 0;
         status->requests++;
       }
     }
