@@ -60,10 +60,11 @@ nbd_unlocked_aio_disconnect (struct nbd_handle *h, uint32_t flags)
     return -1;
   h->disconnect_request = true;
 
-  /* This will leave the command on the in-flight list.  Is this a
-   * problem?  Probably it isn't.  If it is, we could add a flag to
-   * the command struct to tell SEND_REQUEST not to add it to the
-   * in-flight list.
+  /* As the server does not reply to this command, it is left
+   * in-flight until the cleanup performed when moving to CLOSED or
+   * DEAD.  We don't return a handle to the user, and thus also
+   * special case things so that the user cannot request the status of
+   * this command during aio_[peek_]command_completed.
    */
   return 0;
 }

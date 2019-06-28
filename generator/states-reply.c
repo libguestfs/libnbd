@@ -180,6 +180,14 @@ save_reply_state (struct nbd_handle *h)
   else
     h->cmds_done = cmd;
 
+  /* Notify the user */
+  if (cmd->cb.notify) {
+    int error = cmd->error;
+
+    if (cmd->cb.notify (cmd->cb.opaque, handle, &error) == -1 && error)
+      cmd->error = error;
+  }
+
   SET_NEXT_STATE (%.READY);
   return 0;
 

@@ -239,6 +239,7 @@ typedef int (*extent_fn) (void *data, const char *metacontext, uint64_t offset,
                           uint32_t *entries, size_t nr_entries, int *error);
 typedef int (*read_fn) (void *data, const void *buf, size_t count,
                         uint64_t offset, int *error, int status);
+typedef int (*notify_fn) (void *data, int64_t handle, int *error);
 
 struct command_cb {
   void *opaque;
@@ -246,6 +247,7 @@ struct command_cb {
     extent_fn extent;
     read_fn read;
   } fn;
+  notify_fn notify;
 };
 
 struct command_in_flight {

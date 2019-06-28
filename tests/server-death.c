@@ -32,6 +32,8 @@ int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
+  int err;
+  const char *msg;
   char buf[512];
   int64_t handle;
   char pidfile[] = "/tmp/libnbd-test-disconnectXXXXXX";
@@ -123,14 +125,44 @@ main (int argc, char *argv[])
     goto fail;
   }
 
-  /* Proof that the read was stranded */
-  if (nbd_aio_peek_command_completed (nbd) != 0) {
+  /* Detection of the dead server completes all remaining in-flight commands */
+  if (nbd_aio_peek_command_completed (nbd) != handle) {
     fprintf (stderr, "%s: test failed: nbd_aio_peek_command_completed\n",
              argv[0]);
     goto fail;
   }
-  if (nbd_aio_command_completed (nbd, handle) != 0) {
+  if (nbd_aio_command_completed (nbd, handle) != -1) {
     fprintf (stderr, "%s: test failed: nbd_aio_command_completed\n", argv[0]);
+    goto fail;
+  }
+  msg = nbd_get_error ();
+  err = nbd_get_errno ();
+  printf ("error: \"%s\"\n", msg);
+  printf ("errno: %d (%s)\n", err, strerror (err));
+  if (err != ENOTCONN) {
+    fprintf (stderr, "%s: test failed: unexpected errno %d (%s)\n", argv[0],
+             err, strerror (err));
+    goto fail;
+  }
+
+  /* With all commands retired, no further command should be pending */
+  if (nbd_aio_in_flight (nbd) != 0) {
+    fprintf (stderr, "%s: test failed: nbd_aio_in_flight\n",
+             argv[0]);
+    goto fail;
+  }
+  if (nbd_aio_peek_command_completed (nbd) != -1) {
+    fprintf (stderr, "%s: test failed: nbd_aio_peek_command_completed\n",
+             argv[0]);
+    goto fail;
+  }
+  msg = nbd_get_error ();
+  err = nbd_get_errno ();
+  printf ("error: \"%s\"\n", msg);
+  printf ("errno: %d (%s)\n", err, strerror (err));
+  if (err != EINVAL) {
+    fprintf (stderr, "%s: test failed: unexpected errno %d (%s)\n", argv[0],
+             err, strerror (err));
     goto fail;
   }
 

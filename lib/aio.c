@@ -69,7 +69,7 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
     if (cmd->handle == handle)
       break;
   }
-  if (!cmd)
+  if (!cmd || cmd->type == NBD_CMD_DISC)
     return 0;
 
   type = cmd->type;
@@ -103,6 +103,14 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
 int64_t
 nbd_unlocked_aio_peek_command_completed (struct nbd_handle *h)
 {
+  /* Special case NBD_CMD_DISC, as it does not have a user-visible handle */
+  if (h->cmds_done && h->cmds_done->type == NBD_CMD_DISC) {
+    struct command_in_flight *cmd = h->cmds_done;
+
+    h->cmds_done = cmd->next;
+    free (cmd);
+  }
+
   if (h->cmds_done != NULL)
     return h->cmds_done->handle;
 

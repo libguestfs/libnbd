@@ -1758,7 +1758,8 @@ parameters behave as documented in C<nbd_pwrite>.";
 Issue the disconnect command to the NBD server.  This is
 not a normal command because NBD servers are not obliged
 to send a reply.  Instead you should wait for
-C<nbd_aio_is_closed> to become true on the connection.
+C<nbd_aio_is_closed> to become true on the connection.  Once this
+command is issued, you cannot issue any further commands.
 
 Although libnbd does not prevent you from issuing this command while
 still waiting on the replies to previous commands, the NBD protocol
@@ -2041,8 +2042,8 @@ response from the server before they can be retired.  If this returns
 a non-zero value when requesting a disconnect from the server (see
 C<nbd_aio_disconnect> and C<nbd_shutdown>), libnbd does not try to
 wait for those commands to complete gracefully; if the server strands
-commands while shutting down, C<nbd_aio_command_completed> will not
-be able to report status on those commands.";
+commands while shutting down, C<nbd_aio_command_completed> will report
+those commands as failed with a status of C<ENOTCONN>.";
   };
 
   "connection_state", {

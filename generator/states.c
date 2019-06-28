@@ -111,6 +111,32 @@ send_from_wbuf (struct nbd_handle *h)
   return 0;                     /* move to next state */
 }
 
+/* Forcefully fail any remaining in-flight commands in list */
+void abort_commands (struct nbd_handle *h,
+                     struct command_in_flight **list)
+{
+  struct command_in_flight *prev_cmd, *cmd;
+
+  for (cmd = *list, prev_cmd = NULL;
+       cmd != NULL;
+       prev_cmd = cmd, cmd = cmd->next) {
+    if (cmd->cb.notify) {
+      int error = cmd->error ? cmd->error : ENOTCONN;
+
+      assert (cmd->type != NBD_CMD_DISC);
+      if (cmd->cb.notify (cmd->cb.opaque, cmd->handle, &error) == -1 && error)
+        cmd->error = error;
+    }
+    if (cmd->error == 0)
+      cmd->error = ENOTCONN;
+  }
+  if (prev_cmd) {
+    prev_cmd->next = h->cmds_done;
+    h->cmds_done = *list;
+    *list = NULL;
+  }
+}
+
 /*----- End of prologue. -----*/
 
 /* STATE MACHINE */ {
@@ -127,6 +153,8 @@ send_from_wbuf (struct nbd_handle *h)
  DEAD:
   /* The caller should have used set_error() before reaching here */
   assert (nbd_get_error ());
+  abort_commands (h, &h->cmds_to_issue);
+  abort_commands (h, &h->cmds_in_flight);
   if (h->sock) {
     h->sock->ops->close (h->sock);
     h->sock = NULL;
@@ -134,6 +162,8 @@ send_from_wbuf (struct nbd_handle *h)
   return -1;
 
  CLOSED:
+  abort_commands (h, &h->cmds_to_issue);
+  abort_commands (h, &h->cmds_in_flight);
   if (h->sock) {
     h->sock->ops->close (h->sock);
     h->sock = NULL;
