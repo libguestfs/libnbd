@@ -188,7 +188,7 @@ start_thread (void *arg)
   struct nbd_handle *nbd;
   size_t i;
   uint64_t offset, handle;
-  uint64_t handles[MAX_IN_FLIGHT];
+  uint64_t handles[MAX_IN_FLIGHT] = { 0 };
   int dir, r, cmd;
   time_t t;
   bool expired = false;
