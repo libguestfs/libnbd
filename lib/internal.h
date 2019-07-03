@@ -33,6 +33,11 @@
 #include "states.h"
 #include "unlocked.h"
 
+/* MSG_MORE is an optimization.  If not present, ignore it. */
+#ifndef MSG_MORE
+#define MSG_MORE 0
+#endif
+
 /* XXX This is the same as nbdkit, but probably it should be detected
  * from the server (NBD_INFO_BLOCK_SIZE) or made configurable.
  */
