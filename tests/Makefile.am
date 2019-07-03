@@ -256,7 +256,8 @@ connect_uri_tcp_LDADD = $(top_builddir)/lib/libnbd.la
 aio_parallel_SOURCES = aio-parallel.c
 aio_parallel_CPPFLAGS = \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/common/include
+	-I$(top_srcdir)/common/include \
+	$(NULL)
 aio_parallel_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
 aio_parallel_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
 
@@ -268,7 +269,8 @@ aio_parallel_load_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
 synch_parallel_SOURCES = synch-parallel.c
 synch_parallel_CPPFLAGS = \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/common/include
+	-I$(top_srcdir)/common/include \
+	$(NULL)
 synch_parallel_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
 synch_parallel_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
 
@@ -323,7 +325,8 @@ aio_parallel_tls_SOURCES = aio-parallel.c
 aio_parallel_tls_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/common/include \
-	-DTLS=1
+	-DTLS=1 \
+	$(NULL)
 aio_parallel_tls_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
 aio_parallel_tls_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
 
@@ -336,7 +339,8 @@ synch_parallel_tls_SOURCES = synch-parallel.c
 synch_parallel_tls_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/common/include \
-	-DTLS=1
+	-DTLS=1 \
+	$(NULL)
 synch_parallel_tls_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
 synch_parallel_tls_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
 
