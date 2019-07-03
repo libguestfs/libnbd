@@ -52,7 +52,7 @@ static int total_success;
 
 static int
 read_chunk (void *opaque, const void *bufv, size_t count, uint64_t offset,
-            int *error, int status)
+            int status, int *error)
 {
   struct data *data = opaque;
   struct range *r, **prev;

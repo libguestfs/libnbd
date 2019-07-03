@@ -299,7 +299,7 @@
          * without setting errno, then use the server's error below.
          */
         if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data + (offset - cmd->offset),
-                             0, offset, &scratch, LIBNBD_READ_ERROR) == -1)
+                             0, offset, LIBNBD_READ_ERROR, &scratch) == -1)
           if (cmd->error == 0)
             cmd->error = scratch;
       }
@@ -385,8 +385,8 @@
       int error = cmd->error;
 
       if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data + (offset - cmd->offset),
-                           length - sizeof offset, offset, &error,
-                           LIBNBD_READ_DATA) == -1)
+                           length - sizeof offset, offset,
+                           LIBNBD_READ_DATA, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
     }
@@ -446,8 +446,8 @@
       int error = cmd->error;
 
       if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data + offset, length,
-                           cmd->offset + offset, &error,
-                           LIBNBD_READ_HOLE) == -1)
+                           cmd->offset + offset,
+                           LIBNBD_READ_HOLE, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
     }

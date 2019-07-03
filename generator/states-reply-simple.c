@@ -65,7 +65,7 @@
 
       assert (cmd->error == 0);
       if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data, cmd->count,
-                           cmd->offset, &error, LIBNBD_READ_DATA) == -1)
+                           cmd->offset, LIBNBD_READ_DATA, &error) == -1)
         cmd->error = error ? error : EPROTO;
     }
 

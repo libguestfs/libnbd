@@ -36,7 +36,7 @@ static const char *progname;
 
 static int
 pread_cb (void *data, const void *buf, size_t count, uint64_t offset,
-          int *error, int status)
+          int status, int *error)
 {
   int *calls = data;
   ++*calls;

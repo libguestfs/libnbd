@@ -238,7 +238,7 @@ struct socket {
 typedef int (*extent_fn) (void *data, const char *metacontext, uint64_t offset,
                           uint32_t *entries, size_t nr_entries, int *error);
 typedef int (*read_fn) (void *data, const void *buf, size_t count,
-                        uint64_t offset, int *error, int status);
+                        uint64_t offset, int status, int *error);
 typedef int (*notify_fn) (void *data, int64_t handle, int *error);
 
 struct command_cb {
