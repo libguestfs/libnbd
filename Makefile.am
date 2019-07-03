@@ -28,6 +28,7 @@ EXTRA_DIST = \
 SUBDIRS = \
 	generator \
 	include \
+	common/include \
 	lib \
 	docs \
 	examples \

@@ -57,6 +57,7 @@ libnbd_la_SOURCES = \
 	$(NULL)
 libnbd_la_CPPFLAGS = \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/common/include \
 	-Dsysconfdir=\"$(sysconfdir)\" \
 	$(NULL)
 libnbd_la_CFLAGS = \

@@ -59,6 +59,12 @@ if test "x$gcc_warnings" = "xyes"; then
     AC_SUBST([WARNINGS_CFLAGS])
 fi
 
+dnl Check for other headers, all optional.
+AC_CHECK_HEADERS([\
+    byteswap.h \
+    endian.h \
+    sys/endian.h])
+
 dnl Check for GnuTLS (optional, for TLS support).
 AC_ARG_WITH([gnutls],
     [AS_HELP_STRING([--without-gnutls],
@@ -271,6 +277,7 @@ AC_CONFIG_FILES([sh/nbdsh],
                 [chmod +x,-w sh/nbdsh])
 
 AC_CONFIG_FILES([Makefile
+                 common/include/Makefile
                  docs/Makefile
                  examples/Makefile
                  generator/Makefile

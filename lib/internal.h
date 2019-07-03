@@ -30,6 +30,7 @@
 #include "libnbd.h"
 #include "nbd-protocol.h"
 
+#include "byte-swapping.h"
 #include "states.h"
 #include "unlocked.h"
 

@@ -22,6 +22,8 @@
  * command per thread in flight).
  */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -35,6 +37,8 @@
 #include <pthread.h>
 
 #include <libnbd.h>
+
+#include "byte-swapping.h"
 
 /* We keep a shadow of the RAM disk so we can check integrity of the data. */
 static char *ramdisk;
