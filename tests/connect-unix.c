@@ -18,6 +18,8 @@
 
 /* Test connecting over a Unix domain socket. */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>

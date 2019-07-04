@@ -20,6 +20,8 @@
  * Essentially testing the newstyle handshake.
  */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

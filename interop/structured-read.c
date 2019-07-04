@@ -18,6 +18,8 @@
 
 /* Test structured reply read callback. */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

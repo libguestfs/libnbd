@@ -18,6 +18,8 @@
 
 /* Simple end-to-end test of flags. */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>

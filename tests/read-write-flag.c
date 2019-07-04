@@ -18,6 +18,8 @@
 
 /* Simple end-to-end test of nbdkit without -r / nbd_read_only. */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 

@@ -20,6 +20,8 @@
  * nbd_get_error etc look reasonable.
  */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

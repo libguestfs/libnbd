@@ -18,6 +18,8 @@
 
 /* Test connecting over an NBD URI specifying Unix domain socket. */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>

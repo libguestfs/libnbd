@@ -18,6 +18,8 @@
 
 /* Test connecting over TLS to nbdkit. */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

@@ -19,6 +19,8 @@
 /* Deliberately disconnect while stranding commands, to check their status.
  */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
