@@ -3626,11 +3626,10 @@ extern PyObject *nbd_internal_py_Error;
 static inline void
 raise_exception ()
 {
-  PyObject *args = PyTuple_New (2);
+  PyObject *args = Py_BuildValue (\"si\", nbd_get_error (), nbd_get_errno ());
 
-  PyTuple_SetItem (args, 0, PyUnicode_FromString (nbd_get_error ()));
-  PyTuple_SetItem (args, 1, PyLong_FromLong (nbd_get_errno ()));
-  PyErr_SetObject (nbd_internal_py_Error, args);
+  if (args != NULL)
+    PyErr_SetObject (nbd_internal_py_Error, args);
 }
 
 ";
