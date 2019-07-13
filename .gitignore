@@ -41,6 +41,7 @@ Makefile.in
 /docs/libnbd-api.3
 /docs/libnbd-api.pod
 /examples/batched-read-write
+/examples/glib-main-loop
 /examples/threaded-reads-and-writes
 /examples/simple-fetch-first-sector
 /examples/simple-reads-and-writes

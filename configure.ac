@@ -153,6 +153,15 @@ AM_CONDITIONAL([HAVE_NBD_SERVER], [test "x$NBD_SERVER" != "x"])
 AC_CHECK_PROG([QEMU_NBD], [qemu-nbd], [qemu-nbd])
 AM_CONDITIONAL([HAVE_QEMU_NBD], [test "x$QEMU_NBD" != "x"])
 
+dnl glib2 main loop for examples that interoperate with the glib main loop.
+PKG_CHECK_MODULES([GLIB], [glib-2.0], [
+    AC_SUBST([GLIB_CFLAGS])
+    AC_SUBST([GLIB_LIBS])
+],[
+    AC_MSG_WARN([glib2 not found, some examples will not be compiled])
+])
+AM_CONDITIONAL([HAVE_GLIB], [test "x$GLIB_LIBS" != "x"])
+
 dnl Check we have enough to run podwrapper.
 AC_CHECK_PROG([PERL],[perl],[perl],[no])
 AS_IF([test "x$PERL" != "xno"],[

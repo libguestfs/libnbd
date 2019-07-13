@@ -72,6 +72,8 @@ Optional:
 
  * qemu, qemu-io, qemu-img for interoperability testing.
 
+ * glib2 for examples that interoperate with the glib main loop.
+
  * OCaml and ocamlfind are both needed to generate the OCaml bindings.
 
  * Perl Pod::Man and Pod::Simple to generate the documentation.

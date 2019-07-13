@@ -27,6 +27,11 @@ noinst_PROGRAMS = \
 	strict-structured-reads \
 	$(NULL)
 
+if HAVE_GLIB
+noinst_PROGRAMS += \
+	glib-main-loop
+endif
+
 simple_fetch_first_sector_SOURCES = \
 	simple-fetch-first-sector.c \
 	$(NULL)
@@ -93,3 +98,20 @@ batched_read_write_CFLAGS = \
 batched_read_write_LDADD = \
 	$(top_builddir)/lib/libnbd.la \
 	$(NULL)
+
+if HAVE_GLIB
+glib_main_loop_SOURCES = \
+	glib-main-loop.c \
+	$(NULL)
+glib_main_loop_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	$(NULL)
+glib_main_loop_CFLAGS = \
+	$(WARNINGS_CFLAGS) \
+	$(GLIB_CFLAGS) \
+	$(NULL)
+glib_main_loop_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(GLIB_LIBS) \
+	$(NULL)
+endif
