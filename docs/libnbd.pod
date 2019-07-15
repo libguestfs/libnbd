@@ -150,18 +150,18 @@ until the connection becomes ready:
  }
 
 To read data asynchronously, start an asynchronous read command, which
-returns a 64 bit command ID, and enter the main loop until the command
-has completed:
+returns a 64 bit command cookie, and enter the main loop until the
+command has completed:
 
- int64_t id;
+ int64_t cookie;
  char buf[512];
  
- id = nbd_aio_pread (nbd, buf, sizeof buf, offset, 0)
- if (id == -1) {
+ cookie = nbd_aio_pread (nbd, buf, sizeof buf, offset, 0)
+ if (cookie == -1) {
    fprintf (stderr, "%s\n", nbd_get_error ());
    exit (EXIT_FAILURE);
  }
- while (!nbd_aio_command_completed (nbd, id)) {
+ while (!nbd_aio_command_completed (nbd, cookie)) {
    if (nbd_poll (nbd, -1) == -1) {
      fprintf (stderr, "%s\n", nbd_get_error ());
      exit (EXIT_FAILURE);
@@ -371,12 +371,12 @@ Libnbd supports this when using the low level API.
 To use it you simply issue more requests as needed (eg. using calls
 like C<nbd_aio_pread>, C<nbd_aio_pwrite>) without waiting for previous
 commands to complete.  You need to be careful that requests in flight
-do not overlap with other write-like commands in flight — a parallel
-read may see indeterminate data, and a parallel write may even cause
-disk corruption where the resulting disk contents do not match either
-of the two writes.
+do not overlap with disk offsets of other write-like commands in
+flight — an overlapping read may see indeterminate data, and an
+overlapping write may even cause disk corruption where the resulting
+disk contents do not match either of the two writes.
 
-Each request is identified by a unique 64 bit handle (assigned by
+Each request is identified by a unique 64 bit cookie (assigned by
 libnbd), allowing libnbd and callers to match replies to requests.
 Replies may arrive out of order.
 

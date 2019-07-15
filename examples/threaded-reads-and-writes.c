@@ -188,8 +188,9 @@ start_thread (void *arg)
   struct thread_status *status = arg;
   char *buf;
   size_t i, j;
-  uint64_t offset, handle;
-  uint64_t handles[MAX_IN_FLIGHT];
+  uint64_t offset;
+  int64_t cookie;
+  int64_t cookies[MAX_IN_FLIGHT];
   size_t in_flight;        /* counts number of requests in flight */
   int dir, r, cmd;
   size_t size;
@@ -250,14 +251,14 @@ start_thread (void *arg)
       offset = rand () % (exportsize - size);
       cmd = rand () & 1;
       if (cmd == 0)
-        handle = nbd_aio_pwrite (nbd, buf, size, offset, 0);
+        cookie = nbd_aio_pwrite (nbd, buf, size, offset, 0);
       else
-        handle = nbd_aio_pread (nbd, buf, size, offset, 0);
-      if (handle == -1) {
+        cookie = nbd_aio_pread (nbd, buf, size, offset, 0);
+      if (cookie == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
       }
-      handles[in_flight] = handle;
+      cookies[in_flight] = cookie;
       i--;
       in_flight++;
       if (in_flight > status->most_in_flight)
@@ -287,14 +288,14 @@ start_thread (void *arg)
 
     /* If a command is ready to retire, retire it. */
     for (j = 0; j < in_flight; ++j) {
-      r = nbd_aio_command_completed (nbd, handles[j]);
+      r = nbd_aio_command_completed (nbd, cookies[j]);
       if (r == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
       }
       if (r) {
-        memmove (&handles[j], &handles[j+1],
-                 sizeof (handles[0]) * (in_flight - j - 1));
+        memmove (&cookies[j], &cookies[j+1],
+                 sizeof (cookies[0]) * (in_flight - j - 1));
         j--;
         in_flight--;
         status->requests++;

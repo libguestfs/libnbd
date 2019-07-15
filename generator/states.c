@@ -124,7 +124,7 @@ void abort_commands (struct nbd_handle *h,
       int error = cmd->error ? cmd->error : ENOTCONN;
 
       assert (cmd->type != NBD_CMD_DISC);
-      if (cmd->cb.notify (cmd->cb.opaque, cmd->handle, &error) == -1 && error)
+      if (cmd->cb.notify (cmd->cb.opaque, cmd->cookie, &error) == -1 && error)
         cmd->error = error;
     }
     if (cmd->error == 0)

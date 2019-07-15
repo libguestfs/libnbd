@@ -186,10 +186,10 @@ main (int argc, char *argv[])
   }
   check (EINVAL, "nbd_aio_notify_write: ");
 
-  /* Check for status of a bogus handle */
+  /* Check for status of a bogus cookie */
   if (nbd_aio_command_completed (nbd, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
-             "nbd_aio_command_completed on bogus handle did not fail\n",
+             "nbd_aio_command_completed on bogus cookie did not fail\n",
              argv[0]);
     exit (EXIT_FAILURE);
   }

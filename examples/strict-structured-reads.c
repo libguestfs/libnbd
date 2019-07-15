@@ -127,7 +127,7 @@ read_chunk (void *opaque, const void *bufv, size_t count, uint64_t offset,
 }
 
 static int
-read_verify (void *opaque, int64_t handle, int *error)
+read_verify (void *opaque, int64_t cookie, int *error)
 {
   struct data *data = opaque;
   int ret = -1;
@@ -233,20 +233,20 @@ main (int argc, char *argv[])
   }
 
   while (nbd_aio_in_flight (nbd) > 0) {
-    int64_t handle = nbd_aio_peek_command_completed (nbd);
+    int64_t cookie = nbd_aio_peek_command_completed (nbd);
 
-    if (handle == -1) {
+    if (cookie == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
-    if (handle == 0) {
+    if (cookie == 0) {
       if (nbd_poll (nbd, -1) == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         exit (EXIT_FAILURE);
       }
     }
     else
-      nbd_aio_command_completed (nbd, handle);
+      nbd_aio_command_completed (nbd, cookie);
   }
 
   if (nbd_shutdown (nbd) == -1) {

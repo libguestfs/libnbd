@@ -76,7 +76,7 @@ struct nbd_handle {
   uint64_t exportsize;
   uint16_t eflags;
 
-  int64_t unique;               /* Used for generating handle numbers. */
+  int64_t unique;               /* Used for generating cookie numbers. */
 
   /* For debugging. */
   bool debug;
@@ -245,7 +245,7 @@ typedef int (*extent_fn) (void *data, const char *metacontext, uint64_t offset,
                           uint32_t *entries, size_t nr_entries, int *error);
 typedef int (*read_fn) (void *data, const void *buf, size_t count,
                         uint64_t offset, int status, int *error);
-typedef int (*notify_fn) (void *data, int64_t handle, int *error);
+typedef int (*notify_fn) (void *data, int64_t callback, int *error);
 
 struct command_cb {
   void *opaque;
@@ -260,7 +260,7 @@ struct command_in_flight {
   struct command_in_flight *next;
   uint16_t flags;
   uint16_t type;
-  uint64_t handle;
+  uint64_t cookie;
   uint64_t offset;
   uint32_t count;
   void *data; /* Buffer for read/write */

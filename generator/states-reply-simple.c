@@ -22,13 +22,13 @@
  REPLY.SIMPLE_REPLY.START:
   struct command_in_flight *cmd = h->reply_cmd;
   uint32_t error;
-  uint64_t handle;
+  uint64_t cookie;
 
   error = be32toh (h->sbuf.simple_reply.error);
-  handle = be64toh (h->sbuf.simple_reply.handle);
+  cookie = be64toh (h->sbuf.simple_reply.handle);
 
   assert (cmd);
-  assert (cmd->handle == handle);
+  assert (cmd->cookie == cookie);
 
   if (cmd->type == NBD_CMD_READ && h->structured_replies) {
     set_error (0, "server sent unexpected simple reply for read");

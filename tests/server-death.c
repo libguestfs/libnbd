@@ -37,7 +37,7 @@ main (int argc, char *argv[])
   int err;
   const char *msg;
   char buf[512];
-  int64_t handle;
+  int64_t cookie;
   char pidfile[] = "/tmp/libnbd-test-disconnectXXXXXX";
   int fd;
   pid_t pid;
@@ -81,7 +81,7 @@ main (int argc, char *argv[])
   }
 
   /* Issue a read that should not complete yet. */
-  if ((handle = nbd_aio_pread (nbd, buf, sizeof buf, 0, 0)) == -1) {
+  if ((cookie = nbd_aio_pread (nbd, buf, sizeof buf, 0, 0)) == -1) {
     fprintf (stderr, "%s: test failed: nbd_aio_pread\n", argv[0]);
     goto fail;
   }
@@ -90,7 +90,7 @@ main (int argc, char *argv[])
              argv[0]);
     goto fail;
   }
-  if (nbd_aio_command_completed (nbd, handle) != 0) {
+  if (nbd_aio_command_completed (nbd, cookie) != 0) {
     fprintf (stderr, "%s: test failed: nbd_aio_command_completed\n", argv[0]);
     goto fail;
   }
@@ -128,12 +128,12 @@ main (int argc, char *argv[])
   }
 
   /* Detection of the dead server completes all remaining in-flight commands */
-  if (nbd_aio_peek_command_completed (nbd) != handle) {
+  if (nbd_aio_peek_command_completed (nbd) != cookie) {
     fprintf (stderr, "%s: test failed: nbd_aio_peek_command_completed\n",
              argv[0]);
     goto fail;
   }
-  if (nbd_aio_command_completed (nbd, handle) != -1) {
+  if (nbd_aio_command_completed (nbd, cookie) != -1) {
     fprintf (stderr, "%s: test failed: nbd_aio_command_completed\n", argv[0]);
     goto fail;
   }

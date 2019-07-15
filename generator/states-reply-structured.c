@@ -49,16 +49,16 @@
  REPLY.STRUCTURED_REPLY.CHECK:
   struct command_in_flight *cmd = h->reply_cmd;
   uint16_t flags, type;
-  uint64_t handle;
+  uint64_t cookie;
   uint32_t length;
 
   flags = be16toh (h->sbuf.sr.structured_reply.flags);
   type = be16toh (h->sbuf.sr.structured_reply.type);
-  handle = be64toh (h->sbuf.sr.structured_reply.handle);
+  cookie = be64toh (h->sbuf.sr.structured_reply.handle);
   length = be32toh (h->sbuf.sr.structured_reply.length);
 
   assert (cmd);
-  assert (cmd->handle == handle);
+  assert (cmd->cookie == cookie);
 
   /* Reject a server that replies with too much information, but don't
    * reject a single structured reply to NBD_CMD_READ on the largest

@@ -47,17 +47,17 @@ try_deadlock (void *arg)
 {
   struct pollfd fds[1];
   size_t i;
-  int64_t handles[2], done;
+  int64_t cookies[2], done;
   int dir, r;
 
   /* Issue commands. */
-  handles[0] = nbd_aio_pread (nbd, in, packetsize, 0, 0);
-  if (handles[0] == -1) {
+  cookies[0] = nbd_aio_pread (nbd, in, packetsize, 0, 0);
+  if (cookies[0] == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto error;
   }
-  handles[1] = nbd_aio_pwrite (nbd, out, packetsize, packetsize, 0);
-  if (handles[1] == -1) {
+  cookies[1] = nbd_aio_pwrite (nbd, out, packetsize, packetsize, 0);
+  if (cookies[1] == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto error;
   }
@@ -92,15 +92,15 @@ try_deadlock (void *arg)
 
     /* If a command is ready to retire, retire it. */
     while ((done = nbd_aio_peek_command_completed (nbd)) > 0) {
-      for (i = 0; i < sizeof handles / sizeof handles[0]; ++i) {
-        if (handles[i] == done) {
-          r = nbd_aio_command_completed (nbd, handles[i]);
+      for (i = 0; i < sizeof cookies / sizeof cookies[0]; ++i) {
+        if (cookies[i] == done) {
+          r = nbd_aio_command_completed (nbd, cookies[i]);
           if (r == -1) {
             fprintf (stderr, "%s\n", nbd_get_error ());
             goto error;
           }
           assert (r == 1);
-          handles[i] = 0;
+          cookies[i] = 0;
         }
       }
     }

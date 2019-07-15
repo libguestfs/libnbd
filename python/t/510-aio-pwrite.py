@@ -34,13 +34,13 @@ h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
                     "file", datafile])
 
 buf1 = nbd.aio_buffer_from_bytearray (buf)
-id = h.aio_pwrite (buf1, 0, nbd.CMD_FLAG_FUA)
-while not (h.aio_command_completed (id)):
+cookie = h.aio_pwrite (buf1, 0, nbd.CMD_FLAG_FUA)
+while not (h.aio_command_completed (cookie)):
     h.poll (-1)
 
 buf2 = nbd.aio_buffer (512)
-id = h.aio_pread (buf2, 0)
-while not (h.aio_command_completed (id)):
+cookie = h.aio_pread (buf2, 0)
+while not (h.aio_command_completed (cookie)):
     h.poll (-1)
 
 assert buf == nbd.aio_buffer_to_bytearray (buf2)

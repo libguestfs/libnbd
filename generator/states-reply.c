@@ -108,7 +108,7 @@ save_reply_state (struct nbd_handle *h)
  REPLY.CHECK_SIMPLE_OR_STRUCTURED_REPLY:
   struct command_in_flight *cmd;
   uint32_t magic;
-  uint64_t handle;
+  uint64_t cookie;
 
   magic = be32toh (h->sbuf.simple_reply.magic);
   if (magic == NBD_SIMPLE_REPLY_MAGIC) {
@@ -124,12 +124,12 @@ save_reply_state (struct nbd_handle *h)
   }
 
   /* NB: This works for both simple and structured replies because the
-   * handle is stored at the same offset.
+   * handle (our cookie) is stored at the same offset.
    */
-  handle = be64toh (h->sbuf.simple_reply.handle);
+  cookie = be64toh (h->sbuf.simple_reply.handle);
   /* Find the command amongst the commands in flight. */
   for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
-    if (cmd->handle == handle)
+    if (cmd->cookie == cookie)
       break;
   }
   if (cmd == NULL) {
@@ -139,7 +139,7 @@ save_reply_state (struct nbd_handle *h)
      * likely we've lost synchronization with the server.
      */
     SET_NEXT_STATE (%.DEAD);
-    set_error (0, "no matching handle found for server reply, "
+    set_error (0, "no matching cookie found for server reply, "
                "this is probably a bug in the server");
     return 0;
   }
@@ -148,17 +148,17 @@ save_reply_state (struct nbd_handle *h)
 
  REPLY.FINISH_COMMAND:
   struct command_in_flight *prev_cmd, *cmd;
-  uint64_t handle;
+  uint64_t cookie;
 
   /* NB: This works for both simple and structured replies because the
-   * handle is stored at the same offset.
+   * handle (our cookie) is stored at the same offset.
    */
-  handle = be64toh (h->sbuf.simple_reply.handle);
+  cookie = be64toh (h->sbuf.simple_reply.handle);
   /* Find the command amongst the commands in flight. */
   for (cmd = h->cmds_in_flight, prev_cmd = NULL;
        cmd != NULL;
        prev_cmd = cmd, cmd = cmd->next) {
-    if (cmd->handle == handle)
+    if (cmd->cookie == cookie)
       break;
   }
   assert (cmd != NULL);
@@ -184,7 +184,7 @@ save_reply_state (struct nbd_handle *h)
   if (cmd->cb.notify) {
     int error = cmd->error;
 
-    if (cmd->cb.notify (cmd->cb.opaque, handle, &error) == -1 && error)
+    if (cmd->cb.notify (cmd->cb.opaque, cookie, &error) == -1 && error)
       cmd->error = error;
   }
 

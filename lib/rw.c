@@ -30,11 +30,11 @@
 #include "internal.h"
 
 static int
-wait_for_command (struct nbd_handle *h, int64_t handle)
+wait_for_command (struct nbd_handle *h, int64_t cookie)
 {
   int r;
 
-  while ((r = nbd_unlocked_aio_command_completed (h, handle)) == 0) {
+  while ((r = nbd_unlocked_aio_command_completed (h, cookie)) == 0) {
     if (nbd_unlocked_poll (h, -1) == -1)
       return -1;
   }
@@ -205,7 +205,7 @@ nbd_internal_command_common (struct nbd_handle *h,
   }
   cmd->flags = flags;
   cmd->type = type;
-  cmd->handle = h->unique++;
+  cmd->cookie = h->unique++;
   cmd->offset = offset;
   cmd->count = count;
   cmd->data = data;
@@ -242,7 +242,7 @@ nbd_internal_command_common (struct nbd_handle *h,
   }
 
   h->in_flight++;
-  return cmd->handle;
+  return cmd->cookie;
 }
 
 int64_t

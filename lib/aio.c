@@ -51,14 +51,14 @@ nbd_unlocked_aio_notify_write (struct nbd_handle *h)
 
 int
 nbd_unlocked_aio_command_completed (struct nbd_handle *h,
-                                    int64_t handle)
+                                    int64_t cookie)
 {
   struct command_in_flight *prev_cmd, *cmd;
   uint16_t type;
   uint32_t error;
 
-  if (handle < 1) {
-    set_error (EINVAL, "invalid aio handle %" PRId64, handle);
+  if (cookie < 1) {
+    set_error (EINVAL, "invalid aio cookie %" PRId64, cookie);
     return -1;
   }
 
@@ -66,7 +66,7 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
   for (cmd = h->cmds_done, prev_cmd = NULL;
        cmd != NULL;
        prev_cmd = cmd, cmd = cmd->next) {
-    if (cmd->handle == handle)
+    if (cmd->cookie == cookie)
       break;
   }
   if (!cmd || cmd->type == NBD_CMD_DISC)
@@ -103,7 +103,7 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
 int64_t
 nbd_unlocked_aio_peek_command_completed (struct nbd_handle *h)
 {
-  /* Special case NBD_CMD_DISC, as it does not have a user-visible handle */
+  /* Special case NBD_CMD_DISC, as it does not have a user-visible cookie */
   if (h->cmds_done && h->cmds_done->type == NBD_CMD_DISC) {
     struct command_in_flight *cmd = h->cmds_done;
 
@@ -112,7 +112,7 @@ nbd_unlocked_aio_peek_command_completed (struct nbd_handle *h)
   }
 
   if (h->cmds_done != NULL)
-    return h->cmds_done->handle;
+    return h->cmds_done->cookie;
 
   if (h->cmds_in_flight != NULL || h->cmds_to_issue != NULL) {
     set_error (0, "no in-flight command has completed yet");

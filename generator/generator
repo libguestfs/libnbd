@@ -1706,7 +1706,7 @@ on the connection.";
     shortdesc = "read from the NBD server";
     longdesc = "\
 Issue a read command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
+unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
 C<nbd_aio_command_completed>, or use C<nbd_aio_pread_notify>.
 Note that you must ensure C<buf> is valid until the command
@@ -1718,7 +1718,7 @@ C<nbd_pread>.";
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
              Opaque "data";
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
                                           Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
@@ -1726,8 +1726,8 @@ C<nbd_pread>.";
     shortdesc = "read from the NBD server, and notify on completion";
     longdesc = "\
 Issue a read command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
-error.  If this command returns a handle, then the C<notify>
+unique positive 64 bit cookie for this command, or C<-1> on
+error.  If this command returns a cookie, then the C<notify>
 callback will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Note that you must ensure
@@ -1735,7 +1735,7 @@ C<buf> is valid until the command has completed.  Other
 parameters behave as documented in C<nbd_pread>.
 
 The C<notify> callback is called with the same C<data> passed to
-this function, C<handle> set to the return value of this function,
+this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
 C<error> and returning C<-1>, although attempts to undo non-zero
@@ -1759,7 +1759,7 @@ cause a deadlock.";
     shortdesc = "read from the NBD server";
     longdesc = "\
 Issue a read command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
+unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
 C<nbd_aio_command_completed>, or use
 C<nbd_aio_pread_structured_notify>.  Parameters behave as
@@ -1775,7 +1775,7 @@ documented in C<nbd_pread_structured>.";
                                          UInt64 "offset";
                                          Int "status";
                                          Mutable (Int "error"); ]);
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
                                           Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
@@ -1783,15 +1783,15 @@ documented in C<nbd_pread_structured>.";
     shortdesc = "read from the NBD server, and notify on completion";
     longdesc = "\
 Issue a read command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
-error.  If this command returns a handle, then the C<notify>
+unique positive 64 bit cookie for this command, or C<-1> on
+error.  If this command returns a cookie, then the C<notify>
 callback will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_pread_structured>.
 
 The C<notify> callback is called with the same C<data> passed to
-this function, C<handle> set to the return value of this function,
+this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
 C<error> and returning C<-1>, although attempts to undo non-zero
@@ -1808,7 +1808,7 @@ cause a deadlock.";
     shortdesc = "write to the NBD server";
     longdesc = "\
 Issue a write command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
+unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
 C<nbd_aio_command_completed>, or use C<nbd_aio_pwrite_notify>.
 Note that you must ensure C<buf> is valid until the command
@@ -1820,7 +1820,7 @@ C<nbd_pwrite>.";
     default_call with
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset";
              Opaque "data";
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
                                           Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
@@ -1828,8 +1828,8 @@ C<nbd_pwrite>.";
     shortdesc = "write to the NBD server, and notify on completion";
     longdesc = "\
 Issue a write command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
-error.    If this command returns a handle, then the C<notify>
+unique positive 64 bit cookie for this command, or C<-1> on
+error.    If this command returns a cookie, then the C<notify>
 callback will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Note that you must ensure
@@ -1837,7 +1837,7 @@ C<buf> is valid until the command has completed.  Other
 parameters behave as documented in C<nbd_pwrite>.
 
 The C<notify> callback is called with the same C<data> passed to
-this function, C<handle> set to the return value of this function,
+this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
 C<error> and returning C<-1>, although attempts to undo non-zero
@@ -1876,7 +1876,7 @@ however, C<nbd_shutdown> will call this function if appropriate.";
     shortdesc = "send flush command to the NBD server";
     longdesc = "\
 Issue the flush command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
+unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
 C<nbd_aio_command_completed>, or use C<nbd_aio_flush_notify>.
 Parameters behave as documented in C<nbd_flush>.";
@@ -1885,7 +1885,7 @@ Parameters behave as documented in C<nbd_flush>.";
   "aio_flush_notify", {
     default_call with
     args = [ Opaque "data";
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
                                           Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
@@ -1893,15 +1893,15 @@ Parameters behave as documented in C<nbd_flush>.";
     shortdesc = "send flush command to the NBD server, and notify on completion";
     longdesc = "\
 Issue the flush command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
-error.  If this command returns a handle, then the C<notify>
+unique positive 64 bit cookie for this command, or C<-1> on
+error.  If this command returns a cookie, then the C<notify>
 callback will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_flush>.
 
 The C<notify> callback is called with the same C<data> passed to
-this function, C<handle> set to the return value of this function,
+this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
 C<error> and returning C<-1>, although attempts to undo non-zero
@@ -1918,7 +1918,7 @@ cause a deadlock.";
     shortdesc = "send trim command to the NBD server";
     longdesc = "\
 Issue a trim command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
+unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
 C<nbd_aio_command_completed>, or use C<nbd_aio_trim_notify>.
 Parameters behave as documented in C<nbd_trim>.";
@@ -1928,7 +1928,7 @@ Parameters behave as documented in C<nbd_trim>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Opaque "data";
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
                                           Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
@@ -1936,15 +1936,15 @@ Parameters behave as documented in C<nbd_trim>.";
     shortdesc = "send trim command to the NBD server, and notify on completion";
     longdesc = "\
 Issue a trim command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
-error.  If this command returns a handle, then the C<notify>
+unique positive 64 bit cookie for this command, or C<-1> on
+error.  If this command returns a cookie, then the C<notify>
 callback will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_trim>.
 
 The C<notify> callback is called with the same C<data> passed to
-this function, C<handle> set to the return value of this function,
+this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
 C<error> and returning C<-1>, although attempts to undo non-zero
@@ -1961,7 +1961,7 @@ cause a deadlock.";
     shortdesc = "send cache (prefetch) command to the NBD server";
     longdesc = "\
 Issue the cache (prefetch) command to the NBD server.  This
-returns the unique positive 64 bit handle for this command, or
+returns the unique positive 64 bit cookie for this command, or
 C<-1> on error.  To check if the command completed, call
 C<nbd_aio_command_completed>, or use C<nbd_aio_cache_notify>.
 Parameters behave as documented in C<nbd_cache>.";
@@ -1971,7 +1971,7 @@ Parameters behave as documented in C<nbd_cache>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Opaque "data";
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
                                           Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
@@ -1979,15 +1979,15 @@ Parameters behave as documented in C<nbd_cache>.";
     shortdesc = "send cache (prefetch) command to the NBD server, and notify on completion";
     longdesc = "\
 Issue the cache (prefetch) command to the NBD server.  This
-returns the unique positive 64 bit handle for this command, or
-C<-1> on error.  If this command returns a handle, then the C<notify>
+returns the unique positive 64 bit cookie for this command, or
+C<-1> on error.  If this command returns a cookie, then the C<notify>
 callback will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_cache>.
 
 The C<notify> callback is called with the same C<data> passed to
-this function, C<handle> set to the return value of this function,
+this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
 C<error> and returning C<-1>, although attempts to undo non-zero
@@ -2004,7 +2004,7 @@ cause a deadlock.";
     shortdesc = "send write zeroes command to the NBD server";
     longdesc = "\
 Issue a write zeroes command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
+unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
 C<nbd_aio_command_completed>, or use C<nbd_aio_zero_notify>.
 Parameters behave as documented in C<nbd_zero>.";
@@ -2014,7 +2014,7 @@ Parameters behave as documented in C<nbd_zero>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Opaque "data";
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
                                           Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
@@ -2022,15 +2022,15 @@ Parameters behave as documented in C<nbd_zero>.";
     shortdesc = "send write zeroes command to the NBD server, and notify on completion";
     longdesc = "\
 Issue a write zeroes command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
-error.  If this command returns a handle, then the C<notify>
+unique positive 64 bit cookie for this command, or C<-1> on
+error.  If this command returns a cookie, then the C<notify>
 callback will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_zero>.
 
 The C<notify> callback is called with the same C<data> passed to
-this function, C<handle> set to the return value of this function,
+this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
 C<error> and returning C<-1>, although attempts to undo non-zero
@@ -2054,7 +2054,7 @@ cause a deadlock.";
     shortdesc = "send block status command to the NBD server";
     longdesc = "\
 Send the block status command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
+unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
 C<nbd_aio_command_completed>, or use C<nbd_aio_block_status_notify>.
 Parameters behave as documented in C<nbd_block_status>.";
@@ -2069,7 +2069,7 @@ Parameters behave as documented in C<nbd_block_status>.";
                                          ArrayAndLen (UInt32 "entries",
                                                       "nr_entries");
                                          Mutable (Int "error") ]);
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "handle";
+             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
                                           Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
@@ -2077,15 +2077,15 @@ Parameters behave as documented in C<nbd_block_status>.";
     shortdesc = "send block status command to the NBD server, and notify on completion";
     longdesc = "\
 Send the block status command to the NBD server.  This returns the
-unique positive 64 bit handle for this command, or C<-1> on
-error.  If this command returns a handle, then the C<notify>
+unique positive 64 bit cookie for this command, or C<-1> on
+error.  If this command returns a cookie, then the C<notify>
 callback will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_block_status>.
 
 The C<notify> callback is called with the same C<data> passed to
-this function, C<handle> set to the return value of this function,
+this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
 C<error> and returning C<-1>, although attempts to undo non-zero
@@ -2251,7 +2251,7 @@ whole handle.";
 
   "aio_command_completed", {
     default_call with
-    args = [Int64 "handle"]; ret = RBool;
+    args = [Int64 "cookie"]; ret = RBool;
     shortdesc = "check if the command completed";
     longdesc = "\
 Return true if the command completed.  If this function returns
@@ -2260,7 +2260,7 @@ Return false if the command is still in flight.  This can also
 fail with an error in case the command failed (in this case
 the command is also retired).
 
-The C<handle> parameter is the positive unique 64 bit handle
+The C<cookie> parameter is the positive unique 64 bit cookie
 for the command, as returned by a call such as C<nbd_aio_pread>.";
   };
 
@@ -2269,9 +2269,9 @@ for the command, as returned by a call such as C<nbd_aio_pread>.";
     args = []; ret = RInt64;
     shortdesc = "check if any command has completed";
     longdesc = "\
-Return the unique positive 64 bit handle of the first non-retired but
+Return the unique positive 64 bit cookie of the first non-retired but
 completed command, C<0> if no command is awaiting retirement, or C<-1>
-on error. Any handle returned by this function must still be passed to
+on error. Any cookie returned by this function must still be passed to
 C<nbd_aio_command_completed> to actually retire the command and learn
 whether the command was successful.";
   };

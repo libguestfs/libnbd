@@ -42,7 +42,7 @@
   h->request.magic = htobe32 (NBD_REQUEST_MAGIC);
   h->request.flags = htobe16 (cmd->flags);
   h->request.type = htobe16 (cmd->type);
-  h->request.handle = htobe64 (cmd->handle);
+  h->request.handle = htobe64 (cmd->cookie);
   h->request.offset = htobe64 (cmd->offset);
   h->request.count = htobe32 ((uint32_t) cmd->count);
   h->wbuf = &h->request;
@@ -71,7 +71,7 @@
 
   assert (h->cmds_to_issue != NULL);
   cmd = h->cmds_to_issue;
-  assert (cmd->handle == be64toh (h->request.handle));
+  assert (cmd->cookie == be64toh (h->request.handle));
   if (cmd->type == NBD_CMD_WRITE) {
     h->wbuf = cmd->data;
     h->wlen = cmd->count;
@@ -103,7 +103,7 @@
   assert (!h->wlen);
   assert (h->cmds_to_issue != NULL);
   cmd = h->cmds_to_issue;
-  assert (cmd->handle == be64toh (h->request.handle));
+  assert (cmd->cookie == be64toh (h->request.handle));
   h->cmds_to_issue = cmd->next;
   cmd->next = h->cmds_in_flight;
   h->cmds_in_flight = cmd;

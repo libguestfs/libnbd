@@ -187,7 +187,7 @@ main (int argc, char *argv[])
 struct command {
   char buf[BUFFERSIZE];
   int64_t offset;               /* -1 = slot not used */
-  int64_t handle;
+  int64_t cookie;
   int cmd;
 };
 
@@ -200,7 +200,7 @@ start_thread (void *arg)
   struct thread_status *status = arg;
   struct nbd_handle *nbd;
   size_t i;
-  int64_t offset, handle;
+  int64_t offset, cookie;
   char *buf;
   int dir, r, cmd;
   time_t t;
@@ -270,20 +270,20 @@ start_thread (void *arg)
         + (rand () % (status->length[i] - BUFFERSIZE));
       cmd = rand () & 1;
       if (cmd == 0) {
-        handle = nbd_aio_pwrite (nbd, buf, BUFFERSIZE, offset, 0);
+        cookie = nbd_aio_pwrite (nbd, buf, BUFFERSIZE, offset, 0);
         status->bytes_sent += BUFFERSIZE;
         memcpy (&ramdisk[offset], buf, BUFFERSIZE);
       }
       else {
-        handle = nbd_aio_pread (nbd, buf, BUFFERSIZE, offset, 0);
+        cookie = nbd_aio_pread (nbd, buf, BUFFERSIZE, offset, 0);
         status->bytes_received += BUFFERSIZE;
       }
-      if (handle == -1) {
+      if (cookie == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
       }
       commands[status->i][i].offset = offset;
-      commands[status->i][i].handle = handle;
+      commands[status->i][i].cookie = cookie;
       commands[status->i][i].cmd = cmd;
       if (nbd_aio_in_flight (nbd) > status->most_in_flight)
         status->most_in_flight = nbd_aio_in_flight (nbd);
@@ -314,11 +314,11 @@ start_thread (void *arg)
     for (i = 0; i < MAX_IN_FLIGHT; ++i) {
       if (commands[status->i][i].offset >= 0) {
         offset = commands[status->i][i].offset;
-        handle = commands[status->i][i].handle;
+        cookie = commands[status->i][i].cookie;
         cmd = commands[status->i][i].cmd;
         buf = commands[status->i][i].buf;
 
-        r = nbd_aio_command_completed (nbd, handle);
+        r = nbd_aio_command_completed (nbd, cookie);
         if (r == -1) {
           fprintf (stderr, "%s\n", nbd_get_error ());
           goto error;
