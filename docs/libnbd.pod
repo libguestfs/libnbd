@@ -170,7 +170,7 @@ command has completed:
 
 For almost all high level synchronous calls (eg. C<nbd_pread>) there
 are two low level asynchronous equivalents (eg. C<nbd_aio_pread> for
-starting a command, and C<nbd_aio_pread_notify> for also registering
+starting a command, and C<nbd_aio_pread_callback> for also registering
 a callback to be invoked right before the command is complete).
 
 =head1 CALLBACKS
@@ -179,7 +179,7 @@ Some of the high-level commands (C<nbd_pread_structured>,
 C<nbd_block_status>) involve the use of a callback function invoked by
 the state machine at appropriate points in the server's reply before
 the overall command is complete. Also, all of the low-level commands
-have a notify variant that registers a callback function used right
+have a callback variant that registers a callback function used right
 before the command is marked complete.  These callback functions
 include a parameter C<error> containing the value of any error
 detected so far; if the callback function fails, it should assign back

@@ -181,10 +181,10 @@ save_reply_state (struct nbd_handle *h)
     h->cmds_done = cmd;
 
   /* Notify the user */
-  if (cmd->cb.notify) {
+  if (cmd->cb.callback) {
     int error = cmd->error;
 
-    if (cmd->cb.notify (cmd->cb.opaque, cookie, &error) == -1 && error)
+    if (cmd->cb.callback (cmd->cb.opaque, cookie, &error) == -1 && error)
       cmd->error = error;
   }
 

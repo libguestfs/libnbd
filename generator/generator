@@ -1708,33 +1708,33 @@ on the connection.";
 Issue a read command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>, or use C<nbd_aio_pread_notify>.
+C<nbd_aio_command_completed>, or use C<nbd_aio_pread_callback>.
 Note that you must ensure C<buf> is valid until the command
 has completed.  Other parameters behave as documented in
 C<nbd_pread>.";
   };
 
-  "aio_pread_notify", {
+  "aio_pread_callback", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
              Opaque "data";
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
-                                          Mutable (Int "error") ]);
+             CallbackPersist ("callback", [ Opaque "data"; Int64 "cookie";
+                                            Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
-    shortdesc = "read from the NBD server, and notify on completion";
+    shortdesc = "read from the NBD server, with callback on completion";
     longdesc = "\
 Issue a read command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.  If this command returns a cookie, then the C<notify>
-callback will be called when the server is done replying,
+error.  If this command returns a cookie, then C<callback>
+will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Note that you must ensure
 C<buf> is valid until the command has completed.  Other
 parameters behave as documented in C<nbd_pread>.
 
-The C<notify> callback is called with the same C<data> passed to
+The C<callback> function is called with the same C<data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -1762,11 +1762,11 @@ Issue a read command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
 C<nbd_aio_command_completed>, or use
-C<nbd_aio_pread_structured_notify>.  Parameters behave as
+C<nbd_aio_pread_structured_callback>.  Parameters behave as
 documented in C<nbd_pread_structured>.";
   };
 
-  "aio_pread_structured_notify", {
+  "aio_pread_structured_callback", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
              Opaque "data";
@@ -1775,22 +1775,22 @@ documented in C<nbd_pread_structured>.";
                                          UInt64 "offset";
                                          Int "status";
                                          Mutable (Int "error"); ]);
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
-                                          Mutable (Int "error") ]);
+             CallbackPersist ("callback", [ Opaque "data"; Int64 "cookie";
+                                            Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
-    shortdesc = "read from the NBD server, and notify on completion";
+    shortdesc = "read from the NBD server, with callback on completion";
     longdesc = "\
 Issue a read command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.  If this command returns a cookie, then the C<notify>
-callback will be called when the server is done replying,
+error.  If this command returns a cookie, then C<callback>
+will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_pread_structured>.
 
-The C<notify> callback is called with the same C<data> passed to
+The C<callback> function is called with the same C<data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -1810,33 +1810,33 @@ cause a deadlock.";
 Issue a write command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>, or use C<nbd_aio_pwrite_notify>.
+C<nbd_aio_command_completed>, or use C<nbd_aio_pwrite_callback>.
 Note that you must ensure C<buf> is valid until the command
 has completed.  Other parameters behave as documented in
 C<nbd_pwrite>.";
   };
 
-  "aio_pwrite_notify", {
+  "aio_pwrite_callback", {
     default_call with
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset";
              Opaque "data";
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
-                                          Mutable (Int "error") ]);
+             CallbackPersist ("callback", [ Opaque "data"; Int64 "cookie";
+                                            Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
-    shortdesc = "write to the NBD server, and notify on completion";
+    shortdesc = "write to the NBD server, with callback on completion";
     longdesc = "\
 Issue a write command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.    If this command returns a cookie, then the C<notify>
-callback will be called when the server is done replying,
+error.    If this command returns a cookie, then C<callback>
+ill be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Note that you must ensure
 C<buf> is valid until the command has completed.  Other
 parameters behave as documented in C<nbd_pwrite>.
 
-The C<notify> callback is called with the same C<data> passed to
+The C<callback> function is called with the same C<data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -1878,29 +1878,29 @@ however, C<nbd_shutdown> will call this function if appropriate.";
 Issue the flush command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>, or use C<nbd_aio_flush_notify>.
+C<nbd_aio_command_completed>, or use C<nbd_aio_flush_callback>.
 Parameters behave as documented in C<nbd_flush>.";
   };
 
-  "aio_flush_notify", {
+  "aio_flush_callback", {
     default_call with
     args = [ Opaque "data";
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
-                                          Mutable (Int "error") ]);
+             CallbackPersist ("callback", [ Opaque "data"; Int64 "cookie";
+                                            Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
-    shortdesc = "send flush command to the NBD server, and notify on completion";
+    shortdesc = "send flush command to the NBD server, with callback on completion";
     longdesc = "\
 Issue the flush command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.  If this command returns a cookie, then the C<notify>
-callback will be called when the server is done replying,
+error.  If this command returns a cookie, then C<callback>
+will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_flush>.
 
-The C<notify> callback is called with the same C<data> passed to
+The C<callback> function is called with the same C<data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -1920,30 +1920,30 @@ cause a deadlock.";
 Issue a trim command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>, or use C<nbd_aio_trim_notify>.
+C<nbd_aio_command_completed>, or use C<nbd_aio_trim_callback>.
 Parameters behave as documented in C<nbd_trim>.";
   };
 
-  "aio_trim_notify", {
+  "aio_trim_callback", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Opaque "data";
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
+             CallbackPersist ("callback", [ Opaque "data"; Int64 "cookie";
                                           Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
-    shortdesc = "send trim command to the NBD server, and notify on completion";
+    shortdesc = "send trim command to the NBD server, with callback on completion";
     longdesc = "\
 Issue a trim command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.  If this command returns a cookie, then the C<notify>
-callback will be called when the server is done replying,
+error.  If this command returns a cookie, then C<callback>
+will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_trim>.
 
-The C<notify> callback is called with the same C<data> passed to
+The C<callback> function is called with the same C<data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -1963,30 +1963,30 @@ cause a deadlock.";
 Issue the cache (prefetch) command to the NBD server.  This
 returns the unique positive 64 bit cookie for this command, or
 C<-1> on error.  To check if the command completed, call
-C<nbd_aio_command_completed>, or use C<nbd_aio_cache_notify>.
+C<nbd_aio_command_completed>, or use C<nbd_aio_cache_callback>.
 Parameters behave as documented in C<nbd_cache>.";
   };
 
-  "aio_cache_notify", {
+  "aio_cache_callback", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Opaque "data";
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
-                                          Mutable (Int "error") ]);
+             CallbackPersist ("callback", [ Opaque "data"; Int64 "cookie";
+                                            Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
-    shortdesc = "send cache (prefetch) command to the NBD server, and notify on completion";
+    shortdesc = "send cache (prefetch) command to the NBD server, with callback on completion";
     longdesc = "\
 Issue the cache (prefetch) command to the NBD server.  This
 returns the unique positive 64 bit cookie for this command, or
-C<-1> on error.  If this command returns a cookie, then the C<notify>
-callback will be called when the server is done replying,
+C<-1> on error.  If this command returns a cookie, then C<callback>
+will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_cache>.
 
-The C<notify> callback is called with the same C<data> passed to
+The C<callback> function is called with the same C<data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -2006,30 +2006,30 @@ cause a deadlock.";
 Issue a write zeroes command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>, or use C<nbd_aio_zero_notify>.
+C<nbd_aio_command_completed>, or use C<nbd_aio_zero_callback>.
 Parameters behave as documented in C<nbd_zero>.";
   };
 
-  "aio_zero_notify", {
+  "aio_zero_callback", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Opaque "data";
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
-                                          Mutable (Int "error") ]);
+             CallbackPersist ("callback", [ Opaque "data"; Int64 "cookie";
+                                            Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
-    shortdesc = "send write zeroes command to the NBD server, and notify on completion";
+    shortdesc = "send write zeroes command to the NBD server, with callback on completion";
     longdesc = "\
 Issue a write zeroes command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.  If this command returns a cookie, then the C<notify>
-callback will be called when the server is done replying,
+error.  If this command returns a cookie, then C<callback>
+will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_zero>.
 
-The C<notify> callback is called with the same C<data> passed to
+The C<callback> function is called with the same C<data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -2056,11 +2056,11 @@ cause a deadlock.";
 Send the block status command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.  To check if the command completed, call
-C<nbd_aio_command_completed>, or use C<nbd_aio_block_status_notify>.
+C<nbd_aio_command_completed>, or use C<nbd_aio_block_status_callback>.
 Parameters behave as documented in C<nbd_block_status>.";
   };
 
-  "aio_block_status_notify", {
+  "aio_block_status_callback", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Opaque "data";
@@ -2069,22 +2069,22 @@ Parameters behave as documented in C<nbd_block_status>.";
                                          ArrayAndLen (UInt32 "entries",
                                                       "nr_entries");
                                          Mutable (Int "error") ]);
-             CallbackPersist ("notify", [ Opaque "data"; Int64 "cookie";
-                                          Mutable (Int "error") ]);
+             CallbackPersist ("callback", [ Opaque "data"; Int64 "cookie";
+                                            Mutable (Int "error") ]);
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
-    shortdesc = "send block status command to the NBD server, and notify on completion";
+    shortdesc = "send block status command to the NBD server, with callback on completion";
     longdesc = "\
 Send the block status command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.  If this command returns a cookie, then the C<notify>
-callback will be called when the server is done replying,
+error.  If this command returns a cookie, then C<callback>
+will be called when the server is done replying,
 although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_block_status>.
 
-The C<notify> callback is called with the same C<data> passed to
+The C<callback> function is called with the same C<data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
