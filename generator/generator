@@ -3174,7 +3174,7 @@ let rec c_name_of_arg = function
 | BytesPersistIn (n, len) -> [n; len]
 | BytesPersistOut (n, len) -> [n; len]
 | Closure (_, closures) ->
-   "user_data" :: List.map (fun { cbname } -> cbname) closures
+   List.map (fun { cbname } -> cbname) closures @ ["user_data"]
 | Flags n -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
@@ -3212,12 +3212,13 @@ let rec print_c_arg_list ?(handle = false) ?(user_data = false) args =
       | BytesOut (n, len)
       | BytesPersistOut (n, len) -> pr "void *%s, size_t %s" n len
       | Closure (_, cls) ->
-         pr "void *user_data";
          List.iter (
            fun { cbname; cbargs } ->
-             pr ", int (*%s) " cbname;
-             print_c_arg_list ~user_data:true cbargs
-         ) cls
+             pr "int (*%s) " cbname;
+             print_c_arg_list ~user_data:true cbargs;
+             pr ", "
+         ) cls;
+         pr "void *user_data"
       | Flags n -> pr "uint32_t %s" n
       | Int n -> pr "int %s" n
       | Int64 n -> pr "int64_t %s" n
@@ -3306,8 +3307,8 @@ let generate_include_libnbd_h () =
   pr "#define LIBNBD_HAVE_NBD_GET_ERRNO 1\n";
   pr "\n";
   pr "extern int nbd_add_close_callback (struct nbd_handle *h,\n";
-  pr "                                   void *user_data,\n";
-  pr "                                   nbd_close_callback cb);\n";
+  pr "                                   nbd_close_callback cb,\n";
+  pr "                                   void *user_data);\n";
   pr "#define LIBNBD_HAVE_NBD_ADD_CLOSE_CALLBACK 1\n";
   pr "\n";
   List.iter (
@@ -3594,7 +3595,7 @@ from other programming languages.
 
  typedef void (*nbd_close_callback) (void *user_data);
  int nbd_add_close_callback (struct nbd_handle *nbd,
-                             void *user_data, nbd_close_callback cb);
+                             nbd_close_callback cb, void *user_data);
 
 ";
 
@@ -4113,11 +4114,11 @@ let print_python_binding name { args; ret } =
     | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) -> pr ", %s_buf->data, %s_buf->len" n n
     | Closure (_, cls) ->
-       pr ", user_data";
        List.iter (
          fun { cbname } ->
            pr ", %s_%s_wrapper" name cbname
-       ) cls
+       ) cls;
+       pr ", user_data"
     | Flags n -> pr ", %s_u32" n
     | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
@@ -4196,7 +4197,7 @@ let print_python_binding name { args; ret } =
     | Closure (false, _) -> ()
     | Closure (true, _) ->
        pr "  /* This ensures the callback data is freed eventually. */\n";
-       pr "  nbd_add_close_callback (h, user_data, free_%s_user_data);\n" name
+       pr "  nbd_add_close_callback (h, free_%s_user_data, user_data);\n" name
     | Flags _ -> ()
     | Int _ -> ()
     | Int64 _ -> ()
@@ -4343,7 +4344,7 @@ class NBD (object):
             | BytesIn (n, _) | BytesPersistIn (n, _) -> [n, None]
             | BytesPersistOut (n, _) -> [n, None]
             | BytesOut (_, count) -> [count, None]
-            | Closure (_, cls) -> 
+            | Closure (_, cls) ->
                List.map (fun { cbname } -> cbname, None) cls
             | Flags n -> [n, Some "0"]
             | Int n -> [n, None]
@@ -4889,7 +4890,7 @@ let print_ocaml_binding (name, { args; ret }) =
   (match has_closures with
    | None | Some false -> ()
    | Some true ->
-      pr "  nbd_add_close_callback (h, user_data, free_%s_user_data);\n" name
+      pr "  nbd_add_close_callback (h, free_%s_user_data, user_data);\n" name
   );
 
   let errcode =

@@ -80,8 +80,8 @@ struct nbd_handle {
 
   /* For debugging. */
   bool debug;
-  void *debug_data;
   int (*debug_fn) (void *, const char *, const char *);
+  void *debug_data;
 
   /* Linked list of close callbacks. */
   struct close_callback *close_callbacks;
@@ -249,12 +249,12 @@ typedef int (*read_fn) (void *user_data, const void *buf, size_t count,
 typedef int (*callback_fn) (void *user_data, int64_t cookie, int *error);
 
 struct command_cb {
-  void *user_data;
   union {
     extent_fn extent;
     read_fn read;
   } fn;
   callback_fn callback;
+  void *user_data;
 };
 
 struct command_in_flight {

@@ -125,7 +125,7 @@ main (int argc, char *argv[])
   /* Test again for callback operation. */
   memset (rbuf, 0, sizeof rbuf);
   if (nbd_pread_structured (nbd, rbuf, sizeof rbuf, 2 * sizeof rbuf,
-                            &calls, pread_cb, 0) == -1) {
+                            pread_cb, &calls, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -141,7 +141,7 @@ main (int argc, char *argv[])
 
   /* Also test that callback errors are reflected correctly. */
   if (nbd_pread_structured (nbd, rbuf, sizeof rbuf, 2 * sizeof rbuf,
-                            &calls, pread_cb, 0) != -1) {
+                            pread_cb, &calls, 0) != -1) {
     fprintf (stderr, "%s: expected failure from callback\n", argv[0]);
     exit (EXIT_FAILURE);
   }

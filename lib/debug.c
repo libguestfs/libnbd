@@ -40,8 +40,8 @@ nbd_unlocked_get_debug (struct nbd_handle *h)
 
 int
 nbd_unlocked_set_debug_callback (struct nbd_handle *h,
-                                 void *data,
-                                 int (*debug_fn) (void *, const char *, const char *))
+                                 int (*debug_fn) (void *, const char *, const char *),
+                                 void *data)
 {
   h->debug_fn = debug_fn;
   h->debug_data = data;

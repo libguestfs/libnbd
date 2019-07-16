@@ -143,7 +143,7 @@ main (int argc, char *argv[])
 
   memset (rbuf, 2, sizeof rbuf);
   data = (struct data) { .count = 2, };
-  if (nbd_pread_structured (nbd, rbuf, sizeof rbuf, 2048, &data, read_cb,
+  if (nbd_pread_structured (nbd, rbuf, sizeof rbuf, 2048, read_cb, &data,
                             0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -153,7 +153,7 @@ main (int argc, char *argv[])
   /* Repeat with DF flag. */
   memset (rbuf, 2, sizeof rbuf);
   data = (struct data) { .df = true, .count = 1, };
-  if (nbd_pread_structured (nbd, rbuf, sizeof rbuf, 2048, &data, read_cb,
+  if (nbd_pread_structured (nbd, rbuf, sizeof rbuf, 2048, read_cb, &data,
                             LIBNBD_CMD_FLAG_DF) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -166,7 +166,7 @@ main (int argc, char *argv[])
    */
   memset (rbuf, 2, sizeof rbuf);
   data = (struct data) { .count = 2, .fail = true, };
-  if (nbd_pread_structured (nbd, rbuf, sizeof rbuf, 2048, &data, read_cb,
+  if (nbd_pread_structured (nbd, rbuf, sizeof rbuf, 2048, read_cb, &data,
                             0) != -1) {
     fprintf (stderr, "unexpected pread callback success\n");
     exit (EXIT_FAILURE);

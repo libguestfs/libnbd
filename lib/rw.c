@@ -60,12 +60,12 @@ nbd_unlocked_pread (struct nbd_handle *h, void *buf,
 int
 nbd_unlocked_pread_structured (struct nbd_handle *h, void *buf,
                                size_t count, uint64_t offset,
-                               void *user_data, read_fn read, uint32_t flags)
+                               read_fn read, void *user_data, uint32_t flags)
 {
   int64_t ch;
 
   ch = nbd_unlocked_aio_pread_structured (h, buf, count, offset,
-                                          user_data, read, flags);
+                                          read, user_data, flags);
   if (ch == -1)
     return -1;
 
@@ -145,11 +145,11 @@ nbd_unlocked_zero (struct nbd_handle *h,
 int
 nbd_unlocked_block_status (struct nbd_handle *h,
                            uint64_t count, uint64_t offset,
-                           void *user_data, extent_fn extent, uint32_t flags)
+                           extent_fn extent, void *user_data, uint32_t flags)
 {
   int64_t ch;
 
-  ch = nbd_unlocked_aio_block_status (h, count, offset, user_data, extent,
+  ch = nbd_unlocked_aio_block_status (h, count, offset, extent, user_data,
                                       flags);
   if (ch == -1)
     return -1;
@@ -257,10 +257,10 @@ nbd_unlocked_aio_pread (struct nbd_handle *h, void *buf,
 int64_t
 nbd_unlocked_aio_pread_callback (struct nbd_handle *h, void *buf,
                                  size_t count, uint64_t offset,
-                                 void *user_data, callback_fn callback,
+                                 callback_fn callback, void *user_data,
                                  uint32_t flags)
 {
-  struct command_cb cb = { .user_data = user_data, .callback = callback, };
+  struct command_cb cb = { .callback = callback, .user_data = user_data, };
 
   /* We could silently accept flag DF, but it really only makes sense
    * with callbacks, because otherwise there is no observable change
@@ -278,23 +278,22 @@ nbd_unlocked_aio_pread_callback (struct nbd_handle *h, void *buf,
 int64_t
 nbd_unlocked_aio_pread_structured (struct nbd_handle *h, void *buf,
                                    size_t count, uint64_t offset,
-                                   void *user_data, read_fn read,
+                                   read_fn read, void *user_data,
                                    uint32_t flags)
 {
   return nbd_unlocked_aio_pread_structured_callback (h, buf, count, offset,
-                                                     user_data, read, NULL,
+                                                     read, NULL, user_data,
                                                      flags);
 }
 
 int64_t
 nbd_unlocked_aio_pread_structured_callback (struct nbd_handle *h, void *buf,
                                             size_t count, uint64_t offset,
-                                            void *user_data, read_fn read,
-                                            callback_fn callback,
-                                            uint32_t flags)
+                                            read_fn read, callback_fn callback,
+                                            void *user_data, uint32_t flags)
 {
-  struct command_cb cb = { .user_data = user_data, .fn.read = read,
-                           .callback = callback, };
+  struct command_cb cb = { .fn.read = read, .callback = callback,
+                           .user_data = user_data, };
 
   if ((flags & ~LIBNBD_CMD_FLAG_DF) != 0) {
     set_error (EINVAL, "invalid flag: %" PRIu32, flags);
@@ -323,10 +322,10 @@ nbd_unlocked_aio_pwrite (struct nbd_handle *h, const void *buf,
 int64_t
 nbd_unlocked_aio_pwrite_callback (struct nbd_handle *h, const void *buf,
                                   size_t count, uint64_t offset,
-                                  void *user_data, callback_fn callback,
+                                  callback_fn callback, void *user_data,
                                   uint32_t flags)
 {
-  struct command_cb cb = { .user_data = user_data, .callback = callback, };
+  struct command_cb cb = { .callback = callback, .user_data = user_data, };
 
   if (nbd_unlocked_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
@@ -355,10 +354,10 @@ nbd_unlocked_aio_flush (struct nbd_handle *h, uint32_t flags)
 }
 
 int64_t
-nbd_unlocked_aio_flush_callback (struct nbd_handle *h, void *user_data,
-                                 callback_fn callback, uint32_t flags)
+nbd_unlocked_aio_flush_callback (struct nbd_handle *h, callback_fn callback,
+                                 void *user_data, uint32_t flags)
 {
-  struct command_cb cb = { .user_data = user_data, .callback = callback, };
+  struct command_cb cb = { .callback = callback, .user_data = user_data, };
 
   if (nbd_unlocked_can_flush (h) != 1) {
     set_error (EINVAL, "server does not support flush operations");
@@ -385,10 +384,10 @@ nbd_unlocked_aio_trim (struct nbd_handle *h,
 int64_t
 nbd_unlocked_aio_trim_callback (struct nbd_handle *h,
                                 uint64_t count, uint64_t offset,
-                                void *user_data, callback_fn callback,
+                                callback_fn callback, void *user_data,
                                 uint32_t flags)
 {
-  struct command_cb cb = { .user_data = user_data, .callback = callback, };
+  struct command_cb cb = { .callback = callback, .user_data = user_data, };
 
   if (nbd_unlocked_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
@@ -425,10 +424,10 @@ nbd_unlocked_aio_cache (struct nbd_handle *h,
 int64_t
 nbd_unlocked_aio_cache_callback (struct nbd_handle *h,
                                  uint64_t count, uint64_t offset,
-                                 void *user_data, callback_fn callback,
+                                 callback_fn callback, void *user_data,
                                  uint32_t flags)
 {
-  struct command_cb cb = { .user_data = user_data, .callback = callback, };
+  struct command_cb cb = { .callback = callback, .user_data = user_data, };
 
   /* Actually according to the NBD protocol document, servers do exist
    * that support NBD_CMD_CACHE but don't advertise the
@@ -459,10 +458,10 @@ nbd_unlocked_aio_zero (struct nbd_handle *h,
 int64_t
 nbd_unlocked_aio_zero_callback (struct nbd_handle *h,
                                 uint64_t count, uint64_t offset,
-                                void *user_data, callback_fn callback,
+                                callback_fn callback, void *user_data,
                                 uint32_t flags)
 {
-  struct command_cb cb = { .user_data = user_data, .callback = callback, };
+  struct command_cb cb = { .callback = callback, .user_data = user_data, };
 
   if (nbd_unlocked_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
@@ -492,22 +491,22 @@ nbd_unlocked_aio_zero_callback (struct nbd_handle *h,
 int64_t
 nbd_unlocked_aio_block_status (struct nbd_handle *h,
                                uint64_t count, uint64_t offset,
-                               void *user_data, extent_fn extent,
+                               extent_fn extent, void *user_data,
                                uint32_t flags)
 {
   return nbd_unlocked_aio_block_status_callback (h, count, offset,
-                                                 user_data, extent,
-                                                 NULL, flags);
+                                                 extent, NULL, user_data,
+                                                 flags);
 }
 
 int64_t
 nbd_unlocked_aio_block_status_callback (struct nbd_handle *h,
                                         uint64_t count, uint64_t offset,
-                                        void *user_data, extent_fn extent,
-                                        callback_fn callback, uint32_t flags)
+                                        extent_fn extent, callback_fn callback,
+                                        void *user_data, uint32_t flags)
 {
-  struct command_cb cb = { .user_data = user_data, .fn.extent = extent,
-                           .callback = callback, };
+  struct command_cb cb = { .fn.extent = extent, .callback = callback,
+                           .user_data = user_data, };
 
   if (!h->structured_replies) {
     set_error (ENOTSUP, "server does not support structured replies");

@@ -203,7 +203,7 @@ nbd_unlocked_add_meta_context (struct nbd_handle *h, const char *name)
  */
 int
 nbd_add_close_callback (struct nbd_handle *h,
-                        void *user_data, nbd_close_callback cb)
+                        nbd_close_callback cb, void *user_data)
 {
   int ret;
   struct close_callback *cc;
