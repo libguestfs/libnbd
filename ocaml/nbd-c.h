@@ -107,7 +107,7 @@ Flags_val (value v)
   CAMLparam1 (v);
   uint32_t r = 0;
 
-  for (; v != Val_int (0); v = Field (v, 1))
+  for (; v != Val_emptylist; v = Field (v, 1))
     r += Int32_val (Field (v, 0));
 
   CAMLreturnT (uint32_t, r);

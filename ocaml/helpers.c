@@ -81,14 +81,14 @@ nbd_internal_ocaml_string_list (value ssv)
   char **r;
 
   sv = ssv;
-  for (len = 0; sv != Val_int (0); sv = Field (sv, 1))
+  for (len = 0; sv != Val_emptylist; sv = Field (sv, 1))
     len++;
 
   r = malloc (sizeof (char *) * (len+1));
   if (r == NULL) caml_raise_out_of_memory ();
 
   sv = ssv;
-  for (i = 0; sv != Val_int (0); sv = Field (sv, 1), i++)
+  for (i = 0; sv != Val_emptylist; sv = Field (sv, 1), i++)
     r[i] = String_val (Field (sv, 0));
 
   r[len] = NULL;
