@@ -3305,8 +3305,8 @@ let generate_include_libnbd_h () =
   pr "#define LIBNBD_HAVE_NBD_GET_ERRNO 1\n";
   pr "\n";
   pr "extern int nbd_add_close_callback (struct nbd_handle *h,\n";
-  pr "                                   nbd_close_callback cb,\n";
-  pr "                                   void *user_data);\n";
+  pr "                                   void *user_data,\n";
+  pr "                                   nbd_close_callback cb);\n";
   pr "#define LIBNBD_HAVE_NBD_ADD_CLOSE_CALLBACK 1\n";
   pr "\n";
   List.iter (
@@ -3593,7 +3593,7 @@ from other programming languages.
 
  typedef void (*nbd_close_callback) (void *user_data);
  int nbd_add_close_callback (struct nbd_handle *nbd,
-                             nbd_close_callback cb, void *user_data);
+                             void *user_data, nbd_close_callback cb);
 
 ";
 
@@ -4195,7 +4195,7 @@ let print_python_binding name { args; ret } =
     | Closure (false, _) -> ()
     | Closure (true, _) ->
        pr "  /* This ensures the callback data is freed eventually. */\n";
-       pr "  nbd_add_close_callback (h, free_%s_user_data, user_data);\n" name
+       pr "  nbd_add_close_callback (h, user_data, free_%s_user_data);\n" name
     | Flags _ -> ()
     | Int _ -> ()
     | Int64 _ -> ()
@@ -4862,7 +4862,7 @@ let print_ocaml_binding (name, { args; ret }) =
   (match has_closures with
    | None | Some false -> ()
    | Some true ->
-      pr "  nbd_add_close_callback (h, free_%s_user_data, user_data);\n" name
+      pr "  nbd_add_close_callback (h, user_data, free_%s_user_data);\n" name
   );
 
   let errcode =
