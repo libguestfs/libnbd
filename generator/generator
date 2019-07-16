@@ -4812,7 +4812,11 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "  if (h == NULL)\n";
        pr "    nbd_internal_ocaml_raise_closed (\"NBD.%s\");\n" name
     | OCamlFlags n ->
-       pr "  uint32_t %s = Flags_val (%sv);\n" n n
+       pr "  uint32_t %s;\n" n;
+       pr "  if (%sv != Val_int (0)) /* Some flags */\n" n;
+       pr "    %s = Flags_val (Field (%sv, 0));\n" n n;
+       pr "  else /* None */\n";
+       pr "    %s = 0;\n" n
     | OCamlClosure (false, { cbname }) ->
        pr "  user_data->%s = %sv;\n" cbname cbname;
        pr "  const void *%s = %s_%s_wrapper;\n" cbname name cbname
