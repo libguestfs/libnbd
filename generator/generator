@@ -4712,7 +4712,7 @@ let print_ocaml_binding (name, { args; ret }) =
            pr "     * means error versus unexpected failure.\n";
            pr "     */\n";
            pr "    fprintf (stderr,\n";
-           pr "             \"libnbd: uncaught OCaml exception: %%s\",\n";
+           pr "             \"libnbd: uncaught OCaml exception: %%s\\n\",\n";
            pr "             caml_format_exception (Extract_exception (rv)));\n";
            pr "    CAMLreturnT (int, -1);\n";
            pr "  }\n";
