@@ -80,6 +80,9 @@ Makefile.in
 /ocaml/NBD.mli
 /ocaml/nbd-c.c
 /ocaml/stamp-mlnbd
+/ocaml/tests/.depend
+/ocaml/tests/*.bc
+/ocaml/tests/*.opt
 /podwrapper.pl
 /python/libnbdmod.c
 /python/methods.c

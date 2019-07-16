@@ -288,6 +288,7 @@ AC_CONFIG_FILES([Makefile
                  ocaml/Makefile
                  ocaml/META
                  ocaml/examples/Makefile
+                 ocaml/tests/Makefile
                  python/Makefile
                  sh/Makefile
                  tests/Makefile

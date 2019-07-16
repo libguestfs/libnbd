@@ -38,6 +38,7 @@ SUBDIRS = \
 	sh \
 	ocaml \
 	ocaml/examples \
+	ocaml/tests \
 	interop \
 	$(NULL)
 
