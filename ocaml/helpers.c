@@ -103,7 +103,7 @@ nbd_internal_ocaml_alloc_int32_array (uint32_t *a, size_t len)
 
   rv = caml_alloc (len, 0);
   for (i = 0; i < len; ++i) {
-    v = caml_copy_int64 (a[i]);
+    v = caml_copy_int32 (a[i]);
     Store_field (rv, i, v);
   }
 
