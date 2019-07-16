@@ -4705,6 +4705,26 @@ let print_ocaml_binding (name, { args; ret }) =
 
            pr "  rv = caml_callbackN_exn (fnv, %d, args);\n"
               (List.length argnames);
+
+           List.iter (
+             function
+             | ArrayAndLen (UInt32 n, count) -> ()
+             | BytesIn (n, len) -> ()
+             | Int n -> ()
+             | Int64 n -> ()
+             | String n -> ()
+             | UInt64 n -> ()
+             | Mutable (Int n) ->
+                pr "  *%s = Int_val (Field (%sv, 0));\n" n n
+             (* The following not yet implemented for callbacks XXX *)
+             | ArrayAndLen _ | Bool _ | BytesOut _
+             | BytesPersistIn _ | BytesPersistOut _
+             | Closure _
+             | Flags _ | Mutable _
+             | Path _ | SockAddrAndLen _ | StringList _
+             | UInt _ | UInt32 _ -> assert false
+           ) cbargs;
+
            pr "  if (Is_exception_result (rv)) {\n";
            pr "    /* XXX This is not really an error as callbacks can return\n";
            pr "     * an error indication.  But perhaps we should direct this\n";
