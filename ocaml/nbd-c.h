@@ -118,8 +118,6 @@ struct callback_data {
   value *data;
 };
 
-extern void nbd_internal_ocaml_free_root (void *);
-
 extern char **nbd_internal_ocaml_string_list (value);
 extern value nbd_internal_ocaml_alloc_int32_array (uint32_t *, size_t);
 

@@ -98,7 +98,7 @@ nbd_close (struct nbd_handle *h)
 
   for (cc = h->close_callbacks; cc != NULL; cc = cc_next) {
     cc_next = cc->next;
-    cc->cb (cc->data);
+    cc->cb (cc->user_data);
     free (cc);
   }
 
@@ -202,7 +202,8 @@ nbd_unlocked_add_meta_context (struct nbd_handle *h, const char *name)
  * programming languages.
  */
 int
-nbd_add_close_callback (struct nbd_handle *h, nbd_close_callback cb, void *data)
+nbd_add_close_callback (struct nbd_handle *h,
+                        nbd_close_callback cb, void *user_data)
 {
   int ret;
   struct close_callback *cc;
@@ -216,7 +217,7 @@ nbd_add_close_callback (struct nbd_handle *h, nbd_close_callback cb, void *data)
   }
   cc->next = h->close_callbacks;
   cc->cb = cb;
-  cc->data = data;
+  cc->user_data = user_data;
   h->close_callbacks = cc;
 
   ret = 0;

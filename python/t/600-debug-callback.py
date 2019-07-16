@@ -26,7 +26,7 @@ def f(id, context, msg):
     assert id == 42
     messages.append (msg)
 
-h.set_debug_callback (42, f)
+h.set_debug_callback (lambda *args: f (42, *args))
 
 h.connect_command (["nbdkit", "-s", "--exit-with-parent", "null"])
 h.shutdown ()

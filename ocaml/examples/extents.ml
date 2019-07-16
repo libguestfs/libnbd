@@ -15,8 +15,8 @@ let () =
 
   (* Read the extents and print them. *)
   let size = NBD.get_size nbd in
-  NBD.block_status nbd size 0_L () (
-    fun () meta _ entries err ->
+  NBD.block_status nbd size 0_L (
+    fun meta _ entries err ->
       printf "err=%d\n" !err;
       if meta = "base:allocation" then (
         printf "index\tlength\tflags\n";

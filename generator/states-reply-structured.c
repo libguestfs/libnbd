@@ -298,7 +298,8 @@
          * current error rather than any earlier one. If the callback fails
          * without setting errno, then use the server's error below.
          */
-        if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data + (offset - cmd->offset),
+        if (cmd->cb.fn.read (cmd->cb.user_data,
+                             cmd->data + (offset - cmd->offset),
                              0, offset, LIBNBD_READ_ERROR, &scratch) == -1)
           if (cmd->error == 0)
             cmd->error = scratch;
@@ -384,7 +385,8 @@
     if (cmd->cb.fn.read) {
       int error = cmd->error;
 
-      if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data + (offset - cmd->offset),
+      if (cmd->cb.fn.read (cmd->cb.user_data,
+                           cmd->data + (offset - cmd->offset),
                            length - sizeof offset, offset,
                            LIBNBD_READ_DATA, &error) == -1)
         if (cmd->error == 0)
@@ -445,7 +447,8 @@
     if (cmd->cb.fn.read) {
       int error = cmd->error;
 
-      if (cmd->cb.fn.read (cmd->cb.opaque, cmd->data + offset, length,
+      if (cmd->cb.fn.read (cmd->cb.user_data,
+                           cmd->data + offset, length,
                            cmd->offset + offset,
                            LIBNBD_READ_HOLE, &error) == -1)
         if (cmd->error == 0)
@@ -496,7 +499,8 @@
       /* Call the caller's extent function. */
       int error = cmd->error;
 
-      if (cmd->cb.fn.extent (cmd->cb.opaque, meta_context->name, cmd->offset,
+      if (cmd->cb.fn.extent (cmd->cb.user_data,
+                             meta_context->name, cmd->offset,
                              &h->bs_entries[1], (length-4) / 4, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;

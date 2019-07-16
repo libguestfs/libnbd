@@ -212,7 +212,7 @@ struct meta_context {
 struct close_callback {
   struct close_callback *next;  /* Linked list. */
   nbd_close_callback cb;        /* Function. */
-  void *data;                   /* Data. */
+  void *user_data;              /* Data. */
 };
 
 struct socket_ops {
@@ -241,14 +241,15 @@ struct socket {
   const struct socket_ops *ops;
 };
 
-typedef int (*extent_fn) (void *data, const char *metacontext, uint64_t offset,
+typedef int (*extent_fn) (void *user_data,
+                          const char *metacontext, uint64_t offset,
                           uint32_t *entries, size_t nr_entries, int *error);
-typedef int (*read_fn) (void *data, const void *buf, size_t count,
+typedef int (*read_fn) (void *user_data, const void *buf, size_t count,
                         uint64_t offset, int status, int *error);
-typedef int (*callback_fn) (void *data, int64_t cookie, int *error);
+typedef int (*callback_fn) (void *user_data, int64_t cookie, int *error);
 
 struct command_cb {
-  void *opaque;
+  void *user_data;
   union {
     extent_fn extent;
     read_fn read;

@@ -69,15 +69,6 @@ nbd_internal_ocaml_raise_closed (const char *func)
   CAMLnoreturn;
 }
 
-void
-nbd_internal_ocaml_free_root (void *vp)
-{
-  value *root = vp;
-
-  caml_remove_generational_global_root (root);
-  free (root);
-}
-
 /* The caller should free the array, but NOT the strings, since the
  * strings point to OCaml strings.
  */

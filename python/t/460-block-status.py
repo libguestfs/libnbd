@@ -27,26 +27,27 @@ h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
                     "sh", script])
 
 entries = []
-def f (data, metacontext, offset, e, err):
+def f (user_data, metacontext, offset, e, err):
     global entries
-    assert data == 42
+    assert user_data == 42
     assert err.value == 0
     if metacontext != "base:allocation":
         return
     entries = e
 
-h.block_status (65536, 0, 42, f)
+h.block_status (65536, 0, lambda *args: f (42, *args))
 assert entries == [ 8192, 0,
                     8192, 1,
                    16384, 3,
                    16384, 2,
                    16384, 0]
 
-h.block_status (1024, 32256, 42, f)
+h.block_status (1024, 32256, lambda *args: f (42, *args))
 print ("entries = %r" % entries)
 assert entries == [  512, 3,
                    16384, 2]
 
-h.block_status (1024, 32256, 42, f, nbd.CMD_FLAG_REQ_ONE)
+h.block_status (1024, 32256, lambda *args: f (42, *args),
+                nbd.CMD_FLAG_REQ_ONE)
 print ("entries = %r" % entries)
 assert entries == [  512, 3]
