@@ -37,7 +37,8 @@ void
 nbd_internal_ocaml_raise_error (void)
 {
   CAMLparam0 ();
-  CAMLlocal2 (v, sv);
+  CAMLlocal1 (sv);
+  value v[2];
   const char *msg;
   int err;
 
@@ -49,12 +50,10 @@ nbd_internal_ocaml_raise_error (void)
   else
     sv = caml_copy_string ("no error message available");
 
-  /* Create the (string * int) tuple. */
-  v = caml_alloc (2, 0);
-  Store_field (v, 0, sv);
-  Store_field (v, 1, Val_int (err));
-
-  caml_raise_with_arg (*caml_named_value ("nbd_internal_ocaml_error"), v);
+  v[0] = sv;
+  v[1] = Val_int (err);
+  caml_raise_with_args (*caml_named_value ("nbd_internal_ocaml_error"),
+                        2, v);
   CAMLnoreturn;
 }
 
