@@ -4660,7 +4660,7 @@ let print_ocaml_binding (name, { args; ret }) =
 
            pr "static int\n";
            pr "%s_%s_wrapper_locked " name cbname;
-           print_c_arg_list cbargs;
+           print_c_arg_list ~user_data:true cbargs;
            pr "\n";
            pr "{\n";
            pr "  CAMLparam0 ();\n";
@@ -4701,6 +4701,8 @@ let print_ocaml_binding (name, { args; ret }) =
 
            List.iteri (fun i n -> pr "  args[%d] = %s;\n" i n) argnames;
 
+           pr "  fnv = ((struct %s_user_data *)user_data)->%s;\n" name cbname;
+
            pr "  rv = caml_callbackN_exn (fnv, %d, args);\n"
               (List.length argnames);
            pr "  if (Is_exception_result (rv)) {\n";
@@ -4721,14 +4723,14 @@ let print_ocaml_binding (name, { args; ret }) =
            pr "\n";
            pr "static int\n";
            pr "%s_%s_wrapper " name cbname;
-           print_c_arg_list cbargs;
+           print_c_arg_list ~user_data:true cbargs;
            pr "\n";
            pr "{\n";
            pr "  int ret;\n";
            pr "\n";
            pr "  caml_leave_blocking_section ();\n";
            let c_argnames = List.flatten (List.map c_name_of_arg cbargs) in
-           pr "  ret = %s_%s_wrapper_locked (%s);\n" name cbname
+           pr "  ret = %s_%s_wrapper_locked (user_data, %s);\n" name cbname
               (String.concat ", " c_argnames);
            pr "  caml_enter_blocking_section ();\n";
            pr "  return ret;\n";
