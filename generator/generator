@@ -928,7 +928,7 @@ Return the state of the debug flag on this handle.";
     longdesc = "\
 Set the debug callback.  This function is called when the library
 emits debug messages, when debugging is enabled on a handle.  The
-callback parameters are C<data> passed to this function, the
+callback parameters are C<user_data> passed to this function, the
 name of the libnbd function emitting the debug message (C<context>),
 and the message itself (C<msg>).  If no debug callback is set on
 a handle then messages are printed on C<stderr>.
@@ -1373,7 +1373,8 @@ fail with any non-zero value stored into the callback's C<error>
 parameter (with a default of C<EPROTO>); but any further chunks will
 still invoke the callback.
 
-The C<chunk> function is called once per chunk of data received.  The
+The C<chunk> function is called once per chunk of data received, with
+the C<user_data> passed to this function.  The
 C<subbuf> and C<count> parameters represent the subset of the original
 buffer which has just been populated by results from the server (in C,
 C<subbuf> always points within the original C<buf>; but this guarantee
@@ -1574,7 +1575,7 @@ C<error> parameter (with a default of C<EPROTO>); but any further
 contexts will still invoke the callback.
 
 The C<extent> function is called once per type of metadata available,
-with the C<data> passed to this function.  The C<metacontext>
+with the C<user_data> passed to this function.  The C<metacontext>
 parameter is a string such as C<\"base:allocation\">.  The C<entries>
 array is an array of pairs of integers with the first entry in each
 pair being the length (in bytes) of the block and the second entry
@@ -1741,7 +1742,7 @@ the callback to retire the command.  Note that you must ensure
 C<buf> is valid until the command has completed.  Other
 parameters behave as documented in C<nbd_pread>.
 
-The C<callback> function is called with the same C<data> passed to
+The C<callback> function is called with the same C<user_data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -1798,7 +1799,7 @@ although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_pread_structured>.
 
-The C<callback> function is called with the same C<data> passed to
+The C<callback> function is called with the same C<user_data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -1844,7 +1845,7 @@ the callback to retire the command.  Note that you must ensure
 C<buf> is valid until the command has completed.  Other
 parameters behave as documented in C<nbd_pwrite>.
 
-The C<callback> function is called with the same C<data> passed to
+The C<callback> function is called with the same C<user_data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -1908,7 +1909,7 @@ although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_flush>.
 
-The C<callback> function is called with the same C<data> passed to
+The C<callback> function is called with the same C<user_data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -1951,7 +1952,7 @@ although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_trim>.
 
-The C<callback> function is called with the same C<data> passed to
+The C<callback> function is called with the same C<user_data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -1994,7 +1995,7 @@ although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_cache>.
 
-The C<callback> function is called with the same C<data> passed to
+The C<callback> function is called with the same C<user_data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -2037,7 +2038,7 @@ although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_zero>.
 
-The C<callback> function is called with the same C<data> passed to
+The C<callback> function is called with the same C<user_data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
@@ -2092,7 +2093,7 @@ although you must still use C<nbd_aio_command_completed> after
 the callback to retire the command.  Other parameters behave as
 documented in C<nbd_block_status>.
 
-The C<callback> function is called with the same C<data> passed to
+The C<callback> function is called with the same C<user_data> passed to
 this function, C<cookie> set to the return value of this function,
 and C<error> containing the command's result so far. The callback
 may modify the overall status of the command by storing into
