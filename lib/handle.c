@@ -29,9 +29,9 @@
 #include "internal.h"
 
 static void
-free_cmd_list (struct command_in_flight *list)
+free_cmd_list (struct command *list)
 {
-  struct command_in_flight *cmd, *cmd_next;
+  struct command *cmd, *cmd_next;
 
   for (cmd = list; cmd != NULL; cmd = cmd_next) {
     cmd_next = cmd->next;

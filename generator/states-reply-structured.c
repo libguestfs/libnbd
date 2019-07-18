@@ -47,7 +47,7 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.CHECK:
-  struct command_in_flight *cmd = h->reply_cmd;
+  struct command *cmd = h->reply_cmd;
   uint16_t flags, type;
   uint64_t cookie;
   uint32_t length;
@@ -252,7 +252,7 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_ERROR_TAIL:
-  struct command_in_flight *cmd = h->reply_cmd;
+  struct command *cmd = h->reply_cmd;
   uint32_t error;
   uint64_t offset;
   uint16_t type;
@@ -315,7 +315,7 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_OFFSET_DATA:
-  struct command_in_flight *cmd = h->reply_cmd;
+  struct command *cmd = h->reply_cmd;
   uint64_t offset;
   uint32_t length;
 
@@ -367,7 +367,7 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_OFFSET_DATA_DATA:
-  struct command_in_flight *cmd = h->reply_cmd;
+  struct command *cmd = h->reply_cmd;
   uint64_t offset;
   uint32_t length;
 
@@ -398,7 +398,7 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_OFFSET_HOLE:
-  struct command_in_flight *cmd = h->reply_cmd;
+  struct command *cmd = h->reply_cmd;
   uint64_t offset;
   uint32_t length;
 
@@ -460,7 +460,7 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_BS_ENTRIES:
-  struct command_in_flight *cmd = h->reply_cmd;
+  struct command *cmd = h->reply_cmd;
   uint32_t length;
   size_t i;
   uint32_t context_id;

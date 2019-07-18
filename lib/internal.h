@@ -47,7 +47,7 @@
 struct meta_context;
 struct close_callback;
 struct socket;
-struct command_in_flight;
+struct command;
 
 struct nbd_handle {
   /* Lock protecting concurrent access to the handle. */
@@ -195,10 +195,10 @@ struct nbd_handle {
    * acknowledge them.  in_flight tracks the combined length of the
    * first two lists.
    */
-  struct command_in_flight *cmds_to_issue, *cmds_in_flight, *cmds_done;
+  struct command *cmds_to_issue, *cmds_in_flight, *cmds_done;
   int in_flight;
   /* Current command during a REPLY cycle */
-  struct command_in_flight *reply_cmd;
+  struct command *reply_cmd;
 
   bool disconnect_request;      /* True if we've queued NBD_CMD_DISC */
 };
@@ -257,8 +257,8 @@ struct command_cb {
   void *user_data;
 };
 
-struct command_in_flight {
-  struct command_in_flight *next;
+struct command {
+  struct command *next;
   uint16_t flags;
   uint16_t type;
   uint64_t cookie;

@@ -20,7 +20,7 @@
 
 /* STATE MACHINE */ {
  ISSUE_COMMAND.START:
-  struct command_in_flight *cmd;
+  struct command *cmd;
 
   assert (h->cmds_to_issue != NULL);
   cmd = h->cmds_to_issue;
@@ -67,7 +67,7 @@
   return 0;
 
  ISSUE_COMMAND.PREPARE_WRITE_PAYLOAD:
-  struct command_in_flight *cmd;
+  struct command *cmd;
 
   assert (h->cmds_to_issue != NULL);
   cmd = h->cmds_to_issue;
@@ -98,7 +98,7 @@
   return 0;
 
  ISSUE_COMMAND.FINISH:
-  struct command_in_flight *cmd;
+  struct command *cmd;
 
   assert (!h->wlen);
   assert (h->cmds_to_issue != NULL);

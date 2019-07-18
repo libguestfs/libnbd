@@ -106,7 +106,7 @@ save_reply_state (struct nbd_handle *h)
   return 0;
 
  REPLY.CHECK_SIMPLE_OR_STRUCTURED_REPLY:
-  struct command_in_flight *cmd;
+  struct command *cmd;
   uint32_t magic;
   uint64_t cookie;
 
@@ -147,7 +147,7 @@ save_reply_state (struct nbd_handle *h)
   return 0;
 
  REPLY.FINISH_COMMAND:
-  struct command_in_flight *prev_cmd, *cmd;
+  struct command *prev_cmd, *cmd;
   uint64_t cookie;
 
   /* NB: This works for both simple and structured replies because the

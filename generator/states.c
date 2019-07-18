@@ -113,9 +113,9 @@ send_from_wbuf (struct nbd_handle *h)
 
 /* Forcefully fail any remaining in-flight commands in list */
 void abort_commands (struct nbd_handle *h,
-                     struct command_in_flight **list)
+                     struct command **list)
 {
-  struct command_in_flight *prev_cmd, *cmd;
+  struct command *prev_cmd, *cmd;
 
   for (cmd = *list, prev_cmd = NULL;
        cmd != NULL;

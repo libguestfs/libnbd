@@ -53,7 +53,7 @@ int
 nbd_unlocked_aio_command_completed (struct nbd_handle *h,
                                     int64_t cookie)
 {
-  struct command_in_flight *prev_cmd, *cmd;
+  struct command *prev_cmd, *cmd;
   uint16_t type;
   uint32_t error;
 
@@ -105,7 +105,7 @@ nbd_unlocked_aio_peek_command_completed (struct nbd_handle *h)
 {
   /* Special case NBD_CMD_DISC, as it does not have a user-visible cookie */
   if (h->cmds_done && h->cmds_done->type == NBD_CMD_DISC) {
-    struct command_in_flight *cmd = h->cmds_done;
+    struct command *cmd = h->cmds_done;
 
     h->cmds_done = cmd->next;
     free (cmd);

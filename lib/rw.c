@@ -163,7 +163,7 @@ nbd_internal_command_common (struct nbd_handle *h,
                              uint64_t offset, uint64_t count,
                              void *data, struct command_cb *cb)
 {
-  struct command_in_flight *cmd, *prev_cmd;
+  struct command *cmd, *prev_cmd;
 
   if (h->disconnect_request) {
       set_error (EINVAL, "cannot request more commands after NBD_CMD_DISC");

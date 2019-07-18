@@ -20,7 +20,7 @@
 
 /* STATE MACHINE */ {
  REPLY.SIMPLE_REPLY.START:
-  struct command_in_flight *cmd = h->reply_cmd;
+  struct command *cmd = h->reply_cmd;
   uint32_t error;
   uint64_t cookie;
 
@@ -49,7 +49,7 @@
   return 0;
 
  REPLY.SIMPLE_REPLY.RECV_READ_PAYLOAD:
-  struct command_in_flight *cmd = h->reply_cmd;
+  struct command *cmd = h->reply_cmd;
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
