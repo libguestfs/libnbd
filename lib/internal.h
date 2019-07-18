@@ -190,17 +190,21 @@ struct nbd_handle {
 
   /* Commands which are waiting to be issued [meaning the request
    * packet is sent to the server].  This is used as a simple linked
-   * list - commands are added to the front, and commands are issued
-   * starting with the one on the front.  When commands have been
-   * issued they are moved to cmds_in_flight.
+   * list queue - commands are added to the back, and commands are
+   * issued starting with the one on the front.  When commands have
+   * been issued they are moved to cmds_in_flight.
    */
   struct command *cmds_to_issue;
 
-  /* Commands which have been issued and are waiting for replies. */
+  /* Commands which have been issued and are waiting for replies.
+   * Order does not matter here, since the server can reply out-of-order.
+   */
   struct command *cmds_in_flight;
 
-  /* Commands which we have received replies, waiting for the main
-   * program to acknowledge them.
+  /* Commands which have received replies, waiting for the main
+   * program to acknowledge them.  Maintained as a queue, with new
+   * replies at the back, in case a client uses peek to process
+   * replies in server order.
    */
   struct command *cmds_done;
 
