@@ -81,6 +81,10 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
     error = EIO;
 
   /* Retire it from the list and free it. */
+  if (h->cmds_done_tail == cmd) {
+    assert (cmd->next == NULL);
+    h->cmds_done_tail = prev_cmd;
+  }
   if (prev_cmd != NULL)
     prev_cmd->next = cmd->next;
   else

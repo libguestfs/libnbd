@@ -171,14 +171,12 @@ save_reply_state (struct nbd_handle *h)
   else
     h->cmds_in_flight = cmd->next;
   cmd->next = NULL;
-  if (h->cmds_done) {
-    prev_cmd = h->cmds_done;
-    while (prev_cmd->next)
-      prev_cmd = prev_cmd->next;
-    prev_cmd->next = cmd;
+  if (h->cmds_done_tail != NULL)
+    h->cmds_done_tail = h->cmds_done_tail->next = cmd;
+  else {
+    assert (h->cmds_done == NULL);
+    h->cmds_done = h->cmds_done_tail = cmd;
   }
-  else
-    h->cmds_done = cmd;
   h->in_flight--;
   assert (h->in_flight >= 0);
 

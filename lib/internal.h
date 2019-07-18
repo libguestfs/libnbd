@@ -195,6 +195,7 @@ struct nbd_handle {
    * been issued they are moved to cmds_in_flight.
    */
   struct command *cmds_to_issue;
+  struct command *cmds_to_issue_tail;
 
   /* Commands which have been issued and are waiting for replies.
    * Order does not matter here, since the server can reply out-of-order.
@@ -207,6 +208,7 @@ struct nbd_handle {
    * replies in server order.
    */
   struct command *cmds_done;
+  struct command *cmds_done_tail;
 
   /* length (cmds_to_issue) + length (cmds_in_flight). */
   int in_flight;

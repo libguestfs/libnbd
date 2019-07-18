@@ -163,7 +163,7 @@ nbd_internal_command_common (struct nbd_handle *h,
                              uint64_t offset, uint64_t count,
                              void *data, struct command_cb *cb)
 {
-  struct command *cmd, *prev_cmd;
+  struct command *cmd;
 
   if (h->disconnect_request) {
       set_error (EINVAL, "cannot request more commands after NBD_CMD_DISC");
@@ -231,13 +231,11 @@ nbd_internal_command_common (struct nbd_handle *h,
   h->in_flight++;
   if (h->cmds_to_issue != NULL) {
     assert (nbd_internal_is_state_processing (get_next_state (h)));
-    prev_cmd = h->cmds_to_issue;
-    while (prev_cmd->next)
-      prev_cmd = prev_cmd->next;
-    prev_cmd->next = cmd;
+    h->cmds_to_issue_tail = h->cmds_to_issue_tail->next = cmd;
   }
   else {
-    h->cmds_to_issue = cmd;
+    assert (h->cmds_to_issue_tail == NULL);
+    h->cmds_to_issue = h->cmds_to_issue_tail = cmd;
     if (nbd_internal_is_state_ready (get_next_state (h)) &&
         nbd_internal_run (h, cmd_issue) == -1)
       return -1;

@@ -132,8 +132,13 @@ void abort_commands (struct nbd_handle *h,
       cmd->error = ENOTCONN;
   }
   if (prev_cmd) {
-    prev_cmd->next = h->cmds_done;
-    h->cmds_done = *list;
+    if (h->cmds_done_tail)
+      h->cmds_done_tail->next = *list;
+    else {
+      assert (h->cmds_done == NULL);
+      h->cmds_done = *list;
+    }
+    h->cmds_done_tail = prev_cmd;
     *list = NULL;
   }
 }

@@ -105,6 +105,8 @@
   cmd = h->cmds_to_issue;
   assert (cmd->cookie == be64toh (h->request.handle));
   h->cmds_to_issue = cmd->next;
+  if (h->cmds_to_issue_tail == cmd)
+    h->cmds_to_issue_tail = NULL;
   cmd->next = h->cmds_in_flight;
   h->cmds_in_flight = cmd;
   SET_NEXT_STATE (%.READY);
