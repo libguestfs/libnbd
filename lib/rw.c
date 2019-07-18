@@ -228,6 +228,7 @@ nbd_internal_command_common (struct nbd_handle *h,
    * if there is no other command being processed, otherwise, it will
    * be handled automatically on a future cycle around to READY.
    */
+  h->in_flight++;
   if (h->cmds_to_issue != NULL) {
     assert (nbd_internal_is_state_processing (get_next_state (h)));
     prev_cmd = h->cmds_to_issue;
@@ -242,7 +243,6 @@ nbd_internal_command_common (struct nbd_handle *h,
       return -1;
   }
 
-  h->in_flight++;
   return cmd->cookie;
 }
 
