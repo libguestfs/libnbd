@@ -188,15 +188,25 @@ struct nbd_handle {
   /* When receiving block status, this is used. */
   uint32_t *bs_entries;
 
-  /* When issuing a command, the first list contains commands waiting
-   * to be issued.  The second list contains commands which have been
-   * issued and waiting for replies.  The third list contains commands
-   * which we have received replies, waiting for the main program to
-   * acknowledge them.  in_flight tracks the combined length of the
-   * first two lists.
+  /* Commands which are waiting to be issued [meaning the request
+   * packet is sent to the server].  This is used as a simple linked
+   * list - commands are added to the front, and commands are issued
+   * starting with the one on the front.  When commands have been
+   * issued they are moved to cmds_in_flight.
    */
-  struct command *cmds_to_issue, *cmds_in_flight, *cmds_done;
+  struct command *cmds_to_issue;
+
+  /* Commands which have been issued and are waiting for replies. */
+  struct command *cmds_in_flight;
+
+  /* Commands which we have received replies, waiting for the main
+   * program to acknowledge them.
+   */
+  struct command *cmds_done;
+
+  /* length (cmds_to_issue) + length (cmds_in_flight). */
   int in_flight;
+
   /* Current command during a REPLY cycle */
   struct command *reply_cmd;
 
