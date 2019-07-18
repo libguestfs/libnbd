@@ -128,6 +128,11 @@ main (int argc, char *argv[])
   }
 
   /* Detection of the dead server completes all remaining in-flight commands */
+  if (nbd_aio_in_flight (nbd) != 0) {
+    fprintf (stderr, "%s: test failed: nbd_aio_in_flight\n",
+             argv[0]);
+    goto fail;
+  }
   if (nbd_aio_peek_command_completed (nbd) != cookie) {
     fprintf (stderr, "%s: test failed: nbd_aio_peek_command_completed\n",
              argv[0]);
@@ -148,11 +153,6 @@ main (int argc, char *argv[])
   }
 
   /* With all commands retired, no further command should be pending */
-  if (nbd_aio_in_flight (nbd) != 0) {
-    fprintf (stderr, "%s: test failed: nbd_aio_in_flight\n",
-             argv[0]);
-    goto fail;
-  }
   if (nbd_aio_peek_command_completed (nbd) != -1) {
     fprintf (stderr, "%s: test failed: nbd_aio_peek_command_completed\n",
              argv[0]);

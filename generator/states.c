@@ -156,6 +156,7 @@ void abort_commands (struct nbd_handle *h,
   assert (nbd_get_error ());
   abort_commands (h, &h->cmds_to_issue);
   abort_commands (h, &h->cmds_in_flight);
+  h->in_flight = 0;
   if (h->sock) {
     h->sock->ops->close (h->sock);
     h->sock = NULL;
@@ -165,6 +166,7 @@ void abort_commands (struct nbd_handle *h,
  CLOSED:
   abort_commands (h, &h->cmds_to_issue);
   abort_commands (h, &h->cmds_in_flight);
+  h->in_flight = 0;
   if (h->sock) {
     h->sock->ops->close (h->sock);
     h->sock = NULL;

@@ -85,8 +85,6 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
     prev_cmd->next = cmd->next;
   else
     h->cmds_done = cmd->next;
-  h->in_flight--;
-  assert (h->in_flight >= 0);
 
   free (cmd);
 

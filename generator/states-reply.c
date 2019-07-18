@@ -179,6 +179,8 @@ save_reply_state (struct nbd_handle *h)
   }
   else
     h->cmds_done = cmd;
+  h->in_flight--;
+  assert (h->in_flight >= 0);
 
   /* Notify the user */
   if (cmd->cb.callback) {
