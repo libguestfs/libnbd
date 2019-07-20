@@ -48,11 +48,15 @@ struct data {
 };
 
 static int
-read_cb (void *opaque, const void *bufv, size_t count, uint64_t offset,
+read_cb (unsigned valid_flag, void *opaque,
+         const void *bufv, size_t count, uint64_t offset,
          unsigned status, int *error)
 {
   struct data *data = opaque;
   const char *buf = bufv;
+
+  if (!(valid_flag & LIBNBD_CALLBACK_VALID))
+    return 0;
 
   /* The NBD spec allows chunks to be reordered; we are relying on the
    * fact that qemu-nbd does not do so.

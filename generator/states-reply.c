@@ -170,9 +170,13 @@ save_reply_state (struct nbd_handle *h)
   /* Notify the user */
   if (cmd->cb.callback) {
     int error = cmd->error;
+    int r;
 
     assert (cmd->type != NBD_CMD_DISC);
-    switch (cmd->cb.callback (cmd->cb.user_data, cookie, &error)) {
+    r = cmd->cb.callback (LIBNBD_CALLBACK_VALID|LIBNBD_CALLBACK_FREE,
+                          cmd->cb.user_data, cookie, &error);
+    cmd->cb.callback = NULL; /* because we've freed it */
+    switch (r) {
     case -1:
       if (error)
         cmd->error = error;
@@ -190,7 +194,7 @@ save_reply_state (struct nbd_handle *h)
     h->cmds_in_flight = cmd->next;
   cmd->next = NULL;
   if (retire)
-    free (cmd);
+    nbd_internal_retire_and_free_command (cmd);
   else {
     if (h->cmds_done_tail != NULL)
       h->cmds_done_tail = h->cmds_done_tail->next = cmd;

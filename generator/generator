@@ -849,10 +849,7 @@ and arg =
                               written by the function *)
 | BytesPersistIn of string * string (* same as above, but buffer persists *)
 | BytesPersistOut of string * string
-| Closure of bool * closure (* function pointer + void *opaque
-                              flag if true means callbacks persist
-                              in the handle, false means they only
-                              exist during the function call *)
+| Closure of closure       (* function pointer + void *opaque *)
 | Flags of string          (* NBD_CMD_FLAG_* flags *)
 | Int of string            (* small int *)
 | Int64 of string          (* 64 bit signed int *)
@@ -920,9 +917,8 @@ Return the state of the debug flag on this handle.";
 
   "set_debug_callback", {
     default_call with
-    args = [ Closure (true,
-                      { cbname="debug_fn";
-                        cbargs=[String "context"; String "msg"] }) ];
+    args = [ Closure { cbname="debug_fn";
+                       cbargs=[String "context"; String "msg"] } ];
     ret = RErr;
     shortdesc = "set the debug callback";
     longdesc = "\
@@ -1350,11 +1346,10 @@ protocol extensions).";
   "pread_structured", {
     default_call with
     args = [ BytesOut ("buf", "count"); UInt64 "offset";
-             Closure (false,
-                      { cbname="chunk";
-                        cbargs=[BytesIn ("subbuf", "count");
-                                UInt64 "offset"; UInt "status";
-                                Mutable (Int "error")] });
+             Closure { cbname="chunk";
+                       cbargs=[BytesIn ("subbuf", "count");
+                               UInt64 "offset"; UInt "status";
+                               Mutable (Int "error")] };
              Flags "flags" ];
     ret = RErr;
     permitted_states = [ Connected ];
@@ -1541,13 +1536,12 @@ punching a hole.";
   "block_status", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
-             Closure (false,
-                      { cbname="extent";
-                        cbargs=[String "metacontext";
-                                UInt64 "offset";
-                                ArrayAndLen (UInt32 "entries",
-                                             "nr_entries");
-                                Mutable (Int "error")]} );
+             Closure { cbname="extent";
+                       cbargs=[String "metacontext";
+                               UInt64 "offset";
+                               ArrayAndLen (UInt32 "entries",
+                                            "nr_entries");
+                               Mutable (Int "error")]};
              Flags "flags" ];
     ret = RErr;
     permitted_states = [ Connected ];
@@ -1725,9 +1719,8 @@ C<nbd_pread>.";
   "aio_pread_callback", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
-             Closure (true,
-                      { cbname="callback";
-                        cbargs=[Int64 "cookie"; Mutable (Int "error")] } );
+             Closure { cbname="callback";
+                       cbargs=[Int64 "cookie"; Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1744,12 +1737,11 @@ completed.  Other parameters behave as documented in C<nbd_pread>.";
   "aio_pread_structured", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
-             Closure (true,
-                      { cbname="chunk";
-                        cbargs=[BytesIn ("subbuf", "count");
-                                UInt64 "offset";
-                                UInt "status";
-                                Mutable (Int "error");]} );
+             Closure { cbname="chunk";
+                       cbargs=[BytesIn ("subbuf", "count");
+                               UInt64 "offset";
+                               UInt "status";
+                               Mutable (Int "error");]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1766,16 +1758,14 @@ documented in C<nbd_pread_structured>.";
   "aio_pread_structured_callback", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
-             Closure (true,
-                      { cbname="chunk";
-                        cbargs=[BytesIn ("subbuf", "count");
-                                UInt64 "offset";
-                                UInt "status";
-                                Mutable (Int "error"); ]});
-             Closure (true,
-                      { cbname="callback";
-                        cbargs=[Int64 "cookie";
-                                Mutable (Int "error"); ]} );
+             Closure { cbname="chunk";
+                       cbargs=[BytesIn ("subbuf", "count");
+                               UInt64 "offset";
+                               UInt "status";
+                               Mutable (Int "error"); ]};
+             Closure { cbname="callback";
+                       cbargs=[Int64 "cookie";
+                               Mutable (Int "error"); ]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1807,9 +1797,8 @@ C<nbd_pwrite>.";
   "aio_pwrite_callback", {
     default_call with
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset";
-             Closure (true,
-                      { cbname="callback";
-                        cbargs=[Int64 "cookie"; Mutable (Int "error")]} );
+             Closure { cbname="callback";
+                       cbargs=[Int64 "cookie"; Mutable (Int "error")]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1861,9 +1850,8 @@ Parameters behave as documented in C<nbd_flush>.";
 
   "aio_flush_callback", {
     default_call with
-    args = [ Closure (true,
-                      { cbname="callback";
-                        cbargs=[Int64 "cookie"; Mutable (Int "error")]} );
+    args = [ Closure { cbname="callback";
+                       cbargs=[Int64 "cookie"; Mutable (Int "error")]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1893,9 +1881,8 @@ Parameters behave as documented in C<nbd_trim>.";
   "aio_trim_callback", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
-             Closure (true,
-                      { cbname="callback";
-                        cbargs=[Int64 "cookie"; Mutable (Int "error")]} );
+             Closure { cbname="callback";
+                       cbargs=[Int64 "cookie"; Mutable (Int "error")]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1925,9 +1912,8 @@ Parameters behave as documented in C<nbd_cache>.";
   "aio_cache_callback", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
-             Closure (true,
-                      { cbname="callback";
-                        cbargs=[Int64 "cookie"; Mutable (Int "error")]} );
+             Closure { cbname="callback";
+                       cbargs=[Int64 "cookie"; Mutable (Int "error")]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1957,9 +1943,8 @@ Parameters behave as documented in C<nbd_zero>.";
   "aio_zero_callback", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
-             Closure (true,
-                      { cbname="callback";
-                        cbargs=[Int64 "cookie"; Mutable (Int "error")]} );
+             Closure { cbname="callback";
+                       cbargs=[Int64 "cookie"; Mutable (Int "error")]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1975,12 +1960,11 @@ Other parameters behave as documented in C<nbd_zero>.";
   "aio_block_status", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
-             Closure (true,
-                      { cbname="extent";
-                        cbargs=[String "metacontext"; UInt64 "offset";
-                                ArrayAndLen (UInt32 "entries",
-                                             "nr_entries");
-                                Mutable (Int "error")] } );
+             Closure { cbname="extent";
+                       cbargs=[String "metacontext"; UInt64 "offset";
+                               ArrayAndLen (UInt32 "entries",
+                                            "nr_entries");
+                               Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1996,15 +1980,13 @@ Parameters behave as documented in C<nbd_block_status>.";
   "aio_block_status_callback", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
-             Closure (true,
-                      { cbname="extent";
-                        cbargs=[String "metacontext"; UInt64 "offset";
-                                ArrayAndLen (UInt32 "entries",
-                                             "nr_entries");
-                                Mutable (Int "error")]});
-             Closure (true,
-                      { cbname="callback";
-                        cbargs=[Int64 "cookie"; Mutable (Int "error")]} );
+             Closure { cbname="extent";
+                       cbargs=[String "metacontext"; UInt64 "offset";
+                               ArrayAndLen (UInt32 "entries",
+                                            "nr_entries");
+                               Mutable (Int "error")]};
+             Closure { cbname="callback";
+                       cbargs=[Int64 "cookie"; Mutable (Int "error")]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -3037,7 +3019,8 @@ module C : sig
   val generate_lib_unlocked_h : unit -> unit
   val generate_lib_api_c : unit -> unit
   val generate_docs_libnbd_api_pod : unit -> unit
-  val print_arg_list : ?handle:bool -> ?user_data:bool -> ?types:bool -> arg list -> unit
+  val print_arg_list : ?handle:bool -> ?valid_flag:bool -> ?user_data:bool ->
+                       ?types:bool -> arg list -> unit
 end = struct
 
 (* Check the API definition. *)
@@ -3090,7 +3073,7 @@ let rec name_of_arg = function
 | BytesOut (n, len) -> [n; len]
 | BytesPersistIn (n, len) -> [n; len]
 | BytesPersistOut (n, len) -> [n; len]
-| Closure (_, { cbname }) -> [cbname; sprintf "%s_user_data" cbname ]
+| Closure { cbname } -> [cbname; sprintf "%s_user_data" cbname ]
 | Flags n -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
@@ -3103,7 +3086,8 @@ let rec name_of_arg = function
 | UInt32 n -> [n]
 | UInt64 n -> [n]
 
-let rec print_arg_list ?(handle = false) ?(user_data = false)
+let rec print_arg_list ?(handle = false) ?(valid_flag = false)
+                       ?(user_data = false)
                        ?(types = true) args =
   pr "(";
   let comma = ref false in
@@ -3111,6 +3095,12 @@ let rec print_arg_list ?(handle = false) ?(user_data = false)
     comma := true;
     if types then pr "struct nbd_handle *";
     pr "h"
+  );
+  if valid_flag then (
+    if !comma then pr ", ";
+    comma := true;
+    if types then pr "unsigned ";
+    pr "valid_flag";
   );
   if user_data then (
     if !comma then pr ", ";
@@ -3144,10 +3134,10 @@ let rec print_arg_list ?(handle = false) ?(user_data = false)
          pr "%s, " n;
          if types then pr "size_t ";
          pr "%s" len
-      | Closure (_, { cbname; cbargs }) ->
+      | Closure { cbname; cbargs } ->
          if types then (
            pr "int (*%s) " cbname;
-           print_arg_list ~user_data:true cbargs;
+           print_arg_list ~valid_flag:true ~user_data:true cbargs;
          )
          else
            pr "%s" cbname;
@@ -3249,6 +3239,9 @@ let generate_include_libnbd_h () =
   pr "typedef void (*nbd_close_callback) (void *user_data);\n";
   pr "\n";
   List.iter (fun (n, i) -> pr "#define LIBNBD_%-30s %d\n" n i) constants;
+  pr "\n";
+  pr "#define LIBNBD_CALLBACK_VALID 1\n";
+  pr "#define LIBNBD_CALLBACK_FREE  2\n";
   pr "\n";
   pr "extern struct nbd_handle *nbd_create (void);\n";
   pr "#define LIBNBD_HAVE_NBD_CREATE 1\n";
@@ -3715,47 +3708,35 @@ let print_python_binding name { args; ret } =
    *)
   List.iter (
     function
-    | Closure (persistent, { cbname; cbargs }) ->
-       (* Persistent closures need an explicit function to decrement
-        * the closure refcounts and free the user_data struct.
-        *)
-       if persistent then (
-         pr "static void\n";
-         pr "free_%s_%s_user_data (void *vp)\n" name cbname;
-         pr "{\n";
-         pr "  PyObject *user_data = vp;\n";
-         pr "\n";
-         pr "  Py_DECREF (user_data);\n";
-         pr "}\n";
-         pr "\n";
-       );
-
+    | Closure { cbname; cbargs } ->
        pr "/* Wrapper for %s callback of %s. */\n" cbname name;
        pr "static int\n";
        pr "%s_%s_wrapper " name cbname;
-       C.print_arg_list ~user_data:true cbargs;
+       C.print_arg_list ~valid_flag:true ~user_data:true cbargs;
        pr "\n";
        pr "{\n";
-       pr "  int ret;\n";
-       pr "  PyGILState_STATE py_save = PyGILState_UNLOCKED;\n";
-       pr "  PyObject *py_args, *py_ret;\n";
+       pr "  int ret = 0;\n";
+       pr "\n";
+       pr "  if (valid_flag & LIBNBD_CALLBACK_VALID) {\n";
+       pr "    PyGILState_STATE py_save = PyGILState_UNLOCKED;\n";
+       pr "    PyObject *py_args, *py_ret;\n";
        List.iter (
          function
          | ArrayAndLen (UInt32 n, len) ->
-            pr "  PyObject *py_%s = PyList_New (%s);\n" n len;
-            pr "  for (size_t i = 0; i < %s; ++i)\n" len;
-            pr "    PyList_SET_ITEM (py_%s, i, PyLong_FromUnsignedLong (%s[i]));\n" n n
+            pr "    PyObject *py_%s = PyList_New (%s);\n" n len;
+            pr "    for (size_t i = 0; i < %s; ++i)\n" len;
+            pr "      PyList_SET_ITEM (py_%s, i, PyLong_FromUnsignedLong (%s[i]));\n" n n
          | BytesIn _
          | Int _
          | Int64 _ -> ()
          | Mutable (Int n) ->
-            pr "  PyObject *py_%s_modname = PyUnicode_FromString (\"ctypes\");\n" n;
-            pr "  if (!py_%s_modname) { PyErr_PrintEx (0); return -1; }\n" n;
-            pr "  PyObject *py_%s_mod = PyImport_Import (py_%s_modname);\n" n n;
-            pr "  Py_DECREF (py_%s_modname);\n" n;
-            pr "  if (!py_%s_mod) { PyErr_PrintEx (0); return -1; }\n" n;
-            pr "  PyObject *py_%s = PyObject_CallMethod (py_%s_mod, \"c_int\", \"i\", *%s);\n" n n n;
-            pr "  if (!py_%s) { PyErr_PrintEx (0); return -1; }\n" n;
+            pr "    PyObject *py_%s_modname = PyUnicode_FromString (\"ctypes\");\n" n;
+            pr "    if (!py_%s_modname) { PyErr_PrintEx (0); return -1; }\n" n;
+            pr "    PyObject *py_%s_mod = PyImport_Import (py_%s_modname);\n" n n;
+            pr "    Py_DECREF (py_%s_modname);\n" n;
+            pr "    if (!py_%s_mod) { PyErr_PrintEx (0); return -1; }\n" n;
+            pr "    PyObject *py_%s = PyObject_CallMethod (py_%s_mod, \"c_int\", \"i\", *%s);\n" n n n;
+            pr "    if (!py_%s) { PyErr_PrintEx (0); return -1; }\n" n;
          | String _
          | UInt _
          | UInt64 _ -> ()
@@ -3769,7 +3750,7 @@ let print_python_binding name { args; ret } =
        ) cbargs;
        pr "\n";
 
-       pr "  py_args = Py_BuildValue (\"(\"";
+       pr "    py_args = Py_BuildValue (\"(\"";
        List.iter (
          function
          | ArrayAndLen (UInt32 n, len) -> pr " \"O\""
@@ -3806,36 +3787,35 @@ let print_python_binding name { args; ret } =
          | UInt32 _ -> assert false
        ) cbargs;
        pr ");\n";
-       pr "  Py_INCREF (py_args);\n";
+       pr "    Py_INCREF (py_args);\n";
        pr "\n";
-       pr "  if (PyEval_ThreadsInitialized ())\n";
-       pr "    py_save = PyGILState_Ensure ();\n";
+       pr "    if (PyEval_ThreadsInitialized ())\n";
+       pr "      py_save = PyGILState_Ensure ();\n";
        pr "\n";
-       pr "  py_ret = PyObject_CallObject ((PyObject *)user_data, py_args);\n";
+       pr "    py_ret = PyObject_CallObject ((PyObject *)user_data, py_args);\n";
        pr "\n";
-       pr "  if (PyEval_ThreadsInitialized ())\n";
-       pr "    PyGILState_Release (py_save);\n";
+       pr "    if (PyEval_ThreadsInitialized ())\n";
+       pr "      PyGILState_Release (py_save);\n";
        pr "\n";
-       pr "  Py_DECREF (py_args);\n";
+       pr "    Py_DECREF (py_args);\n";
        pr "\n";
-       pr "  if (py_ret != NULL) {\n";
-       pr "    ret = 0;\n";
-       pr "    Py_DECREF (py_ret); /* return value is discarded */\n";
-       pr "  }\n";
-       pr "  else {\n";
-       pr "    ret = -1;\n";
-       pr "    PyErr_PrintEx (0); /* print exception */\n";
-       pr "  };\n";
+       pr "    if (py_ret != NULL) {\n";
+       pr "      Py_DECREF (py_ret); /* return value is discarded */\n";
+       pr "    }\n";
+       pr "    else {\n";
+       pr "      ret = -1;\n";
+       pr "      PyErr_PrintEx (0); /* print exception */\n";
+       pr "    };\n";
        pr "\n";
        List.iter (
          function
          | ArrayAndLen (UInt32 n, _) ->
-            pr "  Py_DECREF (py_%s);\n" n
+            pr "    Py_DECREF (py_%s);\n" n
          | Mutable (Int n) ->
-            pr "  PyObject *py_%s_ret = PyObject_GetAttrString (py_%s, \"value\");\n" n n;
-            pr "  *%s = PyLong_AsLong (py_%s_ret);\n" n n;
-            pr "  Py_DECREF (py_%s_ret);\n" n;
-            pr "  Py_DECREF (py_%s);\n" n
+            pr "    PyObject *py_%s_ret = PyObject_GetAttrString (py_%s, \"value\");\n" n n;
+            pr "    *%s = PyLong_AsLong (py_%s_ret);\n" n n;
+            pr "    Py_DECREF (py_%s_ret);\n" n;
+            pr "    Py_DECREF (py_%s);\n" n
          | BytesIn _
          | Int _ | Int64 _
          | String _
@@ -3848,6 +3828,11 @@ let print_python_binding name { args; ret } =
          | Path _ | SockAddrAndLen _ | StringList _
          | UInt32 _ -> assert false
        ) cbargs;
+       pr "  }\n";
+       pr "\n";
+       pr "  if (valid_flag & LIBNBD_CALLBACK_FREE)\n";
+       pr "    Py_DECREF ((PyObject *)user_data);\n";
+       pr "\n";
        pr "  return ret;\n";
        pr "}\n";
        pr "\n"
@@ -3888,7 +3873,7 @@ let print_python_binding name { args; ret } =
        pr "  PyObject *%s; /* PyCapsule pointing to struct py_aio_buffer */\n"
           n;
        pr "  struct py_aio_buffer *%s_buf;\n" n
-    | Closure (_, { cbname }) ->
+    | Closure { cbname } ->
        pr "  PyObject *%s_user_data;\n" cbname
     | Flags n ->
        pr "  uint32_t %s_u32;\n" n;
@@ -3954,7 +3939,7 @@ let print_python_binding name { args; ret } =
     | BytesIn (n, _) | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) -> pr ", &%s" n
     | BytesOut (_, count) -> pr ", &%s" count
-    | Closure (_, { cbname }) -> pr ", &%s_user_data" cbname
+    | Closure { cbname } -> pr ", &%s_user_data" cbname
     | Flags n -> pr ", &%s" n
     | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
@@ -3969,17 +3954,6 @@ let print_python_binding name { args; ret } =
   ) args;
   pr "))\n";
   pr "    return NULL;\n";
-
-  (* If the parameter has persistent closures then we need to
-   * make sure the ref count remains positive.
-   *)
-  List.iter (
-    function
-    | Closure (false, _) -> ()
-    | Closure (true, { cbname }) ->
-       pr "  Py_INCREF (%s_user_data);\n" cbname
-    | _ -> ()
-  ) args;
 
   pr "  h = get_handle (py_h);\n";
   List.iter (
@@ -4008,7 +3982,9 @@ let print_python_binding name { args; ret } =
        pr "  %s = malloc (%s);\n" n count
     | BytesPersistIn (n, _) | BytesPersistOut (n, _) ->
        pr "  %s_buf = nbd_internal_py_get_aio_buffer (%s);\n" n n
-    | Closure (_, { cbname }) ->
+    | Closure { cbname } ->
+       pr "  /* Increment refcount since pointer may be saved by libnbd. */\n";
+       pr "  Py_INCREF (%s_user_data);\n" cbname;
        pr "  if (!PyCallable_Check (%s_user_data)) {\n" cbname;
            pr "    PyErr_SetString (PyExc_TypeError,\n";
            pr "                     \"callback parameter %s is not callable\");\n" cbname;
@@ -4044,7 +4020,7 @@ let print_python_binding name { args; ret } =
     | BytesOut (n, count) -> pr ", %s, %s" n count
     | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) -> pr ", %s_buf->data, %s_buf->len" n n
-    | Closure (_, { cbname }) ->
+    | Closure { cbname } ->
        pr ", %s_%s_wrapper" name cbname;
        pr ", %s_user_data" cbname
     | Flags n -> pr ", %s_u32" n
@@ -4122,11 +4098,7 @@ let print_python_binding name { args; ret } =
     | Bool _ -> ()
     | BytesIn (n, _) -> pr "  PyBuffer_Release (&%s);\n" n
     | BytesPersistIn _ | BytesOut _ | BytesPersistOut _ -> ()
-    | Closure (false, _) -> ()
-    | Closure (true, { cbname }) ->
-       pr "  /* This ensures the callback data is freed eventually. */\n";
-       pr "  nbd_add_close_callback (h, free_%s_%s_user_data, %s_user_data);\n"
-          name cbname cbname
+    | Closure _ -> ()
     | Flags _ -> ()
     | Int _ -> ()
     | Int64 _ -> ()
@@ -4273,7 +4245,7 @@ class NBD (object):
             | BytesIn (n, _) | BytesPersistIn (n, _) -> [n, None]
             | BytesPersistOut (n, _) -> [n, None]
             | BytesOut (_, count) -> [count, None]
-            | Closure (_, { cbname }) -> [cbname, None]
+            | Closure { cbname } -> [cbname, None]
             | Flags n -> [n, Some "0"]
             | Int n -> [n, None]
             | Int64 n -> [n, None]
@@ -4346,10 +4318,7 @@ let args_to_ocaml_args args =
     | Flags n :: rest -> Some (OCamlFlags n), List.rev rest
     | _ -> None, args in
   let args =
-    List.map (
-      function
-      | a -> [OCamlArg a]
-    ) args in
+    List.map (fun a -> [OCamlArg a]) args in
   let args = List.flatten args in
   match flags with
   | Some f -> f :: OCamlHandle :: args
@@ -4372,7 +4341,7 @@ and ocaml_arg_to_string = function
   | OCamlArg (BytesPersistIn _) -> "Buffer.t"
   | OCamlArg (BytesOut _) -> "bytes"
   | OCamlArg (BytesPersistOut _) -> "Buffer.t"
-  | OCamlArg (Closure (_, { cbargs })) ->
+  | OCamlArg (Closure { cbargs }) ->
      sprintf "(%s)"
              (ocaml_fundecl_to_string (List.map (fun a -> OCamlArg a) cbargs)
                                       RErr)
@@ -4408,7 +4377,7 @@ let rec name_of_ocaml_arg = function
      | BytesOut (n, len) -> n
      | BytesPersistIn (n, len) -> n
      | BytesPersistOut (n, len) -> n
-     | Closure (_, { cbname }) -> cbname
+     | Closure { cbname } -> cbname
      | Flags n -> n
      | Int n -> n
      | Int64 n -> n
@@ -4566,22 +4535,7 @@ let print_ocaml_binding (name, { args; ret }) =
   (* Functions with a callback parameter require special handling. *)
   List.iter (
     function
-    | Closure (persistent, { cbname; cbargs }) ->
-       (* Persistent closures need an explicit function to remove
-        * the global root and free the user_data struct.
-        *)
-       if persistent then (
-         pr "static void\n";
-         pr "free_%s_%s_user_data (void *vp)\n" name cbname;
-         pr "{\n";
-         pr "  value *user_data = vp;\n";
-         pr "\n";
-         pr "  caml_remove_generational_global_root (user_data);\n";
-         pr "  free (user_data);\n";
-         pr "}\n";
-         pr "\n"
-       );
-
+    | Closure { cbname; cbargs } ->
        let argnames =
          List.map (
            function
@@ -4685,16 +4639,24 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "\n";
        pr "static int\n";
        pr "%s_%s_wrapper " name cbname;
-       C.print_arg_list ~user_data:true cbargs;
+       C.print_arg_list ~valid_flag:true ~user_data:true cbargs;
        pr "\n";
        pr "{\n";
-       pr "  int ret;\n";
+       pr "  int ret = 0;\n";
        pr "\n";
+       pr "  if (valid_flag & LIBNBD_CALLBACK_VALID) {\n";
        pr "  caml_leave_blocking_section ();\n";
        pr "  ret = %s_%s_wrapper_locked " name cbname;
        C.print_arg_list ~user_data:true ~types:false cbargs;
        pr ";\n";
        pr "  caml_enter_blocking_section ();\n";
+       pr "  }\n";
+       pr "\n";
+       pr "  if (valid_flag & LIBNBD_CALLBACK_FREE) {\n";
+       pr "    caml_remove_generational_global_root ((value *)user_data);\n";
+       pr "    free (user_data);\n";
+       pr "  }\n";
+       pr "\n";
        pr "  return ret;\n";
        pr "}\n";
        pr "\n"
@@ -4769,15 +4731,7 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "  struct nbd_buffer %s_buf = NBD_buffer_val (%sv);\n" n n;
        pr "  void *%s = %s_buf.data;\n" n n;
        pr "  size_t %s = %s_buf.len;\n" count n
-    | OCamlArg (Closure (false, { cbname })) ->
-       pr "  /* This is safe because we only call this while this stack\n";
-       pr "   * frame is live.\n";
-       pr "   */\n";
-       pr "  CAMLlocal1 (_%s_user_data);\n" cbname;
-       pr "  value *%s_user_data = &_%s_user_data;\n" cbname cbname;
-       pr "  _%s_user_data = %sv;\n" cbname cbname;
-       pr "  const void *%s = %s_%s_wrapper;\n" cbname name cbname
-    | OCamlArg (Closure (true, { cbname })) ->
+    | OCamlArg (Closure { cbname }) ->
        pr "  /* The function may save a reference to the closure, so we\n";
        pr "   * must treat it as a possible GC root.\n";
        pr "   */\n";
@@ -4786,9 +4740,7 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "  if (%s_user_data == NULL) caml_raise_out_of_memory ();\n" cbname;
        pr "  caml_register_generational_global_root (%s_user_data);\n" cbname;
        pr "  *%s_user_data = %sv;\n" cbname cbname;
-       pr "  const void *%s = %s_%s_wrapper;\n" cbname name cbname;
-       pr "  nbd_add_close_callback (h, free_%s_%s_user_data, %s_user_data);\n"
-          name cbname cbname
+       pr "  const void *%s = %s_%s_wrapper;\n" cbname name cbname
     | OCamlArg (Flags _) -> assert false (* see above *)
     | OCamlArg (Int n) ->
        pr "  int %s = Int_val (%sv);\n" n n

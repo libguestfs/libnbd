@@ -69,6 +69,7 @@ check_PROGRAMS = \
 	aio-parallel-load \
 	synch-parallel \
 	meta-base-allocation \
+	closure-lifetimes \
 	$(NULL)
 #	can-cache-flag
 #	can-not-cache-flag
@@ -105,6 +106,7 @@ TESTS = \
 	aio-parallel-load.sh \
 	synch-parallel.sh \
 	meta-base-allocation \
+	closure-lifetimes \
 	$(NULL)
 #	can-cache-flag
 #	can-not-cache-flag
@@ -278,6 +280,11 @@ meta_base_allocation_SOURCES = meta-base-allocation.c
 meta_base_allocation_CPPFLAGS = -I$(top_srcdir)/include
 meta_base_allocation_CFLAGS = $(WARNINGS_CFLAGS)
 meta_base_allocation_LDADD = $(top_builddir)/lib/libnbd.la
+
+closure_lifetimes_SOURCES = closure-lifetimes.c
+closure_lifetimes_CPPFLAGS = -I$(top_srcdir)/include
+closure_lifetimes_CFLAGS = $(WARNINGS_CFLAGS)
+closure_lifetimes_LDADD = $(top_builddir)/lib/libnbd.la
 
 # Testing TLS support.
 if HAVE_GNUTLS

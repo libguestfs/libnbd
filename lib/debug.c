@@ -40,9 +40,11 @@ nbd_unlocked_get_debug (struct nbd_handle *h)
 
 int
 nbd_unlocked_set_debug_callback (struct nbd_handle *h,
-                                 int (*debug_fn) (void *, const char *, const char *),
-                                 void *data)
+                                 debug_fn debug_fn, void *data)
 {
+  if (h->debug_fn)
+    /* ignore return value */
+    h->debug_fn (LIBNBD_CALLBACK_FREE, h->debug_data, NULL, NULL);
   h->debug_fn = debug_fn;
   h->debug_data = data;
   return 0;
@@ -76,7 +78,7 @@ nbd_internal_debug (struct nbd_handle *h, const char *fs, ...)
 
   if (h->debug_fn)
     /* ignore return value */
-    h->debug_fn (h->debug_data, context, msg);
+    h->debug_fn (LIBNBD_CALLBACK_VALID, h->debug_data, context, msg);
   else
     fprintf (stderr, "libnbd: debug: %s: %s\n", context ? : "unknown", msg);
  out:

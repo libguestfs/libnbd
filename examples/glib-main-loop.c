@@ -274,9 +274,11 @@ static GMainLoop *loop;
 
 static void connected (struct NBDSource *source);
 static gboolean read_data (gpointer user_data);
-static int finished_read (void *vp, int64_t rcookie, int *error);
+static int finished_read (unsigned valid_flag, void *vp,
+                          int64_t rcookie, int *error);
 static gboolean write_data (gpointer user_data);
-static int finished_write (void *vp, int64_t wcookie, int *error);
+static int finished_write (unsigned valid_flag, void *vp,
+                           int64_t wcookie, int *error);
 
 int
 main (int argc, char *argv[])
@@ -397,9 +399,12 @@ read_data (gpointer user_data)
 
 /* This callback is called from libnbd when any read command finishes. */
 static int
-finished_read (void *vp, int64_t rcookie, int *error)
+finished_read (unsigned valid_flag, void *vp, int64_t rcookie, int *error)
 {
   size_t i;
+
+  if (!(valid_flag & LIBNBD_CALLBACK_VALID))
+    return 0;
 
   if (gssrc == NULL)
     return 0;
@@ -462,9 +467,12 @@ write_data (gpointer user_data)
 
 /* This callback is called from libnbd when any write command finishes. */
 static int
-finished_write (void *vp, int64_t wcookie, int *error)
+finished_write (unsigned valid_flag, void *vp, int64_t wcookie, int *error)
 {
   size_t i;
+
+  if (!(valid_flag & LIBNBD_CALLBACK_VALID))
+    return 0;
 
   if (gsdest == NULL)
     return 0;

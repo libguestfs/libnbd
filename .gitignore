@@ -108,6 +108,7 @@ Makefile.in
 /tests/can-trim-flag
 /tests/can-not-trim-flag
 /tests/can-zero-flag
+/tests/closure-lifetimes
 /tests/connect-tcp
 /tests/connect-tls-certs
 /tests/connect-tls-psk

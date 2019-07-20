@@ -123,9 +123,13 @@ void abort_commands (struct nbd_handle *h,
     next = cmd->next;
     if (cmd->cb.callback) {
       int error = cmd->error ? cmd->error : ENOTCONN;
+      int r;
 
       assert (cmd->type != NBD_CMD_DISC);
-      switch (cmd->cb.callback (cmd->cb.user_data, cmd->cookie, &error)) {
+      r = cmd->cb.callback (LIBNBD_CALLBACK_VALID|LIBNBD_CALLBACK_FREE,
+                            cmd->cb.user_data, cmd->cookie, &error);
+      cmd->cb.callback = NULL; /* because we've freed it */
+      switch (r) {
       case -1:
         if (error)
           cmd->error = error;
@@ -138,7 +142,7 @@ void abort_commands (struct nbd_handle *h,
     if (cmd->error == 0)
       cmd->error = ENOTCONN;
     if (retire)
-      free (cmd);
+      nbd_internal_retire_and_free_command (cmd);
     else {
       cmd->next = NULL;
       if (h->cmds_done_tail)

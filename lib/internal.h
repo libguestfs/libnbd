@@ -48,6 +48,7 @@ struct meta_context;
 struct close_callback;
 struct socket;
 struct command;
+typedef int (*debug_fn) (unsigned, void *, const char *, const char *);
 
 struct nbd_handle {
   /* Lock protecting concurrent access to the handle. */
@@ -80,7 +81,7 @@ struct nbd_handle {
 
   /* For debugging. */
   bool debug;
-  int (*debug_fn) (void *, const char *, const char *);
+  debug_fn debug_fn;
   void *debug_data;
 
   /* Linked list of close callbacks. */
@@ -257,12 +258,14 @@ struct socket {
   const struct socket_ops *ops;
 };
 
-typedef int (*extent_fn) (void *user_data,
+typedef int (*extent_fn) (unsigned valid_flag, void *user_data,
                           const char *metacontext, uint64_t offset,
                           uint32_t *entries, size_t nr_entries, int *error);
-typedef int (*read_fn) (void *user_data, const void *buf, size_t count,
+typedef int (*read_fn) (unsigned valid_flag, void *user_data,
+                        const void *buf, size_t count,
                         uint64_t offset, unsigned status, int *error);
-typedef int (*callback_fn) (void *user_data, int64_t cookie, int *error);
+typedef int (*callback_fn) (unsigned valid_flag, void *user_data,
+                            int64_t cookie, int *error);
 
 struct command_cb {
   union {
@@ -287,6 +290,9 @@ struct command {
   bool data_seen; /* For read, true if at least one data chunk seen */
   uint32_t error; /* Local errno value */
 };
+
+/* aio.c */
+extern void nbd_internal_retire_and_free_command (struct command *);
 
 /* crypto.c */
 extern struct socket *nbd_internal_crypto_create_session (struct nbd_handle *, struct socket *oldsock);

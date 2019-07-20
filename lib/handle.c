@@ -35,7 +35,7 @@ free_cmd_list (struct command *list)
 
   for (cmd = list; cmd != NULL; cmd = cmd_next) {
     cmd_next = cmd->next;
-    free (cmd);
+    nbd_internal_retire_and_free_command (cmd);
   }
 }
 
@@ -95,6 +95,11 @@ nbd_close (struct nbd_handle *h)
 
   if (h == NULL)
     return;
+
+  /* Free user callbacks first. */
+  if (h->debug_fn)
+    h->debug_fn (LIBNBD_CALLBACK_FREE, h->debug_data, NULL, NULL);
+  h->debug_fn = NULL;
 
   for (cc = h->close_callbacks; cc != NULL; cc = cc_next) {
     cc_next = cc->next;

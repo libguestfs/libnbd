@@ -27,6 +27,24 @@
 
 #include "internal.h"
 
+/* Internal function which retires and frees a command. */
+void
+nbd_internal_retire_and_free_command (struct command *cmd)
+{
+  /* Free the callbacks. */
+  if (cmd->type == NBD_CMD_BLOCK_STATUS && cmd->cb.fn.extent)
+    cmd->cb.fn.extent (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
+                       NULL, 0, NULL, 0, NULL);
+  if (cmd->type == NBD_CMD_READ && cmd->cb.fn.read)
+    cmd->cb.fn.read (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
+                     NULL, 0, 0, 0, NULL);
+  if (cmd->cb.callback)
+    cmd->cb.callback (LIBNBD_CALLBACK_FREE, cmd->cb.user_data,
+                      0, NULL);
+
+  free (cmd);
+}
+
 int
 nbd_unlocked_aio_get_fd (struct nbd_handle *h)
 {
@@ -91,7 +109,7 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
   else
     h->cmds_done = cmd->next;
 
-  free (cmd);
+  nbd_internal_retire_and_free_command (cmd);
 
   /* If the command was successful, return true. */
   if (error == 0)

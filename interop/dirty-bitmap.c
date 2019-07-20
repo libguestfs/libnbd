@@ -42,10 +42,13 @@ struct data {
 };
 
 static int
-cb (void *opaque, const char *metacontext, uint64_t offset,
+cb (unsigned valid_flag, void *opaque, const char *metacontext, uint64_t offset,
     uint32_t *entries, size_t len, int *error)
 {
   struct data *data = opaque;
+
+  if (!(valid_flag & LIBNBD_CALLBACK_VALID))
+    return 0;
 
   /* libnbd does not actually verify that a server is fully compliant
    * to the spec; the asserts marked [qemu-nbd] are thus dependent on

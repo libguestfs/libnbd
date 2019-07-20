@@ -51,11 +51,15 @@ static int64_t total_bytes;
 static int total_success;
 
 static int
-read_chunk (void *opaque, const void *bufv, size_t count, uint64_t offset,
+read_chunk (unsigned valid_flag, void *opaque,
+            const void *bufv, size_t count, uint64_t offset,
             unsigned status, int *error)
 {
   struct data *data = opaque;
   struct range *r, **prev;
+
+  if (!(valid_flag & LIBNBD_CALLBACK_VALID))
+    return 0;
 
   /* libnbd guarantees this: */
   assert (offset >= data->offset);
@@ -127,40 +131,47 @@ read_chunk (void *opaque, const void *bufv, size_t count, uint64_t offset,
 }
 
 static int
-read_verify (void *opaque, int64_t cookie, int *error)
+read_verify (unsigned valid_flag, void *opaque, int64_t cookie, int *error)
 {
-  struct data *data = opaque;
-  int ret = -1;
+  int ret = 0;
 
-  total_reads++;
-  total_chunks += data->chunks;
-  if (*error)
-    goto cleanup;
-  assert (data->chunks > 0);
-  if (data->flags & LIBNBD_CMD_FLAG_DF) {
-    total_df_reads++;
-    if (data->chunks > 1) {
-      fprintf (stderr, "buggy server: too many chunks for DF flag\n");
+  if (valid_flag & LIBNBD_CALLBACK_VALID) {
+    struct data *data = opaque;
+
+    ret = -1;
+    total_reads++;
+    total_chunks += data->chunks;
+    if (*error)
+      goto cleanup;
+    assert (data->chunks > 0);
+    if (data->flags & LIBNBD_CMD_FLAG_DF) {
+      total_df_reads++;
+      if (data->chunks > 1) {
+        fprintf (stderr, "buggy server: too many chunks for DF flag\n");
+        *error = EPROTO;
+        goto cleanup;
+      }
+    }
+    if (data->remaining && !*error) {
+      fprintf (stderr, "buggy server: not enough chunks on success\n");
       *error = EPROTO;
       goto cleanup;
     }
-  }
-  if (data->remaining && !*error) {
-    fprintf (stderr, "buggy server: not enough chunks on success\n");
-    *error = EPROTO;
-    goto cleanup;
-  }
-  total_bytes += data->count;
-  total_success++;
-  ret = 0;
+    total_bytes += data->count;
+    total_success++;
+    ret = 0;
 
- cleanup:
-  while (data->remaining) {
-    struct range *r = data->remaining;
-    data->remaining = r->next;
-    free (r);
+  cleanup:
+    while (data->remaining) {
+      struct range *r = data->remaining;
+      data->remaining = r->next;
+      free (r);
+    }
   }
-  free (data);
+
+  if (valid_flag & LIBNBD_CALLBACK_FREE)
+    free (opaque);
+
   return ret;
 }
 

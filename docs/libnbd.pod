@@ -487,7 +487,64 @@ C<nbd_set_debug_callback>, C<nbd_pread_callback>).  Libnbd can call
 these functions while processing.
 
 Callbacks have an opaque C<void *user_data> pointer.  This is passed
-as the first parameter to the callback.
+as the second parameter to the callback.  The opaque pointer is only
+used from the C API, since in other languages you can use closures to
+achieve the same outcome.
+
+=head2 Callback lifetimes
+
+All callbacks have an C<unsigned valid_flag> parameter which is used
+to help with the lifetime of the callback.  C<valid_flag> contains the
+I<logical or> of:
+
+=over 4
+
+=item C<LIBNBD_CALLBACK_VALID>
+
+The callback parameters are valid and this is a normal callback.
+
+=item C<LIBNBD_CALLBACK_FREE>
+
+This is the last time the library will call this function.  Any data
+associated with the callback can be freed.
+
+=item other bits
+
+Other bits in C<valid_flag> should be ignored.
+
+=back
+
+For example C<nbd_set_debug_callback> sets up a callback which you
+could define like this:
+
+ int my_debug_fn (unsigned valid_flag, void *user_data,
+                  const char *context, const char *msg)
+ {
+   if (valid_flag & LIBNBD_CALLBACK_VALID) {
+     printf ("context = %s, msg = %s\n", context, msg);
+   }
+   if (valid_flag & LIBNBD_CALLBACK_FREE) {
+     /* If you need to free something, for example: */
+     free (user_data);
+   }
+   return 0;
+ }
+
+If you don't care about the freeing feature then it is also correct to
+write this:
+
+ int my_debug_fn (unsigned valid_flag, void *user_data,
+                  const char *context, const char *msg)
+ {
+   if (!(valid_flag & LIBNBD_CALLBACK_VALID)) return 0;
+
+   // Rest of callback as normal.
+ }
+
+The valid flag is only present in the C API.  It is not needed when
+using garbage-collected programming languages.
+
+=head2 Callbacks and locking
 
 The callbacks are invoked at a point where the libnbd lock is held; as
 such, it is unsafe for the callback to call any C<nbd_*> APIs on the
@@ -501,9 +558,10 @@ complete.  The completion callback will be invoked with C<cookie> set
 to the same value returned by the original API such as
 C<nbd_aio_pread_callback> (in rare cases, it is possible that the
 completion callback may fire before the original API has returned).
-If the completion callback returns C<1>, the command is automatically
-retired (there is no need to call C<nbd_aio_command_completed>); for
-any other return value, the command still needs to be retired.
+When C<valid_flag> includes C<LIBNBD_CALLBACK_VALID>, and the
+completion callback returns C<1>, the command is automatically retired
+(there is no need to call C<nbd_aio_command_completed>); for any other
+return value, the command still needs to be retired.
 
 =head2 Callbacks with C<int *error> parameter
 
@@ -515,7 +573,8 @@ all of the completion callbacks, include a parameter C<error>
 containing the value of any error detected so far; if the callback
 function fails, it should assign back into C<error> and return C<-1>
 to change the resulting error of the overall command.  Assignments
-into C<error> are ignored for any other return value; similarly,
+into C<error> are ignored for any other return value or when
+C<valid_flag> did not contain C<LIBNBD_CALLBACK_VALID>; similarly,
 assigning C<0> into C<error> does not have an effect.
 
 =head1 SEE ALSO

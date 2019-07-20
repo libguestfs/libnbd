@@ -34,8 +34,11 @@ static bool trim_retired;
 static const char *progname;
 
 static int
-callback (void *ignored, int64_t cookie, int *error)
+callback (unsigned valid_flag, void *ignored, int64_t cookie, int *error)
 {
+  if (!(valid_flag & LIBNBD_CALLBACK_VALID))
+    return 0;
+
   if (*error != ENOTCONN) {
     fprintf (stderr, "%s: unexpected error in trim callback: %s\n",
              progname, strerror (*error));

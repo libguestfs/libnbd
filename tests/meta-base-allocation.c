@@ -30,7 +30,8 @@
 
 #include <libnbd.h>
 
-static int check_extent (void *data, const char *metacontext,
+static int check_extent (unsigned valid_flag, void *data,
+                         const char *metacontext,
                          uint64_t offset,
                          uint32_t *entries, size_t nr_entries, int *error);
 
@@ -128,12 +129,18 @@ main (int argc, char *argv[])
 }
 
 static int
-check_extent (void *data, const char *metacontext,
+check_extent (unsigned valid_flag, void *data,
+              const char *metacontext,
               uint64_t offset,
               uint32_t *entries, size_t nr_entries, int *error)
 {
   size_t i;
-  int id = * (int *)data;
+  int id;
+
+  if (!(valid_flag & LIBNBD_CALLBACK_VALID))
+    return 0;
+
+  id = * (int *)data;
 
   printf ("extent: id=%d, metacontext=%s, offset=%" PRIu64 ", "
           "nr_entries=%zu, error=%d\n",
