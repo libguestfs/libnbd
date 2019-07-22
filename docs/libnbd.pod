@@ -319,7 +319,7 @@ Some servers also support:
 
 =item trim/discard
 
-If C<nbd_can_trim> return true, C<nbd_trim> can be used to “punch
+If C<nbd_can_trim> returns true, C<nbd_trim> can be used to “punch
 holes” in the backing storage of the disk on the server.  Normally
 (although not in every case) the holes read back as zeroes but take up
 no space.
@@ -406,14 +406,14 @@ this feature.  Without error handling it would look like this:
  bool supports_multi_conn;
  
  nbd[0] = nbd_create ();
- nbd[0]_connect_tcp (nbd[0], "server", "10809");
+ nbd_connect_tcp (nbd[0], "server", "10809");
  supports_multi_conn = nbd_can_multi_conn (nbd[0]) > 0;
 
 If multi-conn is supported then you can open further connections:
 
  for (i = 1; i <= 3; ++i) {
    nbd[i] = nbd_create ();
-   nbd[i]_connect_tcp (nbd[i], "server", "10809");
+   nbd_connect_tcp (nbd[i], "server", "10809");
  }
 
 If you are issuing multiple in-flight requests (see above) and
