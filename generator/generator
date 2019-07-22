@@ -2552,6 +2552,11 @@ let pod2text longdesc =
 
 (* Implement state machine. *)
 
+module StateMachine : sig
+  val generate_lib_states_h : unit -> unit
+  val generate_lib_states_c : unit -> unit
+end = struct
+
 let all_external_events =
   [NotifyRead; NotifyWrite;
    CmdCreate;
@@ -3102,12 +3107,20 @@ let generate_lib_states_c () =
   pr "    abort (); /* Should never happen, but keeps GCC happy. */\n";
   pr "  }\n";
   pr "};\n"
-
-
+end
 
 (*----------------------------------------------------------------------*)
 
 (* Generate C API. *)
+
+module C : sig
+  val generate_lib_libnbd_syms : unit -> unit
+  val generate_include_libnbd_h : unit -> unit
+  val generate_lib_unlocked_h : unit -> unit
+  val generate_lib_api_c : unit -> unit
+  val generate_docs_libnbd_api_pod : unit -> unit
+  val print_arg_list : ?handle:bool -> ?user_data:bool -> ?types:bool -> arg list -> unit
+end = struct
 
 (* Check the API definition. *)
 let () =
@@ -3166,8 +3179,8 @@ let generate_lib_libnbd_syms () =
   pr "  local: *;\n";
   pr "};\n"
 
-let rec c_name_of_arg = function
-| ArrayAndLen (arg, n) -> c_name_of_arg arg @ [n]
+let rec name_of_arg = function
+| ArrayAndLen (arg, n) -> name_of_arg arg @ [n]
 | Bool n -> [n]
 | BytesIn (n, len) -> [n; len]
 | BytesOut (n, len) -> [n; len]
@@ -3178,7 +3191,7 @@ let rec c_name_of_arg = function
 | Flags n -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
-| Mutable arg -> c_name_of_arg arg
+| Mutable arg -> name_of_arg arg
 | Path n -> [n]
 | SockAddrAndLen (n, len) -> [n; len]
 | String n -> [n]
@@ -3187,51 +3200,94 @@ let rec c_name_of_arg = function
 | UInt32 n -> [n]
 | UInt64 n -> [n]
 
-let rec print_c_arg_list ?(handle = false) ?(user_data = false) args =
+let rec print_arg_list ?(handle = false) ?(user_data = false)
+                       ?(types = true) args =
   pr "(";
   let comma = ref false in
   if handle then (
     comma := true;
-    pr "struct nbd_handle *h";
+    if types then pr "struct nbd_handle *";
+    pr "h"
   );
   if user_data then (
     if !comma then pr ", ";
     comma := true;
-    pr "void *user_data";
+    if types then pr "void *";
+    pr "user_data";
   );
   List.iter (
     fun arg ->
       if !comma then pr ", ";
       comma := true;
       match arg with
-      | ArrayAndLen (UInt32 n, len) -> pr "uint32_t *%s, size_t %s" n len
+      | ArrayAndLen (UInt32 n, len) ->
+         if types then pr "uint32_t *";
+         pr "%s, " n;
+         if types then pr "size_t ";
+         pr "%s" len
       | ArrayAndLen _ -> assert false
-      | Bool n -> pr "bool %s" n
+      | Bool n ->
+         if types then pr "bool ";
+         pr "%s" n
       | BytesIn (n, len)
-      | BytesPersistIn (n, len) -> pr "const void *%s, size_t %s" n len
+      | BytesPersistIn (n, len) ->
+         if types then pr "const void *";
+         pr "%s, " n;
+         if types then pr "size_t ";
+         pr "%s" len
       | BytesOut (n, len)
-      | BytesPersistOut (n, len) -> pr "void *%s, size_t %s" n len
+      | BytesPersistOut (n, len) ->
+         if types then pr "void *";
+         pr "%s, " n;
+         if types then pr "size_t ";
+         pr "%s" len
       | Closure (_, cls) ->
          List.iter (
            fun { cbname; cbargs } ->
-             pr "int (*%s) " cbname;
-             print_c_arg_list ~user_data:true cbargs;
+             if types then (
+               pr "int (*%s) " cbname;
+               print_arg_list ~user_data:true cbargs;
+             )
+             else
+               pr "%s" cbname;
              pr ", "
          ) cls;
-         pr "void *user_data"
-      | Flags n -> pr "uint32_t %s" n
-      | Int n -> pr "int %s" n
-      | Int64 n -> pr "int64_t %s" n
-      | Mutable (Int n) -> pr "int *%s" n
+         if types then pr "void *";
+         pr "user_data"
+      | Flags n ->
+         if types then pr "uint32_t ";
+         pr "%s" n
+      | Int n ->
+         if types then pr "int ";
+         pr "%s" n
+      | Int64 n ->
+         if types then pr "int64_t ";
+         pr "%s" n
+      | Mutable (Int n) ->
+         if types then pr "int *";
+         pr "%s" n
       | Mutable arg -> assert false
       | Path n
-      | String n -> pr "const char *%s" n
-      | StringList n -> pr "char **%s" n
+      | String n ->
+         if types then pr "const char *";
+         pr "%s" n
+      | StringList n ->
+         if types then pr "char **";
+         pr "%s" n
       | SockAddrAndLen (n, len) ->
-         pr "const struct sockaddr *%s, socklen_t %s" n len
-      | UInt n -> pr "unsigned %s" n
-      | UInt32 n -> pr "uint32_t %s" n
-      | UInt64 n -> pr "uint64_t %s" n
+         if types then pr "const struct sockaddr *";
+         pr "%s, " n;
+         if types then pr "socklen_t ";
+         pr "%s" len
+      | UInt n ->
+         if types then pr "unsigned ";
+         pr "%s" n
+      | UInt32 n ->
+         if types then pr "uint32_t ";
+         pr "%s" n
+      | UInt64 n ->
+         if types then pr "uint64_t ";
+         pr "%s" n
   ) args;
   pr ")"
 
@@ -3246,7 +3302,7 @@ let print_call name args ret =
    | RString -> pr "char *"
   );
   pr "nbd_%s " name;
-  print_c_arg_list ~handle:true args
+  print_arg_list ~handle:true args
 
 let print_extern name args ret =
   pr "extern ";
@@ -3393,7 +3449,7 @@ let generate_lib_api_c () =
 
     pr "%s\n" ret_c_type;
     pr "nbd_%s " name;
-    print_c_arg_list ~handle:true args;
+    print_arg_list ~handle:true args;
     pr "\n";
     pr "{\n";
     (match ret with
@@ -3418,10 +3474,9 @@ let generate_lib_api_c () =
       pr "    goto out;\n";
       pr "  }\n"
     );
-    pr "  ret = nbd_unlocked_%s (h" name;
-    let argnames = List.flatten (List.map c_name_of_arg args) in
-    List.iter (pr ", %s") argnames;
-    pr ");\n";
+    pr "  ret = nbd_unlocked_%s " name;
+    print_arg_list ~types:false ~handle:true args;
+    pr ";\n";
     if permitted_states <> [] then
       pr " out:\n";
     if is_locked then (
@@ -3619,10 +3674,18 @@ Richard W.M. Jones
 
 Copyright (C) 2019 Red Hat Inc.
 "
+end
 
 (*----------------------------------------------------------------------*)
 
 (* Python bindings. *)
+
+module Python : sig
+  val generate_python_methods_h : unit -> unit
+  val generate_python_libnbdmod_c : unit -> unit
+  val generate_python_methods_c : unit -> unit
+  val generate_python_nbd_py : unit -> unit
+end = struct
 
 let generate_python_methods_h () =
   generate_header CStyle;
@@ -3779,7 +3842,7 @@ let print_python_binding name { args; ret } =
          fun { cbname; cbargs } ->
            pr "static int\n";
            pr "%s_%s_wrapper " name cbname;
-           print_c_arg_list ~user_data:true cbargs;
+           C.print_arg_list ~user_data:true cbargs;
            pr "\n";
            pr "{\n";
            pr "  int ret;\n";
@@ -3945,8 +4008,7 @@ let print_python_binding name { args; ret } =
     | Int64 n ->
        pr "  int64_t %s_i64;\n" n;
        pr "  long long %s; /* really int64_t */\n" n
-    | Mutable arg ->
-       pr "  PyObject *%s;\n" (List.hd (c_name_of_arg arg))
+    | Mutable arg -> assert false
     | Path n ->
        pr "  PyObject *py_%s = NULL;\n" n;
        pr "  char *%s = NULL;\n" n
@@ -4021,7 +4083,7 @@ let print_python_binding name { args; ret } =
     | Flags n -> pr ", &%s" n
     | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
-    | Mutable arg -> pr ", &%s" (List.hd (c_name_of_arg arg))
+    | Mutable arg -> assert false
     | Path n -> pr ", PyUnicode_FSConverter, &py_%s" n
     | SockAddrAndLen (n, _) -> pr ", &%s" n
     | String n -> pr ", &%s" n
@@ -4122,7 +4184,7 @@ let print_python_binding name { args; ret } =
     | Flags n -> pr ", %s_u32" n
     | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
-    | Mutable arg -> pr ", /* XXX */ (void *) %s" (List.hd (c_name_of_arg arg))
+    | Mutable arg -> assert false
     | Path n -> pr ", %s" n
     | SockAddrAndLen (n, _) -> pr ", /* XXX */ (void *) %s, 0" n
     | String n -> pr ", %s" n
@@ -4349,7 +4411,7 @@ class NBD (object):
             | Flags n -> [n, Some "0"]
             | Int n -> [n, None]
             | Int64 n -> [n, None]
-            | Mutable arg -> [List.hd (c_name_of_arg arg), None]
+            | Mutable arg -> assert false
             | Path n -> [n, None]
             | SockAddrAndLen (n, _) -> [n, None]
             | String n -> [n, None]
@@ -4391,10 +4453,17 @@ if __name__ == \"__main__\":
 
     nbdsh.shell()
 "
+end
 
 (*----------------------------------------------------------------------*)
 
 (* OCaml bindings. *)
+
+module OCaml : sig
+  val generate_ocaml_nbd_mli : unit -> unit
+  val generate_ocaml_nbd_ml : unit -> unit
+  val generate_ocaml_nbd_c : unit -> unit
+end = struct
 
 (* We convert the list of generic args to an OCaml-specific list
  * because the mapping between them is complicated.
@@ -4466,11 +4535,30 @@ and ocaml_ret_to_string = function
   | RInt64 -> "int64"
   | RString -> "string"
 
-let name_of_ocaml_arg = function
+let rec name_of_ocaml_arg = function
   | OCamlHandle -> "h"
   | OCamlFlags n -> n
   | OCamlClosure (_, { cbname }) -> cbname
-  | OCamlArg a -> List.hd (c_name_of_arg a)
+  | OCamlArg a ->
+     match a with
+     | ArrayAndLen (arg, n) -> name_of_ocaml_arg (OCamlArg arg)
+     | Bool n -> n
+     | BytesIn (n, len) -> n
+     | BytesOut (n, len) -> n
+     | BytesPersistIn (n, len) -> n
+     | BytesPersistOut (n, len) -> n
+     | Closure (_, closures) -> assert false
+     | Flags n -> n
+     | Int n -> n
+     | Int64 n -> n
+     | Mutable arg -> name_of_ocaml_arg (OCamlArg arg)
+     | Path n -> n
+     | SockAddrAndLen (n, len) -> n
+     | String n -> n
+     | StringList n -> n
+     | UInt n -> n
+     | UInt32 n -> n
+     | UInt64 n -> n
 
 let generate_ocaml_nbd_mli () =
   generate_header OCamlStyle;
@@ -4662,7 +4750,7 @@ let print_ocaml_binding (name, { args; ret }) =
 
            pr "static int\n";
            pr "%s_%s_wrapper_locked " name cbname;
-           print_c_arg_list ~user_data:true cbargs;
+           C.print_arg_list ~user_data:true cbargs;
            pr "\n";
            pr "{\n";
            pr "  CAMLparam0 ();\n";
@@ -4745,15 +4833,15 @@ let print_ocaml_binding (name, { args; ret }) =
            pr "\n";
            pr "static int\n";
            pr "%s_%s_wrapper " name cbname;
-           print_c_arg_list ~user_data:true cbargs;
+           C.print_arg_list ~user_data:true cbargs;
            pr "\n";
            pr "{\n";
            pr "  int ret;\n";
            pr "\n";
            pr "  caml_leave_blocking_section ();\n";
-           let c_argnames = List.flatten (List.map c_name_of_arg cbargs) in
-           pr "  ret = %s_%s_wrapper_locked (user_data, %s);\n" name cbname
-              (String.concat ", " c_argnames);
+           pr "  ret = %s_%s_wrapper_locked " name cbname;
+           C.print_arg_list ~user_data:true ~types:false cbargs;
+           pr ";\n";
            pr "  caml_enter_blocking_section ();\n";
            pr "  return ret;\n";
            pr "}\n";
@@ -4900,10 +4988,9 @@ let print_ocaml_binding (name, { args; ret }) =
     | RString -> pr "  char *r;\n"; "NULL" in
   pr "\n";
   pr "  caml_enter_blocking_section ();\n";
-  pr "  r =  nbd_%s (h%s);\n" name
-     (String.concat ""
-                    (List.map ((^) ", ")
-                              (List.flatten (List.map c_name_of_arg args))));
+  pr "  r =  nbd_%s " name;
+  C.print_arg_list ~handle:true ~types:false args;
+  pr ";\n";
   pr "  caml_leave_blocking_section ();\n";
   pr "\n";
   pr "  if (r == %s)\n" errcode;
@@ -4995,22 +5082,23 @@ let generate_ocaml_nbd_c () =
   pr "\n";
 
   List.iter print_ocaml_binding handle_calls
+end
 
 (*----------------------------------------------------------------------*)
 
 (* Write the output files. *)
 let () =
-  output_to "lib/states.h" generate_lib_states_h;
-  output_to "lib/states.c" generate_lib_states_c;
-  output_to "lib/libnbd.syms" generate_lib_libnbd_syms;
-  output_to "include/libnbd.h" generate_include_libnbd_h;
-  output_to "lib/unlocked.h" generate_lib_unlocked_h;
-  output_to "lib/api.c" generate_lib_api_c;
-  output_to "docs/libnbd-api.pod" generate_docs_libnbd_api_pod;
-  output_to "python/methods.h" generate_python_methods_h;
-  output_to "python/libnbdmod.c" generate_python_libnbdmod_c;
-  output_to "python/methods.c" generate_python_methods_c;
-  output_to "python/nbd.py" generate_python_nbd_py;
-  output_to "ocaml/NBD.mli" generate_ocaml_nbd_mli;
-  output_to "ocaml/NBD.ml" generate_ocaml_nbd_ml;
-  output_to "ocaml/nbd-c.c" generate_ocaml_nbd_c;
+  output_to "lib/states.h" StateMachine.generate_lib_states_h;
+  output_to "lib/states.c" StateMachine.generate_lib_states_c;
+  output_to "lib/libnbd.syms" C.generate_lib_libnbd_syms;
+  output_to "include/libnbd.h" C.generate_include_libnbd_h;
+  output_to "lib/unlocked.h" C.generate_lib_unlocked_h;
+  output_to "lib/api.c" C.generate_lib_api_c;
+  output_to "docs/libnbd-api.pod" C.generate_docs_libnbd_api_pod;
+  output_to "python/methods.h" Python.generate_python_methods_h;
+  output_to "python/libnbdmod.c" Python.generate_python_libnbdmod_c;
+  output_to "python/methods.c" Python.generate_python_methods_c;
+  output_to "python/nbd.py" Python.generate_python_nbd_py;
+  output_to "ocaml/NBD.mli" OCaml.generate_ocaml_nbd_mli;
+  output_to "ocaml/NBD.ml" OCaml.generate_ocaml_nbd_ml;
+  output_to "ocaml/nbd-c.c" OCaml.generate_ocaml_nbd_c;
