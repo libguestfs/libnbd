@@ -173,24 +173,6 @@ are two low level asynchronous equivalents (eg. C<nbd_aio_pread> for
 starting a command, and C<nbd_aio_pread_callback> for also registering
 a callback to be invoked right before the command is complete).
 
-=head1 CALLBACKS
-
-Some of the high-level commands (C<nbd_pread_structured>,
-C<nbd_block_status>) involve the use of a callback function invoked by
-the state machine at appropriate points in the server's reply before
-the overall command is complete. Also, all of the low-level commands
-have a callback variant that registers a callback function used right
-before the command is marked complete.  These callback functions
-include a parameter C<error> containing the value of any error
-detected so far; if the callback function fails, it should assign back
-into C<error> and return C<-1> to change the resulting error of the
-overall command.
-
-The callbacks are invoked at a point where the libnbd lock is held; as
-such, it is unsafe for the callback to call any C<nbd_*> APIs on the
-same nbd object, as it would cause deadlock.  Functions that take two
-callback pointers share the same opaque data for both calls.
-
 =head1 ERROR HANDLING
 
 When any API call returns an error (C<-1> or C<NULL> depending on the
@@ -497,6 +479,33 @@ If necessary you may need to set the client username (otherwise libnbd
 will use your login name):
 
  nbd_set_tls_username (nbd, "username");
+
+=head1 CALLBACKS
+
+Some libnbd calls take function pointers (eg.
+C<nbd_set_debug_callback>, C<nbd_pread_callback>).  Libnbd can call
+these functions while processing.
+
+Callbacks have an opaque C<void *user_data> pointer.  This is passed
+as the first parameter to the callback.  libnbd functions that take
+two callback pointers share the same opaque data for both calls.
+
+The callbacks are invoked at a point where the libnbd lock is held; as
+such, it is unsafe for the callback to call any C<nbd_*> APIs on the
+same nbd object, as it would cause deadlock.
+
+=head2 Callbacks with C<int *error> parameter
+
+Some of the high-level commands (C<nbd_pread_structured>,
+C<nbd_block_status>) involve the use of a callback function invoked by
+the state machine at appropriate points in the server's reply before
+the overall command is complete.  Also, all of the low-level commands
+have a callback variant that registers a callback function used right
+before the command is marked complete.  These callback functions
+include a parameter C<error> containing the value of any error
+detected so far; if the callback function fails, it should assign back
+into C<error> and return C<-1> to change the resulting error of the
+overall command.
 
 =head1 SEE ALSO
 
