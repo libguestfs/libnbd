@@ -280,18 +280,24 @@ nbd_unlocked_aio_pread_structured (struct nbd_handle *h, void *buf,
                                    uint32_t flags)
 {
   return nbd_unlocked_aio_pread_structured_callback (h, buf, count, offset,
-                                                     read, NULL, user_data,
+                                                     read, user_data,
+                                                     NULL, NULL,
                                                      flags);
 }
 
 int64_t
 nbd_unlocked_aio_pread_structured_callback (struct nbd_handle *h, void *buf,
                                             size_t count, uint64_t offset,
-                                            read_fn read, callback_fn callback,
-                                            void *user_data, uint32_t flags)
+                                            read_fn read,
+                                            void *read_user_data,
+                                            callback_fn callback,
+                                            void *callback_user_data,
+                                            uint32_t flags)
 {
-  struct command_cb cb = { .fn.read = read, .callback = callback,
-                           .user_data = user_data, };
+  struct command_cb cb = { .fn.read = read,
+                           .fn_user_data = read_user_data,
+                           .callback = callback,
+                           .user_data = callback_user_data, };
 
   if ((flags & ~LIBNBD_CMD_FLAG_DF) != 0) {
     set_error (EINVAL, "invalid flag: %" PRIu32, flags);
@@ -493,18 +499,24 @@ nbd_unlocked_aio_block_status (struct nbd_handle *h,
                                uint32_t flags)
 {
   return nbd_unlocked_aio_block_status_callback (h, count, offset,
-                                                 extent, NULL, user_data,
+                                                 extent, user_data,
+                                                 NULL, NULL,
                                                  flags);
 }
 
 int64_t
 nbd_unlocked_aio_block_status_callback (struct nbd_handle *h,
                                         uint64_t count, uint64_t offset,
-                                        extent_fn extent, callback_fn callback,
-                                        void *user_data, uint32_t flags)
+                                        extent_fn extent,
+                                        void *extent_user_data,
+                                        callback_fn callback,
+                                        void *callback_user_data,
+                                        uint32_t flags)
 {
-  struct command_cb cb = { .fn.extent = extent, .callback = callback,
-                           .user_data = user_data, };
+  struct command_cb cb = { .fn.extent = extent,
+                           .fn_user_data = extent_user_data,
+                           .callback = callback,
+                           .user_data = callback_user_data };
 
   if (!h->structured_replies) {
     set_error (ENOTSUP, "server does not support structured replies");

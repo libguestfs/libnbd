@@ -487,8 +487,7 @@ C<nbd_set_debug_callback>, C<nbd_pread_callback>).  Libnbd can call
 these functions while processing.
 
 Callbacks have an opaque C<void *user_data> pointer.  This is passed
-as the first parameter to the callback.  libnbd functions that take
-two callback pointers share the same opaque data for both calls.
+as the first parameter to the callback.
 
 The callbacks are invoked at a point where the libnbd lock is held; as
 such, it is unsafe for the callback to call any C<nbd_*> APIs on the

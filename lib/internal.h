@@ -269,8 +269,9 @@ struct command_cb {
     extent_fn extent;
     read_fn read;
   } fn;
+  void *fn_user_data; /* associated with one of the fn callbacks above */
   callback_fn callback;
-  void *user_data;
+  void *user_data; /* associated with the callback function */
 };
 
 struct command {
