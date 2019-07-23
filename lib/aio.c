@@ -69,11 +69,12 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
     if (cmd->cookie == cookie)
       break;
   }
-  if (!cmd || cmd->type == NBD_CMD_DISC)
+  if (!cmd)
     return 0;
 
   type = cmd->type;
   error = cmd->error;
+  assert (cmd->type != NBD_CMD_DISC);
   /* The spec states that a 0-length read request is unspecified; but
    * it is easy enough to treat it as successful as an extension.
    */
@@ -105,16 +106,10 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
 int64_t
 nbd_unlocked_aio_peek_command_completed (struct nbd_handle *h)
 {
-  /* Special case NBD_CMD_DISC, as it does not have a user-visible cookie */
-  if (h->cmds_done && h->cmds_done->type == NBD_CMD_DISC) {
-    struct command *cmd = h->cmds_done;
-
-    h->cmds_done = cmd->next;
-    free (cmd);
-  }
-
-  if (h->cmds_done != NULL)
+  if (h->cmds_done != NULL) {
+    assert (h->cmds_done->type != NBD_CMD_DISC);
     return h->cmds_done->cookie;
+  }
 
   if (h->cmds_in_flight != NULL || h->cmds_to_issue != NULL) {
     set_error (0, "no in-flight command has completed yet");

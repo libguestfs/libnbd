@@ -30,6 +30,21 @@
 
 #include <libnbd.h>
 
+static bool trim_retired;
+static const char *progname;
+
+static int
+callback (void *ignored, int64_t cookie, int *error)
+{
+  if (*error != ENOTCONN) {
+    fprintf (stderr, "%s: unexpected error in trim callback: %s\n",
+             progname, strerror (*error));
+    return 0;
+  }
+  trim_retired = 1;
+  return 1;
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -46,6 +61,8 @@ main (int argc, char *argv[])
   const char *cmd[] = { "nbdkit", "--pidfile", pidfile, "-s",
                         "--exit-with-parent", "--filter=delay", "memory",
                         "size=1m", "delay-reads=5", NULL };
+
+  progname = argv[0];
 
   /* We're going to kill the child, but don't want to wait for a zombie */
   if (signal (SIGCHLD, SIG_IGN) == SIG_ERR) {
@@ -80,9 +97,15 @@ main (int argc, char *argv[])
     goto fail;
   }
 
-  /* Issue a read that should not complete yet. */
+  /* Issue a read and trim that should not complete yet. Set up the
+   * trim to auto-retire via callback.
+   */
   if ((cookie = nbd_aio_pread (nbd, buf, sizeof buf, 0, 0)) == -1) {
     fprintf (stderr, "%s: test failed: nbd_aio_pread\n", argv[0]);
+    goto fail;
+  }
+  if (nbd_aio_trim_callback (nbd, sizeof buf, 0, callback, NULL, 0) == -1) {
+    fprintf (stderr, "%s: test failed: nbd_aio_trim_callback\n", argv[0]);
     goto fail;
   }
   if (nbd_aio_peek_command_completed (nbd) != 0) {
@@ -153,6 +176,11 @@ main (int argc, char *argv[])
   }
 
   /* With all commands retired, no further command should be pending */
+  if (!trim_retired) {
+    fprintf (stderr, "%s: test failed: nbd_aio_trim_callback not retired\n",
+             argv[0]);
+    goto fail;
+  }
   if (nbd_aio_peek_command_completed (nbd) != -1) {
     fprintf (stderr, "%s: test failed: nbd_aio_peek_command_completed\n",
              argv[0]);

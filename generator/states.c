@@ -115,31 +115,40 @@ send_from_wbuf (struct nbd_handle *h)
 void abort_commands (struct nbd_handle *h,
                      struct command **list)
 {
-  struct command *prev_cmd, *cmd;
+  struct command *next, *cmd;
 
-  for (cmd = *list, prev_cmd = NULL;
-       cmd != NULL;
-       prev_cmd = cmd, cmd = cmd->next) {
+  for (cmd = *list, *list = NULL; cmd != NULL; cmd = next) {
+    bool retire = cmd->type == NBD_CMD_DISC;
+
+    next = cmd->next;
     if (cmd->cb.callback) {
       int error = cmd->error ? cmd->error : ENOTCONN;
 
       assert (cmd->type != NBD_CMD_DISC);
-      if (cmd->cb.callback (cmd->cb.user_data, cmd->cookie,
-                            &error) == -1 && error)
-        cmd->error = error;
+      switch (cmd->cb.callback (cmd->cb.user_data, cmd->cookie, &error)) {
+      case -1:
+        if (error)
+          cmd->error = error;
+        break;
+      case 1:
+        retire = true;
+        break;
+      }
     }
     if (cmd->error == 0)
       cmd->error = ENOTCONN;
-  }
-  if (prev_cmd) {
-    if (h->cmds_done_tail)
-      h->cmds_done_tail->next = *list;
+    if (retire)
+      free (cmd);
     else {
-      assert (h->cmds_done == NULL);
-      h->cmds_done = *list;
+      cmd->next = NULL;
+      if (h->cmds_done_tail)
+        h->cmds_done_tail->next = cmd;
+      else {
+        assert (h->cmds_done == NULL);
+        h->cmds_done = cmd;
+      }
+      h->cmds_done_tail = cmd;
     }
-    h->cmds_done_tail = prev_cmd;
-    *list = NULL;
   }
 }
 

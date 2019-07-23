@@ -149,6 +149,7 @@ save_reply_state (struct nbd_handle *h)
  REPLY.FINISH_COMMAND:
   struct command *prev_cmd, *cmd;
   uint64_t cookie;
+  bool retire;
 
   /* NB: This works for both simple and structured replies because the
    * handle (our cookie) is stored at the same offset.
@@ -164,6 +165,23 @@ save_reply_state (struct nbd_handle *h)
   assert (cmd != NULL);
   assert (h->reply_cmd == cmd);
   h->reply_cmd = NULL;
+  retire = cmd->type == NBD_CMD_DISC;
+
+  /* Notify the user */
+  if (cmd->cb.callback) {
+    int error = cmd->error;
+
+    assert (cmd->type != NBD_CMD_DISC);
+    switch (cmd->cb.callback (cmd->cb.user_data, cookie, &error)) {
+    case -1:
+      if (error)
+        cmd->error = error;
+      break;
+    case 1:
+      retire = true;
+      break;
+    }
+  }
 
   /* Move it to the end of the cmds_done list. */
   if (prev_cmd != NULL)
@@ -171,22 +189,18 @@ save_reply_state (struct nbd_handle *h)
   else
     h->cmds_in_flight = cmd->next;
   cmd->next = NULL;
-  if (h->cmds_done_tail != NULL)
-    h->cmds_done_tail = h->cmds_done_tail->next = cmd;
+  if (retire)
+    free (cmd);
   else {
-    assert (h->cmds_done == NULL);
-    h->cmds_done = h->cmds_done_tail = cmd;
+    if (h->cmds_done_tail != NULL)
+      h->cmds_done_tail = h->cmds_done_tail->next = cmd;
+    else {
+      assert (h->cmds_done == NULL);
+      h->cmds_done = h->cmds_done_tail = cmd;
+    }
   }
   h->in_flight--;
   assert (h->in_flight >= 0);
-
-  /* Notify the user */
-  if (cmd->cb.callback) {
-    int error = cmd->error;
-
-    if (cmd->cb.callback (cmd->cb.user_data, cookie, &error) == -1 && error)
-      cmd->error = error;
-  }
 
   SET_NEXT_STATE (%.READY);
   return 0;

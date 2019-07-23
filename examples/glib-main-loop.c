@@ -188,6 +188,8 @@ finalize (GSource *sp)
 
   DEBUG (source, "finalize");
 
+  assert (nbd_aio_in_flight (source->nbd) == 0);
+  assert (nbd_aio_peek_command_completed (source->nbd) == -1);
   nbd_close (source->nbd);
 }
 
@@ -418,7 +420,7 @@ finished_read (void *vp, int64_t rcookie, int *error)
   /* Create a writer idle handler. */
   g_idle_add (write_data, NULL);
 
-  return 0;
+  return 1;
 }
 
 /* This idle callback schedules a write. */
@@ -507,5 +509,5 @@ finished_write (void *vp, int64_t wcookie, int *error)
     g_main_loop_quit (loop);
   }
 
-  return 0;
+  return 1;
 }

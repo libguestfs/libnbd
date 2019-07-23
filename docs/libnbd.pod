@@ -494,18 +494,30 @@ The callbacks are invoked at a point where the libnbd lock is held; as
 such, it is unsafe for the callback to call any C<nbd_*> APIs on the
 same nbd object, as it would cause deadlock.
 
+=head2 Completion callbacks
+
+All of the low-level commands have a completion callback variant that
+registers a callback function used right before the command is marked
+complete.  The completion callback will be invoked with C<cookie> set
+to the same value returned by the original API such as
+C<nbd_aio_pread_callback> (in rare cases, it is possible that the
+completion callback may fire before the original API has returned).
+If the completion callback returns C<1>, the command is automatically
+retired (there is no need to call C<nbd_aio_command_completed>); for
+any other return value, the command still needs to be retired.
+
 =head2 Callbacks with C<int *error> parameter
 
 Some of the high-level commands (C<nbd_pread_structured>,
 C<nbd_block_status>) involve the use of a callback function invoked by
 the state machine at appropriate points in the server's reply before
-the overall command is complete.  Also, all of the low-level commands
-have a callback variant that registers a callback function used right
-before the command is marked complete.  These callback functions
-include a parameter C<error> containing the value of any error
-detected so far; if the callback function fails, it should assign back
-into C<error> and return C<-1> to change the resulting error of the
-overall command.
+the overall command is complete.  These callback functions, along with
+all of the completion callbacks, include a parameter C<error>
+containing the value of any error detected so far; if the callback
+function fails, it should assign back into C<error> and return C<-1>
+to change the resulting error of the overall command.  Assignments
+into C<error> are ignored for any other return value; similarly,
+assigning C<0> into C<error> does not have an effect.
 
 =head1 SEE ALSO
 

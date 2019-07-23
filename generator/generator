@@ -1736,20 +1736,9 @@ C<nbd_pread>.";
 Issue a read command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.  If this command returns a cookie, then C<callback>
-will be called when the server is done replying,
-although you must still use C<nbd_aio_command_completed> after
-the callback to retire the command.  Note that you must ensure
-C<buf> is valid until the command has completed.  Other
-parameters behave as documented in C<nbd_pread>.
-
-The C<callback> function is called with the same C<user_data> passed to
-this function, C<cookie> set to the return value of this function,
-and C<error> containing the command's result so far. The callback
-may modify the overall status of the command by storing into
-C<error> and returning C<-1>, although attempts to undo non-zero
-status back to zero are ignored. The callback cannot call C<nbd_*>
-APIs on the same handle since it holds the handle lock and will
-cause a deadlock.";
+will be invoked as described in L<libnbd(3)/Completion callbacks>.
+Note that you must ensure C<buf> is valid until the command has
+completed.  Other parameters behave as documented in C<nbd_pread>.";
   };
 
   "aio_pread_structured", {
@@ -1794,19 +1783,8 @@ documented in C<nbd_pread_structured>.";
 Issue a read command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.  If this command returns a cookie, then C<callback>
-will be called when the server is done replying,
-although you must still use C<nbd_aio_command_completed> after
-the callback to retire the command.  Other parameters behave as
-documented in C<nbd_pread_structured>.
-
-The C<callback> function is called with the same C<user_data> passed to
-this function, C<cookie> set to the return value of this function,
-and C<error> containing the command's result so far. The callback
-may modify the overall status of the command by storing into
-C<error> and returning C<-1>, although attempts to undo non-zero
-status back to zero are ignored. The callback cannot call C<nbd_*>
-APIs on the same handle since it holds the handle lock and will
-cause a deadlock.";
+will be invoked as described in L<libnbd(3)/Completion callbacks>.
+Other parameters behave as documented in C<nbd_pread_structured>.";
   };
 
   "aio_pwrite", {
@@ -1838,21 +1816,10 @@ C<nbd_pwrite>.";
     longdesc = "\
 Issue a write command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.    If this command returns a cookie, then C<callback>
-ill be called when the server is done replying,
-although you must still use C<nbd_aio_command_completed> after
-the callback to retire the command.  Note that you must ensure
-C<buf> is valid until the command has completed.  Other
-parameters behave as documented in C<nbd_pwrite>.
-
-The C<callback> function is called with the same C<user_data> passed to
-this function, C<cookie> set to the return value of this function,
-and C<error> containing the command's result so far. The callback
-may modify the overall status of the command by storing into
-C<error> and returning C<-1>, although attempts to undo non-zero
-status back to zero are ignored. The callback cannot call C<nbd_*>
-APIs on the same handle since it holds the handle lock and will
-cause a deadlock.";
+error.  If this command returns a cookie, then C<callback>
+will be invoked as described in L<libnbd(3)/Completion callbacks>.
+Note that you must ensure C<buf> is valid until the command has
+completed.  Other parameters behave as documented in C<nbd_pwrite>.";
   };
 
   "aio_disconnect", {
@@ -1904,19 +1871,8 @@ Parameters behave as documented in C<nbd_flush>.";
 Issue the flush command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.  If this command returns a cookie, then C<callback>
-will be called when the server is done replying,
-although you must still use C<nbd_aio_command_completed> after
-the callback to retire the command.  Other parameters behave as
-documented in C<nbd_flush>.
-
-The C<callback> function is called with the same C<user_data> passed to
-this function, C<cookie> set to the return value of this function,
-and C<error> containing the command's result so far. The callback
-may modify the overall status of the command by storing into
-C<error> and returning C<-1>, although attempts to undo non-zero
-status back to zero are ignored. The callback cannot call C<nbd_*>
-APIs on the same handle since it holds the handle lock and will
-cause a deadlock.";
+will be invoked as described in L<libnbd(3)/Completion callbacks>.
+Other parameters behave as documented in C<nbd_flush>.";
   };
 
   "aio_trim", {
@@ -1947,19 +1903,8 @@ Parameters behave as documented in C<nbd_trim>.";
 Issue a trim command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.  If this command returns a cookie, then C<callback>
-will be called when the server is done replying,
-although you must still use C<nbd_aio_command_completed> after
-the callback to retire the command.  Other parameters behave as
-documented in C<nbd_trim>.
-
-The C<callback> function is called with the same C<user_data> passed to
-this function, C<cookie> set to the return value of this function,
-and C<error> containing the command's result so far. The callback
-may modify the overall status of the command by storing into
-C<error> and returning C<-1>, although attempts to undo non-zero
-status back to zero are ignored. The callback cannot call C<nbd_*>
-APIs on the same handle since it holds the handle lock and will
-cause a deadlock.";
+will be invoked as described in L<libnbd(3)/Completion callbacks>.
+Other parameters behave as documented in C<nbd_trim>.";
   };
 
   "aio_cache", {
@@ -1990,19 +1935,8 @@ Parameters behave as documented in C<nbd_cache>.";
 Issue the cache (prefetch) command to the NBD server.  This
 returns the unique positive 64 bit cookie for this command, or
 C<-1> on error.  If this command returns a cookie, then C<callback>
-will be called when the server is done replying,
-although you must still use C<nbd_aio_command_completed> after
-the callback to retire the command.  Other parameters behave as
-documented in C<nbd_cache>.
-
-The C<callback> function is called with the same C<user_data> passed to
-this function, C<cookie> set to the return value of this function,
-and C<error> containing the command's result so far. The callback
-may modify the overall status of the command by storing into
-C<error> and returning C<-1>, although attempts to undo non-zero
-status back to zero are ignored. The callback cannot call C<nbd_*>
-APIs on the same handle since it holds the handle lock and will
-cause a deadlock.";
+will be invoked as described in L<libnbd(3)/Completion callbacks>.
+Other parameters behave as documented in C<nbd_cache>.";
   };
 
   "aio_zero", {
@@ -2033,19 +1967,8 @@ Parameters behave as documented in C<nbd_zero>.";
 Issue a write zeroes command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.  If this command returns a cookie, then C<callback>
-will be called when the server is done replying,
-although you must still use C<nbd_aio_command_completed> after
-the callback to retire the command.  Other parameters behave as
-documented in C<nbd_zero>.
-
-The C<callback> function is called with the same C<user_data> passed to
-this function, C<cookie> set to the return value of this function,
-and C<error> containing the command's result so far. The callback
-may modify the overall status of the command by storing into
-C<error> and returning C<-1>, although attempts to undo non-zero
-status back to zero are ignored. The callback cannot call C<nbd_*>
-APIs on the same handle since it holds the handle lock and will
-cause a deadlock.";
+will be invoked as described in L<libnbd(3)/Completion callbacks>.
+Other parameters behave as documented in C<nbd_zero>.";
   };
 
   "aio_block_status", {
@@ -2088,19 +2011,8 @@ Parameters behave as documented in C<nbd_block_status>.";
 Send the block status command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.  If this command returns a cookie, then C<callback>
-will be called when the server is done replying,
-although you must still use C<nbd_aio_command_completed> after
-the callback to retire the command.  Other parameters behave as
-documented in C<nbd_block_status>.
-
-The C<callback> function is called with the same C<user_data> passed to
-this function, C<cookie> set to the return value of this function,
-and C<error> containing the command's result so far. The callback
-may modify the overall status of the command by storing into
-C<error> and returning C<-1>, although attempts to undo non-zero
-status back to zero are ignored. The callback cannot call C<nbd_*>
-APIs on the same handle since it holds the handle lock and will
-cause a deadlock.";
+will be invoked as described in L<libnbd(3)/Completion callbacks>.
+Other parameters behave as documented in C<nbd_block_status>.";
   };
 
   "aio_get_fd", {
@@ -2267,7 +2179,10 @@ Return true if the command completed.  If this function returns
 true then the command was successful and it has been retired.
 Return false if the command is still in flight.  This can also
 fail with an error in case the command failed (in this case
-the command is also retired).
+the command is also retired).  A command is retired either via
+this command, or by using a completion callback which returns
+C<1> (completion callbacks are registered via
+C<nbd_aio_pread_callback> and similar).
 
 The C<cookie> parameter is the positive unique 64 bit cookie
 for the command, as returned by a call such as C<nbd_aio_pread>.";
@@ -2279,10 +2194,11 @@ for the command, as returned by a call such as C<nbd_aio_pread>.";
     shortdesc = "check if any command has completed";
     longdesc = "\
 Return the unique positive 64 bit cookie of the first non-retired but
-completed command, C<0> if no command is awaiting retirement, or C<-1>
-on error. Any cookie returned by this function must still be passed to
-C<nbd_aio_command_completed> to actually retire the command and learn
-whether the command was successful.";
+completed command, C<0> if there are in-flight commands but none of
+them are awaiting retirement, or C<-1> on error including when there
+are no in-flight commands. Any cookie returned by this function must
+still be passed to C<nbd_aio_command_completed> to actually retire
+the command and learn whether the command was successful.";
   };
 
   "aio_in_flight", {
@@ -3613,7 +3529,10 @@ for how to get further details of the error.
 
  void nbd_close (struct nbd_handle *nbd);
 
-Closes the handle frees any associated resources.
+Closes the handle and frees any associated resources.  The final
+status of any command that has not been retired (whether by
+C<nbd_aio_command_completed> or by a low-level completion callback
+returning C<1>) is lost.
 
 =head1 GETTING THE LATEST ERROR MESSAGE IN THE THREAD
 
