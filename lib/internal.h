@@ -261,7 +261,7 @@ typedef int (*extent_fn) (void *user_data,
                           const char *metacontext, uint64_t offset,
                           uint32_t *entries, size_t nr_entries, int *error);
 typedef int (*read_fn) (void *user_data, const void *buf, size_t count,
-                        uint64_t offset, int status, int *error);
+                        uint64_t offset, unsigned status, int *error);
 typedef int (*callback_fn) (void *user_data, int64_t cookie, int *error);
 
 struct command_cb {

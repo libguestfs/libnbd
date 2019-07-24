@@ -49,7 +49,7 @@ struct data {
 
 static int
 read_cb (void *opaque, const void *bufv, size_t count, uint64_t offset,
-         int status, int *error)
+         unsigned status, int *error)
 {
   struct data *data = opaque;
   const char *buf = bufv;

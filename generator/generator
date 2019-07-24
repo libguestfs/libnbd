@@ -1353,7 +1353,7 @@ protocol extensions).";
              Closure (false,
                       [{ cbname="chunk";
                          cbargs=[BytesIn ("subbuf", "count");
-                                 UInt64 "offset"; Int "status";
+                                 UInt64 "offset"; UInt "status";
                                  Mutable (Int "error")] }]);
              Flags "flags" ];
     ret = RErr;
@@ -1748,7 +1748,7 @@ completed.  Other parameters behave as documented in C<nbd_pread>.";
                       [{ cbname="chunk";
                          cbargs=[BytesIn ("subbuf", "count");
                                  UInt64 "offset";
-                                 Int "status";
+                                 UInt "status";
                                  Mutable (Int "error");]} ]);
              Flags "flags" ];
     ret = RInt64;
@@ -1770,7 +1770,7 @@ documented in C<nbd_pread_structured>.";
                       [{ cbname="chunk";
                          cbargs=[BytesIn ("subbuf", "count");
                                  UInt64 "offset";
-                                 Int "status";
+                                 UInt "status";
                                  Mutable (Int "error"); ]};
                        { cbname="callback";
                          cbargs=[Int64 "cookie";
@@ -3784,15 +3784,16 @@ let print_python_binding name { args; ret } =
                 pr "  if (!py_%s_mod) { PyErr_PrintEx (0); return -1; }\n" n;
                 pr "  PyObject *py_%s = PyObject_CallMethod (py_%s_mod, \"c_int\", \"i\", *%s);\n" n n n;
                 pr "  if (!py_%s) { PyErr_PrintEx (0); return -1; }\n" n;
-             | String n
-             | UInt64 n -> ()
+             | String _
+             | UInt _
+             | UInt64 _ -> ()
              (* The following not yet implemented for callbacks XXX *)
              | ArrayAndLen _ | Bool _ | BytesOut _
              | BytesPersistIn _ | BytesPersistOut _
              | Closure _
              | Flags _ | Mutable _
              | Path _ | SockAddrAndLen _ | StringList _
-             | UInt _ | UInt32 _ -> assert false
+             | UInt32 _ -> assert false
            ) cbargs;
            pr "\n";
 
@@ -3805,6 +3806,7 @@ let print_python_binding name { args; ret } =
              | Int64 n -> pr " \"L\""
              | Mutable (Int n) -> pr " \"O\""
              | String n -> pr " \"s\""
+             | UInt n -> pr " \"I\""
              | UInt64 n -> pr " \"K\""
              (* The following not yet implemented for callbacks XXX *)
              | ArrayAndLen _ | Bool _ | BytesOut _
@@ -3812,7 +3814,7 @@ let print_python_binding name { args; ret } =
              | Closure _
              | Flags _ | Mutable _
              | Path _ | SockAddrAndLen _ | StringList _
-             | UInt _ | UInt32 _ -> assert false
+             | UInt32 _ -> assert false
            ) cbargs;
            pr " \")\"";
            List.iter (
@@ -3822,14 +3824,14 @@ let print_python_binding name { args; ret } =
              | Mutable (Int n) -> pr ", py_%s" n
              | Int n | Int64 n
              | String n
-             | UInt64 n -> pr ", %s" n
+             | UInt n | UInt64 n -> pr ", %s" n
              (* The following not yet implemented for callbacks XXX *)
              | ArrayAndLen _ | Bool _ | BytesOut _
              | BytesPersistIn _ | BytesPersistOut _
              | Closure _
              | Flags _ | Mutable _
              | Path _ | SockAddrAndLen _ | StringList _
-             | UInt _ | UInt32 _ -> assert false
+             | UInt32 _ -> assert false
            ) cbargs;
            pr ");\n";
            pr "  Py_INCREF (py_args);\n";
@@ -3865,14 +3867,14 @@ let print_python_binding name { args; ret } =
              | BytesIn _
              | Int _ | Int64 _
              | String _
-             | UInt64 _ -> ()
+             | UInt _ | UInt64 _ -> ()
              (* The following not yet implemented for callbacks XXX *)
              | ArrayAndLen _ | Bool _ | BytesOut _
              | BytesPersistIn _ | BytesPersistOut _
              | Closure _
              | Flags _ | Mutable _
              | Path _ | SockAddrAndLen _ | StringList _
-             | UInt _ | UInt32 _ -> assert false
+             | UInt32 _ -> assert false
            ) cbargs;
            pr "  return ret;\n";
            pr "}\n";
@@ -4656,7 +4658,7 @@ let print_ocaml_binding (name, { args; ret }) =
              function
              | ArrayAndLen (UInt32 n, _) | BytesIn (n, _)
              | Int n | Int64 n
-             | Mutable (Int n) | String n | UInt64 n ->
+             | Mutable (Int n) | String n | UInt n | UInt64 n ->
                 n ^ "v"
              (* The following not yet implemented for callbacks XXX *)
              | ArrayAndLen _ | Bool _ | BytesOut _
@@ -4664,7 +4666,7 @@ let print_ocaml_binding (name, { args; ret }) =
              | Closure _
              | Flags _ | Path _ | Mutable _
              | SockAddrAndLen _ | StringList _
-             | UInt _ | UInt32 _ -> assert false
+             | UInt32 _ -> assert false
            ) cbargs in
 
            pr "static int\n";
@@ -4688,7 +4690,7 @@ let print_ocaml_binding (name, { args; ret }) =
              | BytesIn (n, len) ->
                 pr "  %sv = caml_alloc_string (%s);\n" n len;
                 pr "  memcpy (String_val (%sv), %s, %s);\n" n n len
-             | Int n ->
+             | Int n | UInt n ->
                 pr "  %sv = Val_int (%s);\n" n n
              | Int64 n ->
                 pr "  %sv = caml_copy_int64 (%s);\n" n n
@@ -4705,7 +4707,7 @@ let print_ocaml_binding (name, { args; ret }) =
              | Closure _
              | Flags _ | Mutable _
              | Path _ | SockAddrAndLen _ | StringList _
-             | UInt _ | UInt32 _ -> assert false
+             | UInt32 _ -> assert false
            ) cbargs;
 
            List.iteri (fun i n -> pr "  args[%d] = %s;\n" i n) argnames;
@@ -4717,12 +4719,13 @@ let print_ocaml_binding (name, { args; ret }) =
 
            List.iter (
              function
-             | ArrayAndLen (UInt32 n, count) -> ()
-             | BytesIn (n, len) -> ()
-             | Int n -> ()
-             | Int64 n -> ()
-             | String n -> ()
-             | UInt64 n -> ()
+             | ArrayAndLen (UInt32 _, _)
+             | BytesIn _
+             | Int _
+             | Int64 _
+             | String _
+             | UInt _
+             | UInt64 _ -> ()
              | Mutable (Int n) ->
                 pr "  *%s = Int_val (Field (%sv, 0));\n" n n
              (* The following not yet implemented for callbacks XXX *)
@@ -4731,7 +4734,7 @@ let print_ocaml_binding (name, { args; ret }) =
              | Closure _
              | Flags _ | Mutable _
              | Path _ | SockAddrAndLen _ | StringList _
-             | UInt _ | UInt32 _ -> assert false
+             | UInt32 _ -> assert false
            ) cbargs;
 
            pr "  if (Is_exception_result (rv)) {\n";
