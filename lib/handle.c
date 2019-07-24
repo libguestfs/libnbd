@@ -90,7 +90,6 @@ nbd_create (void)
 void
 nbd_close (struct nbd_handle *h)
 {
-  struct close_callback *cc, *cc_next;
   struct meta_context *m, *m_next;
 
   if (h == NULL)
@@ -100,12 +99,6 @@ nbd_close (struct nbd_handle *h)
   if (h->debug_fn)
     h->debug_fn (LIBNBD_CALLBACK_FREE, h->debug_data, NULL, NULL);
   h->debug_fn = NULL;
-
-  for (cc = h->close_callbacks; cc != NULL; cc = cc_next) {
-    cc_next = cc->next;
-    cc->cb (cc->user_data);
-    free (cc);
-  }
 
   free (h->bs_entries);
   for (m = h->meta_contexts; m != NULL; m = m_next) {
@@ -201,34 +194,6 @@ nbd_unlocked_add_meta_context (struct nbd_handle *h, const char *name)
   list[len+1] = NULL;
 
   return 0;
-}
-
-/* This is not generated because we don't want to offer it to other
- * programming languages.
- */
-int
-nbd_add_close_callback (struct nbd_handle *h,
-                        nbd_close_callback cb, void *user_data)
-{
-  int ret;
-  struct close_callback *cc;
-
-  pthread_mutex_lock (&h->lock);
-  cc = malloc (sizeof *cc);
-  if (cc == NULL) {
-    set_error (errno, "malloc");
-    ret = -1;
-    goto out;
-  }
-  cc->next = h->close_callbacks;
-  cc->cb = cb;
-  cc->user_data = user_data;
-  h->close_callbacks = cc;
-
-  ret = 0;
- out:
-  pthread_mutex_unlock (&h->lock);
-  return ret;
 }
 
 const char *

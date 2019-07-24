@@ -3055,7 +3055,6 @@ let generate_lib_libnbd_syms () =
 
   pr "{\n";
   pr "  global:\n";
-  pr "    nbd_add_close_callback;\n";
   pr "    nbd_create;\n";
   pr "    nbd_close;\n";
   pr "    nbd_get_errno;\n";
@@ -3254,11 +3253,6 @@ let generate_include_libnbd_h () =
   pr "\n";
   pr "extern int nbd_get_errno (void);\n";
   pr "#define LIBNBD_HAVE_NBD_GET_ERRNO 1\n";
-  pr "\n";
-  pr "extern int nbd_add_close_callback (struct nbd_handle *h,\n";
-  pr "                                   nbd_close_callback cb,\n";
-  pr "                                   void *user_data);\n";
-  pr "#define LIBNBD_HAVE_NBD_ADD_CLOSE_CALLBACK 1\n";
   pr "\n";
   List.iter (
     fun (name, { args; ret }) -> print_extern_and_define name args ret
@@ -3536,18 +3530,6 @@ Return the most recent C<errno> in the current thread.  Not all
 errors have corresponding errnos, so even if there has been an error
 this may return C<0>.  Error codes are the standard ones from
 C<E<lt>errno.hE<gt>>.
-
-=head1 CLOSE CALLBACKS
-
-You can register close callbacks with the handle.  These are
-called when C<nbd_close> is called.  The order in which they
-are called is not defined.  This API is only available
-from C and is designed to help when writing bindings to libnbd
-from other programming languages.
-
- typedef void (*nbd_close_callback) (void *user_data);
- int nbd_add_close_callback (struct nbd_handle *nbd,
-                             nbd_close_callback cb, void *user_data);
 
 ";
 
