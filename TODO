@@ -2,8 +2,6 @@ Explore separation of nbd_aio_pread/nbd_aio_submit(callback) since
 current nbd_aio_pread_callback(callback) can race into the callback
 before cookie is known to the user.
 
-Consider making callback return 1 to auto-retire a completed command.
-
 Explore if nbd_aio_notify_error is needed for faster response if
 server goes away.
 
