@@ -3516,7 +3516,8 @@ for how to get further details of the error.
 Closes the handle and frees any associated resources.  The final
 status of any command that has not been retired (whether by
 C<nbd_aio_command_completed> or by a low-level completion callback
-returning C<1>) is lost.
+returning C<1>) is lost.  This function is not safe to call while
+any other thread is still using any C<nbd_*> API on the same handle.
 
 =head1 GETTING THE LATEST ERROR MESSAGE IN THE THREAD
 
