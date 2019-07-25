@@ -35,7 +35,7 @@ static char *nbdkit_delay[] =
   { "nbdkit", "-s", "--exit-with-parent", "-v",
     "--filter=delay",
     "null", "size=512",
-    "delay-read=3",
+    "delay-read=10",
     NULL };
 
 static unsigned debug_fn_valid;
@@ -134,6 +134,7 @@ main (int argc, char *argv[])
   assert (read_cb_free == 1);
   assert (completion_cb_free == 1);
 
+  nbd_kill_command (nbd, 0);
   nbd_close (nbd);
 
   /* Test command callbacks are freed if the handle is closed without
@@ -149,6 +150,7 @@ main (int argc, char *argv[])
                                               read_cb, NULL,
                                               completion_cb, NULL, 0);
   if (cookie == -1) NBD_ERROR;
+  nbd_kill_command (nbd, 0);
   nbd_close (nbd);
 
   assert (read_cb_free == 1);

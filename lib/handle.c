@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <signal.h>
+#include <assert.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -124,7 +126,7 @@ nbd_close (struct nbd_handle *h)
     freeaddrinfo (h->result);
   if (h->sock)
     h->sock->ops->close (h->sock);
-  if (h->pid >= 0) /* XXX kill it? */
+  if (h->pid > 0)
     waitpid (h->pid, NULL, 0);
 
   free (h->export_name);
@@ -213,6 +215,30 @@ const char *
 nbd_unlocked_get_version (struct nbd_handle *h)
 {
   return PACKAGE_VERSION;
+}
+
+int
+nbd_unlocked_kill_command (struct nbd_handle *h, int signum)
+{
+  if (h->pid == -1) {
+    set_error (ESRCH, "no subprocess exists");
+    return -1;
+  }
+  assert (h->pid > 0);
+
+  if (signum == 0)
+    signum = SIGTERM;
+  if (signum < 0) {
+    set_error (EINVAL, "invalid signal number: %d", signum);
+    return -1;
+  }
+
+  if (kill (h->pid, signum) == -1) {
+    set_error (errno, "kill");
+    return -1;
+  }
+
+  return 0;
 }
 
 /* NB: is_locked = false, may_set_error = false. */

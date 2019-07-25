@@ -1191,7 +1191,9 @@ has been made.";
     longdesc = "\
 Run the command as a subprocess and connect to it over
 stdin/stdout.  This is for use with NBD servers which can
-behave like inetd clients, such as C<nbdkit --single>.";
+behave like inetd clients, such as C<nbdkit --single>.
+
+See also C<nbd_kill_command>.";
   };
 
   "read_only", {
@@ -2242,6 +2244,20 @@ release.
 
 The release number is incremented for each release along a particular
 branch.";
+  };
+
+  "kill_command", {
+    default_call with
+    args = [ Int "signum" ]; ret = RErr;
+    shortdesc = "kill server running as a subprocess";
+    longdesc = "\
+This call may be used to kill the server running as a subprocess
+that was previously created using C<nbd_connect_command>.  You
+do not need to use this call.  It is only needed if the server
+does not exit when the socket is closed.
+
+The C<signum> parameter is the optional signal number to send
+(see L<signal(7)>).  If C<signum> is C<0> then C<SIGTERM> is sent.";
   };
 
   "supports_tls", {
