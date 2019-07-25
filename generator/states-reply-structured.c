@@ -18,6 +18,19 @@
 
 /* State machine for parsing structured replies from the server. */
 
+static unsigned
+valid_flags (struct nbd_handle *h)
+{
+  unsigned valid = LIBNBD_CALLBACK_VALID;
+  uint16_t flags = be16toh (h->sbuf.sr.structured_reply.flags);
+
+  if (flags & NBD_REPLY_FLAG_DONE)
+    valid |= LIBNBD_CALLBACK_FREE;
+  return valid;
+}
+
+/*----- End of prologue. -----*/
+
 /* STATE MACHINE */ {
  REPLY.STRUCTURED_REPLY.START:
   /* We've only read the simple_reply.  The structured_reply is longer,
@@ -293,16 +306,19 @@
       }
       if (cmd->type == NBD_CMD_READ && cmd->cb.fn.read) {
         int scratch = error;
+        unsigned valid = valid_flags (h);
 
         /* Different from successful reads: inform the callback about the
          * current error rather than any earlier one. If the callback fails
          * without setting errno, then use the server's error below.
          */
-        if (cmd->cb.fn.read (LIBNBD_CALLBACK_VALID, cmd->cb.fn_user_data,
+        if (cmd->cb.fn.read (valid, cmd->cb.fn_user_data,
                              cmd->data + (offset - cmd->offset),
                              0, offset, LIBNBD_READ_ERROR, &scratch) == -1)
           if (cmd->error == 0)
             cmd->error = scratch;
+        if (valid & LIBNBD_CALLBACK_FREE)
+          cmd->cb.fn.read = NULL; /* because we've freed it */
       }
     }
 
@@ -384,13 +400,16 @@
     assert (cmd); /* guaranteed by CHECK */
     if (cmd->cb.fn.read) {
       int error = cmd->error;
+      unsigned valid = valid_flags (h);
 
-      if (cmd->cb.fn.read (LIBNBD_CALLBACK_VALID, cmd->cb.fn_user_data,
+      if (cmd->cb.fn.read (valid, cmd->cb.fn_user_data,
                            cmd->data + (offset - cmd->offset),
                            length - sizeof offset, offset,
                            LIBNBD_READ_DATA, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
+      if (valid & LIBNBD_CALLBACK_FREE)
+        cmd->cb.fn.read = NULL; /* because we've freed it */
     }
 
     SET_NEXT_STATE (%FINISH);
@@ -446,13 +465,16 @@
     memset (cmd->data + offset, 0, length);
     if (cmd->cb.fn.read) {
       int error = cmd->error;
+      unsigned valid = valid_flags (h);
 
-      if (cmd->cb.fn.read (LIBNBD_CALLBACK_VALID, cmd->cb.fn_user_data,
+      if (cmd->cb.fn.read (valid, cmd->cb.fn_user_data,
                            cmd->data + offset, length,
                            cmd->offset + offset,
                            LIBNBD_READ_HOLE, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
+      if (valid & LIBNBD_CALLBACK_FREE)
+        cmd->cb.fn.read = NULL; /* because we've freed it */
     }
 
     SET_NEXT_STATE(%FINISH);
@@ -498,12 +520,15 @@
     if (meta_context) {
       /* Call the caller's extent function. */
       int error = cmd->error;
+      unsigned valid = valid_flags (h);
 
-      if (cmd->cb.fn.extent (LIBNBD_CALLBACK_VALID, cmd->cb.fn_user_data,
+      if (cmd->cb.fn.extent (valid, cmd->cb.fn_user_data,
                              meta_context->name, cmd->offset,
                              &h->bs_entries[1], (length-4) / 4, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
+      if (valid & LIBNBD_CALLBACK_FREE)
+        cmd->cb.fn.extent = NULL; /* because we've freed it */
     }
     else
       /* Emit a debug message, but ignore it. */
