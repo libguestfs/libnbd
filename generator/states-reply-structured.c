@@ -540,11 +540,20 @@ valid_flags (struct nbd_handle *h)
   return 0;
 
  REPLY.STRUCTURED_REPLY.FINISH:
+  struct command *cmd = h->reply_cmd;
   uint16_t flags;
 
   flags = be16toh (h->sbuf.sr.structured_reply.flags);
-  if (flags & NBD_REPLY_FLAG_DONE)
+  if (flags & NBD_REPLY_FLAG_DONE) {
+    if (cmd->type == NBD_CMD_BLOCK_STATUS && cmd->cb.fn.extent)
+      cmd->cb.fn.extent (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
+                         NULL, 0, NULL, 0, NULL);
+    if (cmd->type == NBD_CMD_READ && cmd->cb.fn.read)
+      cmd->cb.fn.read (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
+                       NULL, 0, 0, 0, NULL);
+    cmd->cb.fn.read = NULL;
     SET_NEXT_STATE (%^FINISH_COMMAND);
+  }
   else {
     h->reply_cmd = NULL;
     SET_NEXT_STATE (%.READY);
