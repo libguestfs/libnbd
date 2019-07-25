@@ -23,6 +23,7 @@ EXTRA_DIST = \
 	.dir-locals.el \
 	.gitignore \
 	html/pod.css \
+	scripts/git.orderfile \
 	$(NULL)
 
 SUBDIRS = \
