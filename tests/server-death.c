@@ -60,7 +60,7 @@ main (int argc, char *argv[])
   int delay = 0;
   const char *cmd[] = { "nbdkit", "--pidfile", pidfile, "-s",
                         "--exit-with-parent", "--filter=delay", "memory",
-                        "size=1m", "delay-reads=5", NULL };
+                        "size=1m", "delay-read=15", "delay-trim=15", NULL };
 
   progname = argv[0];
 
