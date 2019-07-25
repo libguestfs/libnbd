@@ -202,7 +202,8 @@ start_thread (void *arg)
   size_t i;
   int64_t offset, cookie;
   char *buf;
-  int dir, r, cmd;
+  unsigned dir;
+  int r, cmd;
   time_t t;
   bool expired = false;
 

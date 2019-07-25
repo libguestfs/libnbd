@@ -144,7 +144,7 @@ nbd_unlocked_aio_is_closed (struct nbd_handle *h)
   return nbd_internal_is_state_closed (get_public_state (h));
 }
 
-int
+unsigned
 nbd_unlocked_aio_get_direction (struct nbd_handle *h)
 {
   return nbd_internal_aio_get_direction (get_public_state (h));

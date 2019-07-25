@@ -192,7 +192,8 @@ start_thread (void *arg)
   int64_t cookie;
   int64_t cookies[MAX_IN_FLIGHT];
   size_t in_flight;        /* counts number of requests in flight */
-  int dir, r, cmd;
+  unsigned dir;
+  int r, cmd;
   size_t size;
 
   assert (512 < BUFFER_SIZE);

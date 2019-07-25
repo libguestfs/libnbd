@@ -192,7 +192,8 @@ start_thread (void *arg)
   uint64_t offset;
   int64_t cookie;
   int64_t cookies[MAX_IN_FLIGHT] = { 0 };
-  int dir, r, cmd;
+  unsigned dir;
+  int r, cmd;
   time_t t;
   bool expired = false;
 

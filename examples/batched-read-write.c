@@ -48,7 +48,8 @@ try_deadlock (void *arg)
   struct pollfd fds[1];
   size_t i;
   int64_t cookies[2], done;
-  int dir, r;
+  unsigned dir;
+  int r;
 
   /* Issue commands. */
   cookies[0] = nbd_aio_pread (nbd, in, packetsize, 0, 0);

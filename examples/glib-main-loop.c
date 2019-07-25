@@ -66,7 +66,7 @@ struct NBDSource {
 static inline int
 events_from_nbd (struct nbd_handle *nbd)
 {
-  int dir = nbd_aio_get_direction (nbd);
+  unsigned dir = nbd_aio_get_direction (nbd);
   int r = 0;
 
   if ((dir & LIBNBD_AIO_DIRECTION_READ) != 0)
@@ -126,7 +126,7 @@ static gboolean
 check (GSource *sp)
 {
   struct NBDSource *source = (struct NBDSource *) sp;
-  int dir;
+  unsigned dir;
   int revents;
 
   if (!source->tag)
