@@ -35,7 +35,7 @@ static char *nbdkit_delay[] =
   { "nbdkit", "-s", "--exit-with-parent", "-v",
     "--filter=delay",
     "null", "size=512",
-    "delay-read=10",
+    "delay-read=3",
     NULL };
 
 static unsigned debug_fn_valid;
