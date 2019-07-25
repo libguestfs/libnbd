@@ -59,7 +59,7 @@ maintainer-check-extra-dist:
 	@rm tarfiles gitfiles comm-out
 	@echo PASS: EXTRA_DIST tests
 
-check-valgrind:
+check-valgrind: all
 	@for d in tests interop; do \
 	    $(MAKE) -C $$d check-valgrind || exit 1; \
 	done
