@@ -25,7 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <unistd.h>
 #include <signal.h>
 
 #include <libnbd.h>
@@ -56,69 +55,46 @@ main (int argc, char *argv[])
   const char *msg;
   char buf[512];
   int64_t cookie;
-  char pidfile[] = "/tmp/libnbd-test-disconnectXXXXXX";
-  int fd;
-  pid_t pid;
   int r;
-  int delay = 0;
-  const char *cmd[] = { "nbdkit", "--pidfile", pidfile, "-s",
-                        "--exit-with-parent", "--filter=delay", "memory",
-                        "size=1m", "delay-read=15", "delay-trim=15", NULL };
+  const char *cmd[] = { "nbdkit", "-s", "--exit-with-parent",
+                        "--filter=delay", "memory", "size=1m",
+                        "delay-read=15", "delay-trim=15", NULL };
 
   progname = argv[0];
-
-  /* We're going to kill the child, but don't want to wait for a zombie */
-  if (signal (SIGCHLD, SIG_IGN) == SIG_ERR) {
-    fprintf (stderr, "%s: signal: %s\n", argv[0], strerror (errno));
-    exit (EXIT_FAILURE);
-  }
-
-  fd = mkstemp (pidfile);
-  if (fd < 0) {
-    fprintf (stderr, "%s: mkstemp: %s\n", argv[0], strerror (errno));
-    exit (EXIT_FAILURE);
-  }
 
   nbd = nbd_create ();
   if (nbd == NULL) {
     fprintf (stderr, "%s: %s\n", argv[0], nbd_get_error ());
-    goto fail;
+    exit (EXIT_FAILURE);
   }
 
   /* Connect to a slow server. */
   if (nbd_connect_command (nbd, (char **) cmd) == -1) {
     fprintf (stderr, "%s: %s\n", argv[0], nbd_get_error ());
-    goto fail;
-  }
-  if (read (fd, buf, sizeof buf) == -1) {
-    fprintf (stderr, "%s: read: %s\n", argv[0], strerror (errno));
-    goto fail;
-  }
-  pid = atoi (buf);
-  if (pid <= 0) {
-    fprintf (stderr, "%s: unable to parse server's pid\n", argv[0]);
-    goto fail;
+    exit (EXIT_FAILURE);
   }
 
   /* Issue a read and trim that should not complete yet. Set up the
    * trim to auto-retire via callback.
    */
   if ((cookie = nbd_aio_pread (nbd, buf, sizeof buf, 0, 0)) == -1) {
-    fprintf (stderr, "%s: test failed: nbd_aio_pread\n", argv[0]);
-    goto fail;
+    fprintf (stderr, "%s: test failed: nbd_aio_pread: %s\n", argv[0],
+             nbd_get_error ());
+    exit (EXIT_FAILURE);
   }
   if (nbd_aio_trim_callback (nbd, sizeof buf, 0, callback, NULL, 0) == -1) {
-    fprintf (stderr, "%s: test failed: nbd_aio_trim_callback\n", argv[0]);
-    goto fail;
+    fprintf (stderr, "%s: test failed: nbd_aio_trim_callback: %s\n", argv[0],
+             nbd_get_error ());
+    exit (EXIT_FAILURE);
   }
   if (nbd_aio_peek_command_completed (nbd) != 0) {
     fprintf (stderr, "%s: test failed: nbd_aio_peek_command_completed\n",
              argv[0]);
-    goto fail;
+    exit (EXIT_FAILURE);
   }
   if (nbd_aio_command_completed (nbd, cookie) != 0) {
     fprintf (stderr, "%s: test failed: nbd_aio_command_completed\n", argv[0]);
-    goto fail;
+    exit (EXIT_FAILURE);
   }
 
   /* Kill the server forcefully (SIGINT is not always strong enough,
@@ -126,47 +102,39 @@ main (int argc, char *argv[])
    * actually exiting), although it's a race whether our signal
    * arrives while nbdkit has a pending transaction.
    */
-  if (kill (pid, SIGKILL) == -1) {
-    fprintf (stderr, "%s: kill: %s\n", argv[0], strerror (errno));
-    goto fail;
-  }
-  /* Wait up to 10 seconds, 100 ms at a time */
-  while (kill (pid, 0) == 0) {
-    if (delay++ > 100) {
-      fprintf (stderr, "%s: kill taking too long\n", argv[0]);
-      goto fail;
-    }
-    usleep (100 * 1000);
+  if (nbd_kill_command (nbd, SIGKILL) == -1) {
+    fprintf (stderr, "%s: test failed: nbd_kill_command: %s\n", argv[0],
+             nbd_get_error ());
+    exit (EXIT_FAILURE);
   }
 
-  /* This part is somewhat racy if we don't wait for the process death
-   * above - depending on load and timing, nbd_poll may succeed or
-   * fail, and we may transition to either CLOSED (the state machine
-   * saw a clean EOF) or DEAD (the state machine saw a stranded
-   * transaction or POLLERR).
+  /* This part is somewhat racy depending on how fast we run before
+   * the server process exits - depending on load and timing, nbd_poll
+   * may succeed or fail, and we may transition to either CLOSED (the
+   * state machine saw a clean EOF) or DEAD (the state machine saw a
+   * stranded transaction or POLLERR).
    */
   while ((r = nbd_poll (nbd, 1000)) == 1)
     if (nbd_aio_is_dead (nbd) || nbd_aio_is_closed (nbd))
       break;
   if (!(nbd_aio_is_dead (nbd) || nbd_aio_is_closed (nbd))) {
     fprintf (stderr, "%s: test failed: server death not detected\n", argv[0]);
-    goto fail;
+    exit (EXIT_FAILURE);
   }
 
   /* Detection of the dead server completes all remaining in-flight commands */
   if (nbd_aio_in_flight (nbd) != 0) {
-    fprintf (stderr, "%s: test failed: nbd_aio_in_flight\n",
-             argv[0]);
-    goto fail;
+    fprintf (stderr, "%s: test failed: nbd_aio_in_flight\n", argv[0]);
+    exit (EXIT_FAILURE);
   }
   if (nbd_aio_peek_command_completed (nbd) != cookie) {
     fprintf (stderr, "%s: test failed: nbd_aio_peek_command_completed\n",
              argv[0]);
-    goto fail;
+    exit (EXIT_FAILURE);
   }
   if (nbd_aio_command_completed (nbd, cookie) != -1) {
     fprintf (stderr, "%s: test failed: nbd_aio_command_completed\n", argv[0]);
-    goto fail;
+    exit (EXIT_FAILURE);
   }
   msg = nbd_get_error ();
   err = nbd_get_errno ();
@@ -175,19 +143,19 @@ main (int argc, char *argv[])
   if (err != ENOTCONN) {
     fprintf (stderr, "%s: test failed: unexpected errno %d (%s)\n", argv[0],
              err, strerror (err));
-    goto fail;
+    exit (EXIT_FAILURE);
   }
 
   /* With all commands retired, no further command should be pending */
   if (!trim_retired) {
     fprintf (stderr, "%s: test failed: nbd_aio_trim_callback not retired\n",
              argv[0]);
-    goto fail;
+    exit (EXIT_FAILURE);
   }
   if (nbd_aio_peek_command_completed (nbd) != -1) {
     fprintf (stderr, "%s: test failed: nbd_aio_peek_command_completed\n",
              argv[0]);
-    goto fail;
+    exit (EXIT_FAILURE);
   }
   msg = nbd_get_error ();
   err = nbd_get_errno ();
@@ -196,15 +164,9 @@ main (int argc, char *argv[])
   if (err != EINVAL) {
     fprintf (stderr, "%s: test failed: unexpected errno %d (%s)\n", argv[0],
              err, strerror (err));
-    goto fail;
+    exit (EXIT_FAILURE);
   }
 
-  close (fd);
-  unlink (pidfile);
   nbd_close (nbd);
   exit (EXIT_SUCCESS);
-
- fail:
-  unlink (pidfile);
-  exit (EXIT_FAILURE);
 }
