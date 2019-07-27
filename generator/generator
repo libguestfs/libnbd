@@ -840,6 +840,11 @@ type call = {
    * setting this to false.
    *)
   may_set_error : bool;
+  (* The first stable version that the symbol appeared in, for
+   * example (1, 2) if the symbol was added in development cycle
+   * 1.1.x and thus the first stable version was 1.2
+   *)
+  first_version : int * int;
 }
 and arg =
 | ArrayAndLen of arg * string (* array + number of entries *)
@@ -884,7 +889,8 @@ and permitted_state =
 let default_call = { args = []; ret = RErr;
                      shortdesc = ""; longdesc = "";
                      permitted_states = [];
-                     is_locked = true; may_set_error = true }
+                     is_locked = true; may_set_error = true;
+                     first_version = (1, 0) }
 
 (* Calls.
  *
@@ -2318,6 +2324,19 @@ let rec filter_map f = function
       | Some y -> y :: filter_map f xs
       | None -> filter_map f xs
 
+(* group_by [1, "foo"; 2, "bar"; 2, "baz"; 2, "biz"; 3, "boo"; 4, "fizz"]
+ * - : (int * string list) list =
+ * [(1, ["foo"]); (2, ["bar"; "baz"; "biz"]); (3, ["boo"]); (4, ["fizz"])]
+ *)
+let rec group_by = function
+| [] -> []
+| (day1, x1) :: (day2, x2) :: rest when day1 = day2 ->
+   let rest = group_by ((day2, x2) :: rest) in
+   let day, xs = List.hd rest in
+   (day, x1 :: xs) :: List.tl rest
+| (day, x) :: rest ->
+   (day, [x]) :: group_by rest
+
 let chan = ref Pervasives.stdout
 let pr fs = ksprintf (fun str -> output_string !chan str) fs
 
@@ -3067,22 +3086,56 @@ let () =
     | name, { ret = RUInt; may_set_error = true } ->
        failwithf "%s: if ret is RUInt, may_set_error must be false" name
     | _ -> ()
+  ) handle_calls;
+
+  (* First stable version must be 1.x where x is even. *)
+  List.iter (
+    fun (name, { first_version = (major, minor) }) ->
+      if major <> 1 then
+        failwithf "%s: first_version must be 1.x" name;
+      if minor mod 2 <> 0 then
+        failwithf "%s: first_version must refer to a stable release" name
   ) handle_calls
 
 let generate_lib_libnbd_syms () =
   generate_header HashStyle;
 
-  pr "{\n";
-  pr "  global:\n";
-  pr "    nbd_create;\n";
-  pr "    nbd_close;\n";
-  pr "    nbd_get_errno;\n";
-  pr "    nbd_get_error;\n";
-  List.iter (fun (name, _) -> pr "    nbd_%s;\n" name) handle_calls;
-  pr "\n";
-  pr "  # Everything else is hidden.\n";
-  pr "  local: *;\n";
-  pr "};\n"
+  (* Sort and group the calls by first_version, and emit them in order. *)
+  let cmp (_, {first_version = a}) (_, {first_version = b}) = compare a b in
+  let calls = List.sort cmp handle_calls in
+  let extract ((_, {first_version}) as call) = first_version, call in
+  let calls = List.map extract calls in
+  let calls = group_by calls in
+
+  let prev = ref None in
+  List.iter (
+    fun ((major, minor), calls) ->
+      pr "# Public symbols in libnbd %d.%d:\n" major minor;
+      pr "LIBNBD_%d.%d {\n" major minor;
+      pr "  global:\n";
+      if (major, minor) = (1, 0) then (
+        pr "    nbd_create;\n";
+        pr "    nbd_close;\n";
+        pr "    nbd_get_errno;\n";
+        pr "    nbd_get_error;\n"
+      );
+      List.iter (fun (name, _) -> pr "    nbd_%s;\n" name) calls;
+      (match !prev with
+       | None ->
+          pr "  # Everything else is hidden.\n";
+          pr "  local: *;\n";
+       | Some _ -> ()
+      );
+      pr "}";
+      (match !prev with
+       | None -> ()
+       | Some (old_major, old_minor) ->
+          pr " LIBNBD_%d.%d" old_minor old_minor
+      );
+      pr ";\n";
+      pr "\n";
+      prev := Some (major, minor)
+  ) calls
 
 let rec name_of_arg = function
 | ArrayAndLen (arg, n) -> name_of_arg arg @ [n]
