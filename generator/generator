@@ -1550,7 +1550,7 @@ punching a hole.";
                                UInt64 "offset";
                                ArrayAndLen (UInt32 "entries",
                                             "nr_entries");
-                               Mutable (Int "error")]};
+                               Mutable (Int "error")] };
              Flags "flags" ];
     ret = RErr;
     permitted_states = [ Connected ];
@@ -1753,7 +1753,7 @@ completed.  Other parameters behave as documented in C<nbd_pread>.";
                        cbargs=[BytesIn ("subbuf", "count");
                                UInt64 "offset";
                                UInt "status";
-                               Mutable (Int "error");]};
+                               Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1774,9 +1774,9 @@ documented in C<nbd_pread_structured>.";
                        cbargs=[BytesIn ("subbuf", "count");
                                UInt64 "offset";
                                UInt "status";
-                               Mutable (Int "error"); ]};
+                               Mutable (Int "error")] };
              Closure { cbname="callback";
-                       cbargs=[Mutable (Int "error"); ]};
+                       cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1812,7 +1812,7 @@ C<nbd_pwrite>.";
     default_call with
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset";
              Closure { cbname="callback";
-                       cbargs=[Mutable (Int "error")]};
+                       cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1868,7 +1868,7 @@ Parameters behave as documented in C<nbd_flush>.";
   "aio_flush_callback", {
     default_call with
     args = [ Closure { cbname="callback";
-                       cbargs=[Mutable (Int "error")]};
+                       cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1902,7 +1902,7 @@ Parameters behave as documented in C<nbd_trim>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="callback";
-                       cbargs=[Mutable (Int "error")]};
+                       cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1936,7 +1936,7 @@ Parameters behave as documented in C<nbd_cache>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="callback";
-                       cbargs=[Mutable (Int "error")]};
+                       cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1970,7 +1970,7 @@ Parameters behave as documented in C<nbd_zero>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="callback";
-                       cbargs=[Mutable (Int "error")]};
+                       cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -2013,9 +2013,9 @@ Parameters behave as documented in C<nbd_block_status>.";
                        cbargs=[String "metacontext"; UInt64 "offset";
                                ArrayAndLen (UInt32 "entries",
                                             "nr_entries");
-                               Mutable (Int "error")]};
+                               Mutable (Int "error")] };
              Closure { cbname="callback";
-                       cbargs=[Mutable (Int "error")]};
+                       cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
