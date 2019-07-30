@@ -131,7 +131,7 @@ read_chunk (unsigned valid_flag, void *opaque,
 }
 
 static int
-read_verify (unsigned valid_flag, void *opaque, int64_t cookie, int *error)
+read_verify (unsigned valid_flag, void *opaque, int *error)
 {
   int ret = 0;
 

@@ -554,10 +554,8 @@ same nbd object, as it would cause deadlock.
 
 All of the low-level commands have a completion callback variant that
 registers a callback function used right before the command is marked
-complete.  The completion callback will be invoked with C<cookie> set
-to the same value returned by the original API such as
-C<nbd_aio_pread_callback> (in rare cases, it is possible that the
-completion callback may fire before the original API has returned).
+complete.
+
 When C<valid_flag> includes C<LIBNBD_CALLBACK_VALID>, and the
 completion callback returns C<1>, the command is automatically retired
 (there is no need to call C<nbd_aio_command_completed>); for any other

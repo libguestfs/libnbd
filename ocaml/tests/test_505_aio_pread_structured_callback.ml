@@ -43,12 +43,11 @@ let chunk user_data buf2 offset s err =
   assert (offset = 0_L);
   assert (s = Int32.to_int NBD.read_data)
 
-let callback user_data cookie err =
+let callback user_data err =
   if user_data <= 43 then
     assert (!err = 0)
   else
     assert (!err = 100);
-  assert (cookie > Int64.of_int (0));
   err := 101;
   assert (user_data = 42)
 

@@ -73,8 +73,7 @@ read_cb (unsigned valid_flag, void *opaque,
 }
 
 static int
-completion_cb (unsigned valid_flag, void *opaque,
-               int64_t cookie, int *error)
+completion_cb (unsigned valid_flag, void *opaque, int *error)
 {
   assert (completion_cb_free == 0);
 

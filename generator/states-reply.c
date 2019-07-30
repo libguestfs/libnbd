@@ -174,7 +174,7 @@ save_reply_state (struct nbd_handle *h)
 
     assert (cmd->type != NBD_CMD_DISC);
     r = cmd->cb.callback (LIBNBD_CALLBACK_VALID|LIBNBD_CALLBACK_FREE,
-                          cmd->cb.user_data, cookie, &error);
+                          cmd->cb.user_data, &error);
     cmd->cb.callback = NULL; /* because we've freed it */
     switch (r) {
     case -1:

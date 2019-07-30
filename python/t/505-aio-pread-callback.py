@@ -33,13 +33,12 @@ def chunk (user_data, buf2, offset, s, err):
     assert offset == 0
     assert s == nbd.READ_DATA
 
-def callback (user_data, cookie, err):
+def callback (user_data, err):
     print ("in callback, user_data %d" % user_data)
     if user_data <= 43:
         assert err.value == 0
     else:
         assert err.value == errno.EPROTO
-    assert cookie > 0
     err.value = errno.ENOMEM
     assert user_data == 42
 

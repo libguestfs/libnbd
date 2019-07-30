@@ -255,7 +255,7 @@ typedef int (*read_fn) (unsigned valid_flag, void *user_data,
                         const void *buf, size_t count,
                         uint64_t offset, unsigned status, int *error);
 typedef int (*callback_fn) (unsigned valid_flag, void *user_data,
-                            int64_t cookie, int *error);
+                            int *error);
 
 struct command_cb {
   union {

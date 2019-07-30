@@ -1729,7 +1729,7 @@ C<nbd_pread>.";
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
              Closure { cbname="callback";
-                       cbargs=[Int64 "cookie"; Mutable (Int "error")] };
+                       cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1737,8 +1737,11 @@ C<nbd_pread>.";
     longdesc = "\
 Issue a read command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.  If this command returns a cookie, then C<callback>
+error.
+
+When the command completes, C<callback>
 will be invoked as described in L<libnbd(3)/Completion callbacks>.
+
 Note that you must ensure C<buf> is valid until the command has
 completed.  Other parameters behave as documented in C<nbd_pread>.";
   };
@@ -1773,8 +1776,7 @@ documented in C<nbd_pread_structured>.";
                                UInt "status";
                                Mutable (Int "error"); ]};
              Closure { cbname="callback";
-                       cbargs=[Int64 "cookie";
-                               Mutable (Int "error"); ]};
+                       cbargs=[Mutable (Int "error"); ]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1782,8 +1784,11 @@ documented in C<nbd_pread_structured>.";
     longdesc = "\
 Issue a read command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.  If this command returns a cookie, then C<callback>
+error.
+
+When the command completes, C<callback>
 will be invoked as described in L<libnbd(3)/Completion callbacks>.
+
 Other parameters behave as documented in C<nbd_pread_structured>.";
   };
 
@@ -1807,7 +1812,7 @@ C<nbd_pwrite>.";
     default_call with
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset";
              Closure { cbname="callback";
-                       cbargs=[Int64 "cookie"; Mutable (Int "error")]};
+                       cbargs=[Mutable (Int "error")]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1815,8 +1820,11 @@ C<nbd_pwrite>.";
     longdesc = "\
 Issue a write command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.  If this command returns a cookie, then C<callback>
+error.
+
+When the command completes, C<callback>
 will be invoked as described in L<libnbd(3)/Completion callbacks>.
+
 Note that you must ensure C<buf> is valid until the command has
 completed.  Other parameters behave as documented in C<nbd_pwrite>.";
   };
@@ -1860,7 +1868,7 @@ Parameters behave as documented in C<nbd_flush>.";
   "aio_flush_callback", {
     default_call with
     args = [ Closure { cbname="callback";
-                       cbargs=[Int64 "cookie"; Mutable (Int "error")]};
+                       cbargs=[Mutable (Int "error")]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1868,8 +1876,11 @@ Parameters behave as documented in C<nbd_flush>.";
     longdesc = "\
 Issue the flush command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.  If this command returns a cookie, then C<callback>
+error.
+
+When the command completes, C<callback>
 will be invoked as described in L<libnbd(3)/Completion callbacks>.
+
 Other parameters behave as documented in C<nbd_flush>.";
   };
 
@@ -1891,7 +1902,7 @@ Parameters behave as documented in C<nbd_trim>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="callback";
-                       cbargs=[Int64 "cookie"; Mutable (Int "error")]};
+                       cbargs=[Mutable (Int "error")]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1899,8 +1910,11 @@ Parameters behave as documented in C<nbd_trim>.";
     longdesc = "\
 Issue a trim command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.  If this command returns a cookie, then C<callback>
+error.
+
+When the command completes, C<callback>
 will be invoked as described in L<libnbd(3)/Completion callbacks>.
+
 Other parameters behave as documented in C<nbd_trim>.";
   };
 
@@ -1922,7 +1936,7 @@ Parameters behave as documented in C<nbd_cache>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="callback";
-                       cbargs=[Int64 "cookie"; Mutable (Int "error")]};
+                       cbargs=[Mutable (Int "error")]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1930,8 +1944,11 @@ Parameters behave as documented in C<nbd_cache>.";
     longdesc = "\
 Issue the cache (prefetch) command to the NBD server.  This
 returns the unique positive 64 bit cookie for this command, or
-C<-1> on error.  If this command returns a cookie, then C<callback>
+C<-1> on error.
+
+When the command completes, C<callback>
 will be invoked as described in L<libnbd(3)/Completion callbacks>.
+
 Other parameters behave as documented in C<nbd_cache>.";
   };
 
@@ -1953,7 +1970,7 @@ Parameters behave as documented in C<nbd_zero>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="callback";
-                       cbargs=[Int64 "cookie"; Mutable (Int "error")]};
+                       cbargs=[Mutable (Int "error")]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1961,8 +1978,11 @@ Parameters behave as documented in C<nbd_zero>.";
     longdesc = "\
 Issue a write zeroes command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.  If this command returns a cookie, then C<callback>
+error.
+
+When the command completes, C<callback>
 will be invoked as described in L<libnbd(3)/Completion callbacks>.
+
 Other parameters behave as documented in C<nbd_zero>.";
   };
 
@@ -1995,7 +2015,7 @@ Parameters behave as documented in C<nbd_block_status>.";
                                             "nr_entries");
                                Mutable (Int "error")]};
              Closure { cbname="callback";
-                       cbargs=[Int64 "cookie"; Mutable (Int "error")]};
+                       cbargs=[Mutable (Int "error")]};
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -2003,8 +2023,11 @@ Parameters behave as documented in C<nbd_block_status>.";
     longdesc = "\
 Send the block status command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
-error.  If this command returns a cookie, then C<callback>
+error.
+
+When the command completes, C<callback>
 will be invoked as described in L<libnbd(3)/Completion callbacks>.
+
 Other parameters behave as documented in C<nbd_block_status>.";
   };
 

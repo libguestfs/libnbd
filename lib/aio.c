@@ -40,7 +40,7 @@ nbd_internal_retire_and_free_command (struct command *cmd)
                      NULL, 0, 0, 0, NULL);
   if (cmd->cb.callback)
     cmd->cb.callback (LIBNBD_CALLBACK_FREE, cmd->cb.user_data,
-                      0, NULL);
+                      NULL);
 
   free (cmd);
 }
