@@ -1,16 +1,9 @@
-Explore separation of nbd_aio_pread/nbd_aio_submit(callback) since
-current nbd_aio_pread_callback(callback) can race into the callback
-before cookie is known to the user.
-
 Explore if nbd_aio_notify_error is needed for faster response if
 server goes away.
 
-Improve python bindings to free persistent closure wrappers at time
-of command completion rather than nbd close.
-
 Bindings in other languages.
 
-Example code integrating with glib2, APR pollset (and others?).
+Example code integrating with ppoll, pollfd, APR pollset (and others?).
 
 Example command line utils to copy in/out (like qemu-img convert).
 
