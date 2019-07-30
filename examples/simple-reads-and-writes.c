@@ -80,7 +80,7 @@ main (int argc, char *argv[])
     }
   }
 
-  if (nbd_shutdown (nbd) == -1) {
+  if (nbd_shutdown (nbd, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

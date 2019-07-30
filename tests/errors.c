@@ -285,7 +285,7 @@ main (int argc, char *argv[])
    * the server shuts down, so don't enforce status), then try to send
    * another command while CLOSED/DEAD
    */
-  if (nbd_shutdown (nbd) == -1) {
+  if (nbd_shutdown (nbd, 0) == -1) {
     fprintf (stderr, "%s: ignoring %s\n", argv[0], nbd_get_error ());
   }
   else

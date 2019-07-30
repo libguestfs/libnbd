@@ -159,7 +159,7 @@ main (int argc, char *argv[])
    * nbd_shutdown: gnutls_record_recv: The TLS connection was
    * non-properly terminated.
    */
-  if (nbd_shutdown (nbd) == -1) {
+  if (nbd_shutdown (nbd, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto out;
   }

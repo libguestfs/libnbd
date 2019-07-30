@@ -27,8 +27,13 @@
 #include "internal.h"
 
 int
-nbd_unlocked_shutdown (struct nbd_handle *h)
+nbd_unlocked_shutdown (struct nbd_handle *h, uint32_t flags)
 {
+  if (flags != 0) {
+    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
+    return -1;
+  }
+
   if (!h->disconnect_request &&
       (nbd_internal_is_state_ready (get_next_state (h)) ||
        nbd_internal_is_state_processing (get_next_state (h)))) {
