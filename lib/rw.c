@@ -47,13 +47,13 @@ int
 nbd_unlocked_pread (struct nbd_handle *h, void *buf,
                     size_t count, uint64_t offset, uint32_t flags)
 {
-  int64_t ch;
+  int64_t cookie;
 
-  ch = nbd_unlocked_aio_pread (h, buf, count, offset, flags);
-  if (ch == -1)
+  cookie = nbd_unlocked_aio_pread (h, buf, count, offset, flags);
+  if (cookie == -1)
     return -1;
 
-  return wait_for_command (h, ch);
+  return wait_for_command (h, cookie);
 }
 
 /* Issue a read command with callbacks and wait for the reply. */
@@ -62,14 +62,14 @@ nbd_unlocked_pread_structured (struct nbd_handle *h, void *buf,
                                size_t count, uint64_t offset,
                                read_fn read, void *user_data, uint32_t flags)
 {
-  int64_t ch;
+  int64_t cookie;
 
-  ch = nbd_unlocked_aio_pread_structured (h, buf, count, offset,
-                                          read, user_data, flags);
-  if (ch == -1)
+  cookie = nbd_unlocked_aio_pread_structured (h, buf, count, offset,
+                                              read, user_data, flags);
+  if (cookie == -1)
     return -1;
 
-  return wait_for_command (h, ch);
+  return wait_for_command (h, cookie);
 }
 
 /* Issue a write command and wait for the reply. */
@@ -77,26 +77,26 @@ int
 nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
                      size_t count, uint64_t offset, uint32_t flags)
 {
-  int64_t ch;
+  int64_t cookie;
 
-  ch = nbd_unlocked_aio_pwrite (h, buf, count, offset, flags);
-  if (ch == -1)
+  cookie = nbd_unlocked_aio_pwrite (h, buf, count, offset, flags);
+  if (cookie == -1)
     return -1;
 
-  return wait_for_command (h, ch);
+  return wait_for_command (h, cookie);
 }
 
 /* Issue a flush command and wait for the reply. */
 int
 nbd_unlocked_flush (struct nbd_handle *h, uint32_t flags)
 {
-  int64_t ch;
+  int64_t cookie;
 
-  ch = nbd_unlocked_aio_flush (h, flags);
-  if (ch == -1)
+  cookie = nbd_unlocked_aio_flush (h, flags);
+  if (cookie == -1)
     return -1;
 
-  return wait_for_command (h, ch);
+  return wait_for_command (h, cookie);
 }
 
 /* Issue a trim command and wait for the reply. */
@@ -104,13 +104,13 @@ int
 nbd_unlocked_trim (struct nbd_handle *h,
                    uint64_t count, uint64_t offset, uint32_t flags)
 {
-  int64_t ch;
+  int64_t cookie;
 
-  ch = nbd_unlocked_aio_trim (h, count, offset, flags);
-  if (ch == -1)
+  cookie = nbd_unlocked_aio_trim (h, count, offset, flags);
+  if (cookie == -1)
     return -1;
 
-  return wait_for_command (h, ch);
+  return wait_for_command (h, cookie);
 }
 
 /* Issue a cache command and wait for the reply. */
@@ -118,13 +118,13 @@ int
 nbd_unlocked_cache (struct nbd_handle *h,
                     uint64_t count, uint64_t offset, uint32_t flags)
 {
-  int64_t ch;
+  int64_t cookie;
 
-  ch = nbd_unlocked_aio_cache (h, count, offset, flags);
-  if (ch == -1)
+  cookie = nbd_unlocked_aio_cache (h, count, offset, flags);
+  if (cookie == -1)
     return -1;
 
-  return wait_for_command (h, ch);
+  return wait_for_command (h, cookie);
 }
 
 /* Issue a zero command and wait for the reply. */
@@ -132,13 +132,13 @@ int
 nbd_unlocked_zero (struct nbd_handle *h,
                    uint64_t count, uint64_t offset, uint32_t flags)
 {
-  int64_t ch;
+  int64_t cookie;
 
-  ch = nbd_unlocked_aio_zero (h, count, offset, flags);
-  if (ch == -1)
+  cookie = nbd_unlocked_aio_zero (h, count, offset, flags);
+  if (cookie == -1)
     return -1;
 
-  return wait_for_command (h, ch);
+  return wait_for_command (h, cookie);
 }
 
 /* Issue a block status command and wait for the reply. */
@@ -147,14 +147,14 @@ nbd_unlocked_block_status (struct nbd_handle *h,
                            uint64_t count, uint64_t offset,
                            extent_fn extent, void *user_data, uint32_t flags)
 {
-  int64_t ch;
+  int64_t cookie;
 
-  ch = nbd_unlocked_aio_block_status (h, count, offset, extent, user_data,
-                                      flags);
-  if (ch == -1)
+  cookie = nbd_unlocked_aio_block_status (h, count, offset, extent, user_data,
+                                          flags);
+  if (cookie == -1)
     return -1;
 
-  return wait_for_command (h, ch);
+  return wait_for_command (h, cookie);
 }
 
 int64_t
