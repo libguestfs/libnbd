@@ -104,6 +104,7 @@ main (int argc, char *argv[])
 
   if (dprintf (script_fd, "case $1 in\n"
                "  get_size) echo 128m || exit 1 ;;\n"
+               "  thread_model) echo serialize_all_requests; exit 0 ;;\n"
                "  pread) printf 'ENOMEM ' >&2; exit 1 ;;\n"
                "  can_write) exit 0 ;;\n"
                "  pwrite)\n"
