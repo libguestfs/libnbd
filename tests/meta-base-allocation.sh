@@ -20,6 +20,9 @@
 # See tests/meta-base-allocation.c.
 
 case "$1" in
+    thread_model)
+        echo parallel
+        ;;
     get_size)
         echo 65536
         ;;

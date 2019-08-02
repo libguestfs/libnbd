@@ -29,6 +29,9 @@ if [ "$1" = "$key" ]; then
 fi
 
 case "$1" in
+    thread_model)
+        echo parallel
+    ;;
     config)
         case "$2" in
             key|print|rc) echo "$3" > $tmpdir/$2 ;;
