@@ -3338,8 +3338,6 @@ let generate_include_libnbd_h () =
   pr "\n";
   pr "struct nbd_handle;\n";
   pr "\n";
-  pr "typedef void (*nbd_close_callback) (void *user_data);\n";
-  pr "\n";
   List.iter (fun (n, i) -> pr "#define LIBNBD_%-30s %d\n" n i) constants;
   pr "\n";
   pr "#define LIBNBD_CALLBACK_VALID 1\n";
