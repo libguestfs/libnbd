@@ -73,6 +73,7 @@ export CAML_LD_LIBRARY_PATH
 
 # This is a cheap way to find some use-after-free and uninitialized
 # read problems when using glibc.
+export MALLOC_CHECK_=1
 random_val="$(@AWK@ 'BEGIN{srand(); print 1+int(255*rand())}' < /dev/null)"
 export MALLOC_PERTURB_=$random_val
 
