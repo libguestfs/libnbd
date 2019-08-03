@@ -19,6 +19,7 @@ include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
 	LICENSE-FOR-EXAMPLES \
+	asynch_copy.ml \
 	extents.ml \
 	$(NULL)
 
@@ -29,17 +30,17 @@ if HAVE_OCAML
 OCAMLFLAGS = $(OCAML_FLAGS) $(OCAML_WARN_ERROR) -ccopt '$(CFLAGS)' -I ..
 OCAMLPACKAGES = -package unix
 
-noinst_SCRIPTS = extents.bc
+noinst_SCRIPTS = asynch_copy.bc extents.bc
 if HAVE_OCAMLOPT
-noinst_SCRIPTS += extents.opt
+noinst_SCRIPTS += asynch_copy.opt extents.opt
 endif
 
 %.bc: %.cmo ../mlnbd.cma
-	LD_LIBRARY_PATH=../../lib/.libs $(OCAMLFIND) ocamlc $(OCAMLFLAGS) -package unix -linkpkg mlnbd.cma $< -o $@
+	LD_LIBRARY_PATH=../../lib/.libs $(OCAMLFIND) ocamlc $(OCAMLFLAGS) $(OCAMLPACKAGES) -linkpkg mlnbd.cma $< -o $@
 
 if HAVE_OCAMLOPT
 %.opt: %.cmx ../mlnbd.cmxa
-	LD_LIBRARY_PATH=../../lib/.libs $(OCAMLFIND) ocamlopt $(OCAMLFLAGS) -cclib -L$(top_builddir)/lib/.libs -I . -package unix -linkpkg mlnbd.cmxa $< -o $@
+	LD_LIBRARY_PATH=../../lib/.libs $(OCAMLFIND) ocamlopt $(OCAMLFLAGS) -cclib -L$(top_builddir)/lib/.libs -I . $(OCAMLPACKAGES) -linkpkg mlnbd.cmxa $< -o $@
 endif
 
 endif HAVE_OCAML
