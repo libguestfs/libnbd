@@ -3417,11 +3417,9 @@ let generate_include_libnbd_h () =
   List.iter (
     fun (name, { args; ret }) -> print_extern_and_define name args ret
   ) handle_calls;
-  pr "\n";
   List.iter (
     fun (ns, ctxts) -> print_ns ns ctxts
   ) metadata_namespaces;
-  pr "\n";
   pr "#ifdef __cplusplus\n";
   pr "}\n";
   pr "#endif\n";
