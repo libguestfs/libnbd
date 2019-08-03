@@ -197,16 +197,24 @@ dnl bindings.
 AC_PROG_OCAML
 AC_PROG_FINDLIB
 AM_CONDITIONAL([HAVE_OCAML_TOPLEVEL],[test "x$OCAML" != "xno"])
-AM_CONDITIONAL([HAVE_OCAML],
-               [test "x$OCAMLC" != "xno" && test "x$OCAMLFIND" != "xno"])
-AM_CONDITIONAL([HAVE_OCAMLOPT],
-               [test "x$OCAMLOPT" != "xno" && test "x$OCAMLFIND" != "xno"])
 
 dnl Flags we want to pass to every OCaml compiler call.
 OCAML_WARN_ERROR="-warn-error CDEFLMPSUVYZX+52-3"
 AC_SUBST([OCAML_WARN_ERROR])
 OCAML_FLAGS="-g -annot -safe-string"
 AC_SUBST([OCAML_FLAGS])
+
+dnl Note this only disables the OCaml bindings.
+AC_ARG_ENABLE([ocaml],
+    AS_HELP_STRING([--disable-ocaml], [disable OCaml language bindings]),
+    [],
+    [enable_ocaml=yes])
+AM_CONDITIONAL([HAVE_OCAML],
+    [test "x$OCAMLC" != "xno" && test "x$OCAMLFIND" != "xno" && \
+     test "x$enable_ocaml" = "xyes"])
+AM_CONDITIONAL([HAVE_OCAMLOPT],
+    [test "x$OCAMLOPT" != "xno" && test "x$OCAMLFIND" != "xno" && \
+     test "x$enable_ocaml" = "xyes"])
 
 dnl Python, optional for the Python bindings and shell.
 PYTHON_PREFIX=
