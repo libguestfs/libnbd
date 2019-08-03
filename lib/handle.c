@@ -105,9 +105,9 @@ nbd_close (struct nbd_handle *h)
     return;
 
   /* Free user callbacks first. */
-  if (h->debug_fn)
-    h->debug_fn (LIBNBD_CALLBACK_FREE, h->debug_data, NULL, NULL);
-  h->debug_fn = NULL;
+  if (h->debug_callback)
+    h->debug_callback (LIBNBD_CALLBACK_FREE, h->debug_data, NULL, NULL);
+  h->debug_callback = NULL;
 
   free (h->bs_entries);
   for (m = h->meta_contexts; m != NULL; m = m_next) {

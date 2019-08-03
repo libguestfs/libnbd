@@ -304,7 +304,7 @@ valid_flags (struct nbd_handle *h)
                    offset, cmd->offset, cmd->count);
         return 0;
       }
-      if (cmd->type == NBD_CMD_READ && cmd->cb.fn.read) {
+      if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk) {
         int scratch = error;
         unsigned valid = valid_flags (h);
 
@@ -312,13 +312,13 @@ valid_flags (struct nbd_handle *h)
          * current error rather than any earlier one. If the callback fails
          * without setting errno, then use the server's error below.
          */
-        if (cmd->cb.fn.read (valid, cmd->cb.fn_user_data,
-                             cmd->data + (offset - cmd->offset),
-                             0, offset, LIBNBD_READ_ERROR, &scratch) == -1)
+        if (cmd->cb.fn.chunk (valid, cmd->cb.fn_user_data,
+                              cmd->data + (offset - cmd->offset),
+                              0, offset, LIBNBD_READ_ERROR, &scratch) == -1)
           if (cmd->error == 0)
             cmd->error = scratch;
         if (valid & LIBNBD_CALLBACK_FREE)
-          cmd->cb.fn.read = NULL; /* because we've freed it */
+          cmd->cb.fn.chunk = NULL; /* because we've freed it */
       }
     }
 
@@ -398,18 +398,18 @@ valid_flags (struct nbd_handle *h)
     offset = be64toh (h->sbuf.sr.payload.offset_data.offset);
 
     assert (cmd); /* guaranteed by CHECK */
-    if (cmd->cb.fn.read) {
+    if (cmd->cb.fn.chunk) {
       int error = cmd->error;
       unsigned valid = valid_flags (h);
 
-      if (cmd->cb.fn.read (valid, cmd->cb.fn_user_data,
-                           cmd->data + (offset - cmd->offset),
-                           length - sizeof offset, offset,
+      if (cmd->cb.fn.chunk (valid, cmd->cb.fn_user_data,
+                            cmd->data + (offset - cmd->offset),
+                            length - sizeof offset, offset,
                            LIBNBD_READ_DATA, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
       if (valid & LIBNBD_CALLBACK_FREE)
-        cmd->cb.fn.read = NULL; /* because we've freed it */
+        cmd->cb.fn.chunk = NULL; /* because we've freed it */
     }
 
     SET_NEXT_STATE (%FINISH);
@@ -463,18 +463,18 @@ valid_flags (struct nbd_handle *h)
      * them as an extension, and this works even when length == 0.
      */
     memset (cmd->data + offset, 0, length);
-    if (cmd->cb.fn.read) {
+    if (cmd->cb.fn.chunk) {
       int error = cmd->error;
       unsigned valid = valid_flags (h);
 
-      if (cmd->cb.fn.read (valid, cmd->cb.fn_user_data,
-                           cmd->data + offset, length,
-                           cmd->offset + offset,
-                           LIBNBD_READ_HOLE, &error) == -1)
+      if (cmd->cb.fn.chunk (valid, cmd->cb.fn_user_data,
+                            cmd->data + offset, length,
+                            cmd->offset + offset,
+                            LIBNBD_READ_HOLE, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
       if (valid & LIBNBD_CALLBACK_FREE)
-        cmd->cb.fn.read = NULL; /* because we've freed it */
+        cmd->cb.fn.chunk = NULL; /* because we've freed it */
     }
 
     SET_NEXT_STATE(%FINISH);
@@ -548,10 +548,10 @@ valid_flags (struct nbd_handle *h)
     if (cmd->type == NBD_CMD_BLOCK_STATUS && cmd->cb.fn.extent)
       cmd->cb.fn.extent (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
                          NULL, 0, NULL, 0, NULL);
-    if (cmd->type == NBD_CMD_READ && cmd->cb.fn.read)
-      cmd->cb.fn.read (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
-                       NULL, 0, 0, 0, NULL);
-    cmd->cb.fn.read = NULL;
+    if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk)
+      cmd->cb.fn.chunk (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
+                        NULL, 0, 0, 0, NULL);
+    cmd->cb.fn.chunk = NULL;
     SET_NEXT_STATE (%^FINISH_COMMAND);
   }
   else {

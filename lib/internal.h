@@ -47,7 +47,6 @@
 struct meta_context;
 struct socket;
 struct command;
-typedef int (*debug_fn) (unsigned, void *, const char *, const char *);
 
 struct nbd_handle {
   /* Lock protecting concurrent access to the handle. */
@@ -80,7 +79,7 @@ struct nbd_handle {
 
   /* For debugging. */
   bool debug;
-  debug_fn debug_fn;
+  nbd_debug_callback debug_callback;
   void *debug_data;
 
   /* State machine.
@@ -248,23 +247,14 @@ struct socket {
   const struct socket_ops *ops;
 };
 
-typedef int (*extent_fn) (unsigned valid_flag, void *user_data,
-                          const char *metacontext, uint64_t offset,
-                          uint32_t *entries, size_t nr_entries, int *error);
-typedef int (*read_fn) (unsigned valid_flag, void *user_data,
-                        const void *buf, size_t count,
-                        uint64_t offset, unsigned status, int *error);
-typedef int (*callback_fn) (unsigned valid_flag, void *user_data,
-                            int *error);
-
 struct command_cb {
   union {
-    extent_fn extent;
-    read_fn read;
+    nbd_extent_callback extent;
+    nbd_chunk_callback chunk;
   } fn;
   void *fn_user_data; /* associated with one of the fn callbacks above */
-  callback_fn callback;
-  void *user_data; /* associated with the callback function */
+  nbd_completion_callback completion;
+  void *user_data; /* associated with the completion callback */
 };
 
 struct command {

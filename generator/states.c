@@ -121,14 +121,14 @@ void abort_commands (struct nbd_handle *h,
     bool retire = cmd->type == NBD_CMD_DISC;
 
     next = cmd->next;
-    if (cmd->cb.callback) {
+    if (cmd->cb.completion) {
       int error = cmd->error ? cmd->error : ENOTCONN;
       int r;
 
       assert (cmd->type != NBD_CMD_DISC);
-      r = cmd->cb.callback (LIBNBD_CALLBACK_VALID|LIBNBD_CALLBACK_FREE,
-                            cmd->cb.user_data, &error);
-      cmd->cb.callback = NULL; /* because we've freed it */
+      r = cmd->cb.completion (LIBNBD_CALLBACK_VALID|LIBNBD_CALLBACK_FREE,
+                              cmd->cb.user_data, &error);
+      cmd->cb.completion = NULL; /* because we've freed it */
       switch (r) {
       case -1:
         if (error)

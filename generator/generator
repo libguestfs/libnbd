@@ -924,7 +924,7 @@ Return the state of the debug flag on this handle.";
 
   "set_debug_callback", {
     default_call with
-    args = [ Closure { cbname="debug_fn";
+    args = [ Closure { cbname="debug";
                        cbargs=[String "context"; String "msg"] } ];
     ret = RErr;
     shortdesc = "set the debug callback";
@@ -1731,7 +1731,7 @@ C<nbd_pread>.";
   "aio_pread_callback", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
-             Closure { cbname="callback";
+             Closure { cbname="completion";
                        cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
@@ -1778,7 +1778,7 @@ documented in C<nbd_pread_structured>.";
                                UInt64 "offset";
                                UInt "status";
                                Mutable (Int "error")] };
-             Closure { cbname="callback";
+             Closure { cbname="completion";
                        cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
@@ -1814,7 +1814,7 @@ C<nbd_pwrite>.";
   "aio_pwrite_callback", {
     default_call with
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset";
-             Closure { cbname="callback";
+             Closure { cbname="completion";
                        cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
@@ -1870,7 +1870,7 @@ Parameters behave as documented in C<nbd_flush>.";
 
   "aio_flush_callback", {
     default_call with
-    args = [ Closure { cbname="callback";
+    args = [ Closure { cbname="completion";
                        cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
@@ -1904,7 +1904,7 @@ Parameters behave as documented in C<nbd_trim>.";
   "aio_trim_callback", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
-             Closure { cbname="callback";
+             Closure { cbname="completion";
                        cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
@@ -1938,7 +1938,7 @@ Parameters behave as documented in C<nbd_cache>.";
   "aio_cache_callback", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
-             Closure { cbname="callback";
+             Closure { cbname="completion";
                        cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
@@ -1972,7 +1972,7 @@ Parameters behave as documented in C<nbd_zero>.";
   "aio_zero_callback", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
-             Closure { cbname="callback";
+             Closure { cbname="completion";
                        cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
@@ -2017,7 +2017,7 @@ Parameters behave as documented in C<nbd_block_status>.";
                                ArrayAndLen (UInt32 "entries",
                                             "nr_entries");
                                Mutable (Int "error")] };
-             Closure { cbname="callback";
+             Closure { cbname="completion";
                        cbargs=[Mutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
@@ -2362,6 +2362,25 @@ let rec group_by = function
    (day, x1 :: xs) :: List.tl rest
 | (day, x) :: rest ->
    (day, [x]) :: group_by rest
+
+let uniq ?(cmp = Pervasives.compare) xs =
+  let rec loop acc = function
+    | [] -> acc
+    | [x] -> x :: acc
+    | x :: (y :: _ as xs) when cmp x y = 0 ->
+       loop acc xs
+    | x :: (y :: _ as xs) ->
+       loop (x :: acc) xs
+  in
+  List.rev (loop [] xs)
+
+(* This is present in OCaml 4.04, so we can remove it when
+ * we depend on OCaml >= 4.04.
+ *)
+let sort_uniq ?(cmp = Pervasives.compare) xs =
+  let xs = List.sort cmp xs in
+  let xs = uniq ~cmp xs in
+  xs
 
 let chan = ref Pervasives.stdout
 let pr fs = ksprintf (fun str -> output_string !chan str) fs
@@ -3100,6 +3119,30 @@ let () =
                      name
   ) handle_calls;
 
+  (* Closures must be uniquely named across all calls. *)
+  let () =
+    let all_args =
+      List.flatten (List.map (fun (_, { args }) -> args) handle_calls) in
+    let h = Hashtbl.create 13 in
+    List.iter (
+      function
+      | Closure { cbname; cbargs } ->
+         (try
+            (* If we've already added this name to the hash, check
+             * closure args are identical.
+             *)
+            let other_cbargs = Hashtbl.find h cbname in
+            if cbargs <> other_cbargs then
+              failwithf "%s: Closure has different arguments across methods"
+                cbname
+          with Not_found ->
+                (* Otherwise add it to the hash. *)
+                Hashtbl.add h cbname cbargs
+         )
+      | _ -> ()
+    ) all_args
+  in
+
   (* !may_set_error is incompatible with permitted_states != [] because
    * an incorrect state will result in set_error being called by the
    * generated wrapper.  It is also incompatible with RUint.
@@ -3170,7 +3213,8 @@ let rec name_of_arg = function
 | BytesOut (n, len) -> [n; len]
 | BytesPersistIn (n, len) -> [n; len]
 | BytesPersistOut (n, len) -> [n; len]
-| Closure { cbname } -> [cbname; sprintf "%s_user_data" cbname ]
+| Closure { cbname } ->
+   [ sprintf "%s_callback" cbname; sprintf "%s_user_data" cbname ]
 | Flags n -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
@@ -3232,12 +3276,8 @@ let rec print_arg_list ?(handle = false) ?(valid_flag = false)
          if types then pr "size_t ";
          pr "%s" len
       | Closure { cbname; cbargs } ->
-         if types then (
-           pr "int (*%s) " cbname;
-           print_arg_list ~valid_flag:true ~user_data:true cbargs;
-         )
-         else
-           pr "%s" cbname;
+         if types then pr "nbd_%s_callback " cbname;
+         pr "%s_callback" cbname;
          pr ", ";
          if types then pr "void *";
          pr "%s_user_data" cbname
@@ -3297,6 +3337,24 @@ let print_extern name args ret =
   print_call name args ret;
   pr ";\n"
 
+(* Callback typedefs in <libnbd.h> *)
+let print_closure_typedefs () =
+  let all_cls =
+    List.map (
+      fun (_, { args }) ->
+        filter_map (function Closure cl -> Some cl | _ -> None) args
+    ) handle_calls in
+  let all_cls = List.flatten all_cls in
+  let cmp { cbname = n1 } { cbname = n2 } = compare n1 n2 in
+  let unique_cls = sort_uniq ~cmp all_cls in
+  List.iter (
+    fun { cbname; cbargs } ->
+      pr "typedef int (*nbd_%s_callback) " cbname;
+      print_arg_list ~valid_flag:true ~user_data:true cbargs;
+      pr ";\n";
+  ) unique_cls;
+  pr "\n"
+
 let print_extern_and_define name args ret =
   let name_upper = String.uppercase_ascii name in
   print_extern name args ret;
@@ -3355,6 +3413,7 @@ let generate_include_libnbd_h () =
   pr "extern int nbd_get_errno (void);\n";
   pr "#define LIBNBD_HAVE_NBD_GET_ERRNO 1\n";
   pr "\n";
+  print_closure_typedefs ();
   List.iter (
     fun (name, { args; ret }) -> print_extern_and_define name args ret
   ) handle_calls;
@@ -4845,7 +4904,7 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "  if (%s_user_data == NULL) caml_raise_out_of_memory ();\n" cbname;
        pr "  caml_register_generational_global_root (%s_user_data);\n" cbname;
        pr "  *%s_user_data = %sv;\n" cbname cbname;
-       pr "  const void *%s = %s_%s_wrapper;\n" cbname name cbname
+       pr "  const void *%s_callback = %s_%s_wrapper;\n" cbname name cbname
     | OCamlArg (Flags _) -> assert false (* see above *)
     | OCamlArg (Int n) ->
        pr "  int %s = Int_val (%sv);\n" n n

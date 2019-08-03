@@ -60,16 +60,16 @@
   case 0:
     /* guaranteed by START */
     assert (cmd);
-    if (cmd->cb.fn.read) {
+    if (cmd->cb.fn.chunk) {
       int error = 0;
 
       assert (cmd->error == 0);
-      if (cmd->cb.fn.read (LIBNBD_CALLBACK_VALID|LIBNBD_CALLBACK_FREE,
-                           cmd->cb.fn_user_data,
-                           cmd->data, cmd->count,
-                           cmd->offset, LIBNBD_READ_DATA, &error) == -1)
+      if (cmd->cb.fn.chunk (LIBNBD_CALLBACK_VALID|LIBNBD_CALLBACK_FREE,
+                            cmd->cb.fn_user_data,
+                            cmd->data, cmd->count,
+                            cmd->offset, LIBNBD_READ_DATA, &error) == -1)
         cmd->error = error ? error : EPROTO;
-      cmd->cb.fn.read = NULL; /* because we've freed it */
+      cmd->cb.fn.chunk = NULL; /* because we've freed it */
     }
 
     SET_NEXT_STATE (%^FINISH_COMMAND);

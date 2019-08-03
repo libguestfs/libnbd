@@ -35,12 +35,12 @@ nbd_internal_retire_and_free_command (struct command *cmd)
   if (cmd->type == NBD_CMD_BLOCK_STATUS && cmd->cb.fn.extent)
     cmd->cb.fn.extent (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
                        NULL, 0, NULL, 0, NULL);
-  if (cmd->type == NBD_CMD_READ && cmd->cb.fn.read)
-    cmd->cb.fn.read (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
-                     NULL, 0, 0, 0, NULL);
-  if (cmd->cb.callback)
-    cmd->cb.callback (LIBNBD_CALLBACK_FREE, cmd->cb.user_data,
-                      NULL);
+  if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk)
+    cmd->cb.fn.chunk (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
+                      NULL, 0, 0, 0, NULL);
+  if (cmd->cb.completion)
+    cmd->cb.completion (LIBNBD_CALLBACK_FREE, cmd->cb.user_data,
+                        NULL);
 
   free (cmd);
 }
