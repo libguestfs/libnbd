@@ -3386,6 +3386,13 @@ let generate_include_libnbd_h () =
   pr "#ifndef LIBNBD_H\n";
   pr "#define LIBNBD_H\n";
   pr "\n";
+  pr "/* This is the public interface to libnbd, a client library for\n";
+  pr " * accessing Network Block Device (NBD) servers.\n";
+  pr " *\n";
+  pr " * Please read the libnbd(3) and libnbd-api(3) manual pages to\n";
+  pr " * find out how to use this library.\n";
+  pr " */\n";
+  pr "\n";
   pr "#include <stdbool.h>\n";
   pr "#include <stdint.h>\n";
   pr "#include <sys/socket.h>\n";
