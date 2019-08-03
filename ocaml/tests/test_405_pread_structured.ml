@@ -41,7 +41,8 @@ let f user_data buf2 offset s err =
   assert (user_data = 42);
   assert (buf2 = expected);
   assert (offset = 0_L);
-  assert (s = Int32.to_int NBD.read_data)
+  assert (s = Int32.to_int NBD.read_data);
+  0
 
 let () =
   let nbd = NBD.create () in

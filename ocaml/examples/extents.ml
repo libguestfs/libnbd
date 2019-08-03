@@ -30,5 +30,6 @@ let () =
             | i -> sprintf "unknown (%ld)" i in
           printf "%d:\t%ld\t%s\n" i entries.(i*2) flags
         done
-      )
+      );
+      0
   )

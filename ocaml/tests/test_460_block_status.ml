@@ -30,7 +30,8 @@ let f user_data metacontext offset e err =
   assert (user_data = 42);
   assert (!err = 0);
   if metacontext = "base:allocation" then
-    entries := e
+    entries := e;
+  0
 
 let () =
   let nbd = NBD.create () in

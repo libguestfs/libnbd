@@ -19,7 +19,8 @@
 let messages = ref []
 let f id context msg =
   assert (id = 42);
-  messages := !messages @ [msg]
+  messages := !messages @ [msg];
+  0
 
 let () =
   let nbd = NBD.create () in

@@ -4512,7 +4512,7 @@ and ocaml_arg_to_string = function
   | OCamlArg (Closure { cbargs }) ->
      sprintf "(%s)"
              (ocaml_fundecl_to_string (List.map (fun a -> OCamlArg a) cbargs)
-                                      RErr)
+                                      RInt)
   | OCamlArg (Flags _) -> assert false (* see above *)
   | OCamlArg (Int _) -> "int"
   | OCamlArg (Int64 _) -> "int64"
@@ -4732,6 +4732,7 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "  CAMLlocal%d (%s);\n" (List.length argnames)
           (String.concat ", " argnames);
        pr "  CAMLlocal2 (fnv, rv);\n";
+       pr "  int r;\n";
        pr "  value args[%d];\n" (List.length argnames);
        pr "\n";
 
@@ -4803,7 +4804,9 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "  }\n";
 
        pr "\n";
-       pr "  CAMLreturnT (int, 0);\n";
+       pr "  r = Int_val (rv);\n";
+       pr "  assert (r >= 0);\n";
+       pr "  CAMLreturnT (int, r);\n";
        pr "}\n";
        pr "\n";
        pr "static int\n";
@@ -5019,6 +5022,7 @@ let generate_ocaml_nbd_c () =
   pr "#include <stdio.h>\n";
   pr "#include <stdlib.h>\n";
   pr "#include <string.h>\n";
+  pr "#include <assert.h>\n";
   pr "\n";
   pr "#include <libnbd.h>\n";
   pr "\n";

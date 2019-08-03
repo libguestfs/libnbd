@@ -41,7 +41,8 @@ let chunk user_data buf2 offset s err =
   assert (user_data = 42);
   assert (buf2 = expected);
   assert (offset = 0_L);
-  assert (s = Int32.to_int NBD.read_data)
+  assert (s = Int32.to_int NBD.read_data);
+  0
 
 let callback user_data err =
   if user_data <= 43 then
@@ -49,7 +50,8 @@ let callback user_data err =
   else
     assert (!err = 100);
   err := 101;
-  assert (user_data = 42)
+  assert (user_data = 42);
+  0
 
 let () =
   let nbd = NBD.create () in
