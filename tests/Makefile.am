@@ -39,11 +39,82 @@ EXTRA_DIST = \
 	synch-parallel-tls.sh \
 	$(NULL)
 
+check_DATA =
+check_PROGRAMS =
+TESTS =
+
+# Make sure that $srcdir is available to tests.
+# Enable debug in all tests.
+TESTS_ENVIRONMENT = srcdir=$(srcdir) LIBNBD_DEBUG=1
+# Use the ./run script so we're always using the local library and tools.
+LOG_COMPILER = $(top_builddir)/run
+
+#----------------------------------------------------------------------
+# The following tests do not need an NBD server.
+
+check_PROGRAMS += \
+	compile-header-only \
+	compile \
+	compile-ansi-c \
+	debug \
+	debug-environment \
+	version \
+	export-name \
+	$(NULL)
+
+TESTS += \
+	compile-header-only \
+	compile \
+	compile-ansi-c \
+	debug \
+	debug-environment \
+	version \
+	export-name \
+	$(NULL)
+
+compile_header_only_SOURCES = compile-header-only.c
+compile_header_only_CPPFLAGS = -I$(top_srcdir)/include
+compile_header_only_CFLAGS = $(WARNINGS_CFLAGS)
+compile_header_only_LDADD = $(top_builddir)/lib/libnbd.la
+
+compile_SOURCES = compile.c
+compile_CPPFLAGS = -I$(top_srcdir)/include
+compile_CFLAGS = $(WARNINGS_CFLAGS)
+compile_LDADD = $(top_builddir)/lib/libnbd.la
+
+compile_ansi_c_SOURCES = compile-ansi-c.c
+compile_ansi_c_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-std=c90 -pedantic
+compile_ansi_c_CFLAGS = $(WARNINGS_CFLAGS)
+compile_ansi_c_LDADD = $(top_builddir)/lib/libnbd.la
+
+debug_SOURCES = debug.c
+debug_CPPFLAGS = -I$(top_srcdir)/include
+debug_CFLAGS = $(WARNINGS_CFLAGS)
+debug_LDADD = $(top_builddir)/lib/libnbd.la
+
+debug_environment_SOURCES = debug-environment.c
+debug_environment_CPPFLAGS = -I$(top_srcdir)/include
+debug_environment_CFLAGS = $(WARNINGS_CFLAGS)
+debug_environment_LDADD = $(top_builddir)/lib/libnbd.la
+
+version_SOURCES = version.c
+version_CPPFLAGS = -I$(top_srcdir)/include
+version_CFLAGS = $(WARNINGS_CFLAGS)
+version_LDADD = $(top_builddir)/lib/libnbd.la
+
+export_name_SOURCES = export-name.c
+export_name_CPPFLAGS = -I$(top_srcdir)/include
+export_name_CFLAGS = $(WARNINGS_CFLAGS)
+export_name_LDADD = $(top_builddir)/lib/libnbd.la
+
+#----------------------------------------------------------------------
+# The following tests require nbdkit as an NBD server to test against.
+
 if HAVE_NBDKIT
 
-check_DATA =
-
-check_PROGRAMS = \
+check_PROGRAMS += \
 	errors \
 	server-death \
 	get-size \
@@ -74,13 +145,7 @@ check_PROGRAMS = \
 #	can-cache-flag
 #	can-not-cache-flag
 
-# Make sure that $srcdir is available to tests.
-# Enable debug in all tests.
-TESTS_ENVIRONMENT = srcdir=$(srcdir) LIBNBD_DEBUG=1
-# Use the ./run script so we're always using the local library and tools.
-LOG_COMPILER = $(top_builddir)/run
-
-TESTS = \
+TESTS += \
 	errors \
 	server-death \
 	get-size \
@@ -286,7 +351,9 @@ closure_lifetimes_CPPFLAGS = -I$(top_srcdir)/include
 closure_lifetimes_CFLAGS = $(WARNINGS_CFLAGS)
 closure_lifetimes_LDADD = $(top_builddir)/lib/libnbd.la
 
+#----------------------------------------------------------------------
 # Testing TLS support.
+
 if HAVE_GNUTLS
 
 if HAVE_CERTTOOL

@@ -109,13 +109,19 @@ Makefile.in
 /tests/can-not-trim-flag
 /tests/can-zero-flag
 /tests/closure-lifetimes
+/tests/compile
+/tests/compile-ansi-c
+/tests/compile-header-only
 /tests/connect-tcp
 /tests/connect-tls-certs
 /tests/connect-tls-psk
 /tests/connect-unix
 /tests/connect-uri-tcp
 /tests/connect-uri-unix
+/tests/debug
+/tests/debug-environment
 /tests/errors
+/tests/export-name
 /tests/functions.sh
 /tests/get-size
 /tests/is-rotational-flag
@@ -123,6 +129,7 @@ Makefile.in
 /tests/keys.psk
 /tests/meta-base-allocation
 /tests/oldstyle
+/tests/version
 /tests/pki/
 /tests/read-only-flag
 /tests/read-write-flag
