@@ -109,6 +109,18 @@ export_name_CPPFLAGS = -I$(top_srcdir)/include
 export_name_CFLAGS = $(WARNINGS_CFLAGS)
 export_name_LDADD = $(top_builddir)/lib/libnbd.la
 
+if HAVE_CXX
+
+check_PROGRAMS += compile-cxx
+TESTS += compile-cxx
+
+compile_cxx_SOURCES = compile-cxx.cpp
+compile_cxx_CPPFLAGS = -I$(top_srcdir)/include
+compile_cxx_CXXFLAGS = $(WARNINGS_CFLAGS)
+compile_cxx_LDADD = $(top_builddir)/lib/libnbd.la
+
+endif HAVE_CXX
+
 #----------------------------------------------------------------------
 # The following tests require nbdkit as an NBD server to test against.
 

@@ -111,6 +111,7 @@ Makefile.in
 /tests/closure-lifetimes
 /tests/compile
 /tests/compile-ansi-c
+/tests/compile-cxx
 /tests/compile-header-only
 /tests/connect-tcp
 /tests/connect-tls-certs

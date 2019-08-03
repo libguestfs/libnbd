@@ -3332,6 +3332,10 @@ let generate_include_libnbd_h () =
   pr "#include <stdint.h>\n";
   pr "#include <sys/socket.h>\n";
   pr "\n";
+  pr "#ifdef __cplusplus\n";
+  pr "extern \"C\" {\n";
+  pr "#endif\n";
+  pr "\n";
   pr "struct nbd_handle;\n";
   pr "\n";
   pr "typedef void (*nbd_close_callback) (void *user_data);\n";
@@ -3360,6 +3364,10 @@ let generate_include_libnbd_h () =
   List.iter (
     fun (ns, ctxts) -> print_ns ns ctxts
   ) metadata_namespaces;
+  pr "\n";
+  pr "#ifdef __cplusplus\n";
+  pr "}\n";
+  pr "#endif\n";
   pr "\n";
   pr "#endif /* LIBNBD_H */\n"
 
