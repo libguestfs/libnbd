@@ -103,4 +103,23 @@ endif
 	$(OCAMLFIND) ocamldep $^ > $@
 -include .depend
 
+# Run ocamlfind to perform the install.  ocamlfind refuses to install
+# the package if it is already installed, so remove the old package
+# first.
+data_hook_files = META *.so *.a *.cma *.cmi $(srcdir)/*.mli
+if HAVE_OCAMLOPT
+data_hook_files += *.cmx *.cmxa
+endif
+
+install-data-hook:
+	mkdir -p $(DESTDIR)$(OCAMLLIB)
+	mkdir -p $(DESTDIR)$(OCAMLLIB)/stublibs
+	rm -rf $(DESTDIR)$(OCAMLLIB)/nbd
+	rm -rf $(DESTDIR)$(OCAMLLIB)/stublibs/dllmlnbd.so*
+	$(OCAMLFIND) install \
+	  -ldconf ignore -destdir $(DESTDIR)$(OCAMLLIB) \
+	  nbd \
+	  $(data_hook_files)
+	rm $(DESTDIR)$(OCAMLLIB)/nbd/libnbdocaml.a
+
 endif HAVE_OCAML
