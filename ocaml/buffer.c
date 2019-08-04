@@ -34,9 +34,45 @@
 void
 nbd_buffer_finalize (value bv)
 {
-  struct nbd_buffer b = NBD_buffer_val (bv);
+  struct nbd_buffer *b = NBD_buffer_val (bv);
 
-  free (b.data);
+  /* Usually if this frees the buffer it indicates a bug in the
+   * program.  The buffer should have been manually freed before
+   * this.  But there's nothing we can do here, so free it.
+   */
+  free (b->data);
+}
+
+/* Allocate an NBD persistent buffer. */
+value
+nbd_internal_ocaml_buffer_alloc (value sizev)
+{
+  CAMLparam1 (sizev);
+  CAMLlocal1 (rv);
+  struct nbd_buffer b;
+
+  b.len = Int_val (sizev);
+  b.data = malloc (b.len);
+  if (b.data == NULL)
+    caml_raise_out_of_memory ();
+
+  rv = Val_nbd_buffer (b);
+  CAMLreturn (rv);
+}
+
+/* Free an NBD persistent buffer (only the C buffer, not the
+ * OCaml object).
+ */
+value
+nbd_internal_ocaml_buffer_free (value bv)
+{
+  CAMLparam1 (bv);
+  struct nbd_buffer *b = NBD_buffer_val (bv);
+
+  free (b->data);
+  b->data = NULL;
+
+  CAMLreturn (Val_unit);
 }
 
 /* Copy an NBD persistent buffer to an OCaml bytes. */
@@ -45,10 +81,13 @@ nbd_internal_ocaml_buffer_to_bytes (value bv)
 {
   CAMLparam1 (bv);
   CAMLlocal1 (rv);
-  struct nbd_buffer b = NBD_buffer_val (bv);
+  struct nbd_buffer *b = NBD_buffer_val (bv);
 
-  rv = caml_alloc_string (b.len);
-  memcpy (Bytes_val (rv), b.data, b.len);
+  if (b->data == NULL)          /* Buffer has been freed. */
+    caml_invalid_argument ("NBD.Buffer.to_bytes used on freed buffer");
+
+  rv = caml_alloc_string (b->len);
+  memcpy (Bytes_val (rv), b->data, b->len);
 
   CAMLreturn (rv);
 }

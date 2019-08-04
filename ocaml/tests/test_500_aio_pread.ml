@@ -38,7 +38,7 @@ let () =
   NBD.connect_command nbd ["nbdkit"; "-s"; "--exit-with-parent"; "-v";
                            "pattern"; "size=512"];
 
-  let buf = NBD.Buffer.of_bytes (Bytes.create 512) in
+  let buf = NBD.Buffer.alloc 512 in
   let cookie = NBD.aio_pread nbd buf 0_L in
   while not (NBD.aio_command_completed nbd cookie) do
     ignore (NBD.poll nbd (-1))

@@ -39,7 +39,7 @@ let () =
     ignore (NBD.poll nbd (-1))
   done;
 
-  let buf2 = NBD.Buffer.of_bytes (Bytes.create 512) in
+  let buf2 = NBD.Buffer.alloc 512 in
   let cookie = NBD.aio_pread nbd buf2 0_L in
   while not (NBD.aio_command_completed nbd cookie) do
     ignore (NBD.poll nbd (-1))

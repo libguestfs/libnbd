@@ -4605,11 +4605,20 @@ module Buffer : sig
   type t
   (** Persistent, mutable C-compatible malloc'd buffer, used in AIO calls. *)
 
+  val alloc : int -> t
+  (** Allocate an uninitialized buffer.  The parameter is the size
+      in bytes. *)
+
+  val free : t -> unit
+  (** The buffer must be manually freed when it is no longer used.
+      An AIO completion callback is usually a good place. *)
+
   val to_bytes : t -> bytes
   (** Copy buffer to an OCaml [bytes] object. *)
 
   val of_bytes : bytes -> t
   (** Copy an OCaml [bytes] object to a newly allocated buffer. *)
+
 end
 (** Persistent buffer used in AIO calls. *)
 
@@ -4676,6 +4685,8 @@ let () =
   pr "\
 module Buffer = struct
   type t
+  external alloc : int -> t = \"nbd_internal_ocaml_buffer_alloc\"
+  external free : t -> unit = \"nbd_internal_ocaml_buffer_free\"
   external to_bytes : t -> bytes = \"nbd_internal_ocaml_buffer_to_bytes\"
   external of_bytes : bytes -> t = \"nbd_internal_ocaml_buffer_of_bytes\"
 end
@@ -4893,16 +4904,16 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "  const void *%s = Bytes_val (%sv);\n" n n;
        pr "  size_t %s = caml_string_length (%sv);\n" count n
     | OCamlArg (BytesPersistIn (n, count)) ->
-       pr "  struct nbd_buffer %s_buf = NBD_buffer_val (%sv);\n" n n;
-       pr "  const void *%s = %s_buf.data;\n" n n;
-       pr "  size_t %s = %s_buf.len;\n" count n
+       pr "  struct nbd_buffer *%s_buf = NBD_buffer_val (%sv);\n" n n;
+       pr "  const void *%s = %s_buf->data;\n" n n;
+       pr "  size_t %s = %s_buf->len;\n" count n
     | OCamlArg (BytesOut (n, count)) ->
        pr "  void *%s = Bytes_val (%sv);\n" n n;
        pr "  size_t %s = caml_string_length (%sv);\n" count n
     | OCamlArg (BytesPersistOut (n, count)) ->
-       pr "  struct nbd_buffer %s_buf = NBD_buffer_val (%sv);\n" n n;
-       pr "  void *%s = %s_buf.data;\n" n n;
-       pr "  size_t %s = %s_buf.len;\n" count n
+       pr "  struct nbd_buffer *%s_buf = NBD_buffer_val (%sv);\n" n n;
+       pr "  void *%s = %s_buf->data;\n" n n;
+       pr "  size_t %s = %s_buf->len;\n" count n
     | OCamlArg (Closure { cbname }) ->
        pr "  /* The function may save a reference to the closure, so we\n";
        pr "   * must treat it as a possible GC root.\n";

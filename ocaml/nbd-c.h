@@ -71,9 +71,10 @@ struct nbd_buffer {
 };
 
 /* Extract a persistent buffer from an OCaml heap value.  Note the
- * whole struct is stored in the custom, not a pointer.
+ * whole struct is stored in the custom, not a pointer.  This
+ * returns a pointer to the struct .
  */
-#define NBD_buffer_val(v) (*((struct nbd_buffer *)Data_custom_val(v)))
+#define NBD_buffer_val(v) ((struct nbd_buffer *)Data_custom_val(v))
 
 static struct custom_operations nbd_buffer_custom_operations = {
   (char *) "nbd_buffer_custom_operations",
@@ -94,7 +95,7 @@ Val_nbd_buffer (struct nbd_buffer b)
 
   rv = caml_alloc_custom (&nbd_buffer_custom_operations,
                           sizeof (struct nbd_buffer), 0, 1);
-  NBD_buffer_val (rv) = b;
+  *NBD_buffer_val (rv) = b;
   CAMLreturn (rv);
 }
 
