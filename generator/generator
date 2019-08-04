@@ -4910,8 +4910,8 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "  value *%s_user_data;\n" cbname;
        pr "  %s_user_data = malloc (sizeof (value));\n" cbname;
        pr "  if (%s_user_data == NULL) caml_raise_out_of_memory ();\n" cbname;
-       pr "  caml_register_generational_global_root (%s_user_data);\n" cbname;
        pr "  *%s_user_data = %sv;\n" cbname cbname;
+       pr "  caml_register_generational_global_root (%s_user_data);\n" cbname;
        pr "  const void *%s_callback = %s_%s_wrapper;\n" cbname name cbname
     | OCamlArg (Flags _) -> assert false (* see above *)
     | OCamlArg (Int n) ->
