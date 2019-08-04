@@ -1,0 +1,76 @@
+=head1 NAME
+
+libnbd-ocaml - how to use libnbd from OCaml
+
+=head1 SYNOPSIS
+
+ let nbd = NBD.create () in
+ NBD.connect_uri nbd "nbd://localhost";
+ let size = NBD.get_size nbd in
+ printf "%Ld\n" size
+
+=head1 DESCRIPTION
+
+This manual page documents how to use libnbd to access Network Block
+Device (NBD) servers from the OCaml programming language.  The OCaml
+bindings work very similarly to the C bindings so you should start by
+reading L<libnbd(3)>.  For detailed documentation on the API see
+L<libnbd-api(3)>.
+
+=head1 HANDLES
+
+Create a libnbd handle of type C<NBD.t> by calling S<C<NBD.create ()>>.
+
+You can either close the handle explicitly by calling C<NBD.close> or
+it will be closed automatically when it is garbage collected.  If you
+call any other method on a handle which you have explicitly closed
+then the API will throw an C<NBD.Closed> exception.
+
+=head1 ERRORS
+
+Libnbd errors are turned automatically into S<C<NBD.Error (str, errno)>>
+exceptions.  This exception has two parameters.  The first is a string
+which is the printable error message.  The second is the raw C<errno>,
+if available (see C<nbd_get_errno>).  The raw C<errno> is not
+compatible with errors in the OCaml C<Unix> module unfortunately.
+
+=head1 AIO BUFFERS
+
+Some libnbd asynchronous I/O (AIO) calls require a buffer parameter
+which persists after the call finishes.  For example C<NBD.aio_pread>
+starts a command which continues reading into the C<NBD.Buffer.t>
+parameter in subsequent calls after the original C<aio_pread> call
+returns.
+
+For these cases you must create a C<NBD.Buffer.t> and ensure that it
+is not garbage collected until the command completes.  The easiest way
+to do this is to use the C<*_callback> variants and free the buffer in
+the callback:
+
+ let buf = NBD.Buffer.alloc 512 in
+ NBD.aio_pread_callback h buf 0_L (
+   (* This is called when the command has completed. *)
+   fun _ ->
+     NBD.Buffer.free buf;
+     (* Returning 1 from this callback auto-retires the command. *)
+     1
+ )
+
+=head1 EXAMPLES
+
+This directory contains examples written in OCaml:
+
+L<https://github.com/libguestfs/libnbd/tree/master/ocaml/examples>
+
+=head1 SEE ALSO
+
+L<libnbd(3)>,
+L<libnbd-api(3)>.
+
+=head1 AUTHORS
+
+Richard W.M. Jones
+
+=head1 COPYRIGHT
+
+Copyright (C) 2019 Red Hat Inc.

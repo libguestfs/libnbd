@@ -4565,8 +4565,8 @@ let generate_ocaml_nbd_mli () =
   pr "\
 (** OCaml bindings for libnbd.
 
-    These bindings work like the C API, so the primary documentation
-    for them is libnbd(3) and libnbd-api(3).
+    For full documentation see:
+    libnbd-ocaml(3), libnbd(3) and libnbd-api(3).
 
     For examples written in OCaml see the libnbd source code
     [ocaml/examples] subdirectory.

@@ -75,6 +75,7 @@ Makefile.in
 /ocaml/examples/.depend
 /ocaml/examples/*.bc
 /ocaml/examples/*.opt
+/ocaml/libnbd-ocaml.3
 /ocaml/libnbdocaml.a
 /ocaml/META
 /ocaml/NBD.ml

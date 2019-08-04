@@ -29,6 +29,18 @@ EXTRA_DIST = \
 
 CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so
 
+if HAVE_POD
+
+man_MANS = libnbd-ocaml.3
+CLEANFILES += $(man_MANS)
+
+libnbd-ocaml.3: libnbd-ocaml.pod
+	$(PODWRAPPER) --section=3 --man $@ \
+	    --html $(top_builddir)/html/$@.html \
+	    $<
+
+endif HAVE_POD
+
 if HAVE_OCAML
 
 OCAMLFLAGS = $(OCAML_FLAGS) $(OCAML_WARN_ERROR) -ccopt '$(CFLAGS)'
