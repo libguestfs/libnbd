@@ -24,10 +24,11 @@ let () =
   Bytes.set buf1 510 '\x55';
   Bytes.set buf1 511 '\xAA';
 
-  let datafile = "410-pwrite.data" in
-  let fd = openfile datafile [O_WRONLY;O_CREAT;O_TRUNC] 0o644 in
+  let datafile, chan =
+    Filename.open_temp_file ~mode:[Open_binary] "410" ".data" in
+  let fd = descr_of_out_channel chan in
   ftruncate fd 512;
-  close fd;
+  close_out chan;
 
   let nbd = NBD.create () in
   NBD.connect_command nbd ["nbdkit"; "-s"; "--exit-with-parent"; "-v";
@@ -44,4 +45,4 @@ let () =
   close fd;
   assert (buf1 = content);
 
-  Unix.unlink datafile
+  unlink datafile
