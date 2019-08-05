@@ -953,7 +953,7 @@ Handles have a name which is unique within the current process.
 The handle name is used in debug output.
 
 Handle names are normally generated automatically and have the
-form C<\"nbd<N>\">, but you can optionally use this call to
+form C<\"nbdE<lt>NE<gt>\">, but you can optionally use this call to
 give the handles a name which is meaningful for your application
 to make debugging output easier to understand.";
   };
@@ -965,7 +965,7 @@ to make debugging output easier to understand.";
     longdesc = "\
 Get the name of the handle.  If it was previously set by calling
 C<nbd_set_handle_name> then this returns the name that was set.
-Otherwise it will return a generic name like C<\"nbd<N>\">.";
+Otherwise it will return a generic name like C<\"nbdE<lt>NE<gt>\">.";
   };
 
   "set_export_name", {
