@@ -229,6 +229,12 @@ nbd_internal_command_common (struct nbd_handle *h,
   /* Add the command to the end of the queue. Kick the state machine
    * if there is no other command being processed, otherwise, it will
    * be handled automatically on a future cycle around to READY.
+   * Beyond this point, we have to return a cookie to the user, since
+   * we are queuing the command, even if kicking the state machine
+   * detects a failure.  Not reporting a state machine failure here is
+   * okay - any caller of an async command will be calling more API to
+   * await results, and will eventually learn that the machine has
+   * moved on to DEAD at that time.
    */
   h->in_flight++;
   if (h->cmds_to_issue != NULL) {
@@ -240,7 +246,7 @@ nbd_internal_command_common (struct nbd_handle *h,
     h->cmds_to_issue = h->cmds_to_issue_tail = cmd;
     if (nbd_internal_is_state_ready (get_next_state (h)) &&
         nbd_internal_run (h, cmd_issue) == -1)
-      return -1;
+      debug (h, "command queued, ignoring state machine failure");
   }
 
   return cmd->cookie;
