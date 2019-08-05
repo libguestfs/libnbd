@@ -877,7 +877,8 @@ and ret =
 | RFd                      (* return a file descriptor, or error *)
 | RInt                     (* return a small int, -1 = error *)
 | RInt64                   (* 64 bit int, -1 = error *)
-| RString                  (* return a newly allocated string, caller frees *)
+| RString                  (* return a newly allocated string,
+                              caller frees, NULL for error *)
 | RUInt                    (* return a bitmask, no error possible *)
 and permitted_state =
 | Created                  (* can be called in the START state *)
