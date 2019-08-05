@@ -289,7 +289,7 @@ extern void nbd_internal_debug (struct nbd_handle *h, const char *fs, ...);
   } while (0)
 
 /* errors.c */
-extern void nbd_internal_reset_error (const char *context);
+extern void nbd_internal_set_error_context (const char *context);
 extern const char *nbd_internal_get_error_context (void);
 extern void nbd_internal_set_last_error (int errnum, char *error);
 #define set_error(errnum, fs, ...)                                      \

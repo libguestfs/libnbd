@@ -3508,7 +3508,7 @@ let generate_lib_api_c () =
     pr "  %s ret;\n" ret_c_type;
     pr "\n";
     if may_set_error then (
-      pr "  nbd_internal_reset_error (\"nbd_%s\");\n" name;
+      pr "  nbd_internal_set_error_context (\"nbd_%s\");\n" name;
       pr "\n"
     );
     if is_locked then

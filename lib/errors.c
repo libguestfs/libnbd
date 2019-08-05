@@ -87,11 +87,12 @@ allocate_last_error_on_demand (void)
   return last_error;
 }
 
-/* Called on entry to every API function to reset the error context.
- * The 'context' parameter is the name of the function.
+/* Called on entry to any API function that can call an error function
+ * (see generator "may_set_error") to reset the error context.  The
+ * 'context' parameter is the name of the function.
  */
 void
-nbd_internal_reset_error (const char *context)
+nbd_internal_set_error_context (const char *context)
 {
   struct last_error *last_error = allocate_last_error_on_demand ();
 

@@ -47,7 +47,7 @@ nbd_create (void)
   struct nbd_handle *h;
   const char *s;
 
-  nbd_internal_reset_error ("nbd_create");
+  nbd_internal_set_error_context ("nbd_create");
 
   h = calloc (1, sizeof *h);
   if (h == NULL) {
@@ -97,7 +97,7 @@ nbd_close (struct nbd_handle *h)
 {
   struct meta_context *m, *m_next;
 
-  nbd_internal_reset_error ("nbd_close");
+  nbd_internal_set_error_context ("nbd_close");
 
   debug (h, "closing handle");
 
