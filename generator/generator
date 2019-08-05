@@ -872,7 +872,8 @@ and closure = {
 }
 and ret =
 | RBool                    (* return a boolean, or error *)
-| RConstString             (* return a const string, NULL for error *)
+| RStaticString            (* return a static string (must be located in
+                              .text section), NULL for error *)
 | RErr                     (* return 0 = ok, -1 = error *)
 | RFd                      (* return a file descriptor, or error *)
 | RInt                     (* return a small int, -1 = error *)
@@ -2265,7 +2266,7 @@ those commands as failed with a status of C<ENOTCONN>.";
 
   "connection_state", {
     default_call with
-    args = []; ret = RConstString;
+    args = []; ret = RStaticString;
     shortdesc = "return a descriptive string for the state of the connection";
     longdesc = "\
 Returns a descriptive string for the state of the connection.  This
@@ -2276,7 +2277,7 @@ versions.";
 
   "get_package_name", {
     default_call with
-    args = []; ret = RConstString; is_locked = false; may_set_error = false;
+    args = []; ret = RStaticString; is_locked = false; may_set_error = false;
     shortdesc = "return the name of the library";
     longdesc = "\
 Returns the name of the library, always C<\"libnbd\"> unless
@@ -2285,7 +2286,7 @@ the library was modified with another name at compile time.";
 
   "get_version", {
     default_call with
-    args = []; ret = RConstString; is_locked = false; may_set_error = false;
+    args = []; ret = RStaticString; is_locked = false; may_set_error = false;
     shortdesc = "return a descriptive string for the state of the connection";
     longdesc = "\
 Return the version of libnbd.  This is returned as a string
@@ -3251,14 +3252,14 @@ let generate_lib_libnbd_syms () =
 let errcode_of_ret =
   function
   | RBool | RErr | RFd | RInt | RInt64 -> Some "-1"
-  | RConstString | RString -> Some "NULL"
+  | RStaticString | RString -> Some "NULL"
   | RUInt -> None (* errors not possible *)
 
 let type_of_ret =
   function
   | RBool | RErr | RFd | RInt -> "int"
   | RInt64 -> "int64_t"
-  | RConstString -> "const char *"
+  | RStaticString -> "const char *"
   | RString -> "char *"
   | RUInt -> "unsigned"
 
@@ -3665,7 +3666,7 @@ let generate_lib_api_c () =
     (match ret with
      | RBool | RErr | RFd | RInt -> pr "%%d"
      | RInt64 -> pr "%%\" PRIi64 \""
-     | RConstString | RString -> pr "\\\"%%s\\\""
+     | RStaticString | RString -> pr "\\\"%%s\\\""
      | RUInt -> pr "%%u"
     );
     pr "\", ret);\n";
@@ -3710,9 +3711,10 @@ let print_api (name, { args; ret; permitted_states; shortdesc; longdesc;
   (match ret with
    | RBool ->
       pr "This call returns a boolean value.\n"
-   | RConstString ->
-      pr "This call returns a statically allocated string.\n";
-      pr "You B<must not> try to free the string.\n"
+   | RStaticString ->
+      pr "This call returns a statically allocated string, valid for the\n";
+      pr "lifetime of the process or until libnbd is unloaded by\n";
+      pr "L<dlclose(3)>.  You B<must not> try to free the string.\n"
    | RErr ->
       pr "If the call is successful the function returns C<0>.\n"
    | RFd ->
@@ -4344,7 +4346,7 @@ let print_python_binding name { args; ret; may_set_error } =
     | RBool ->
        pr "  py_ret = ret ? Py_True : Py_False;\n";
        pr "  Py_INCREF (py_ret);\n"
-    | RConstString ->
+    | RStaticString ->
        pr "  py_ret = PyUnicode_FromString (ret);\n"
     | RErr ->
        pr "  py_ret = Py_None;\n";
@@ -4631,7 +4633,7 @@ and ocaml_arg_to_string = function
 
 and ocaml_ret_to_string = function
   | RBool -> "bool"
-  | RConstString -> "string"
+  | RStaticString -> "string"
   | RErr -> "unit"
   | RFd -> "Unix.file_descr"
   | RInt -> "int"
@@ -5071,7 +5073,7 @@ let print_ocaml_binding (name, { args; ret }) =
    | RErr -> pr "  rv = Val_unit;\n"
    | RFd | RInt | RUInt -> pr "  rv = Val_int (r);\n"
    | RInt64 -> pr "  rv = caml_copy_int64 (r);\n"
-   | RConstString -> pr "  rv = caml_copy_string (r);\n"
+   | RStaticString -> pr "  rv = caml_copy_string (r);\n"
    | RString ->
       pr "  rv = caml_copy_string (r);\n";
       pr "  free (r);\n"
