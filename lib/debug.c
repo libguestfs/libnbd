@@ -80,7 +80,8 @@ nbd_internal_debug (struct nbd_handle *h, const char *fs, ...)
     /* ignore return value */
     h->debug_callback (LIBNBD_CALLBACK_VALID, h->debug_data, context, msg);
   else
-    fprintf (stderr, "libnbd: debug: %s: %s\n", context ? : "unknown", msg);
+    fprintf (stderr, "libnbd: debug: %s: %s: %s\n",
+             h->hname, context ? : "unknown", msg);
  out:
   free (msg);
   errno = err;

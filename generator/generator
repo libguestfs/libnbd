@@ -911,7 +911,9 @@ unless a debugging callback has been defined too
 (see C<nbd_set_debug_callback>) in which case they are
 sent to that function.  This flag defaults to false on
 newly created handles, except if C<LIBNBD_DEBUG=1> is
-set in the environment in which case it defaults to true.";
+set in the environment in which case it defaults to true.
+
+See also C<nbd_set_handle_name>.";
   };
 
   "get_debug", {
@@ -939,6 +941,30 @@ a handle then messages are printed on C<stderr>.
 The callback should not call C<nbd_*> APIs on the same handle since it can
 be called while holding the handle lock and will cause a deadlock.";
 };
+
+  "set_handle_name", {
+    default_call with
+    args = [ String "handle_name" ]; ret = RErr;
+    shortdesc = "set the handle name";
+    longdesc = "\
+Handles have a name which is unique within the current process.
+The handle name is used in debug output.
+
+Handle names are normally generated automatically and have the
+form C<\"nbd<N>\">, but you can optionally use this call to
+give the handles a name which is meaningful for your application
+to make debugging output easier to understand.";
+  };
+
+  "get_handle_name", {
+    default_call with
+    args = []; ret = RString;
+    shortdesc = "get the handle name";
+    longdesc = "\
+Get the name of the handle.  If it was previously set by calling
+C<nbd_set_handle_name> then this returns the name that was set.
+Otherwise it will return a generic name like C<\"nbd<N>\">.";
+  };
 
   "set_export_name", {
     default_call with

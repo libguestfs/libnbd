@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdatomic.h>
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
@@ -44,6 +45,7 @@ free_cmd_list (struct command *list)
 struct nbd_handle *
 nbd_create (void)
 {
+  static _Atomic int hnums = 1;
   struct nbd_handle *h;
   const char *s;
 
@@ -52,6 +54,11 @@ nbd_create (void)
   h = calloc (1, sizeof *h);
   if (h == NULL) {
     set_error (errno, "calloc");
+    goto error1;
+  }
+
+  if (asprintf (&h->hname, "nbd%d", hnums++) == -1) {
+    set_error (errno, "asprintf");
     goto error1;
   }
 
@@ -87,6 +94,7 @@ nbd_create (void)
  error1:
   if (h) {
     free (h->export_name);
+    free (h->hname);
     free (h);
   }
   return NULL;
@@ -134,8 +142,38 @@ nbd_close (struct nbd_handle *h)
   free (h->tls_username);
   free (h->tls_psk_file);
   nbd_internal_free_string_list (h->request_meta_contexts);
+  free (h->hname);
   pthread_mutex_destroy (&h->lock);
   free (h);
+}
+
+int
+nbd_unlocked_set_handle_name (struct nbd_handle *h, const char *handle_name)
+{
+  char *new_name;
+
+  new_name = strdup (handle_name);
+  if (!new_name) {
+    set_error (errno, "strdup");
+    return -1;
+  }
+
+  free (h->hname);
+  h->hname = new_name;
+  return 0;
+}
+
+char *
+nbd_unlocked_get_handle_name (struct nbd_handle *h)
+{
+  char *copy = strdup (h->hname);
+
+  if (!copy) {
+    set_error (errno, "strdup");
+    return NULL;
+  }
+
+  return copy;
 }
 
 int

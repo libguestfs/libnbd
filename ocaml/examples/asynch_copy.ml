@@ -89,13 +89,15 @@ let asynch_copy src dst =
   done
 
 let () =
-  let nbd1 = NBD.create () in
-  let nbd2 = NBD.create () in
-  NBD.connect_command nbd1 ["nbdkit"; "-s"; "--exit-with-parent";
-                            "pattern"; "size=512M"];
-  NBD.connect_command nbd2 ["nbdkit"; "-s"; "--exit-with-parent";
-                            "memory"; "size=512M"];
-  asynch_copy nbd1 nbd2
+  let src = NBD.create () in
+  NBD.set_handle_name src "src";
+  let dst = NBD.create () in
+  NBD.set_handle_name dst "dst";
+  NBD.connect_command src ["nbdkit"; "-s"; "--exit-with-parent";
+                           "pattern"; "size=512M"];
+  NBD.connect_command dst ["nbdkit"; "-s"; "--exit-with-parent";
+                           "memory"; "size=512M"];
+  asynch_copy src dst
 
 (* This is a good way to find memory leaks or corruption. *)
 let () = Gc.compact ()

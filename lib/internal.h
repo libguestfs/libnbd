@@ -49,6 +49,11 @@ struct socket;
 struct command;
 
 struct nbd_handle {
+  /* Unique name assigned to this handle for debug messages
+   * (to avoid having to print actual pointers).
+   */
+  char *hname;
+
   /* Lock protecting concurrent access to the handle. */
   pthread_mutex_t lock;
 
