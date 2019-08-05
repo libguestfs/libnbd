@@ -112,11 +112,108 @@ threads; or if you need more control especially over having multiple
 commands in-flight on a single connection.
 
 To use the low level API you will need to integrate with L<poll(2)> or
-another “main loop” such as the GLib main event loop.  A simple
-implementation using L<poll(2)> is available called C<nbd_poll>, and
-it is also useful to examine how this is implemented (F<lib/poll.c> in
-the libnbd source code) because that will tell you how to integrate
-libnbd with other main loops.
+another “main loop” such as the GLib main event loop.
+
+=head2 Issuing asynchronous commands
+
+Use the C<nbd_aio_*> variants to issue commands asynchronously
+(without waiting for the command to complete before returning).  For
+example the asynchronous variant of C<nbd_pread> is:
+
+ int64_t cookie;
+ 
+ cookie = nbd_aio_pread (nbd, buf, sizeof buf, 0, 0);
+ if (cookie == -1) {
+   fprintf (stderr, "%s\n", nbd_get_error ());
+   exit (EXIT_FAILURE);
+ }
+
+There are several things to note here:
+
+=over 4
+
+=item *
+
+This only starts the command.  The command is still in flight when the
+call returns.
+
+=item *
+
+A buffer (C<buf>) has been assigned to collect the result of the read,
+but it is not guaranteed to be filled with data until the command has
+completed (see examples below).  The buffer must not be freed until
+the command has finished running.
+
+=item *
+
+You can issue multiple commands on the same handle at the same time.
+
+=item *
+
+A cookie is returned which identifies this command in subsequent
+calls.  The cookie is unique (per libnbd handle) and E<ge> 1.
+
+=back
+
+=head2 Socket and direction
+
+Each libnbd handle has an associated socket (once it has started
+connecting).  You can read the file descriptor of the socket using:
+
+ int fd;
+ 
+ fd = nbd_aio_get_fd (nbd);
+
+The socket is non-blocking.  Between calls into libnbd it is in the
+"would block" condition.  You can find out if libnbd is expecting to
+read or write from the socket next by calling:
+
+ int dir;
+ 
+ dir = nbd_aio_get_direction (nbd);
+
+which returns one of C<LIBNBD_AIO_DIRECTION_READ>,
+C<LIBNBD_AIO_DIRECTION_WRITE> or C<LIBNBD_AIO_DIRECTION_BOTH> (=
+C<READ|WRITE>).  And so to set up the next call to L<poll(2)> or other
+main loop you must translate this to C<POLLIN>, C<POLLOUT> or
+C<POLLIN|POLLOUT> (or whatever mechanism your main loop uses).
+
+=head2 Notifying libnbd when an event happens
+
+When you detect (eg. using L<poll(2)>) that a read or write event has
+happened on the socket, you must then tell libnbd about it.  You have
+to check the direction I<again> (since it may have been changed by
+another thread), and notify libnbd:
+
+ int r = 0;
+ 
+ dir = nbd_aio_get_direction (nbd);
+ 
+ if ((dir & LIBNBD_AIO_DIRECTION_READ) &&
+                 a_read_event_occurred ())
+   r = nbd_aio_notify_read (nbd);
+ else if ((dir & LIBNBD_AIO_DIRECTION_WRITE) &&
+                 a_write_event_occurred ())
+   r = nbd_aio_notify_write (nbd);
+ 
+ if (r == -1) {
+   fprintf (stderr, "%s\n", nbd_get_error ());
+   // ...
+ }
+
+The notify calls move the state machine along, reading and writing
+from the socket possibly multiple times, until the socket would block
+again, at which point they return control to the caller.
+
+=head2 Simple implementation with C<nbd_poll>
+
+In fact if you want to use L<poll(2)> on a single handle, a simple
+implementation has already been written called C<nbd_poll>.  It is
+also useful to examine how this is implemented (F<lib/poll.c> in the
+libnbd source code) because that will tell you how to integrate libnbd
+with more complex main loops.
+
+Some examples of using C<nbd_poll> follow.
 
 As with the high level API, it all starts by creating a handle:
 
@@ -172,6 +269,11 @@ For almost all high level synchronous calls (eg. C<nbd_pread>) there
 are two low level asynchronous equivalents (eg. C<nbd_aio_pread> for
 starting a command, and C<nbd_aio_pread_callback> for also registering
 a callback to be invoked right before the command is complete).
+
+=head2 glib2 integration
+
+See
+L<https://github.com/libguestfs/libnbd/blob/master/examples/glib-main-loop.c>
 
 =head1 ERROR HANDLING
 
