@@ -3496,7 +3496,8 @@ let permitted_state_text permitted_states =
  * grab the thread mutex (lock) and do logging.
  *)
 let generate_lib_api_c () =
-  let print_wrapper (name, {args; ret; permitted_states;
+  (* Print the wrapper added around all API calls. *)
+  let rec print_wrapper (name, {args; ret; permitted_states;
                             is_locked; may_set_error}) =
     if permitted_states <> [] then (
       pr "static inline bool\n";
@@ -3535,7 +3536,9 @@ let generate_lib_api_c () =
     pr "\n";
     if may_set_error then (
       pr "  nbd_internal_set_error_context (\"nbd_%s\");\n" name;
-      pr "\n"
+      pr "\n";
+      print_trace_enter args;
+      pr "\n";
     )
     else
       pr "  /* This function must not call set_error. */\n";
@@ -3553,6 +3556,11 @@ let generate_lib_api_c () =
     pr "  ret = nbd_unlocked_%s " name;
     print_arg_list ~types:false ~handle:true args;
     pr ";\n";
+    if may_set_error then (
+      pr "\n";
+      print_trace_leave ret;
+      pr "\n"
+    );
     if permitted_states <> [] then
       pr " out:\n";
     if is_locked then (
@@ -3562,7 +3570,73 @@ let generate_lib_api_c () =
     );
     pr "  return ret;\n";
     pr "}\n";
-    pr "\n";
+    pr "\n"
+
+  (* Print the trace when we enter a call with debugging enabled. *)
+  and print_trace_enter args =
+    pr "  debug (h, \"enter:";
+    List.iter (
+      function
+      | ArrayAndLen _ -> assert false
+      | Bool n -> pr " %s=%%s" n
+      | BytesIn (n, count)
+      | BytesPersistIn (n, count)
+      | BytesOut (n, count)
+      | BytesPersistOut (n, count) -> pr " %s=<buf> %s=%%zu" n count
+      | Closure { cbname } -> pr " %s=<fun>" cbname
+      | Flags n -> pr " %s=0x%%x" n
+      | Int n -> pr " %s=%%d" n
+      | Int64 n -> pr " %s=%%\" PRIi64 \"" n
+      | Mutable arg -> assert false
+      | SockAddrAndLen (n, len) -> pr " %s=<sockaddr> %s=%%d" n len
+      | Path n
+      | String n -> pr " %s=\\\"%%s\\\"" n
+      | StringList n -> pr " %s=<list>" n
+      | UInt n -> pr " %s=%%u" n
+      | UInt32 n -> pr " %s=%%\" PRIu32 \"" n
+      | UInt64 n -> pr " %s=%%\" PRIu64 \"" n
+    ) args;
+    pr "\"";
+    List.iter (
+      function
+      | ArrayAndLen _ -> assert false
+      | Bool n -> pr ", %s ? \"true\" : \"false\"" n
+      | BytesIn (_, count)
+      | BytesPersistIn (_, count)
+      | BytesOut (_, count)
+      | BytesPersistOut (_, count) -> pr ", %s" count
+      | Closure { cbname } -> ()
+      | Flags n -> pr ", %s" n
+      | Int n -> pr ", %s" n
+      | Int64 n -> pr ", %s" n
+      | Mutable arg -> assert false
+      | SockAddrAndLen (_, len) -> pr ", (int) %s" len
+      | Path n | String n -> pr ", %s ? %s : \"NULL\"" n n
+      | StringList n -> ()
+      | UInt n | UInt32 n | UInt64 n -> pr ", %s" n
+    ) args;
+    pr ");\n"
+  (* Print the trace when we leave a call with debugging enabled. *)
+  and print_trace_leave ret =
+    pr "  if (h->debug) {\n";
+    let errcode = errcode_of_ret ret in
+    (match errcode with
+     | Some r -> 
+        pr "    if (ret == %s)\n" r;
+     | None ->
+        pr "    if (0)\n";
+    );
+    pr "      debug (h, \"leave: error=\\\"%%s\\\"\", nbd_get_error ());\n";
+    pr "    else\n";
+    pr "      debug (h, \"leave: ret=";
+    (match ret with
+     | RBool | RErr | RFd | RInt -> pr "%%d"
+     | RInt64 -> pr "%%\" PRIi64 \""
+     | RConstString | RString -> pr "\\\"%%s\\\""
+     | RUInt -> pr "%%u"
+    );
+    pr "\", ret);\n";
+    pr "  }\n"
   in
 
   generate_header CStyle;
@@ -3571,6 +3645,8 @@ let generate_lib_api_c () =
   pr "\n";
   pr "#include <stdio.h>\n";
   pr "#include <stdlib.h>\n";
+  pr "#include <stdint.h>\n";
+  pr "#include <inttypes.h>\n";
   pr "#include <errno.h>\n";
   pr "\n";
   pr "#include <pthread.h>\n";

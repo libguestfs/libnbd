@@ -16,3 +16,9 @@ NBD_INFO_BLOCK_SIZE.
 TLS should properly shut down the session (calling gnutls_bye).
 
 Implement nbd_connect + systemd socket activation.
+
+Improve function trace output so that:
+ - Long strings are truncated.
+ - Strings with non-printable characters are escaped.
+ - Buffers are partially printed.
+ - Lists of strings are printed.

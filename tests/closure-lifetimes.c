@@ -49,8 +49,6 @@ static int
 debug_fn (unsigned valid_flag, void *opaque,
           const char *context, const char *msg)
 {
-  assert (debug_fn_free == 0);
-
   if (valid_flag & LIBNBD_CALLBACK_VALID)
     debug_fn_valid++;
   if (valid_flag & LIBNBD_CALLBACK_FREE)
