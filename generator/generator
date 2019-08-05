@@ -3376,7 +3376,7 @@ let rec print_arg_list ?(handle = false) ?(valid_flag = false)
   pr ")"
 
 let print_call name args ret =
-  pr "%s nbd_%s" (type_of_ret ret) name;
+  pr "%s nbd_%s " (type_of_ret ret) name;
   print_arg_list ~handle:true args
 
 let print_extern name args ret =
