@@ -861,7 +861,7 @@ and arg =
 | Mutable of arg           (* mutable argument, eg. int* *)
 | Path of string           (* filename or path *)
 | SockAddrAndLen of string * string (* struct sockaddr * + socklen_t *)
-| String of string         (* string *)
+| String of string         (* string, cannot be NULL *)
 | StringList of string     (* argv-style NULL-terminated array of strings *)
 | UInt of string           (* small unsigned int *)
 | UInt32 of string         (* 32 bit unsigned int *)
@@ -3171,17 +3171,30 @@ let () =
     ) all_args
   in
 
-  (* !may_set_error is incompatible with permitted_states != [] because
-   * an incorrect state will result in set_error being called by the
-   * generated wrapper.  It is also incompatible with RUint.
-   *)
+  (* Check functions using may_set_error. *)
   List.iter (
     function
+    (* !may_set_error is incompatible with permitted_states != []
+     * because an incorrect state will result in set_error being
+     * called by the generated wrapper.
+     *)
     | name, { permitted_states = (_::_); may_set_error = false } ->
        failwithf "%s: if may_set_error is false, permitted_states must be empty (any permitted state)"
                  name
+
+    (* may_set_error = true is incompatible with RUInt because
+     * these calls cannot return an error indication.
+     *)
     | name, { ret = RUInt; may_set_error = true } ->
        failwithf "%s: if ret is RUInt, may_set_error must be false" name
+
+    (* !may_set_error is incompatible with String parameters because
+     * we have to do a NULL-check on those which may return an error.
+     *)
+    | name, { args; may_set_error = false }
+         when List.exists (function String _ -> true | _ -> false) args ->
+       failwithf "%s: if args contains a String parameter, may_set_error must be false" name
+
     | _ -> ()
   ) handle_calls;
 
@@ -3526,6 +3539,8 @@ let generate_lib_api_c () =
       pr "\n"
     );
 
+    let need_out_label = ref false in
+
     let ret_c_type = type_of_ret ret and errcode = errcode_of_ret ret in
     pr "%s\n" ret_c_type;
     pr "nbd_%s " name;
@@ -3553,8 +3568,23 @@ let generate_lib_api_c () =
       pr "  if (!%s_in_permitted_state (h)) {\n" name;
       pr "    ret = %s;\n" value;
       pr "    goto out;\n";
-      pr "  }\n"
+      pr "  }\n";
+      need_out_label := true
     );
+    List.iter (
+      function
+      | String n ->
+         let value = match errcode with
+           | Some value -> value
+           | None -> assert false in
+         pr "  if (%s == NULL) {\n" n;
+         pr "    set_error (EFAULT, \"%%s cannot be NULL\", \"%s\");\n" n;
+         pr "    ret = %s;\n" value;
+         pr "    goto out;\n";
+         pr "  }\n";
+         need_out_label := true
+      | _ -> ()
+    ) args;
     pr "  ret = nbd_unlocked_%s " name;
     print_arg_list ~types:false ~handle:true args;
     pr ";\n";
@@ -3563,7 +3593,7 @@ let generate_lib_api_c () =
       print_trace_leave ret;
       pr "\n"
     );
-    if permitted_states <> [] then
+    if !need_out_label then
       pr " out:\n";
     if is_locked then (
       pr "  if (h->public_state != get_next_state (h))\n";
