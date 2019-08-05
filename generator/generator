@@ -3102,6 +3102,8 @@ module C : sig
   val generate_docs_libnbd_api_pod : unit -> unit
   val print_arg_list : ?handle:bool -> ?valid_flag:bool -> ?user_data:bool ->
                        ?types:bool -> arg list -> unit
+  val errcode_of_ret : ret -> string option
+  val type_of_ret : ret -> string
 end = struct
 
 (* Check the API definition. *)
@@ -3205,6 +3207,20 @@ let generate_lib_libnbd_syms () =
       pr "\n";
       prev := Some (major, minor)
   ) calls
+
+let errcode_of_ret =
+  function
+  | RBool | RErr | RFd | RInt | RInt64 -> Some "-1"
+  | RConstString | RString -> Some "NULL"
+  | RUInt -> None (* errors not possible *)
+
+let type_of_ret =
+  function
+  | RBool | RErr | RFd | RInt -> "int"
+  | RInt64 -> "int64_t"
+  | RConstString -> "const char *"
+  | RString -> "char *"
+  | RUInt -> "unsigned"
 
 let rec name_of_arg = function
 | ArrayAndLen (arg, n) -> name_of_arg arg @ [n]
@@ -3319,17 +3335,7 @@ let rec print_arg_list ?(handle = false) ?(valid_flag = false)
   pr ")"
 
 let print_call name args ret =
-  (match ret with
-   | RBool
-   | RErr
-   | RFd
-   | RInt -> pr "int "
-   | RConstString -> pr "const char *"
-   | RInt64 -> pr "int64_t "
-   | RString -> pr "char *"
-   | RUInt -> pr "unsigned "
-  );
-  pr "nbd_%s " name;
+  pr "%s nbd_%s" (type_of_ret ret) name;
   print_arg_list ~handle:true args
 
 let print_extern name args ret =
@@ -3493,32 +3499,13 @@ let generate_lib_api_c () =
       pr "\n"
     );
 
-    let ret_c_type, errcode =
-      match ret with
-      | RBool
-      | RErr
-      | RFd
-      | RInt -> "int", Some "-1"
-      | RConstString -> "const char *", Some "NULL"
-      | RInt64 -> "int64_t", Some "-1"
-      | RString -> "char *", Some "NULL"
-      | RUInt -> "unsigned", None in
-
+    let ret_c_type = type_of_ret ret and errcode = errcode_of_ret ret in
     pr "%s\n" ret_c_type;
     pr "nbd_%s " name;
     print_arg_list ~handle:true args;
     pr "\n";
     pr "{\n";
-    (match ret with
-     | RBool
-     | RErr
-     | RFd
-     | RInt -> pr "  int ret;\n"
-     | RConstString -> pr "  const char *ret;\n"
-     | RInt64 -> pr "  int64_t ret;\n"
-     | RString -> pr "  char *ret;\n"
-     | RUInt -> pr "  unsigned ret;\n"
-    );
+    pr "  %s ret;\n" ret_c_type;
     pr "\n";
     if may_set_error then (
       pr "  nbd_internal_reset_error (\"nbd_%s\");\n" name;
@@ -3582,35 +3569,27 @@ let print_api (name, { args; ret; permitted_states; shortdesc; longdesc;
     pr "otherwise this call will return an error.\n";
     pr "\n"
   );
-  let errcode =
-    match ret with
-    | RBool ->
-       pr "This call returns a boolean value.\n";
-       Some "-1"
+  let errcode = errcode_of_ret ret in
+  (match ret with
+   | RBool ->
+      pr "This call returns a boolean value.\n"
    | RConstString ->
-       pr "This call returns a statically allocated string.\n";
-       pr "You B<must not> try to free the string.\n";
-       Some "NULL"
+      pr "This call returns a statically allocated string.\n";
+      pr "You B<must not> try to free the string.\n"
    | RErr ->
-       pr "If the call is successful the function returns C<0>.\n";
-       Some "-1"
+      pr "If the call is successful the function returns C<0>.\n"
    | RFd ->
-       pr "This call returns a file descriptor.\n";
-       Some "-1"
+      pr "This call returns a file descriptor.\n"
    | RInt ->
-       pr "This call returns an integer E<ge> 0.\n";
-       Some "-1"
+      pr "This call returns an integer E<ge> 0.\n";
    | RInt64 ->
-       pr "This call returns a 64 bit signed integer E<ge> 0.\n";
-       Some "-1"
+      pr "This call returns a 64 bit signed integer E<ge> 0.\n";
    | RString ->
-       pr "This call returns a string.  The caller must free the\n";
-       pr "returned string to avoid a memory leak.\n";
-       Some "NULL"
+      pr "This call returns a string.  The caller must free the\n";
+      pr "returned string to avoid a memory leak.\n";
    | RUInt ->
-       pr "This call returns a bitmask.\n";
-       None
-  in
+      pr "This call returns a bitmask.\n"
+  );
   pr "\n";
   if may_set_error then (
     let value = match errcode with
@@ -4007,16 +3986,7 @@ let print_python_binding name { args; ret; may_set_error } =
   pr "{\n";
   pr "  PyObject *py_h;\n";
   pr "  struct nbd_handle *h;\n";
-  (match ret with
-   | RBool
-   | RErr
-   | RFd
-   | RInt -> pr "  int ret;\n"
-   | RConstString -> pr "  const char *ret;\n"
-   | RInt64 -> pr "  int64_t ret;\n"
-   | RString -> pr "  char *ret;\n";
-   | RUInt -> pr "  unsigned ret;\n"
-  );
+  pr "  %s ret;\n" (C.type_of_ret ret);
   pr "  PyObject *py_ret;\n";
   List.iter (
     function
@@ -4200,11 +4170,8 @@ let print_python_binding name { args; ret; may_set_error } =
   ) args;
   pr ");\n";
   if may_set_error then (
-    (match ret with
-     | RBool | RErr | RFd | RInt | RInt64 -> pr "  if (ret == -1) {\n";
-     | RConstString | RString -> pr "  if (ret == NULL) {\n";
-     | RUInt -> assert false
-    );
+    pr "  if (ret == %s) {\n"
+      (match C.errcode_of_ret ret with Some s -> s | None -> assert false);
     pr "    raise_exception ();\n";
     pr "    py_ret = NULL;\n";
     pr "    goto out;\n";
@@ -4946,12 +4913,8 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "  uint64_t %s = Int64_val (%sv);\n" n n
   ) oargs;
 
-  let errcode =
-    match ret with
-    | RBool | RErr | RFd | RInt | RInt64 -> pr "  int r;\n"; Some "-1"
-    | RConstString -> pr "  const char *r;\n"; Some "NULL"
-    | RString -> pr "  char *r;\n"; Some "NULL"
-    | RUInt -> pr "  unsigned r;\n"; None in
+  let ret_c_type = C.type_of_ret ret and errcode = C.errcode_of_ret ret in
+  pr "  %s r;\n" ret_c_type;
   pr "\n";
   pr "  caml_enter_blocking_section ();\n";
   pr "  r =  nbd_%s " name;
