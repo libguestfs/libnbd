@@ -25,6 +25,7 @@ generator_built = \
 
 EXTRA_DIST = \
 	$(generator_built) \
+	libnbd-ocaml.pod \
 	$(NULL)
 
 CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so
