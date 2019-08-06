@@ -893,6 +893,9 @@ let default_call = { args = []; ret = RErr;
                      permitted_states = [];
                      is_locked = true; may_set_error = true;
                      first_version = (1, 0) }
+let non_blocking_test_call_description = "\n
+This call does not block, because it returns data that is saved in
+the handle from the NBD protocol handshake."
 
 (* Calls.
  *
@@ -1238,7 +1241,8 @@ See also C<nbd_kill_command>.";
     shortdesc = "is the NBD export read-only?";
     longdesc = "\
 Returns true if the NBD export is read-only; writes and
-write-like operations will fail.";
+write-like operations will fail."
+^ non_blocking_test_call_description;
   };
 
   "can_flush", {
@@ -1249,7 +1253,8 @@ write-like operations will fail.";
     longdesc = "\
 Returns true if the server supports the flush command
 (see C<nbd_flush>, C<nbd_aio_flush>).  Returns false if
-the server does not.";
+the server does not."
+^ non_blocking_test_call_description;
   };
 
   "can_fua", {
@@ -1259,7 +1264,8 @@ the server does not.";
     shortdesc = "does the server support the FUA flag?";
     longdesc = "\
 Returns true if the server supports the FUA flag on
-certain commands (see C<nbd_pwrite>).";
+certain commands (see C<nbd_pwrite>)."
+^ non_blocking_test_call_description;
   };
 
   "is_rotational", {
@@ -1271,7 +1277,8 @@ certain commands (see C<nbd_pwrite>).";
 Returns true if the disk exposed over NBD is rotational
 (like a traditional floppy or hard disk).  Returns false if
 the disk has no penalty for random access (like an SSD or
-RAM disk).";
+RAM disk)."
+^ non_blocking_test_call_description;
   };
 
   "can_trim", {
@@ -1282,7 +1289,8 @@ RAM disk).";
     longdesc = "\
 Returns true if the server supports the trim command
 (see C<nbd_trim>, C<nbd_aio_trim>).  Returns false if
-the server does not.";
+the server does not."
+^ non_blocking_test_call_description;
   };
 
   "can_zero", {
@@ -1293,7 +1301,8 @@ the server does not.";
     longdesc = "\
 Returns true if the server supports the zero command
 (see C<nbd_zero>, C<nbd_aio_zero>).  Returns false if
-the server does not.";
+the server does not."
+^ non_blocking_test_call_description;
   };
 
   "can_df", {
@@ -1304,7 +1313,8 @@ the server does not.";
 Returns true if the server supports structured reads with an
 ability to request a non-fragmented read (see C<nbd_pread_structured>,
 C<nbd_aio_pread_structured>).  Returns false if the server either lacks
-structured reads or if it does not support a non-fragmented read request.";
+structured reads or if it does not support a non-fragmented read request."
+^ non_blocking_test_call_description;
   };
 
   "can_multi_conn", {
@@ -1321,7 +1331,8 @@ same server if you will write to the server and the
 server does not advertize multi-conn support.  The safe
 way to check for this is to open one connection, check
 this flag is true, then open further connections as
-required.";
+required."
+^ non_blocking_test_call_description;
   };
 
   "can_cache", {
@@ -1332,7 +1343,8 @@ required.";
     longdesc = "\
 Returns true if the server supports the cache command
 (see C<nbd_cache>, C<nbd_aio_cache>).  Returns false if
-the server does not.";
+the server does not."
+^ non_blocking_test_call_description;
   };
 
   "can_meta_context", {
@@ -1349,7 +1361,8 @@ The single parameter is the name of the metadata context,
 for example C<LIBNBD_CONTEXT_BASE_ALLOCATION>.
 B<E<lt>libnbd.hE<gt>> includes defined constants for well-known
 namespace contexts beginning with C<LIBNBD_CONTEXT_>, but you
-are free to pass in other contexts.";
+are free to pass in other contexts."
+^ non_blocking_test_call_description;
   };
 
   "get_size", {
@@ -1358,7 +1371,8 @@ are free to pass in other contexts.";
     permitted_states = [ Connected; Closed ];
     shortdesc = "return the export size";
     longdesc = "\
-Returns the size in bytes of the NBD export.";
+Returns the size in bytes of the NBD export."
+^ non_blocking_test_call_description;
   };
 
   "pread", {
