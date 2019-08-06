@@ -3773,6 +3773,7 @@ libnbd-api - libnbd C API
      nbd_connect_tcp (nbd, \"server.example.com\", \"nbd\") == -1 ||
      nbd_pread (nbd, buf, sizeof buf, 0, 0) == -1)
    fprintf (stderr, \"%%s\\n\", nbd_get_error ());
+   nbd_close (nbd);
    exit (EXIT_FAILURE);
  }
  nbd_close (nbd);
