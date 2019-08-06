@@ -3502,7 +3502,7 @@ let permitted_state_text permitted_states =
          | Created -> "newly created"
          | Connecting -> "connecting"
          | Connected -> "connected and finished handshaking with the server"
-         | Closed -> "closed"
+         | Closed -> "shut down"
          | Dead -> "dead"
        ) permitted_states
     )
