@@ -341,7 +341,7 @@ nbd_unlocked_aio_pwrite_callback (struct nbd_handle *h, const void *buf,
 {
   struct command_cb cb = { .completion = completion, .user_data = user_data, };
 
-  if (nbd_unlocked_read_only (h) == 1) {
+  if (nbd_unlocked_is_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
     return -1;
   }
@@ -406,7 +406,7 @@ nbd_unlocked_aio_trim_callback (struct nbd_handle *h,
 {
   struct command_cb cb = { .completion = completion, .user_data = user_data, };
 
-  if (nbd_unlocked_read_only (h) == 1) {
+  if (nbd_unlocked_is_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
     return -1;
   }
@@ -482,7 +482,7 @@ nbd_unlocked_aio_zero_callback (struct nbd_handle *h,
 {
   struct command_cb cb = { .completion = completion, .user_data = user_data, };
 
-  if (nbd_unlocked_read_only (h) == 1) {
+  if (nbd_unlocked_is_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
     return -1;
   }

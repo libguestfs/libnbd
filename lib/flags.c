@@ -65,7 +65,7 @@ get_flag (struct nbd_handle *h, uint16_t flag)
 }
 
 int
-nbd_unlocked_read_only (struct nbd_handle *h)
+nbd_unlocked_is_read_only (struct nbd_handle *h)
 {
   return get_flag (h, NBD_FLAG_READ_ONLY);
 }

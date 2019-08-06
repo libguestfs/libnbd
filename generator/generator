@@ -1231,7 +1231,7 @@ behave like inetd clients, such as C<nbdkit --single>.
 See also C<nbd_kill_command>.";
   };
 
-  "read_only", {
+  "is_read_only", {
     default_call with
     args = []; ret = RBool;
     permitted_states = [ Connected; Closed ];

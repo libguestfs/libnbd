@@ -231,7 +231,7 @@ start_thread (void *arg)
 
   assert (nbd_get_size (nbd) == EXPORTSIZE);
   assert (nbd_can_multi_conn (nbd) > 0);
-  assert (nbd_read_only (nbd) == 0);
+  assert (nbd_is_read_only (nbd) == 0);
 
   /* Issue commands. */
   assert (nbd_aio_in_flight (nbd) == 0);

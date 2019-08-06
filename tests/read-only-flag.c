@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* Simple end-to-end test of nbdkit -r / nbd_read_only. */
+/* Simple end-to-end test of nbdkit -r / nbd_is_read_only. */
 
 #include <config.h>
 
@@ -43,7 +43,7 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  if ((r = nbd_read_only (nbd)) == -1) {
+  if ((r = nbd_is_read_only (nbd)) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

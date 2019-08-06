@@ -160,7 +160,7 @@ main (int argc, char *argv[])
     }
   }
 
-  if (nbd_read_only (nbd) == 1) {
+  if (nbd_is_read_only (nbd) == 1) {
     fprintf (stderr, "%s: error: this NBD export is read-only\n", argv[0]);
     exit (EXIT_FAILURE);
   }

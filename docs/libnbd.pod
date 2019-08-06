@@ -383,7 +383,7 @@ the export, such as whether it is writable and if it can support flush
 to permanent storage.  These flags can be accessed from libnbd using
 APIs such as:
 
- int is_read_only = nbd_read_only (nbd);
+ int is_read_only = nbd_is_read_only (nbd);
  int can_flush = nbd_can_flush (nbd);
 
 (and several more, see L<libnbd-api(3)>).
