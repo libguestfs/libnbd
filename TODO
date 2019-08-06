@@ -22,3 +22,24 @@ Improve function trace output so that:
  - Strings with non-printable characters are escaped.
  - Buffers are partially printed.
  - Lists of strings are printed.
+
+Suggested API improvements:
+  general:
+  - synchronous APIs that have a timeout or can be cancelled
+  - separate free_callback corresponding to every Closure
+    (instead of using valid_flag)
+
+  connecting:
+  - nbd_connect_tcp: allow control over whether IPv4 or IPv6 is desired
+  - nbd_connect_uri: allow control over which features are enabled
+  - nbd_connect_command: allow passing char **env
+
+  TLS:
+  - nbd_set_tls: either remove optiona (1/2) interface, or
+    define symbols for it
+  - should be individual APIs for setting each TLS file
+    (set_tls_certificates can continue to exist)
+  - TLS should have a way to pass in PIN or password to
+    support encrypted keys
+  - allow use of TLS memory APIs (gnutls_datum_t + gnutls_*_mem)
+  - support PKCS11 URIs (RFC 7512)
