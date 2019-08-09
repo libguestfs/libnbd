@@ -824,6 +824,7 @@ and structured_reply_state_machine = [
 
 type call = {
   args : arg list;         (* parameters (except handle) *)
+  optargs : optarg list;   (* optional parameters (not optional in C) *)
   ret : ret;               (* return value *)
   shortdesc : string;      (* short description *)
   longdesc : string;       (* long description *)
@@ -854,7 +855,6 @@ and arg =
 | BytesPersistIn of string * string (* same as above, but buffer persists *)
 | BytesPersistOut of string * string
 | Closure of closure       (* function pointer + void *opaque *)
-| Flags of string          (* NBD_CMD_FLAG_* flags *)
 | Int of string            (* small int *)
 | Int64 of string          (* 64 bit signed int *)
 | Path of string           (* filename or path *)
@@ -864,6 +864,8 @@ and arg =
 | UInt of string           (* small unsigned int *)
 | UInt32 of string         (* 32 bit unsigned int *)
 | UInt64 of string         (* 64 bit unsigned int *)
+and optarg =
+| OFlags of string         (* NBD_CMD_FLAG_* flags *)
 and ret =
 | RBool                    (* return a boolean, or error *)
 | RStaticString            (* return a static string (must be located in
@@ -895,7 +897,7 @@ and permitted_state =
                               not including CLOSED or DEAD *)
 | Closed | Dead            (* can be called when the handle is CLOSED or DEAD *)
 
-let default_call = { args = []; ret = RErr;
+let default_call = { args = []; optargs = []; ret = RErr;
                      shortdesc = ""; longdesc = "";
                      permitted_states = [];
                      is_locked = true; may_set_error = true;
@@ -1384,7 +1386,8 @@ Returns the size in bytes of the NBD export."
 
   "pread", {
     default_call with
-    args = [ BytesOut ("buf", "count"); UInt64 "offset"; Flags "flags" ];
+    args = [ BytesOut ("buf", "count"); UInt64 "offset" ];
+    optargs = [ OFlags "flags" ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
@@ -1407,8 +1410,8 @@ protocol extensions).";
              Closure { cbname="chunk";
                        cbargs=[CBBytesIn ("subbuf", "count");
                                CBUInt64 "offset"; CBUInt "status";
-                               CBMutable (Int "error")] };
-             Flags "flags" ];
+                               CBMutable (Int "error")] } ];
+    optargs = [ OFlags "flags" ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
@@ -1481,7 +1484,8 @@ actually obeys the flag.";
 
   "pwrite", {
     default_call with
-    args = [ BytesIn ("buf", "count"); UInt64 "offset"; Flags "flags" ];
+    args = [ BytesIn ("buf", "count"); UInt64 "offset" ];
+    optargs = [ OFlags "flags" ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "write to the NBD server";
@@ -1501,7 +1505,7 @@ C<nbd_can_fua>).";
 
   "shutdown", {
     default_call with
-    args = [ Flags "flags" ]; ret = RErr;
+    args = []; optargs = [ OFlags "flags" ]; ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
@@ -1521,7 +1525,7 @@ protocol extensions).";
 
   "flush", {
     default_call with
-    args = [ Flags "flags" ]; ret = RErr;
+    args = []; optargs = [ OFlags "flags" ]; ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send flush command to the NBD server";
     longdesc = "\
@@ -1536,7 +1540,8 @@ protocol extensions).";
 
   "trim", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
+    args = [ UInt64 "count"; UInt64 "offset" ];
+    optargs = [ OFlags "flags" ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send trim command to the NBD server";
@@ -1556,7 +1561,8 @@ C<nbd_can_fua>).";
 
   "cache", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
+    args = [ UInt64 "count"; UInt64 "offset" ];
+    optargs = [ OFlags "flags" ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send cache (prefetch) command to the NBD server";
@@ -1574,7 +1580,8 @@ protocol extensions).";
 
   "zero", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
+    args = [ UInt64 "count"; UInt64 "offset" ];
+    optargs = [ OFlags "flags" ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send write zeroes command to the NBD server";
@@ -1602,8 +1609,8 @@ punching a hole.";
                                CBUInt64 "offset";
                                CBArrayAndLen (UInt32 "entries",
                                               "nr_entries");
-                               CBMutable (Int "error")] };
-             Flags "flags" ];
+                               CBMutable (Int "error")] } ];
+    optargs = [ OFlags "flags" ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send block status command to the NBD server";
@@ -1762,8 +1769,8 @@ on the connection.";
 
   "aio_pread", {
     default_call with
-    args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
-             Flags "flags" ];
+    args = [ BytesPersistOut ("buf", "count"); UInt64 "offset" ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
@@ -1781,8 +1788,8 @@ C<nbd_pread>.";
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
              Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] };
-             Flags "flags" ];
+                       cbargs=[CBMutable (Int "error")] } ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server, with callback on completion";
@@ -1805,8 +1812,8 @@ completed.  Other parameters behave as documented in C<nbd_pread>.";
                        cbargs=[CBBytesIn ("subbuf", "count");
                                CBUInt64 "offset";
                                CBUInt "status";
-                               CBMutable (Int "error")] };
-             Flags "flags" ];
+                               CBMutable (Int "error")] } ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
@@ -1828,8 +1835,8 @@ documented in C<nbd_pread_structured>.";
                                CBUInt "status";
                                CBMutable (Int "error")] };
              Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] };
-             Flags "flags" ];
+                       cbargs=[CBMutable (Int "error")] } ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server, with callback on completion";
@@ -1846,7 +1853,8 @@ Other parameters behave as documented in C<nbd_pread_structured>.";
 
   "aio_pwrite", {
     default_call with
-    args = [ BytesPersistIn ("buf", "count"); UInt64 "offset"; Flags "flags" ];
+    args = [ BytesPersistIn ("buf", "count"); UInt64 "offset" ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "write to the NBD server";
@@ -1864,8 +1872,8 @@ C<nbd_pwrite>.";
     default_call with
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset";
              Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] };
-             Flags "flags" ];
+                       cbargs=[CBMutable (Int "error")] } ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "write to the NBD server, with callback on completion";
@@ -1883,7 +1891,7 @@ completed.  Other parameters behave as documented in C<nbd_pwrite>.";
 
   "aio_disconnect", {
     default_call with
-    args = [ Flags "flags" ]; ret = RErr;
+    args = []; optargs = [ OFlags "flags" ]; ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
@@ -1906,7 +1914,7 @@ however, C<nbd_shutdown> will call this function if appropriate.";
 
   "aio_flush", {
     default_call with
-    args = [ Flags "flags" ]; ret = RInt64;
+    args = []; optargs = [ OFlags "flags" ]; ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send flush command to the NBD server";
     longdesc = "\
@@ -1920,8 +1928,8 @@ Parameters behave as documented in C<nbd_flush>.";
   "aio_flush_callback", {
     default_call with
     args = [ Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] };
-             Flags "flags" ];
+                       cbargs=[CBMutable (Int "error")] } ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send flush command to the NBD server, with callback on completion";
@@ -1938,7 +1946,8 @@ Other parameters behave as documented in C<nbd_flush>.";
 
   "aio_trim", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
+    args = [ UInt64 "count"; UInt64 "offset" ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send trim command to the NBD server";
@@ -1954,8 +1963,8 @@ Parameters behave as documented in C<nbd_trim>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] };
-             Flags "flags" ];
+                       cbargs=[CBMutable (Int "error")] } ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send trim command to the NBD server, with callback on completion";
@@ -1972,7 +1981,8 @@ Other parameters behave as documented in C<nbd_trim>.";
 
   "aio_cache", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
+    args = [ UInt64 "count"; UInt64 "offset" ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send cache (prefetch) command to the NBD server";
@@ -1988,8 +1998,8 @@ Parameters behave as documented in C<nbd_cache>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] };
-             Flags "flags" ];
+                       cbargs=[CBMutable (Int "error")] } ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send cache (prefetch) command to the NBD server, with callback on completion";
@@ -2006,7 +2016,8 @@ Other parameters behave as documented in C<nbd_cache>.";
 
   "aio_zero", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; Flags "flags" ];
+    args = [ UInt64 "count"; UInt64 "offset" ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send write zeroes command to the NBD server";
@@ -2022,8 +2033,8 @@ Parameters behave as documented in C<nbd_zero>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] };
-             Flags "flags" ];
+                       cbargs=[CBMutable (Int "error")] } ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send write zeroes command to the NBD server, with callback on completion";
@@ -2045,8 +2056,8 @@ Other parameters behave as documented in C<nbd_zero>.";
                        cbargs=[CBString "metacontext"; CBUInt64 "offset";
                                CBArrayAndLen (UInt32 "entries",
                                             "nr_entries");
-                               CBMutable (Int "error")] };
-             Flags "flags" ];
+                               CBMutable (Int "error")] } ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send block status command to the NBD server";
@@ -2067,8 +2078,8 @@ Parameters behave as documented in C<nbd_block_status>.";
                                               "nr_entries");
                                CBMutable (Int "error")] };
              Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] };
-             Flags "flags" ];
+                       cbargs=[CBMutable (Int "error")] } ];
+    optargs = [ OFlags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send block status command to the NBD server, with callback on completion";
@@ -3149,7 +3160,8 @@ module C : sig
   val generate_lib_unlocked_h : unit -> unit
   val generate_lib_api_c : unit -> unit
   val generate_docs_libnbd_api_pod : unit -> unit
-  val print_arg_list : ?handle:bool -> ?types:bool -> arg list -> unit
+  val print_arg_list : ?handle:bool -> ?types:bool ->
+                       arg list -> optarg list -> unit
   val print_cbarg_list : ?valid_flag:bool -> ?types:bool -> cbarg list -> unit
   val errcode_of_ret : ret -> string option
   val type_of_ret : ret -> string
@@ -3157,17 +3169,14 @@ end = struct
 
 (* Check the API definition. *)
 let () =
-  (* Flags must only appear once in the final argument position. *)
+  (* Currently optargs can only be [] or [OFlags].  This condition
+   * will be relaxed later when we support more optional arguments.
+   *)
   List.iter (
-    fun (name, { args }) ->
-      let args = List.rev args in
-      match args with
-      | [] -> ()
-      | Flags _ :: xs
-      | xs ->
-         if List.exists (function Flags _ -> true | _ -> false) xs then
-           failwithf "%s: Flags must appear in final argument position only"
-                     name
+    function
+    | _, { optargs = [] } | _, { optargs = [OFlags _] } -> ()
+    | (name, _) ->
+       failwithf "%s: optargs can only be empty list or [OFlags]" name
   ) handle_calls;
 
   (* Closures must be uniquely named across all calls. *)
@@ -3292,7 +3301,6 @@ let rec name_of_arg = function
 | BytesPersistOut (n, len) -> [n; len]
 | Closure { cbname } ->
    [ sprintf "%s_callback" cbname; sprintf "%s_user_data" cbname ]
-| Flags n -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
 | Path n -> [n]
@@ -3303,7 +3311,7 @@ let rec name_of_arg = function
 | UInt32 n -> [n]
 | UInt64 n -> [n]
 
-let rec print_arg_list ?(handle = false) ?(types = true) args =
+let rec print_arg_list ?(handle = false) ?(types = true) args optargs =
   pr "(";
   let comma = ref false in
   if handle then (
@@ -3337,9 +3345,6 @@ let rec print_arg_list ?(handle = false) ?(types = true) args =
          pr ", ";
          if types then pr "void *";
          pr "%s_user_data" cbname
-      | Flags n ->
-         if types then pr "uint32_t ";
-         pr "%s" n
       | Int n ->
          if types then pr "int ";
          pr "%s" n
@@ -3368,15 +3373,24 @@ let rec print_arg_list ?(handle = false) ?(types = true) args =
          if types then pr "uint64_t ";
          pr "%s" n
   ) args;
+  List.iter (
+    fun optarg ->
+      if !comma then pr ", ";
+      comma := true;
+      match optarg with
+      | OFlags n ->
+         if types then pr "uint32_t ";
+         pr "%s" n
+  ) optargs;
   pr ")"
 
-let print_call name args ret =
+let print_call name args optargs ret =
   pr "%s nbd_%s " (type_of_ret ret) name;
-  print_arg_list ~handle:true args
+  print_arg_list ~handle:true args optargs
 
-let print_extern name args ret =
+let print_extern name args optargs ret =
   pr "extern ";
-  print_call name args ret;
+  print_call name args optargs ret;
   pr ";\n"
 
 let print_cbarg_list ?(valid_flag = true) ?(types = true) cbargs =
@@ -3444,9 +3458,9 @@ let print_closure_typedefs () =
   ) unique_cls;
   pr "\n"
 
-let print_extern_and_define name args ret =
+let print_extern_and_define name args optargs ret =
   let name_upper = String.uppercase_ascii name in
-  print_extern name args ret;
+  print_extern name args optargs ret;
   pr "#define LIBNBD_HAVE_NBD_%s 1\n" name_upper;
   pr "\n"
 
@@ -3511,7 +3525,8 @@ let generate_include_libnbd_h () =
   pr "\n";
   print_closure_typedefs ();
   List.iter (
-    fun (name, { args; ret }) -> print_extern_and_define name args ret
+    fun (name, { args; optargs; ret }) ->
+      print_extern_and_define name args optargs ret
   ) handle_calls;
   List.iter (
     fun (ns, ctxts) -> print_ns ns ctxts
@@ -3529,8 +3544,8 @@ let generate_lib_unlocked_h () =
   pr "#define LIBNBD_UNLOCKED_H\n";
   pr "\n";
   List.iter (
-    fun (name, { args; ret }) ->
-      print_extern ("unlocked_" ^ name) args ret
+    fun (name, { args; optargs; ret }) ->
+      print_extern ("unlocked_" ^ name) args optargs ret
   ) handle_calls;
   pr "\n";
   pr "#endif /* LIBNBD_UNLOCKED_H */\n"
@@ -3554,8 +3569,8 @@ let permitted_state_text permitted_states =
  *)
 let generate_lib_api_c () =
   (* Print the wrapper added around all API calls. *)
-  let rec print_wrapper (name, {args; ret; permitted_states;
-                            is_locked; may_set_error}) =
+  let rec print_wrapper (name, {args; optargs; ret; permitted_states;
+                                is_locked; may_set_error}) =
     if permitted_states <> [] then (
       pr "static inline bool\n";
       pr "%s_in_permitted_state (struct nbd_handle *h)\n" name;
@@ -3588,7 +3603,7 @@ let generate_lib_api_c () =
     let ret_c_type = type_of_ret ret and errcode = errcode_of_ret ret in
     pr "%s\n" ret_c_type;
     pr "nbd_%s " name;
-    print_arg_list ~handle:true args;
+    print_arg_list ~handle:true args optargs;
     pr "\n";
     pr "{\n";
     pr "  %s ret;\n" ret_c_type;
@@ -3602,7 +3617,7 @@ let generate_lib_api_c () =
     if is_locked then
       pr "  pthread_mutex_lock (&h->lock);\n";
     if may_set_error then (
-      print_trace_enter args;
+      print_trace_enter args optargs;
       pr "\n"
     );
     if permitted_states <> [] then (
@@ -3630,7 +3645,7 @@ let generate_lib_api_c () =
       | _ -> ()
     ) args;
     pr "  ret = nbd_unlocked_%s " name;
-    print_arg_list ~types:false ~handle:true args;
+    print_arg_list ~types:false ~handle:true args optargs;
     pr ";\n";
     if may_set_error then (
       pr "\n";
@@ -3649,7 +3664,7 @@ let generate_lib_api_c () =
     pr "\n"
 
   (* Print the trace when we enter a call with debugging enabled. *)
-  and print_trace_enter args =
+  and print_trace_enter args optargs =
     pr "  debug (h, \"enter:";
     List.iter (
       function
@@ -3659,7 +3674,6 @@ let generate_lib_api_c () =
       | BytesOut (n, count)
       | BytesPersistOut (n, count) -> pr " %s=<buf> %s=%%zu" n count
       | Closure { cbname } -> pr " %s=<fun>" cbname
-      | Flags n -> pr " %s=0x%%x" n
       | Int n -> pr " %s=%%d" n
       | Int64 n -> pr " %s=%%\" PRIi64 \"" n
       | SockAddrAndLen (n, len) -> pr " %s=<sockaddr> %s=%%d" n len
@@ -3670,6 +3684,10 @@ let generate_lib_api_c () =
       | UInt32 n -> pr " %s=%%\" PRIu32 \"" n
       | UInt64 n -> pr " %s=%%\" PRIu64 \"" n
     ) args;
+    List.iter (
+      function
+      | OFlags n -> pr " %s=0x%%x" n
+    ) optargs;
     pr "\"";
     List.iter (
       function
@@ -3679,7 +3697,6 @@ let generate_lib_api_c () =
       | BytesOut (_, count)
       | BytesPersistOut (_, count) -> pr ", %s" count
       | Closure { cbname } -> ()
-      | Flags n -> pr ", %s" n
       | Int n -> pr ", %s" n
       | Int64 n -> pr ", %s" n
       | SockAddrAndLen (_, len) -> pr ", (int) %s" len
@@ -3687,6 +3704,10 @@ let generate_lib_api_c () =
       | StringList n -> ()
       | UInt n | UInt32 n | UInt64 n -> pr ", %s" n
     ) args;
+    List.iter (
+      function
+      | OFlags n -> pr ", %s" n
+    ) optargs;
     pr ");\n"
   (* Print the trace when we leave a call with debugging enabled. *)
   and print_trace_leave ret =
@@ -3728,13 +3749,14 @@ let generate_lib_api_c () =
   pr "\n";
   List.iter print_wrapper handle_calls
 
-let print_api (name, { args; ret; permitted_states; shortdesc; longdesc;
+let print_api (name, { args; optargs; ret; permitted_states;
+                       shortdesc; longdesc;
                        may_set_error }) =
   pr "=head2 %s —\n" name;
   pr "%s\n" shortdesc;
   pr "\n";
   pr " ";
-  print_call name args ret; pr ";";
+  print_call name args optargs ret; pr ";";
   pr "\n";
   pr "\n";
   pr "%s\n" longdesc;
@@ -4020,7 +4042,7 @@ PyInit_libnbdmod (void)
 }
 "
 
-let print_python_binding name { args; ret; may_set_error } =
+let print_python_binding name { args; optargs; ret; may_set_error } =
   (* Functions with a Closure parameter are special because we
    * have to generate wrapper functions which translate the
    * callbacks back to Python.
@@ -4157,9 +4179,6 @@ let print_python_binding name { args; ret; may_set_error } =
        pr "  struct py_aio_buffer *%s_buf;\n" n
     | Closure { cbname } ->
        pr "  PyObject *%s_user_data;\n" cbname
-    | Flags n ->
-       pr "  uint32_t %s_u32;\n" n;
-       pr "  unsigned int %s; /* really uint32_t */\n" n
     | Int n -> pr "  int %s;\n" n
     | Int64 n ->
        pr "  int64_t %s_i64;\n" n;
@@ -4184,6 +4203,12 @@ let print_python_binding name { args; ret; may_set_error } =
        pr "  uint64_t %s_u64;\n" n;
        pr "  unsigned long long %s; /* really uint64_t */\n" n
   ) args;
+  List.iter (
+    function
+    | OFlags n ->
+       pr "  uint32_t %s_u32;\n" n;
+       pr "  unsigned int %s; /* really uint32_t */\n" n
+  ) optargs;
   pr "\n";
 
   (* Parse the Python parameters. *)
@@ -4196,7 +4221,6 @@ let print_python_binding name { args; ret; may_set_error } =
     | BytesOut (_, count) -> pr " \"n\""
     | BytesPersistOut (_, count) -> pr " \"O\""
     | Closure _ -> pr " \"O\""
-    | Flags n -> pr " \"I\""
     | Int n -> pr " \"i\""
     | Int64 n -> pr " \"L\""
     | Path n -> pr " \"O&\""
@@ -4207,6 +4231,10 @@ let print_python_binding name { args; ret; may_set_error } =
     | UInt32 n -> pr " \"I\""
     | UInt64 n -> pr " \"K\""
   ) args;
+  List.iter (
+    function
+    | OFlags n -> pr " \"I\""
+  ) optargs;
   pr "\n";
   pr "                         \":nbd_%s\",\n" name;
   pr "                         &py_h";
@@ -4217,7 +4245,6 @@ let print_python_binding name { args; ret; may_set_error } =
     | BytesPersistOut (n, _) -> pr ", &%s" n
     | BytesOut (_, count) -> pr ", &%s" count
     | Closure { cbname } -> pr ", &%s_user_data" cbname
-    | Flags n -> pr ", &%s" n
     | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
     | Path n -> pr ", PyUnicode_FSConverter, &py_%s" n
@@ -4228,6 +4255,10 @@ let print_python_binding name { args; ret; may_set_error } =
     | UInt32 n -> pr ", &%s" n
     | UInt64 n -> pr ", &%s" n
   ) args;
+  List.iter (
+    function
+    | OFlags n -> pr ", &%s" n
+  ) optargs;
   pr "))\n";
   pr "    return NULL;\n";
 
@@ -4248,7 +4279,6 @@ let print_python_binding name { args; ret; may_set_error } =
            pr "                     \"callback parameter %s is not callable\");\n" cbname;
            pr "    return NULL;\n";
            pr "  }\n"
-    | Flags n -> pr "  %s_u32 = %s;\n" n n
     | Int _ -> ()
     | Int64 n -> pr "  %s_i64 = %s;\n" n n
     | Path n ->
@@ -4264,6 +4294,10 @@ let print_python_binding name { args; ret; may_set_error } =
     | UInt32 n -> pr "  %s_u32 = %s;\n" n n
     | UInt64 n -> pr "  %s_u64 = %s;\n" n n
   ) args;
+  List.iter (
+    function
+    | OFlags n -> pr "  %s_u32 = %s;\n" n n
+  ) optargs;
 
   (* Call the underlying C function. *)
   pr "  ret = nbd_%s (h" name;
@@ -4277,7 +4311,6 @@ let print_python_binding name { args; ret; may_set_error } =
     | Closure { cbname } ->
        pr ", %s_%s_wrapper" name cbname;
        pr ", %s_user_data" cbname
-    | Flags n -> pr ", %s_u32" n
     | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
     | Path n -> pr ", %s" n
@@ -4288,6 +4321,10 @@ let print_python_binding name { args; ret; may_set_error } =
     | UInt32 n -> pr ", %s_u32" n
     | UInt64 n -> pr ", %s_u64" n
   ) args;
+  List.iter (
+    function
+    | OFlags n -> pr ", %s_u32" n
+  ) optargs;
   pr ");\n";
   if may_set_error then (
     pr "  if (ret == %s) {\n"
@@ -4309,7 +4346,6 @@ let print_python_binding name { args; ret; may_set_error } =
     | BytesIn _
     | BytesPersistIn _ | BytesPersistOut _
     | Closure _
-    | Flags _
     | Int _
     | Int64 _
     | Path _
@@ -4350,7 +4386,6 @@ let print_python_binding name { args; ret; may_set_error } =
     | BytesIn (n, _) -> pr "  PyBuffer_Release (&%s);\n" n
     | BytesPersistIn _ | BytesOut _ | BytesPersistOut _ -> ()
     | Closure _ -> ()
-    | Flags _ -> ()
     | Int _ -> ()
     | Int64 _ -> ()
     | Path n ->
@@ -4485,34 +4520,35 @@ class NBD (object):
 ";
 
   List.iter (
-    fun (name, { args; shortdesc; longdesc }) ->
+    fun (name, { args; optargs; shortdesc; longdesc }) ->
       let args =
         List.map (
           function
-          | Bool n -> n, None
-          | BytesIn (n, _) | BytesPersistIn (n, _) -> n, None
-          | BytesPersistOut (n, _) -> n, None
-          | BytesOut (_, count) -> count, None
-          | Closure { cbname } -> cbname, None
-          | Flags n -> n, Some "0"
-          | Int n -> n, None
-          | Int64 n -> n, None
-          | Path n -> n, None
-          | SockAddrAndLen (n, _) -> n, None
-          | String n -> n, None
-          | StringList n -> n, None
-          | UInt n -> n, None
-          | UInt32 n -> n, None
-          | UInt64 n -> n, None
+          | Bool n -> n
+          | BytesIn (n, _) | BytesPersistIn (n, _) -> n
+          | BytesPersistOut (n, _) -> n
+          | BytesOut (_, count) -> count
+          | Closure { cbname } -> cbname
+          | Int n -> n
+          | Int64 n -> n
+          | Path n -> n
+          | SockAddrAndLen (n, _) -> n
+          | String n -> n
+          | StringList n -> n
+          | UInt n -> n
+          | UInt32 n -> n
+          | UInt64 n -> n
         ) args in
-      let () =
-        let args = List.map (
+      let optargs =
+        List.map (
           function
-          | n, None -> sprintf ", %s" n
-          | n, Some def -> sprintf ", %s=%s" n def
-        ) args in
-        let args = String.concat "" args in
-        pr "    def %s (self%s):\n" name args in
+          | OFlags n -> n, "0"
+        ) optargs in
+      let () =
+        let params = args @ List.map (fun (n, def) -> n ^ "=" ^ def) optargs in
+        let params = List.map ((^) ", ") params in
+        let params = String.concat "" params in
+        pr "    def %s (self%s):\n" name params in
       let () =
         let longdesc = Str.global_replace py_fn_rex "C<nbd." longdesc in
         let longdesc = Str.global_replace py_const_rex "C<" longdesc in
@@ -4520,10 +4556,10 @@ class NBD (object):
         pr "        '''▶ %s\n\n%s'''\n"
            shortdesc (String.concat "\n" longdesc) in
       let () =
-        let args = List.map fst args in
-        let args = List.map ((^) ", ") args in
-        let args = String.concat "" args in
-        pr "        return libnbdmod.%s (self._o%s)\n" name args in
+        let vars = args @ List.map fst optargs in
+        let vars = List.map ((^) ", ") vars in
+        let vars = String.concat "" vars in
+        pr "        return libnbdmod.%s (self._o%s)\n" name vars in
       pr "\n"
   ) handle_calls;
 
@@ -4541,7 +4577,10 @@ end
 
 (*----------------------------------------------------------------------*)
 
-(* OCaml bindings. *)
+(* OCaml bindings.
+ *
+ * Note we always pass the parameters as: optargs, handle, args.
+ *)
 
 module OCaml : sig
   val generate_ocaml_nbd_mli : unit -> unit
@@ -4549,53 +4588,31 @@ module OCaml : sig
   val generate_ocaml_nbd_c : unit -> unit
 end = struct
 
-(* We convert the list of generic args to an OCaml-specific list
- * because the mapping between them is complicated.
- *)
-type ocaml_arg =
-  | OCamlHandle                 (* The NBD handle (NBD.t) *)
-  | OCamlFlags of string        (* Optional ?flags parameter *)
-  | OCamlArg of arg             (* Other arg (string = name). *)
-
-let args_to_ocaml_args args =
-  (* Flags argument, if present, is always placed first. *)
-  let flags, args =
-    match List.rev args with
-    | Flags n :: rest -> Some (OCamlFlags n), List.rev rest
-    | _ -> None, args in
-  let args =
-    List.map (fun a -> OCamlArg a) args in
-  match flags with
-  | Some f -> f :: OCamlHandle :: args
-  | None -> OCamlHandle :: args
-
 (* String representation of args and return value. *)
-let rec ocaml_fundecl_to_string args ret =
+let rec ocaml_fundecl_to_string args optargs ret =
+  let optargs = List.map ocaml_optarg_to_string optargs in
   let args = List.map ocaml_arg_to_string args in
   let ret = ocaml_ret_to_string ret in
-  String.concat " -> " (args @ [ret])
+  String.concat " -> " (optargs @ ["t"] @ args @ [ret])
 
 (* String representation of a single OCaml arg. *)
 and ocaml_arg_to_string = function
-  | OCamlHandle -> "t"
-  | OCamlFlags n -> sprintf "?%s:int32 list" n
-  | OCamlArg (Bool _) -> "bool"
-  | OCamlArg (BytesIn _) -> "bytes"
-  | OCamlArg (BytesPersistIn _) -> "Buffer.t"
-  | OCamlArg (BytesOut _) -> "bytes"
-  | OCamlArg (BytesPersistOut _) -> "Buffer.t"
-  | OCamlArg (Closure { cbargs }) ->
+  | Bool _ -> "bool"
+  | BytesIn _ -> "bytes"
+  | BytesPersistIn _ -> "Buffer.t"
+  | BytesOut _ -> "bytes"
+  | BytesPersistOut _ -> "Buffer.t"
+  | Closure { cbargs } ->
      sprintf "(%s)" (ocaml_closuredecl_to_string cbargs)
-  | OCamlArg (Flags _) -> assert false (* see above *)
-  | OCamlArg (Int _) -> "int"
-  | OCamlArg (Int64 _) -> "int64"
-  | OCamlArg (Path _) -> "string"
-  | OCamlArg (SockAddrAndLen _) -> "string" (* XXX not impl *)
-  | OCamlArg (String _) -> "string"
-  | OCamlArg (StringList _) -> "string list"
-  | OCamlArg (UInt _) -> "int"
-  | OCamlArg (UInt32 _) -> "int32"
-  | OCamlArg (UInt64 _) -> "int64"
+  | Int _ -> "int"
+  | Int64 _ -> "int64"
+  | Path _ -> "string"
+  | SockAddrAndLen _ -> "string" (* XXX not impl *)
+  | String _ -> "string"
+  | StringList _ -> "string list"
+  | UInt _ -> "int"
+  | UInt32 _ -> "int32"
+  | UInt64 _ -> "int64"
 
 and ocaml_ret_to_string = function
   | RBool -> "bool"
@@ -4607,43 +4624,47 @@ and ocaml_ret_to_string = function
   | RString -> "string"
   | RUInt -> "int"
 
+and ocaml_optarg_to_string = function
+  | OFlags n -> sprintf "?%s:int32 list" n
+
 and ocaml_closuredecl_to_string cbargs =
   let cbargs = List.map ocaml_cbarg_to_string cbargs in
   String.concat " -> " (cbargs @ ["int"])
 
 and ocaml_cbarg_to_string = function
   | CBArrayAndLen (arg, _) ->
-     sprintf "%s array" (ocaml_arg_to_string (OCamlArg arg))
+     sprintf "%s array" (ocaml_arg_to_string arg)
   | CBBytesIn _ -> "bytes"
   | CBInt _ -> "int"
   | CBInt64 _ -> "int64"
   | CBMutable arg ->
-     sprintf "%s ref" (ocaml_arg_to_string (OCamlArg arg))
+     sprintf "%s ref" (ocaml_arg_to_string arg)
   | CBString _ -> "string"
   | CBUInt _ -> "int"
   | CBUInt64 _ -> "int64"
 
-let rec name_of_ocaml_arg = function
-  | OCamlHandle -> "h"
-  | OCamlFlags n -> n
-  | OCamlArg a ->
-     match a with
-     | Bool n -> n
-     | BytesIn (n, len) -> n
-     | BytesOut (n, len) -> n
-     | BytesPersistIn (n, len) -> n
-     | BytesPersistOut (n, len) -> n
-     | Closure { cbname } -> cbname
-     | Flags n -> n
-     | Int n -> n
-     | Int64 n -> n
-     | Path n -> n
-     | SockAddrAndLen (n, len) -> n
-     | String n -> n
-     | StringList n -> n
-     | UInt n -> n
-     | UInt32 n -> n
-     | UInt64 n -> n
+let ocaml_name_of_arg = function
+  | Bool n -> n
+  | BytesIn (n, len) -> n
+  | BytesOut (n, len) -> n
+  | BytesPersistIn (n, len) -> n
+  | BytesPersistOut (n, len) -> n
+  | Closure { cbname } -> cbname
+  | Int n -> n
+  | Int64 n -> n
+  | Path n -> n
+  | SockAddrAndLen (n, len) -> n
+  | String n -> n
+  | StringList n -> n
+  | UInt n -> n
+  | UInt32 n -> n
+  | UInt64 n -> n
+
+let ocaml_name_of_optarg = function
+  | OFlags n -> n
+
+let num_params args optargs =
+  List.length optargs + 1 (* handle *) + List.length args
 
 let generate_ocaml_nbd_mli () =
   generate_header OCamlStyle;
@@ -4726,9 +4747,8 @@ val close : t -> unit
 ";
 
   List.iter (
-    fun (name, { args; ret; shortdesc; longdesc }) ->
-      pr "val %s : %s\n" name
-         (ocaml_fundecl_to_string (args_to_ocaml_args args) ret);
+    fun (name, { args; optargs; ret; shortdesc; longdesc }) ->
+      pr "val %s : %s\n" name (ocaml_fundecl_to_string args optargs ret);
 
       pr "(** %s\n" shortdesc;
       pr "\n";
@@ -4785,19 +4805,18 @@ external close : t -> unit = \"nbd_internal_ocaml_nbd_close\"
 ";
 
   List.iter (
-    fun (name, { args; ret }) ->
-      let oargs = args_to_ocaml_args args in
-      pr "external %s : %s\n" name (ocaml_fundecl_to_string oargs ret);
+    fun (name, { args; optargs; ret }) ->
+      pr "external %s : %s\n" name (ocaml_fundecl_to_string args optargs ret);
       pr "    = ";
       (* In OCaml, argument lists longer than 5 elements require
        * special handling in the C bindings.
        *)
-      if List.length oargs > 5 then
+      if num_params args optargs > 5 then
         pr "\"nbd_internal_ocaml_nbd_%s_byte\" " name;
       pr "\"nbd_internal_ocaml_nbd_%s\"\n" name
   ) handle_calls
 
-let print_ocaml_binding (name, { args; ret }) =
+let print_ocaml_binding (name, { args; optargs; ret }) =
   (* Functions with a callback parameter require special handling. *)
   List.iter (
     function
@@ -4914,26 +4933,22 @@ let print_ocaml_binding (name, { args; ret }) =
     | _ -> ()
   ) args;
 
-  (* Convert the generic args to OCaml args. *)
-  let oargs = args_to_ocaml_args args in
+  (* Get the names of all the value arguments including the handle. *)
+  let values =
+    List.map ocaml_name_of_optarg optargs @ ["h"] @
+      List.map ocaml_name_of_arg args in
+  let values = List.map (fun v -> v ^ "v") values in
 
   (* Create the binding. *)
   pr "value\n";
-  pr "nbd_internal_ocaml_nbd_%s (" name;
-  let comma = ref false in
-  List.iter (
-    fun oarg ->
-      if !comma then pr ", ";
-      comma := true;
-      pr "value %sv" (name_of_ocaml_arg oarg)
-  ) oargs;
-  pr ")";
-  pr "\n";
+  let params = List.map (sprintf "value %s") values in
+  let params = String.concat ", " params in
+  pr "nbd_internal_ocaml_nbd_%s (%s)\n" name params;
   pr "{\n";
   (* CAMLparam<N> can only take up to 5 parameters.  Further parameters
    * have to be passed in groups of 5 to CAMLxparam<N> calls.
    *)
-  (match List.map (fun oarg -> name_of_ocaml_arg oarg ^ "v") oargs with
+  (match values with
    | p1 :: p2 :: p3 :: p4 :: p5 :: rest ->
       pr "  CAMLparam5 (%s);\n" (String.concat ", " [p1; p2; p3; p4; p5]);
       let rec loop = function
@@ -4953,35 +4968,40 @@ let print_ocaml_binding (name, { args; ret }) =
   pr "  CAMLlocal1 (rv);\n";
   pr "\n";
 
+  pr "  struct nbd_handle *h = NBD_val (hv);\n";
+  pr "  if (h == NULL)\n";
+  pr "    nbd_internal_ocaml_raise_closed (\"NBD.%s\");\n" name;
+  pr "\n";
+
   List.iter (
     function
-    | OCamlHandle ->
-       pr "  struct nbd_handle *h = NBD_val (hv);\n";
-       pr "  if (h == NULL)\n";
-       pr "    nbd_internal_ocaml_raise_closed (\"NBD.%s\");\n" name
-    | OCamlFlags n ->
+    | OFlags n ->
        pr "  uint32_t %s;\n" n;
        pr "  if (%sv != Val_int (0)) /* Some flags */\n" n;
        pr "    %s = Flags_val (Field (%sv, 0));\n" n n;
        pr "  else /* None */\n";
        pr "    %s = 0;\n" n
-    | OCamlArg (Bool n) ->
+  ) optargs;
+
+  List.iter (
+    function
+    | Bool n ->
        pr "  bool %s = Bool_val (%sv);\n" n n
-    | OCamlArg (BytesIn (n, count)) ->
+    | BytesIn (n, count) ->
        pr "  const void *%s = Bytes_val (%sv);\n" n n;
        pr "  size_t %s = caml_string_length (%sv);\n" count n
-    | OCamlArg (BytesPersistIn (n, count)) ->
+    | BytesPersistIn (n, count) ->
        pr "  struct nbd_buffer *%s_buf = NBD_buffer_val (%sv);\n" n n;
        pr "  const void *%s = %s_buf->data;\n" n n;
        pr "  size_t %s = %s_buf->len;\n" count n
-    | OCamlArg (BytesOut (n, count)) ->
+    | BytesOut (n, count) ->
        pr "  void *%s = Bytes_val (%sv);\n" n n;
        pr "  size_t %s = caml_string_length (%sv);\n" count n
-    | OCamlArg (BytesPersistOut (n, count)) ->
+    | BytesPersistOut (n, count) ->
        pr "  struct nbd_buffer *%s_buf = NBD_buffer_val (%sv);\n" n n;
        pr "  void *%s = %s_buf->data;\n" n n;
        pr "  size_t %s = %s_buf->len;\n" count n
-    | OCamlArg (Closure { cbname }) ->
+    | Closure { cbname } ->
        pr "  /* The function may save a reference to the closure, so we\n";
        pr "   * must treat it as a possible GC root.\n";
        pr "   */\n";
@@ -4991,33 +5011,32 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "  *%s_user_data = %sv;\n" cbname cbname;
        pr "  caml_register_generational_global_root (%s_user_data);\n" cbname;
        pr "  const void *%s_callback = %s_%s_wrapper;\n" cbname name cbname
-    | OCamlArg (Flags _) -> assert false (* see above *)
-    | OCamlArg (Int n) ->
+    | Int n ->
        pr "  int %s = Int_val (%sv);\n" n n
-    | OCamlArg (Int64 n) ->
+    | Int64 n ->
        pr "  int64_t %s = Int64_val (%sv);\n" n n
-    | OCamlArg (Path n) | OCamlArg (String n) ->
+    | Path n | String n ->
        pr "  const char *%s = String_val (%sv);\n" n n
-    | OCamlArg (SockAddrAndLen (n, len)) ->
+    | SockAddrAndLen (n, len) ->
        pr "  const struct sockaddr *%s;\n" n;
        pr "  socklen_t %s;\n" len;
        pr "  abort ();\n" (* XXX *)
-    | OCamlArg (StringList n) ->
+    | StringList n ->
        pr "  char **%s = nbd_internal_ocaml_string_list (%sv);\n" n n
-    | OCamlArg (UInt n) ->
+    | UInt n ->
        pr "  unsigned %s = Int_val (%sv);\n" n n
-    | OCamlArg (UInt32 n) ->
+    | UInt32 n ->
        pr "  uint32_t %s = Int32_val (%sv);\n" n n
-    | OCamlArg (UInt64 n) ->
+    | UInt64 n ->
        pr "  uint64_t %s = Int64_val (%sv);\n" n n
-  ) oargs;
+  ) args;
 
   let ret_c_type = C.type_of_ret ret and errcode = C.errcode_of_ret ret in
   pr "  %s r;\n" ret_c_type;
   pr "\n";
   pr "  caml_enter_blocking_section ();\n";
   pr "  r =  nbd_%s " name;
-  C.print_arg_list ~handle:true ~types:false args;
+  C.print_arg_list ~handle:true ~types:false args optargs;
   pr ";\n";
   pr "  caml_leave_blocking_section ();\n";
   pr "\n";
@@ -5042,44 +5061,38 @@ let print_ocaml_binding (name, { args; ret }) =
   (* Any parameters which need to be freed. *)
   List.iter (
     function
-    | OCamlArg (StringList n) -> pr "  free (%s);\n" n
-    | OCamlHandle
-    | OCamlFlags _
-    | OCamlArg (Bool _)
-    | OCamlArg (BytesIn _)
-    | OCamlArg (BytesPersistIn _)
-    | OCamlArg (BytesOut _)
-    | OCamlArg (BytesPersistOut _)
-    | OCamlArg (Closure _)
-    | OCamlArg (Flags _)
-    | OCamlArg (Int _)
-    | OCamlArg (Int64 _)
-    | OCamlArg (Path _)
-    | OCamlArg (String _)
-    | OCamlArg (SockAddrAndLen _)
-    | OCamlArg (UInt _)
-    | OCamlArg (UInt32 _)
-    | OCamlArg (UInt64 _) -> ()
-  ) oargs;
+    | StringList n -> pr "  free (%s);\n" n
+    | Bool _
+    | BytesIn _
+    | BytesPersistIn _
+    | BytesOut _
+    | BytesPersistOut _
+    | Closure _
+    | Int _
+    | Int64 _
+    | Path _
+    | String _
+    | SockAddrAndLen _
+    | UInt _
+    | UInt32 _
+    | UInt64 _ -> ()
+  ) args;
 
   pr "  CAMLreturn (rv);\n";
   pr "}\n";
   pr "\n";
 
-  if List.length oargs > 5 then (
+  if num_params args optargs > 5 then (
     pr "/* Byte-code compat function because this method has > 5 parameters.\n";
     pr " */\n";
     pr "value\n";
     pr "nbd_internal_ocaml_nbd_%s_byte (value *argv, int argn)\n" name;
     pr "{\n";
     pr "  return nbd_internal_ocaml_nbd_%s (" name;
-    let comma = ref false in
-    List.iteri (
-      fun i _ ->
-        if !comma then pr ", ";
-        comma := true;
-        pr "argv[%d]" i
-    ) oargs;
+    for i = 0 to num_params args optargs - 1 do
+      if i > 0 then pr ", ";
+      pr "argv[%d]" i
+    done;
     pr ");\n";
     pr "}\n";
     pr "\n"
