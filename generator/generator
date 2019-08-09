@@ -847,7 +847,6 @@ type call = {
   first_version : int * int;
 }
 and arg =
-| ArrayAndLen of arg * string (* array + number of entries *)
 | Bool of string           (* bool *)
 | BytesIn of string * string (* byte array + size passed in to the function *)
 | BytesOut of string * string(* byte array + size specified by caller,
@@ -858,7 +857,6 @@ and arg =
 | Flags of string          (* NBD_CMD_FLAG_* flags *)
 | Int of string            (* small int *)
 | Int64 of string          (* 64 bit signed int *)
-| Mutable of arg           (* mutable argument, eg. int* *)
 | Path of string           (* filename or path *)
 | SockAddrAndLen of string * string (* struct sockaddr * + socklen_t *)
 | String of string         (* string, cannot be NULL *)
@@ -866,10 +864,6 @@ and arg =
 | UInt of string           (* small unsigned int *)
 | UInt32 of string         (* 32 bit unsigned int *)
 | UInt64 of string         (* 64 bit unsigned int *)
-and closure = {
-  cbname : string;         (* name of callback function *)
-  cbargs : arg list;       (* all closures return int for now *)
-}
 and ret =
 | RBool                    (* return a boolean, or error *)
 | RStaticString            (* return a static string (must be located in
@@ -881,6 +875,19 @@ and ret =
 | RString                  (* return a newly allocated string,
                               caller frees, NULL for error *)
 | RUInt                    (* return a bitmask, no error possible *)
+and closure = {
+  cbname : string;         (* name of callback function *)
+  cbargs : cbarg list;     (* all closures return int for now *)
+}
+and cbarg =
+| CBArrayAndLen of arg * string (* array + number of entries *)
+| CBBytesIn of string * string (* like BytesIn *)
+| CBInt of string          (* like Int *)
+| CBInt64 of string        (* like Int64 *)
+| CBMutable of arg         (* mutable argument, eg. int* *)
+| CBString of string       (* like String *)
+| CBUInt of string         (* like UInt *)
+| CBUInt64 of string       (* like UInt64 *)
 and permitted_state =
 | Created                  (* can be called in the START state *)
 | Connecting               (* can be called when connecting/handshaking *)
@@ -932,7 +939,7 @@ Return the state of the debug flag on this handle.";
   "set_debug_callback", {
     default_call with
     args = [ Closure { cbname="debug";
-                       cbargs=[String "context"; String "msg"] } ];
+                       cbargs=[CBString "context"; CBString "msg"] } ];
     ret = RErr;
     shortdesc = "set the debug callback";
     longdesc = "\
@@ -1398,9 +1405,9 @@ protocol extensions).";
     default_call with
     args = [ BytesOut ("buf", "count"); UInt64 "offset";
              Closure { cbname="chunk";
-                       cbargs=[BytesIn ("subbuf", "count");
-                               UInt64 "offset"; UInt "status";
-                               Mutable (Int "error")] };
+                       cbargs=[CBBytesIn ("subbuf", "count");
+                               CBUInt64 "offset"; CBUInt "status";
+                               CBMutable (Int "error")] };
              Flags "flags" ];
     ret = RErr;
     permitted_states = [ Connected ];
@@ -1591,11 +1598,11 @@ punching a hole.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="extent";
-                       cbargs=[String "metacontext";
-                               UInt64 "offset";
-                               ArrayAndLen (UInt32 "entries",
-                                            "nr_entries");
-                               Mutable (Int "error")] };
+                       cbargs=[CBString "metacontext";
+                               CBUInt64 "offset";
+                               CBArrayAndLen (UInt32 "entries",
+                                              "nr_entries");
+                               CBMutable (Int "error")] };
              Flags "flags" ];
     ret = RErr;
     permitted_states = [ Connected ];
@@ -1774,7 +1781,7 @@ C<nbd_pread>.";
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
              Closure { cbname="completion";
-                       cbargs=[Mutable (Int "error")] };
+                       cbargs=[CBMutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1795,10 +1802,10 @@ completed.  Other parameters behave as documented in C<nbd_pread>.";
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
              Closure { cbname="chunk";
-                       cbargs=[BytesIn ("subbuf", "count");
-                               UInt64 "offset";
-                               UInt "status";
-                               Mutable (Int "error")] };
+                       cbargs=[CBBytesIn ("subbuf", "count");
+                               CBUInt64 "offset";
+                               CBUInt "status";
+                               CBMutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1816,12 +1823,12 @@ documented in C<nbd_pread_structured>.";
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
              Closure { cbname="chunk";
-                       cbargs=[BytesIn ("subbuf", "count");
-                               UInt64 "offset";
-                               UInt "status";
-                               Mutable (Int "error")] };
+                       cbargs=[CBBytesIn ("subbuf", "count");
+                               CBUInt64 "offset";
+                               CBUInt "status";
+                               CBMutable (Int "error")] };
              Closure { cbname="completion";
-                       cbargs=[Mutable (Int "error")] };
+                       cbargs=[CBMutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1857,7 +1864,7 @@ C<nbd_pwrite>.";
     default_call with
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset";
              Closure { cbname="completion";
-                       cbargs=[Mutable (Int "error")] };
+                       cbargs=[CBMutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1913,7 +1920,7 @@ Parameters behave as documented in C<nbd_flush>.";
   "aio_flush_callback", {
     default_call with
     args = [ Closure { cbname="completion";
-                       cbargs=[Mutable (Int "error")] };
+                       cbargs=[CBMutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1947,7 +1954,7 @@ Parameters behave as documented in C<nbd_trim>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="completion";
-                       cbargs=[Mutable (Int "error")] };
+                       cbargs=[CBMutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1981,7 +1988,7 @@ Parameters behave as documented in C<nbd_cache>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="completion";
-                       cbargs=[Mutable (Int "error")] };
+                       cbargs=[CBMutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -2015,7 +2022,7 @@ Parameters behave as documented in C<nbd_zero>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="completion";
-                       cbargs=[Mutable (Int "error")] };
+                       cbargs=[CBMutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -2035,10 +2042,10 @@ Other parameters behave as documented in C<nbd_zero>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="extent";
-                       cbargs=[String "metacontext"; UInt64 "offset";
-                               ArrayAndLen (UInt32 "entries",
+                       cbargs=[CBString "metacontext"; CBUInt64 "offset";
+                               CBArrayAndLen (UInt32 "entries",
                                             "nr_entries");
-                               Mutable (Int "error")] };
+                               CBMutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -2055,12 +2062,12 @@ Parameters behave as documented in C<nbd_block_status>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="extent";
-                       cbargs=[String "metacontext"; UInt64 "offset";
-                               ArrayAndLen (UInt32 "entries",
-                                            "nr_entries");
-                               Mutable (Int "error")] };
+                       cbargs=[CBString "metacontext"; CBUInt64 "offset";
+                               CBArrayAndLen (UInt32 "entries",
+                                              "nr_entries");
+                               CBMutable (Int "error")] };
              Closure { cbname="completion";
-                       cbargs=[Mutable (Int "error")] };
+                       cbargs=[CBMutable (Int "error")] };
              Flags "flags" ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -3142,8 +3149,8 @@ module C : sig
   val generate_lib_unlocked_h : unit -> unit
   val generate_lib_api_c : unit -> unit
   val generate_docs_libnbd_api_pod : unit -> unit
-  val print_arg_list : ?handle:bool -> ?valid_flag:bool -> ?user_data:bool ->
-                       ?types:bool -> arg list -> unit
+  val print_arg_list : ?handle:bool -> ?types:bool -> arg list -> unit
+  val print_cbarg_list : ?valid_flag:bool -> ?types:bool -> cbarg list -> unit
   val errcode_of_ret : ret -> string option
   val type_of_ret : ret -> string
 end = struct
@@ -3278,7 +3285,6 @@ let type_of_ret =
   | RUInt -> "unsigned"
 
 let rec name_of_arg = function
-| ArrayAndLen (arg, n) -> name_of_arg arg @ [n]
 | Bool n -> [n]
 | BytesIn (n, len) -> [n; len]
 | BytesOut (n, len) -> [n; len]
@@ -3289,7 +3295,6 @@ let rec name_of_arg = function
 | Flags n -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
-| Mutable arg -> name_of_arg arg
 | Path n -> [n]
 | SockAddrAndLen (n, len) -> [n; len]
 | String n -> [n]
@@ -3298,9 +3303,7 @@ let rec name_of_arg = function
 | UInt32 n -> [n]
 | UInt64 n -> [n]
 
-let rec print_arg_list ?(handle = false) ?(valid_flag = false)
-                       ?(user_data = false)
-                       ?(types = true) args =
+let rec print_arg_list ?(handle = false) ?(types = true) args =
   pr "(";
   let comma = ref false in
   if handle then (
@@ -3308,29 +3311,11 @@ let rec print_arg_list ?(handle = false) ?(valid_flag = false)
     if types then pr "struct nbd_handle *";
     pr "h"
   );
-  if valid_flag then (
-    if !comma then pr ", ";
-    comma := true;
-    if types then pr "unsigned ";
-    pr "valid_flag";
-  );
-  if user_data then (
-    if !comma then pr ", ";
-    comma := true;
-    if types then pr "void *";
-    pr "user_data";
-  );
   List.iter (
     fun arg ->
       if !comma then pr ", ";
       comma := true;
       match arg with
-      | ArrayAndLen (UInt32 n, len) ->
-         if types then pr "uint32_t *";
-         pr "%s, " n;
-         if types then pr "size_t ";
-         pr "%s" len
-      | ArrayAndLen _ -> assert false
       | Bool n ->
          if types then pr "bool ";
          pr "%s" n
@@ -3361,10 +3346,6 @@ let rec print_arg_list ?(handle = false) ?(valid_flag = false)
       | Int64 n ->
          if types then pr "int64_t ";
          pr "%s" n
-      | Mutable (Int n) ->
-         if types then pr "int *";
-         pr "%s" n
-      | Mutable arg -> assert false
       | Path n
       | String n ->
          if types then pr "const char *";
@@ -3398,6 +3379,53 @@ let print_extern name args ret =
   print_call name args ret;
   pr ";\n"
 
+let print_cbarg_list ?(valid_flag = true) ?(types = true) cbargs =
+  pr "(";
+  if valid_flag then (
+    if types then pr "unsigned ";
+    pr "valid_flag";
+    pr ", ";
+  );
+  if types then pr "void *";
+  pr "user_data";
+
+  List.iter (
+    fun cbarg ->
+      pr ", ";
+      match cbarg with
+      | CBArrayAndLen (UInt32 n, len) ->
+         if types then pr "uint32_t *";
+         pr "%s, " n;
+         if types then pr "size_t ";
+         pr "%s" len
+      | CBArrayAndLen _ -> assert false
+      | CBBytesIn (n, len) ->
+         if types then pr "const void *";
+         pr "%s, " n;
+         if types then pr "size_t ";
+         pr "%s" len
+      | CBInt n ->
+         if types then pr "int ";
+         pr "%s" n
+      | CBInt64 n ->
+         if types then pr "int64_t ";
+         pr "%s" n
+      | CBMutable (Int n) ->
+         if types then pr "int *";
+         pr "%s" n
+      | CBMutable arg -> assert false
+      | CBString n ->
+         if types then pr "const char *";
+         pr "%s" n
+      | CBUInt n ->
+         if types then pr "unsigned ";
+         pr "%s" n
+      | CBUInt64 n ->
+         if types then pr "uint64_t ";
+         pr "%s" n
+  ) cbargs;
+  pr ")"
+
 (* Callback typedefs in <libnbd.h> *)
 let print_closure_typedefs () =
   let all_cls =
@@ -3411,7 +3439,7 @@ let print_closure_typedefs () =
   List.iter (
     fun { cbname; cbargs } ->
       pr "typedef int (*nbd_%s_callback) " cbname;
-      print_arg_list ~valid_flag:true ~user_data:true cbargs;
+      print_cbarg_list cbargs;
       pr ";\n";
   ) unique_cls;
   pr "\n"
@@ -3625,7 +3653,6 @@ let generate_lib_api_c () =
     pr "  debug (h, \"enter:";
     List.iter (
       function
-      | ArrayAndLen _ -> assert false
       | Bool n -> pr " %s=%%s" n
       | BytesIn (n, count)
       | BytesPersistIn (n, count)
@@ -3635,7 +3662,6 @@ let generate_lib_api_c () =
       | Flags n -> pr " %s=0x%%x" n
       | Int n -> pr " %s=%%d" n
       | Int64 n -> pr " %s=%%\" PRIi64 \"" n
-      | Mutable arg -> assert false
       | SockAddrAndLen (n, len) -> pr " %s=<sockaddr> %s=%%d" n len
       | Path n
       | String n -> pr " %s=\\\"%%s\\\"" n
@@ -3647,7 +3673,6 @@ let generate_lib_api_c () =
     pr "\"";
     List.iter (
       function
-      | ArrayAndLen _ -> assert false
       | Bool n -> pr ", %s ? \"true\" : \"false\"" n
       | BytesIn (_, count)
       | BytesPersistIn (_, count)
@@ -3657,7 +3682,6 @@ let generate_lib_api_c () =
       | Flags n -> pr ", %s" n
       | Int n -> pr ", %s" n
       | Int64 n -> pr ", %s" n
-      | Mutable arg -> assert false
       | SockAddrAndLen (_, len) -> pr ", (int) %s" len
       | Path n | String n -> pr ", %s ? %s : \"NULL\"" n n
       | StringList n -> ()
@@ -4007,7 +4031,7 @@ let print_python_binding name { args; ret; may_set_error } =
        pr "/* Wrapper for %s callback of %s. */\n" cbname name;
        pr "static int\n";
        pr "%s_%s_wrapper " name cbname;
-       C.print_arg_list ~valid_flag:true ~user_data:true cbargs;
+       C.print_cbarg_list cbargs;
        pr "\n";
        pr "{\n";
        pr "  int ret = 0;\n";
@@ -4017,14 +4041,14 @@ let print_python_binding name { args; ret; may_set_error } =
        pr "    PyObject *py_args, *py_ret;\n";
        List.iter (
          function
-         | ArrayAndLen (UInt32 n, len) ->
+         | CBArrayAndLen (UInt32 n, len) ->
             pr "    PyObject *py_%s = PyList_New (%s);\n" n len;
             pr "    for (size_t i = 0; i < %s; ++i)\n" len;
             pr "      PyList_SET_ITEM (py_%s, i, PyLong_FromUnsignedLong (%s[i]));\n" n n
-         | BytesIn _
-         | Int _
-         | Int64 _ -> ()
-         | Mutable (Int n) ->
+         | CBBytesIn _
+         | CBInt _
+         | CBInt64 _ -> ()
+         | CBMutable (Int n) ->
             pr "    PyObject *py_%s_modname = PyUnicode_FromString (\"ctypes\");\n" n;
             pr "    if (!py_%s_modname) { PyErr_PrintEx (0); return -1; }\n" n;
             pr "    PyObject *py_%s_mod = PyImport_Import (py_%s_modname);\n" n n;
@@ -4032,54 +4056,36 @@ let print_python_binding name { args; ret; may_set_error } =
             pr "    if (!py_%s_mod) { PyErr_PrintEx (0); return -1; }\n" n;
             pr "    PyObject *py_%s = PyObject_CallMethod (py_%s_mod, \"c_int\", \"i\", *%s);\n" n n n;
             pr "    if (!py_%s) { PyErr_PrintEx (0); return -1; }\n" n;
-         | String _
-         | UInt _
-         | UInt64 _ -> ()
-         (* The following not yet implemented for callbacks XXX *)
-         | ArrayAndLen _ | Bool _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _
-         | Closure _
-         | Flags _ | Mutable _
-         | Path _ | SockAddrAndLen _ | StringList _
-         | UInt32 _ -> assert false
+         | CBString _
+         | CBUInt _
+         | CBUInt64 _ -> ()
+         | CBArrayAndLen _ | CBMutable _ -> assert false
        ) cbargs;
        pr "\n";
 
        pr "    py_args = Py_BuildValue (\"(\"";
        List.iter (
          function
-         | ArrayAndLen (UInt32 n, len) -> pr " \"O\""
-         | BytesIn (n, len) -> pr " \"y#\""
-         | Int n -> pr " \"i\""
-         | Int64 n -> pr " \"L\""
-         | Mutable (Int n) -> pr " \"O\""
-         | String n -> pr " \"s\""
-         | UInt n -> pr " \"I\""
-         | UInt64 n -> pr " \"K\""
-         (* The following not yet implemented for callbacks XXX *)
-         | ArrayAndLen _ | Bool _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _
-         | Closure _
-         | Flags _ | Mutable _
-         | Path _ | SockAddrAndLen _ | StringList _
-         | UInt32 _ -> assert false
+         | CBArrayAndLen (UInt32 n, len) -> pr " \"O\""
+         | CBBytesIn (n, len) -> pr " \"y#\""
+         | CBInt n -> pr " \"i\""
+         | CBInt64 n -> pr " \"L\""
+         | CBMutable (Int n) -> pr " \"O\""
+         | CBString n -> pr " \"s\""
+         | CBUInt n -> pr " \"I\""
+         | CBUInt64 n -> pr " \"K\""
+         | CBArrayAndLen _ | CBMutable _ -> assert false
        ) cbargs;
        pr " \")\"";
        List.iter (
          function
-         | ArrayAndLen (UInt32 n, _) -> pr ", py_%s" n
-         | BytesIn (n, len) -> pr ", %s, (int) %s" n len
-         | Mutable (Int n) -> pr ", py_%s" n
-         | Int n | Int64 n
-         | String n
-         | UInt n | UInt64 n -> pr ", %s" n
-         (* The following not yet implemented for callbacks XXX *)
-         | ArrayAndLen _ | Bool _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _
-         | Closure _
-         | Flags _ | Mutable _
-         | Path _ | SockAddrAndLen _ | StringList _
-         | UInt32 _ -> assert false
+         | CBArrayAndLen (UInt32 n, _) -> pr ", py_%s" n
+         | CBBytesIn (n, len) -> pr ", %s, (int) %s" n len
+         | CBMutable (Int n) -> pr ", py_%s" n
+         | CBInt n | CBInt64 n
+         | CBString n
+         | CBUInt n | CBUInt64 n -> pr ", %s" n
+         | CBArrayAndLen _ | CBMutable _ -> assert false
        ) cbargs;
        pr ");\n";
        pr "    Py_INCREF (py_args);\n";
@@ -4104,24 +4110,18 @@ let print_python_binding name { args; ret; may_set_error } =
        pr "\n";
        List.iter (
          function
-         | ArrayAndLen (UInt32 n, _) ->
+         | CBArrayAndLen (UInt32 n, _) ->
             pr "    Py_DECREF (py_%s);\n" n
-         | Mutable (Int n) ->
+         | CBMutable (Int n) ->
             pr "    PyObject *py_%s_ret = PyObject_GetAttrString (py_%s, \"value\");\n" n n;
             pr "    *%s = PyLong_AsLong (py_%s_ret);\n" n n;
             pr "    Py_DECREF (py_%s_ret);\n" n;
             pr "    Py_DECREF (py_%s);\n" n
-         | BytesIn _
-         | Int _ | Int64 _
-         | String _
-         | UInt _ | UInt64 _ -> ()
-         (* The following not yet implemented for callbacks XXX *)
-         | ArrayAndLen _ | Bool _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _
-         | Closure _
-         | Flags _ | Mutable _
-         | Path _ | SockAddrAndLen _ | StringList _
-         | UInt32 _ -> assert false
+         | CBBytesIn _
+         | CBInt _ | CBInt64 _
+         | CBString _
+         | CBUInt _ | CBUInt64 _ -> ()
+         | CBArrayAndLen _ | CBMutable _ -> assert false
        ) cbargs;
        pr "  }\n";
        pr "\n";
@@ -4144,11 +4144,6 @@ let print_python_binding name { args; ret; may_set_error } =
   pr "  PyObject *py_ret;\n";
   List.iter (
     function
-    | ArrayAndLen (UInt32 n, len) ->
-       pr "  PyObject *py_%s;\n" n;
-       pr "  uint32_t *%s;\n" n;
-       pr "  size_t %s;\n" len;
-    | ArrayAndLen _ -> assert false
     | Bool n -> pr "  int %s;\n" n
     | BytesIn (n, _) ->
        pr "  Py_buffer %s;\n" n
@@ -4169,7 +4164,6 @@ let print_python_binding name { args; ret; may_set_error } =
     | Int64 n ->
        pr "  int64_t %s_i64;\n" n;
        pr "  long long %s; /* really int64_t */\n" n
-    | Mutable arg -> assert false
     | Path n ->
        pr "  PyObject *py_%s = NULL;\n" n;
        pr "  char *%s = NULL;\n" n
@@ -4196,7 +4190,6 @@ let print_python_binding name { args; ret; may_set_error } =
   pr "  if (!PyArg_ParseTuple (args, (char *) \"O\"";
   List.iter (
     function
-    | ArrayAndLen _ -> pr " \"O\""
     | Bool n -> pr " \"b\""
     | BytesIn (n, _) -> pr " \"y*\""
     | BytesPersistIn (n, _) -> pr " \"O\""
@@ -4206,7 +4199,6 @@ let print_python_binding name { args; ret; may_set_error } =
     | Flags n -> pr " \"I\""
     | Int n -> pr " \"i\""
     | Int64 n -> pr " \"L\""
-    | Mutable _ -> pr " \"O\""
     | Path n -> pr " \"O&\""
     | SockAddrAndLen (n, _) -> pr " \"O\""
     | String n -> pr " \"s\""
@@ -4220,8 +4212,6 @@ let print_python_binding name { args; ret; may_set_error } =
   pr "                         &py_h";
   List.iter (
     function
-    | ArrayAndLen (UInt32 n, _) -> pr ", &py_%s" n
-    | ArrayAndLen _ -> assert false
     | Bool n -> pr ", &%s" n
     | BytesIn (n, _) | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) -> pr ", &%s" n
@@ -4230,7 +4220,6 @@ let print_python_binding name { args; ret; may_set_error } =
     | Flags n -> pr ", &%s" n
     | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
-    | Mutable arg -> assert false
     | Path n -> pr ", PyUnicode_FSConverter, &py_%s" n
     | SockAddrAndLen (n, _) -> pr ", &%s" n
     | String n -> pr ", &%s" n
@@ -4245,24 +4234,6 @@ let print_python_binding name { args; ret; may_set_error } =
   pr "  h = get_handle (py_h);\n";
   List.iter (
     function
-    | ArrayAndLen (UInt32 n, len) ->
-       pr "  if (!PyList_Check (py_%s)) {\n" n;
-       pr "    PyErr_SetString (PyExc_TypeError, \"expecting a list\");\n";
-       pr "    return NULL;\n";
-       pr "  }\n";
-       pr "  %s = PyList_Size (py_%s);\n" len n;
-       pr "  if (%s == -1) {\n" len;
-       pr "    PyErr_SetString (PyExc_RuntimeError, \"PyList_Size failed\");\n";
-       pr "    return NULL;\n";
-       pr "  }\n";
-       pr "  %s = malloc (sizeof (uint32_t) * %s);\n" n len;
-       pr "  if (%s == NULL) {\n" n;
-       pr "    PyErr_NoMemory ();\n";
-       pr "    return NULL;\n";
-       pr "  }\n";
-       pr "  for (size_t _i = 0; _i < %s; ++_i)\n" len;
-       pr "    %s[_i] = PyLong_AsUnsignedLong (PyList_GetItem (%s, _i));\n" n n
-    | ArrayAndLen _ -> assert false
     | Bool _ -> ()
     | BytesIn _ -> ()
     | BytesOut (n, count) ->
@@ -4280,8 +4251,6 @@ let print_python_binding name { args; ret; may_set_error } =
     | Flags n -> pr "  %s_u32 = %s;\n" n n
     | Int _ -> ()
     | Int64 n -> pr "  %s_i64 = %s;\n" n n
-    | Mutable _ ->
-       pr "  abort (); /* Mutable for normal Python parameters not impl */\n"
     | Path n ->
        pr "  %s = PyBytes_AS_STRING (py_%s);\n" n n;
        pr "  assert (%s != NULL);\n" n
@@ -4300,8 +4269,6 @@ let print_python_binding name { args; ret; may_set_error } =
   pr "  ret = nbd_%s (h" name;
   List.iter (
     function
-    | ArrayAndLen (UInt32 n, len) -> pr ", %s, %s" n len
-    | ArrayAndLen _ -> assert false
     | Bool n -> pr ", %s" n
     | BytesIn (n, _) -> pr ", %s.buf, %s.len" n n
     | BytesOut (n, count) -> pr ", %s, %s" n count
@@ -4313,7 +4280,6 @@ let print_python_binding name { args; ret; may_set_error } =
     | Flags n -> pr ", %s_u32" n
     | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
-    | Mutable arg -> assert false
     | Path n -> pr ", %s" n
     | SockAddrAndLen (n, _) -> pr ", /* XXX */ (void *) %s, 0" n
     | String n -> pr ", %s" n
@@ -4339,7 +4305,6 @@ let print_python_binding name { args; ret; may_set_error } =
     | BytesOut (n, count) ->
        pr "  py_ret = PyBytes_FromStringAndSize (%s, %s);\n" n count;
        use_ret := false
-    | ArrayAndLen _
     | Bool _
     | BytesIn _
     | BytesPersistIn _ | BytesPersistOut _
@@ -4347,7 +4312,6 @@ let print_python_binding name { args; ret; may_set_error } =
     | Flags _
     | Int _
     | Int64 _
-    | Mutable _
     | Path _
     | SockAddrAndLen _
     | String _
@@ -4382,8 +4346,6 @@ let print_python_binding name { args; ret; may_set_error } =
     pr " out:\n";
   List.iter (
     function
-    | ArrayAndLen (UInt32 n, len) -> pr "  free (%s);\n" n
-    | ArrayAndLen _ -> assert false
     | Bool _ -> ()
     | BytesIn (n, _) -> pr "  PyBuffer_Release (&%s);\n" n
     | BytesPersistIn _ | BytesOut _ | BytesPersistOut _ -> ()
@@ -4391,7 +4353,6 @@ let print_python_binding name { args; ret; may_set_error } =
     | Flags _ -> ()
     | Int _ -> ()
     | Int64 _ -> ()
-    | Mutable _ -> ()
     | Path n ->
        pr "  Py_XDECREF (py_%s);\n" n
     | SockAddrAndLen _ -> ()
@@ -4527,27 +4488,23 @@ class NBD (object):
     fun (name, { args; shortdesc; longdesc }) ->
       let args =
         List.map (
-            function
-            | ArrayAndLen (UInt32 n, _) -> [n, None]
-            | ArrayAndLen _ -> assert false
-            | Bool n -> [n, None]
-            | BytesIn (n, _) | BytesPersistIn (n, _) -> [n, None]
-            | BytesPersistOut (n, _) -> [n, None]
-            | BytesOut (_, count) -> [count, None]
-            | Closure { cbname } -> [cbname, None]
-            | Flags n -> [n, Some "0"]
-            | Int n -> [n, None]
-            | Int64 n -> [n, None]
-            | Mutable arg -> assert false
-            | Path n -> [n, None]
-            | SockAddrAndLen (n, _) -> [n, None]
-            | String n -> [n, None]
-            | StringList n -> [n, None]
-            | UInt n -> [n, None]
-            | UInt32 n -> [n, None]
-            | UInt64 n -> [n, None]
+          function
+          | Bool n -> n, None
+          | BytesIn (n, _) | BytesPersistIn (n, _) -> n, None
+          | BytesPersistOut (n, _) -> n, None
+          | BytesOut (_, count) -> count, None
+          | Closure { cbname } -> cbname, None
+          | Flags n -> n, Some "0"
+          | Int n -> n, None
+          | Int64 n -> n, None
+          | Path n -> n, None
+          | SockAddrAndLen (n, _) -> n, None
+          | String n -> n, None
+          | StringList n -> n, None
+          | UInt n -> n, None
+          | UInt32 n -> n, None
+          | UInt64 n -> n, None
         ) args in
-      let args = List.flatten args in
       let () =
         let args = List.map (
           function
@@ -4622,21 +4579,16 @@ let rec ocaml_fundecl_to_string args ret =
 and ocaml_arg_to_string = function
   | OCamlHandle -> "t"
   | OCamlFlags n -> sprintf "?%s:int32 list" n
-  | OCamlArg (ArrayAndLen (t, _)) ->
-     sprintf "%s array" (ocaml_arg_to_string (OCamlArg t))
   | OCamlArg (Bool _) -> "bool"
   | OCamlArg (BytesIn _) -> "bytes"
   | OCamlArg (BytesPersistIn _) -> "Buffer.t"
   | OCamlArg (BytesOut _) -> "bytes"
   | OCamlArg (BytesPersistOut _) -> "Buffer.t"
   | OCamlArg (Closure { cbargs }) ->
-     sprintf "(%s)"
-             (ocaml_fundecl_to_string (List.map (fun a -> OCamlArg a) cbargs)
-                                      RInt)
+     sprintf "(%s)" (ocaml_closuredecl_to_string cbargs)
   | OCamlArg (Flags _) -> assert false (* see above *)
   | OCamlArg (Int _) -> "int"
   | OCamlArg (Int64 _) -> "int64"
-  | OCamlArg (Mutable arg) -> ocaml_arg_to_string (OCamlArg arg) ^ " ref"
   | OCamlArg (Path _) -> "string"
   | OCamlArg (SockAddrAndLen _) -> "string" (* XXX not impl *)
   | OCamlArg (String _) -> "string"
@@ -4655,12 +4607,27 @@ and ocaml_ret_to_string = function
   | RString -> "string"
   | RUInt -> "int"
 
+and ocaml_closuredecl_to_string cbargs =
+  let cbargs = List.map ocaml_cbarg_to_string cbargs in
+  String.concat " -> " (cbargs @ ["int"])
+
+and ocaml_cbarg_to_string = function
+  | CBArrayAndLen (arg, _) ->
+     sprintf "%s array" (ocaml_arg_to_string (OCamlArg arg))
+  | CBBytesIn _ -> "bytes"
+  | CBInt _ -> "int"
+  | CBInt64 _ -> "int64"
+  | CBMutable arg ->
+     sprintf "%s ref" (ocaml_arg_to_string (OCamlArg arg))
+  | CBString _ -> "string"
+  | CBUInt _ -> "int"
+  | CBUInt64 _ -> "int64"
+
 let rec name_of_ocaml_arg = function
   | OCamlHandle -> "h"
   | OCamlFlags n -> n
   | OCamlArg a ->
      match a with
-     | ArrayAndLen (arg, n) -> name_of_ocaml_arg (OCamlArg arg)
      | Bool n -> n
      | BytesIn (n, len) -> n
      | BytesOut (n, len) -> n
@@ -4670,7 +4637,6 @@ let rec name_of_ocaml_arg = function
      | Flags n -> n
      | Int n -> n
      | Int64 n -> n
-     | Mutable arg -> name_of_ocaml_arg (OCamlArg arg)
      | Path n -> n
      | SockAddrAndLen (n, len) -> n
      | String n -> n
@@ -4839,23 +4805,17 @@ let print_ocaml_binding (name, { args; ret }) =
        let argnames =
          List.map (
            function
-           | ArrayAndLen (UInt32 n, _) | BytesIn (n, _)
-           | Int n | Int64 n
-           | Mutable (Int n) | String n | UInt n | UInt64 n ->
+           | CBArrayAndLen (UInt32 n, _) | CBBytesIn (n, _)
+           | CBInt n | CBInt64 n
+           | CBMutable (Int n) | CBString n | CBUInt n | CBUInt64 n ->
               n ^ "v"
-           (* The following not yet implemented for callbacks XXX *)
-           | ArrayAndLen _ | Bool _ | BytesOut _
-           | BytesPersistIn _ | BytesPersistOut _
-           | Closure _
-           | Flags _ | Path _ | Mutable _
-           | SockAddrAndLen _ | StringList _
-           | UInt32 _ -> assert false
+           | CBArrayAndLen _ | CBMutable _ -> assert false
          ) cbargs in
 
        pr "/* Wrapper for %s callback of %s. */\n" cbname name;
        pr "static int\n";
        pr "%s_%s_wrapper_locked " name cbname;
-       C.print_arg_list ~user_data:true cbargs;
+       C.print_cbarg_list ~valid_flag:false cbargs;
        pr "\n";
        pr "{\n";
        pr "  CAMLparam0 ();\n";
@@ -4869,30 +4829,24 @@ let print_ocaml_binding (name, { args; ret }) =
 
        List.iter (
          function
-         | ArrayAndLen (UInt32 n, count) ->
+         | CBArrayAndLen (UInt32 n, count) ->
             pr "  %sv = nbd_internal_ocaml_alloc_int32_array (%s, %s);\n"
                n n count;
-         | BytesIn (n, len) ->
+         | CBBytesIn (n, len) ->
             pr "  %sv = caml_alloc_string (%s);\n" n len;
             pr "  memcpy (String_val (%sv), %s, %s);\n" n n len
-         | Int n | UInt n ->
+         | CBInt n | CBUInt n ->
             pr "  %sv = Val_int (%s);\n" n n
-         | Int64 n ->
+         | CBInt64 n ->
             pr "  %sv = caml_copy_int64 (%s);\n" n n
-         | String n ->
+         | CBString n ->
             pr "  %sv = caml_copy_string (%s);\n" n n
-         | UInt64 n ->
+         | CBUInt64 n ->
             pr "  %sv = caml_copy_int64 (%s);\n" n n
-         | Mutable (Int n) ->
+         | CBMutable (Int n) ->
             pr "  %sv = caml_alloc_tuple (1);\n" n;
             pr "  Store_field (%sv, 0, Val_int (*%s));\n" n n
-         (* The following not yet implemented for callbacks XXX *)
-         | ArrayAndLen _ | Bool _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _
-         | Closure _
-         | Flags _ | Mutable _
-         | Path _ | SockAddrAndLen _ | StringList _
-         | UInt32 _ -> assert false
+         | CBArrayAndLen _ | CBMutable _ -> assert false
        ) cbargs;
 
        List.iteri (fun i n -> pr "  args[%d] = %s;\n" i n) argnames;
@@ -4904,22 +4858,16 @@ let print_ocaml_binding (name, { args; ret }) =
 
        List.iter (
          function
-         | ArrayAndLen (UInt32 _, _)
-         | BytesIn _
-         | Int _
-         | Int64 _
-         | String _
-         | UInt _
-         | UInt64 _ -> ()
-         | Mutable (Int n) ->
+         | CBArrayAndLen (UInt32 _, _)
+         | CBBytesIn _
+         | CBInt _
+         | CBInt64 _
+         | CBString _
+         | CBUInt _
+         | CBUInt64 _ -> ()
+         | CBMutable (Int n) ->
             pr "  *%s = Int_val (Field (%sv, 0));\n" n n
-         (* The following not yet implemented for callbacks XXX *)
-         | ArrayAndLen _ | Bool _ | BytesOut _
-         | BytesPersistIn _ | BytesPersistOut _
-         | Closure _
-         | Flags _ | Mutable _
-         | Path _ | SockAddrAndLen _ | StringList _
-         | UInt32 _ -> assert false
+         | CBArrayAndLen _ | CBMutable _ -> assert false
        ) cbargs;
 
        pr "  if (Is_exception_result (rv)) {\n";
@@ -4942,7 +4890,7 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "\n";
        pr "static int\n";
        pr "%s_%s_wrapper " name cbname;
-       C.print_arg_list ~valid_flag:true ~user_data:true cbargs;
+       C.print_cbarg_list cbargs;
        pr "\n";
        pr "{\n";
        pr "  int ret = 0;\n";
@@ -4950,7 +4898,7 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "  if (valid_flag & LIBNBD_CALLBACK_VALID) {\n";
        pr "  caml_leave_blocking_section ();\n";
        pr "  ret = %s_%s_wrapper_locked " name cbname;
-       C.print_arg_list ~user_data:true ~types:false cbargs;
+       C.print_cbarg_list ~valid_flag:false ~types:false cbargs;
        pr ";\n";
        pr "  caml_enter_blocking_section ();\n";
        pr "  }\n";
@@ -5017,7 +4965,6 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "    %s = Flags_val (Field (%sv, 0));\n" n n;
        pr "  else /* None */\n";
        pr "    %s = 0;\n" n
-    | OCamlArg (ArrayAndLen (t, _)) -> (* XXX *) ()
     | OCamlArg (Bool n) ->
        pr "  bool %s = Bool_val (%sv);\n" n n
     | OCamlArg (BytesIn (n, count)) ->
@@ -5049,7 +4996,6 @@ let print_ocaml_binding (name, { args; ret }) =
        pr "  int %s = Int_val (%sv);\n" n n
     | OCamlArg (Int64 n) ->
        pr "  int64_t %s = Int64_val (%sv);\n" n n
-    | OCamlArg (Mutable _) -> assert false
     | OCamlArg (Path n) | OCamlArg (String n) ->
        pr "  const char *%s = String_val (%sv);\n" n n
     | OCamlArg (SockAddrAndLen (n, len)) ->
@@ -5099,7 +5045,6 @@ let print_ocaml_binding (name, { args; ret }) =
     | OCamlArg (StringList n) -> pr "  free (%s);\n" n
     | OCamlHandle
     | OCamlFlags _
-    | OCamlArg (ArrayAndLen _)
     | OCamlArg (Bool _)
     | OCamlArg (BytesIn _)
     | OCamlArg (BytesPersistIn _)
@@ -5109,7 +5054,6 @@ let print_ocaml_binding (name, { args; ret }) =
     | OCamlArg (Flags _)
     | OCamlArg (Int _)
     | OCamlArg (Int64 _)
-    | OCamlArg (Mutable _)
     | OCamlArg (Path _)
     | OCamlArg (String _)
     | OCamlArg (SockAddrAndLen _)
