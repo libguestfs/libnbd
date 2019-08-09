@@ -99,21 +99,6 @@ Val_nbd_buffer (struct nbd_buffer b)
   CAMLreturn (rv);
 }
 
-/* Convert flags to uint32_t.  This is simple because flags are just
- * lists of int32 values so we only have to add them together.
- */
-static inline uint32_t
-Flags_val (value v)
-{
-  CAMLparam1 (v);
-  uint32_t r = 0;
-
-  for (; v != Val_emptylist; v = Field (v, 1))
-    r += Int32_val (Field (v, 0));
-
-  CAMLreturnT (uint32_t, r);
-}
-
 struct callback_data {
   value *cb;
   value *data;

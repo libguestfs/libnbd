@@ -33,7 +33,8 @@ let () =
   let nbd = NBD.create () in
   NBD.connect_command nbd ["nbdkit"; "-s"; "--exit-with-parent"; "-v";
                            "file"; datafile];
-  NBD.pwrite nbd buf1 0_L ~flags:[NBD.cmd_flag_fua];
+  let flags = let open NBD.CMD_FLAG in [FUA] in
+  NBD.pwrite nbd buf1 0_L ~flags;
   let buf2 = Bytes.create 512 in
   NBD.pread nbd buf2 0_L;
 

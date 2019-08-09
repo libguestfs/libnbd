@@ -54,11 +54,12 @@ let () =
   NBD.pread_structured nbd buf 0_L (f 42);
   assert (buf = expected);
 
-  NBD.pread_structured nbd buf 0_L (f 42) ~flags:[NBD.cmd_flag_df];
+  let flags = let open NBD.CMD_FLAG in [DF] in
+  NBD.pread_structured nbd buf 0_L (f 42) ~flags;
   assert (buf = expected);
 
   try
-    NBD.pread_structured nbd buf 0_L (f 43) ~flags:[NBD.cmd_flag_df];
+    NBD.pread_structured nbd buf 0_L (f 43) ~flags;
     assert false
   with
     NBD.Error (_, errno) ->

@@ -865,7 +865,7 @@ and arg =
 | UInt32 of string         (* 32 bit unsigned int *)
 | UInt64 of string         (* 64 bit unsigned int *)
 and optarg =
-| OFlags of string         (* NBD_CMD_FLAG_* flags *)
+| OFlags of string * flags (* optional flags, uint32_t in C *)
 and ret =
 | RBool                    (* return a boolean, or error *)
 | RStaticString            (* return a static string (must be located in
@@ -890,6 +890,10 @@ and cbarg =
 | CBString of string       (* like String *)
 | CBUInt of string         (* like UInt *)
 | CBUInt64 of string       (* like UInt64 *)
+and flags = {
+  flag_prefix : string;    (* prefix of each flag name *)
+  flags : (string * int) list (* flag names and their values in C *)
+}
 and permitted_state =
 | Created                  (* can be called in the START state *)
 | Connecting               (* can be called when connecting/handshaking *)
@@ -905,6 +909,18 @@ let default_call = { args = []; optargs = []; ret = RErr;
 let non_blocking_test_call_description = "\n
 This call does not block, because it returns data that is saved in
 the handle from the NBD protocol handshake."
+
+(* Flags. *)
+let cmd_flags = {
+  flag_prefix = "CMD_FLAG";
+  flags = [
+    "FUA",     1 lsl 0;
+    "NO_HOLE", 1 lsl 1;
+    "DF",      1 lsl 2;
+    "REQ_ONE", 1 lsl 3;
+  ]
+}
+let all_flags = [ cmd_flags ]
 
 (* Calls.
  *
@@ -1387,7 +1403,7 @@ Returns the size in bytes of the NBD export."
   "pread", {
     default_call with
     args = [ BytesOut ("buf", "count"); UInt64 "offset" ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
@@ -1411,7 +1427,7 @@ protocol extensions).";
                        cbargs=[CBBytesIn ("subbuf", "count");
                                CBUInt64 "offset"; CBUInt "status";
                                CBMutable (Int "error")] } ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
@@ -1485,7 +1501,7 @@ actually obeys the flag.";
   "pwrite", {
     default_call with
     args = [ BytesIn ("buf", "count"); UInt64 "offset" ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "write to the NBD server";
@@ -1505,7 +1521,7 @@ C<nbd_can_fua>).";
 
   "shutdown", {
     default_call with
-    args = []; optargs = [ OFlags "flags" ]; ret = RErr;
+    args = []; optargs = [ OFlags ("flags", cmd_flags) ]; ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
@@ -1525,7 +1541,7 @@ protocol extensions).";
 
   "flush", {
     default_call with
-    args = []; optargs = [ OFlags "flags" ]; ret = RErr;
+    args = []; optargs = [ OFlags ("flags", cmd_flags) ]; ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send flush command to the NBD server";
     longdesc = "\
@@ -1541,7 +1557,7 @@ protocol extensions).";
   "trim", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send trim command to the NBD server";
@@ -1562,7 +1578,7 @@ C<nbd_can_fua>).";
   "cache", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send cache (prefetch) command to the NBD server";
@@ -1581,7 +1597,7 @@ protocol extensions).";
   "zero", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send write zeroes command to the NBD server";
@@ -1610,7 +1626,7 @@ punching a hole.";
                                CBArrayAndLen (UInt32 "entries",
                                               "nr_entries");
                                CBMutable (Int "error")] } ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send block status command to the NBD server";
@@ -1765,7 +1781,7 @@ on the connection.";
   "aio_pread", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset" ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
@@ -1784,7 +1800,7 @@ C<nbd_pread>.";
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
              Closure { cbname="completion";
                        cbargs=[CBMutable (Int "error")] } ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server, with callback on completion";
@@ -1808,7 +1824,7 @@ completed.  Other parameters behave as documented in C<nbd_pread>.";
                                CBUInt64 "offset";
                                CBUInt "status";
                                CBMutable (Int "error")] } ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
@@ -1831,7 +1847,7 @@ documented in C<nbd_pread_structured>.";
                                CBMutable (Int "error")] };
              Closure { cbname="completion";
                        cbargs=[CBMutable (Int "error")] } ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server, with callback on completion";
@@ -1849,7 +1865,7 @@ Other parameters behave as documented in C<nbd_pread_structured>.";
   "aio_pwrite", {
     default_call with
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset" ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "write to the NBD server";
@@ -1868,7 +1884,7 @@ C<nbd_pwrite>.";
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset";
              Closure { cbname="completion";
                        cbargs=[CBMutable (Int "error")] } ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "write to the NBD server, with callback on completion";
@@ -1886,7 +1902,7 @@ completed.  Other parameters behave as documented in C<nbd_pwrite>.";
 
   "aio_disconnect", {
     default_call with
-    args = []; optargs = [ OFlags "flags" ]; ret = RErr;
+    args = []; optargs = [ OFlags ("flags", cmd_flags) ]; ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
@@ -1909,7 +1925,7 @@ however, C<nbd_shutdown> will call this function if appropriate.";
 
   "aio_flush", {
     default_call with
-    args = []; optargs = [ OFlags "flags" ]; ret = RInt64;
+    args = []; optargs = [ OFlags ("flags", cmd_flags) ]; ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send flush command to the NBD server";
     longdesc = "\
@@ -1924,7 +1940,7 @@ Parameters behave as documented in C<nbd_flush>.";
     default_call with
     args = [ Closure { cbname="completion";
                        cbargs=[CBMutable (Int "error")] } ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send flush command to the NBD server, with callback on completion";
@@ -1942,7 +1958,7 @@ Other parameters behave as documented in C<nbd_flush>.";
   "aio_trim", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send trim command to the NBD server";
@@ -1959,7 +1975,7 @@ Parameters behave as documented in C<nbd_trim>.";
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="completion";
                        cbargs=[CBMutable (Int "error")] } ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send trim command to the NBD server, with callback on completion";
@@ -1977,7 +1993,7 @@ Other parameters behave as documented in C<nbd_trim>.";
   "aio_cache", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send cache (prefetch) command to the NBD server";
@@ -1994,7 +2010,7 @@ Parameters behave as documented in C<nbd_cache>.";
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="completion";
                        cbargs=[CBMutable (Int "error")] } ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send cache (prefetch) command to the NBD server, with callback on completion";
@@ -2012,7 +2028,7 @@ Other parameters behave as documented in C<nbd_cache>.";
   "aio_zero", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send write zeroes command to the NBD server";
@@ -2029,7 +2045,7 @@ Parameters behave as documented in C<nbd_zero>.";
     args = [ UInt64 "count"; UInt64 "offset";
              Closure { cbname="completion";
                        cbargs=[CBMutable (Int "error")] } ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send write zeroes command to the NBD server, with callback on completion";
@@ -2052,7 +2068,7 @@ Other parameters behave as documented in C<nbd_zero>.";
                                CBArrayAndLen (UInt32 "entries",
                                             "nr_entries");
                                CBMutable (Int "error")] } ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send block status command to the NBD server";
@@ -2074,7 +2090,7 @@ Parameters behave as documented in C<nbd_block_status>.";
                                CBMutable (Int "error")] };
              Closure { cbname="completion";
                        cbargs=[CBMutable (Int "error")] } ];
-    optargs = [ OFlags "flags" ];
+    optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send block status command to the NBD server, with callback on completion";
@@ -2369,16 +2385,11 @@ C<nbd_aio_connect_uri>.";
 
 ]
 
-(* Constants, flags, etc. *)
+(* Constants, etc. *)
 let constants = [
   "AIO_DIRECTION_READ",  1;
   "AIO_DIRECTION_WRITE", 2;
   "AIO_DIRECTION_BOTH",  3;
-
-  "CMD_FLAG_FUA",        1 lsl 0;
-  "CMD_FLAG_NO_HOLE",    1 lsl 1;
-  "CMD_FLAG_DF",         1 lsl 2;
-  "CMD_FLAG_REQ_ONE",    1 lsl 3;
 
   "READ_DATA",           1;
   "READ_HOLE",           2;
@@ -3373,7 +3384,7 @@ let rec print_arg_list ?(handle = false) ?(types = true) args optargs =
       if !comma then pr ", ";
       comma := true;
       match optarg with
-      | OFlags n ->
+      | OFlags (n, _) ->
          if types then pr "uint32_t ";
          pr "%s" n
   ) optargs;
@@ -3501,7 +3512,20 @@ let generate_include_libnbd_h () =
   pr "\n";
   pr "struct nbd_handle;\n";
   pr "\n";
-  List.iter (fun (n, i) -> pr "#define LIBNBD_%-30s %d\n" n i) constants;
+  List.iter (
+    fun { flag_prefix; flags } ->
+      List.iter (
+        fun (flag, i) ->
+          let flag = sprintf "LIBNBD_%s_%s" flag_prefix flag in
+          pr "#define %-40s %d\n" flag i
+      ) flags;
+      pr "\n"
+  ) all_flags;
+  List.iter (
+    fun (n, i) ->
+      let n = sprintf "LIBNBD_%s" n in
+      pr "#define %-40s %d\n" n i
+  ) constants;
   pr "\n";
   pr "#define LIBNBD_CALLBACK_VALID 1\n";
   pr "#define LIBNBD_CALLBACK_FREE  2\n";
@@ -3689,7 +3713,7 @@ let generate_lib_api_c () =
     ) args;
     List.iter (
       function
-      | OFlags n -> pr " %s=0x%%x" n
+      | OFlags (n, _) -> pr " %s=0x%%x" n
     ) optargs;
     pr "\"";
     List.iter (
@@ -3709,7 +3733,7 @@ let generate_lib_api_c () =
     ) args;
     List.iter (
       function
-      | OFlags n -> pr ", %s" n
+      | OFlags (n, _) -> pr ", %s" n
     ) optargs;
     pr ");\n"
   (* Print the trace when we leave a call with debugging enabled. *)
@@ -4212,7 +4236,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
-    | OFlags n ->
+    | OFlags (n, _) ->
        pr "  uint32_t %s_u32;\n" n;
        pr "  unsigned int %s; /* really uint32_t */\n" n
   ) optargs;
@@ -4240,7 +4264,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
-    | OFlags n -> pr " \"I\""
+    | OFlags _ -> pr " \"I\""
   ) optargs;
   pr "\n";
   pr "                         \":nbd_%s\",\n" name;
@@ -4264,7 +4288,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
-    | OFlags n -> pr ", &%s" n
+    | OFlags (n, _) -> pr ", &%s" n
   ) optargs;
   pr "))\n";
   pr "    return NULL;\n";
@@ -4303,7 +4327,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
-    | OFlags n -> pr "  %s_u32 = %s;\n" n n
+    | OFlags (n, _) -> pr "  %s_u32 = %s;\n" n n
   ) optargs;
 
   (* Call the underlying C function. *)
@@ -4330,7 +4354,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
-    | OFlags n -> pr ", %s_u32" n
+    | OFlags (n, _) -> pr ", %s_u32" n
   ) optargs;
   pr ");\n";
   if may_set_error then (
@@ -4485,6 +4509,15 @@ Error.__str__ = _str
 
 ";
 
+  List.iter (
+    fun { flag_prefix; flags } ->
+      List.iter (
+        fun (flag, i) ->
+          let flag = sprintf "%s_%s" flag_prefix flag in
+          pr "%-30s = %d\n" flag i
+      ) flags;
+      pr "\n"
+  ) all_flags;
   List.iter (fun (n, i) -> pr "%-30s = %d\n" n i) constants;
   List.iter (
     fun (ns, ctxts) ->
@@ -4561,7 +4594,7 @@ class NBD (object):
       let optargs =
         List.map (
           function
-          | OFlags n -> n, Some "0", None
+          | OFlags (n, _) -> n, Some "0", None
         ) optargs in
       let args = args @ optargs in
       pr "    def %s (self" name;
@@ -4647,7 +4680,7 @@ and ocaml_ret_to_string = function
   | RUInt -> "int"
 
 and ocaml_optarg_to_string = function
-  | OFlags n -> sprintf "?%s:int32 list" n
+  | OFlags (n, { flag_prefix }) -> sprintf "?%s:%s.t list" n flag_prefix
 
 and ocaml_closuredecl_to_string cbargs =
   let cbargs = List.map ocaml_cbarg_to_string cbargs in
@@ -4683,7 +4716,7 @@ let ocaml_name_of_arg = function
   | UInt64 n -> n
 
 let ocaml_name_of_optarg = function
-  | OFlags n -> n
+  | OFlags (n, _) -> n
 
 let num_params args optargs =
   List.length optargs + 1 (* handle *) + List.length args
@@ -4713,6 +4746,17 @@ exception Closed of string
 
 ";
 
+  List.iter (
+    fun { flag_prefix; flags } ->
+      pr "module %s : sig\n" flag_prefix;
+      pr "  type t =\n";
+      List.iter (
+        fun (flag, _) ->
+          pr "  | %s\n" flag
+      ) flags;
+      pr "end\n";
+      pr "\n"
+  ) all_flags;
   List.iter (
     fun (n, _) -> pr "val %s : int32\n" (String.lowercase_ascii n)
   ) constants;
@@ -4798,6 +4842,17 @@ let () =
 ";
 
   List.iter (
+    fun { flag_prefix; flags } ->
+      pr "module %s = struct\n" flag_prefix;
+      pr "  type t =\n";
+      List.iter (
+        fun (flag, _) ->
+          pr "  | %s\n" flag
+      ) flags;
+      pr "end\n";
+      pr "\n"
+  ) all_flags;
+  List.iter (
     fun (n, i) -> pr "let %s = %d_l\n" (String.lowercase_ascii n) i
   ) constants;
   List.iter (
@@ -4841,6 +4896,33 @@ external close : t -> unit = \"nbd_internal_ocaml_nbd_close\"
         pr "\"nbd_internal_ocaml_nbd_%s_byte\" " name;
       pr "\"nbd_internal_ocaml_nbd_%s\"\n" name
   ) handle_calls
+
+let print_ocaml_flag_val { flag_prefix; flags } =
+  pr "/* Convert OCaml %s.t list to uint32_t bitmask. */\n" flag_prefix;
+  pr "static uint32_t\n";
+  pr "%s_val (value v)\n" flag_prefix;
+  pr "{\n";
+  pr "  CAMLparam1 (v);\n";
+  pr "  int i;\n";
+  pr "  uint32_t r = 0;\n";
+  pr "\n";
+  pr "  for (; v != Val_emptylist; v = Field (v, 1)) {\n";
+  pr "    i = Int_val (Field (v, 0));\n";
+  pr "    /* i is the index of the flag in the type\n";
+  pr "     * (eg. i = 0 => flag = %s.%s).\n" flag_prefix (fst (List.hd flags));
+  pr "     * Convert it to the C representation.\n";
+  pr "     */\n";
+  pr "    switch (i) {\n";
+  List.iteri (
+    fun i (flag, _) ->
+      pr "    case %d: r |= LIBNBD_%s_%s; break;\n" i flag_prefix flag
+  ) flags;
+  pr "    }\n";
+  pr "  }\n";
+  pr "\n";
+  pr "  CAMLreturnT (uint32_t, r);\n";
+  pr "}\n";
+  pr "\n"
 
 let print_ocaml_binding (name, { args; optargs; ret }) =
   (* Functions with a callback parameter require special handling. *)
@@ -5001,10 +5083,11 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
 
   List.iter (
     function
-    | OFlags n ->
+    | OFlags (n, { flag_prefix }) ->
        pr "  uint32_t %s;\n" n;
-       pr "  if (%sv != Val_int (0)) /* Some flags */\n" n;
-       pr "    %s = Flags_val (Field (%sv, 0));\n" n n;
+       pr "  if (%sv != Val_int (0)) /* Some [ list of %s.t ] */\n"
+         n flag_prefix;
+       pr "    %s = %s_val (Field (%sv, 0));\n" n flag_prefix n;
        pr "  else /* None */\n";
        pr "    %s = 0;\n" n
   ) optargs;
@@ -5149,6 +5232,7 @@ let generate_ocaml_nbd_c () =
   pr "#pragma GCC diagnostic ignored \"-Wmissing-prototypes\"\n";
   pr "\n";
 
+  List.iter print_ocaml_flag_val all_flags;
   List.iter print_ocaml_binding handle_calls
 end
 

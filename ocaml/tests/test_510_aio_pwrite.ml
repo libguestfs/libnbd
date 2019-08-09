@@ -35,7 +35,8 @@ let () =
                            "file"; datafile];
 
   let buf1 = NBD.Buffer.of_bytes buf in
-  let cookie = NBD.aio_pwrite nbd buf1 0_L ~flags:[NBD.cmd_flag_fua] in
+  let flags = let open NBD.CMD_FLAG in [FUA] in
+  let cookie = NBD.aio_pwrite nbd buf1 0_L ~flags in
   while not (NBD.aio_command_completed nbd cookie) do
     ignore (NBD.poll nbd (-1))
   done;
