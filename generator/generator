@@ -4607,8 +4607,7 @@ let args_to_ocaml_args args =
     | Flags n :: rest -> Some (OCamlFlags n), List.rev rest
     | _ -> None, args in
   let args =
-    List.map (fun a -> [OCamlArg a]) args in
-  let args = List.flatten args in
+    List.map (fun a -> OCamlArg a) args in
   match flags with
   | Some f -> f :: OCamlHandle :: args
   | None -> OCamlHandle :: args
