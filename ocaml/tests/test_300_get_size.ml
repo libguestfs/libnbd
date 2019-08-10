@@ -28,3 +28,5 @@ let () =
   let actual = NBD.get_size nbd in
 
   assert (actual = expected)
+
+let () = Gc.compact ()

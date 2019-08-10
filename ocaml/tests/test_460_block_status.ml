@@ -52,3 +52,5 @@ let () =
 
   NBD.block_status nbd 1024_L 32256_L (f 42) ~flags:[NBD.cmd_flag_req_one];
   assert (!entries = [|   512_l; 3_l |])
+
+let () = Gc.compact ()

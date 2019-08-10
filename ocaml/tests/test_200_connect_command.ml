@@ -20,3 +20,5 @@ let () =
   let nbd = NBD.create () in
   NBD.connect_command nbd
                       ["nbdkit"; "-s"; "--exit-with-parent"; "-v"; "null"]
+
+let () = Gc.compact ()

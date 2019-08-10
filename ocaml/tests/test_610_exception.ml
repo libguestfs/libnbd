@@ -30,6 +30,7 @@ let () =
     NBD.Error (errstr, errno) ->
       printf "string = %s\n" errstr;
       printf "errno = %d\n" errno;
+      Gc.compact ();
       exit 0 ;;
 
 (* If we reach here then we didn't catch the exception above. *)

@@ -47,3 +47,5 @@ let () =
   let buf = NBD.Buffer.to_bytes buf in
 
   assert (buf = expected)
+
+let () = Gc.compact ()

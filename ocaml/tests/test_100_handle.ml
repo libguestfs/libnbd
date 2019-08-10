@@ -19,3 +19,5 @@
 let () =
   let nbd = NBD.create () in
   ignore nbd
+
+let () = Gc.compact ()

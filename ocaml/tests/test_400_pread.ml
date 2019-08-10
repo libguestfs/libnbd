@@ -47,3 +47,5 @@ let () =
   printf "expected = %S\n" (Bytes.to_string expected);
 
   assert (buf = expected)
+
+let () = Gc.compact ()

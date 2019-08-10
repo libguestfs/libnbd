@@ -55,3 +55,5 @@ let () =
   assert (buf = content);
 
   unlink datafile
+
+let () = Gc.compact ()

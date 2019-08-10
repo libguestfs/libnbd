@@ -107,3 +107,5 @@ let () =
     NBD.Error (_, errno) ->
       printf "errno = %d\n%!" errno;
       assert (errno = 100)
+
+let () = Gc.compact ()

@@ -31,4 +31,6 @@ let () =
 
   print_endline "<<<";
   List.iter print_endline !messages;
-  print_endline ">>>";
+  print_endline ">>>"
+
+let () = Gc.compact ()
