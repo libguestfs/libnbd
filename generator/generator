@@ -1712,12 +1712,7 @@ documented in C<nbd_connect_uri>.
 You can check if the connection is still connecting by calling
 C<nbd_aio_is_connecting>, or if it has connected to the server
 and completed the NBD handshake by calling C<nbd_aio_is_ready>,
-on the connection.
-
-This call will fail if libnbd was not compiled with libxml2; you can
-test whether this is the case with C<nbd_supports_uri>.  Support for
-URIs that require TLS will fail if libnbd was not compiled with
-gnutls; you can test whether this is the case with C<nbd_supports_tls>.";
+on the connection.";
   };
 
   "aio_connect_unix", {
