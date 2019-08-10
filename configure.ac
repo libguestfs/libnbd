@@ -154,7 +154,7 @@ AS_IF([test "x$NBDKIT" != "x"], [
         have_nbdkit_sh_plugin=yes
     ],[
         AC_MSG_RESULT([no])
-]   )
+    ])
 ])
 AM_CONDITIONAL([HAVE_NBDKIT], [test "x$NBDKIT" != "x" && test "x$have_nbdkit_devel" = "xyes" && test "x$have_nbdkit_sh_plugin" = "xyes"])
 

@@ -48,6 +48,13 @@ main (int argc, char *argv[])
   char plugin_path[256];
   char key_param[32];
 
+#ifdef require
+  if (system ("nbdkit --dump-plugin sh | grep -q " require)) {
+    fprintf (stderr, "skipping: nbdkit lacks support for '%s'\n", require);
+    exit (77);
+  }
+#endif
+
   snprintf (plugin_path, sizeof plugin_path, "%s/eflags-plugin.sh",
             getenv ("srcdir") ? : ".");
   snprintf (key_param, sizeof key_param, "key=%s", STR (flag));

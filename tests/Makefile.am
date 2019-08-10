@@ -144,6 +144,8 @@ check_PROGRAMS += \
 	can-not-zero-flag \
 	can-multi-conn-flag \
 	can-not-multi-conn-flag \
+	can-cache-flag \
+	can-not-cache-flag \
 	oldstyle \
 	connect-unix \
 	connect-tcp \
@@ -155,8 +157,6 @@ check_PROGRAMS += \
 	meta-base-allocation \
 	closure-lifetimes \
 	$(NULL)
-#	can-cache-flag
-#	can-not-cache-flag
 
 TESTS += \
 	errors \
@@ -176,6 +176,8 @@ TESTS += \
 	can-not-zero-flag \
 	can-multi-conn-flag \
 	can-not-multi-conn-flag \
+	can-cache-flag \
+	can-not-cache-flag \
 	oldstyle \
 	connect-unix \
 	connect-tcp \
@@ -187,8 +189,6 @@ TESTS += \
 	meta-base-allocation \
 	closure-lifetimes \
 	$(NULL)
-#	can-cache-flag
-#	can-not-cache-flag
 
 errors_SOURCES = errors.c
 errors_CPPFLAGS = -I$(top_srcdir)/include
@@ -300,20 +300,21 @@ can_not_multi_conn_flag_CPPFLAGS = \
 can_not_multi_conn_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_multi_conn_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-# Waiting for nbdkit to add support for can_cache.
-#can_cache_flag_SOURCES = eflags.c
-#can_cache_flag_CPPFLAGS = \
-#	-I$(top_srcdir)/include -Dflag=can_cache -Dvalue=native \
-#	$(NULL)
-#can_cache_flag_CFLAGS = $(WARNINGS_CFLAGS)
-#can_cache_flag_LDADD = $(top_builddir)/lib/libnbd.la
-#
-#can_not_cache_flag_SOURCES = eflags.c
-#can_not_cache_flag_CPPFLAGS = \
-#	-I$(top_srcdir)/include -Dflag=can_cache -Dvalue=none \
-#	$(NULL)
-#can_not_cache_flag_CFLAGS = $(WARNINGS_CFLAGS)
-#can_not_cache_flag_LDADD = $(top_builddir)/lib/libnbd.la
+can_cache_flag_SOURCES = eflags.c
+can_cache_flag_CPPFLAGS = \
+	-I$(top_srcdir)/include -Dflag=can_cache -Dvalue=native \
+	-Drequire='"has_can_cache=1"' \
+	$(NULL)
+can_cache_flag_CFLAGS = $(WARNINGS_CFLAGS)
+can_cache_flag_LDADD = $(top_builddir)/lib/libnbd.la
+
+can_not_cache_flag_SOURCES = eflags.c
+can_not_cache_flag_CPPFLAGS = \
+	-I$(top_srcdir)/include -Dflag=can_cache -Dvalue=none \
+	-Drequire='"has_can_cache=1"' \
+	$(NULL)
+can_not_cache_flag_CFLAGS = $(WARNINGS_CFLAGS)
+can_not_cache_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 oldstyle_SOURCES = oldstyle.c
 oldstyle_CPPFLAGS = -I$(top_srcdir)/include
