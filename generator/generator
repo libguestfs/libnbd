@@ -4234,7 +4234,12 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "    Py_DECREF (py_args);\n";
        pr "\n";
        pr "    if (py_ret != NULL) {\n";
-       pr "      Py_DECREF (py_ret); /* return value is discarded */\n";
+       pr "      if (PyLong_Check (py_ret))\n";
+       pr "        ret = PyLong_AsLong (py_ret);\n";
+       pr "      else\n";
+       pr "        /* If it's not a long, just assume it's 0. */\n";
+       pr "        ret = 0;\n";
+       pr "      Py_DECREF (py_ret);\n";
        pr "    }\n";
        pr "    else {\n";
        pr "      ret = -1;\n";
