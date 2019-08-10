@@ -188,7 +188,7 @@ start_thread (void *arg)
   /* Require TLS on the handle and fail if not available or if the
    * handshake fails.
    */
-  if (nbd_set_tls (nbd, 2) == -1) {
+  if (nbd_set_tls (nbd, LIBNBD_TLS_REQUIRE) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

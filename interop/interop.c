@@ -77,7 +77,7 @@ main (int argc, char *argv[])
     fprintf (stderr, "skip: compiled without TLS support\n");
     exit (77);
   }
-  if (nbd_set_tls (nbd, 2) == -1) {
+  if (nbd_set_tls (nbd, LIBNBD_TLS_REQUIRE) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
