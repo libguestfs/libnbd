@@ -1052,11 +1052,16 @@ a URI that requires TLS)
 
 =item C<LIBNBD_TLS_ALLOW>
 
-Enable TLS if possible.  In some cases this will fall back
-to an unencrypted and/or unauthenticated connection if
-TLS could not be established.  However some servers will
-drop the connection if TLS fails so fallback may not be
-possible.
+Enable TLS if possible.
+
+This option is insecure (or best effort) in that in some cases
+it will fall back to an unencrypted and/or unauthenticated
+connection if TLS could not be established.  Use
+C<LIBNBD_TLS_REQUIRE> below if the connection must be
+encrypted.
+
+Some servers will drop the connection if TLS fails
+so fallback may not be possible.
 
 =item C<LIBNBD_TLS_REQUIRE>
 
