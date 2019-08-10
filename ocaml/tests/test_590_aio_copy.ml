@@ -1,11 +1,32 @@
+(* libnbd OCaml test case
+ * Copyright (C) 2013-2019 Red Hat Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ *)
+
 open Unix
 open Printf
 
 let (+^) = Int64.add
 let (-^) = Int64.sub
 
+let disk_size = 512 * 1024 * 1024
 let bs = 65536_L
 let max_reads_in_flight = 16
+let bytes_read = ref 0
+let bytes_written = ref 0
 
 let dir_is_read dir = dir land (Int32.to_int NBD.aio_direction_read) <> 0
 let dir_is_write dir = dir land (Int32.to_int NBD.aio_direction_write) <> 0
@@ -24,6 +45,7 @@ let asynch_copy src dst =
    *)
   let writes = ref [] in
   let read_completed buf offset _ =
+    bytes_read := !bytes_read + NBD.Buffer.size buf;
     (* Get ready to issue a write command. *)
     writes := (buf, offset) :: !writes;
     (* By returning 1 here we auto-retire the pread command. *)
@@ -36,6 +58,7 @@ let asynch_copy src dst =
    *)
   let write_completed buf _ =
     NBD.Buffer.free buf;
+    bytes_written := !bytes_written + NBD.Buffer.size buf;
     (* By returning 1 here we auto-retire the pwrite command. *)
     1
   in
@@ -94,10 +117,13 @@ let () =
   let dst = NBD.create () in
   NBD.set_handle_name dst "dst";
   NBD.connect_command src ["nbdkit"; "-s"; "--exit-with-parent"; "-r";
-                           "pattern"; "size=512M"];
+                           "pattern"; sprintf "size=%d" disk_size];
   NBD.connect_command dst ["nbdkit"; "-s"; "--exit-with-parent";
-                           "memory"; "size=512M"];
+                           "memory"; sprintf "size=%d" disk_size];
   asynch_copy src dst
 
-(* This is a good way to find memory leaks or corruption. *)
+let () =
+  assert (!bytes_read = disk_size);
+  assert (!bytes_written = disk_size)
+
 let () = Gc.compact ()

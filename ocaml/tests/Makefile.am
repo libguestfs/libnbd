@@ -29,6 +29,7 @@ EXTRA_DIST = \
 	test_500_aio_pread.ml \
 	test_505_aio_pread_structured_callback.ml \
 	test_510_aio_pwrite.ml \
+	test_590_aio_copy.ml \
 	test_600_debug_callback.ml \
 	test_610_exception.ml \
 	$(NULL)
@@ -45,6 +46,7 @@ tests_bc = \
 	test_500_aio_pread.bc \
 	test_505_aio_pread_structured_callback.bc \
 	test_510_aio_pwrite.bc \
+	test_590_aio_copy.bc \
 	test_600_debug_callback.bc \
 	test_610_exception.bc \
 	$(NULL)
@@ -61,6 +63,7 @@ tests_opt = \
 	test_500_aio_pread.opt \
 	test_505_aio_pread_structured_callback.opt \
 	test_510_aio_pwrite.opt \
+	test_590_aio_copy.opt \
 	test_600_debug_callback.opt \
 	test_610_exception.opt \
 	$(NULL)
