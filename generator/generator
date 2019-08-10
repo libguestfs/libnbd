@@ -856,6 +856,7 @@ and arg =
 | BytesPersistOut of string * string
 | Closure of closure       (* function pointer + void *opaque *)
 | Enum of string * enum    (* enum/union type, int in C *)
+| Flags of string * flags  (* flags, uint32_t in C *)
 | Int of string            (* small int *)
 | Int64 of string          (* 64 bit signed int *)
 | Path of string           (* filename or path *)
@@ -3329,6 +3330,7 @@ let rec name_of_arg = function
 | Closure { cbname } ->
    [ sprintf "%s_callback" cbname; sprintf "%s_user_data" cbname ]
 | Enum (n, _) -> [n]
+| Flags (n, _) -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
 | Path n -> [n]
@@ -3375,6 +3377,9 @@ let rec print_arg_list ?(handle = false) ?(types = true) args optargs =
          pr "%s_user_data" cbname
       | Enum (n, _) ->
          if types then pr "int ";
+         pr "%s" n
+      | Flags (n, _) ->
+         if types then pr "uint32_t ";
          pr "%s" n
       | Int n ->
          if types then pr "int ";
@@ -3753,6 +3758,7 @@ let generate_lib_api_c () =
       | BytesPersistOut (n, count) -> pr " %s=<buf> %s=%%zu" n count
       | Closure { cbname } -> pr " %s=<fun>" cbname
       | Enum (n, _) -> pr " %s=%%d" n
+      | Flags (n, _) -> pr " %s=0x%%x" n
       | Int n -> pr " %s=%%d" n
       | Int64 n -> pr " %s=%%\" PRIi64 \"" n
       | SockAddrAndLen (n, len) -> pr " %s=<sockaddr> %s=%%d" n len
@@ -3777,6 +3783,7 @@ let generate_lib_api_c () =
       | BytesPersistOut (_, count) -> pr ", %s" count
       | Closure { cbname } -> ()
       | Enum (n, _) -> pr ", %s" n
+      | Flags (n, _) -> pr ", %s" n
       | Int n -> pr ", %s" n
       | Int64 n -> pr ", %s" n
       | SockAddrAndLen (_, len) -> pr ", (int) %s" len
@@ -4264,6 +4271,9 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Closure { cbname } ->
        pr "  PyObject *%s_user_data;\n" cbname
     | Enum (n, _) -> pr "  int %s;\n" n
+    | Flags (n, _) ->
+       pr "  uint32_t %s_u32;\n" n;
+       pr "  unsigned int %s; /* really uint32_t */\n" n
     | Int n -> pr "  int %s;\n" n
     | Int64 n ->
        pr "  int64_t %s_i64;\n" n;
@@ -4307,6 +4317,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesPersistOut (_, count) -> pr " \"O\""
     | Closure _ -> pr " \"O\""
     | Enum _ -> pr " \"i\""
+    | Flags _ -> pr " \"I\""
     | Int n -> pr " \"i\""
     | Int64 n -> pr " \"L\""
     | Path n -> pr " \"O&\""
@@ -4332,6 +4343,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesOut (_, count) -> pr ", &%s" count
     | Closure { cbname } -> pr ", &%s_user_data" cbname
     | Enum (n, _) -> pr ", &%s" n
+    | Flags (n, _) -> pr ", &%s" n
     | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
     | Path n -> pr ", PyUnicode_FSConverter, &py_%s" n
@@ -4367,6 +4379,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
            pr "    return NULL;\n";
            pr "  }\n"
     | Enum _ -> ()
+    | Flags (n, _) -> pr "  %s_u32 = %s;\n" n n
     | Int _ -> ()
     | Int64 n -> pr "  %s_i64 = %s;\n" n n
     | Path n ->
@@ -4400,6 +4413,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr ", %s_%s_wrapper" name cbname;
        pr ", %s_user_data" cbname
     | Enum (n, _) -> pr ", %s" n
+    | Flags (n, _) -> pr ", %s_u32" n
     | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
     | Path n -> pr ", %s" n
@@ -4436,6 +4450,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesPersistIn _ | BytesPersistOut _
     | Closure _
     | Enum _
+    | Flags _
     | Int _
     | Int64 _
     | Path _
@@ -4477,6 +4492,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesPersistIn _ | BytesOut _ | BytesPersistOut _ -> ()
     | Closure _ -> ()
     | Enum _ -> ()
+    | Flags _ -> ()
     | Int _ -> ()
     | Int64 _ -> ()
     | Path n ->
@@ -4651,6 +4667,7 @@ class NBD (object):
           | BytesPersistOut (n, _) -> n, None, Some (sprintf "%s._o" n)
           | Closure { cbname } -> cbname, None, None
           | Enum (n, _) -> n, None, None
+          | Flags (n, _) -> n, None, None
           | Int n -> n, None, None
           | Int64 n -> n, None, None
           | Path n -> n, None, None
@@ -4730,6 +4747,7 @@ and ocaml_arg_to_string = function
   | Closure { cbargs } ->
      sprintf "(%s)" (ocaml_closuredecl_to_string cbargs)
   | Enum (_, { enum_prefix }) -> sprintf "%s.t" enum_prefix
+  | Flags (_, { flag_prefix }) -> sprintf "%s.t" flag_prefix
   | Int _ -> "int"
   | Int64 _ -> "int64"
   | Path _ -> "string"
@@ -4777,6 +4795,7 @@ let ocaml_name_of_arg = function
   | BytesPersistOut (n, len) -> n
   | Closure { cbname } -> cbname
   | Enum (n, _) -> n
+  | Flags (n, _) -> n
   | Int n -> n
   | Int64 n -> n
   | Path n -> n
@@ -5240,6 +5259,8 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
        pr "  const void *%s_callback = %s_%s_wrapper;\n" cbname name cbname
     | Enum (n, { enum_prefix }) ->
        pr "  int %s = %s_val (%sv);\n" n enum_prefix n
+    | Flags (n, { flag_prefix }) ->
+       pr "  uint32_t %s = %s_val (%sv);\n" n flag_prefix n
     | Int n ->
        pr "  int %s = Int_val (%sv);\n" n n
     | Int64 n ->
@@ -5298,6 +5319,7 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
     | BytesPersistOut _
     | Closure _
     | Enum _
+    | Flags _
     | Int _
     | Int64 _
     | Path _
