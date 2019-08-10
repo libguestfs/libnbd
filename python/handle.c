@@ -72,7 +72,7 @@ nbd_internal_py_close (PyObject *self, PyObject *args)
   return Py_None;
 }
 
-static char aio_buffer_name[] = "struct py_aio_buffer";
+static const char aio_buffer_name[] = "nbd.Buffer";
 
 struct py_aio_buffer *
 nbd_internal_py_get_aio_buffer (PyObject *capsule)
@@ -89,9 +89,7 @@ free_aio_buffer (PyObject *capsule)
   free (buf);
 }
 
-/* Allocate a persistent buffer used for nbd_aio_pread and
- * nbd_aio_pwrite.
- */
+/* Allocate a persistent buffer used for nbd_aio_pread. */
 PyObject *
 nbd_internal_py_alloc_aio_buffer (PyObject *self, PyObject *args)
 {
@@ -115,7 +113,7 @@ nbd_internal_py_alloc_aio_buffer (PyObject *self, PyObject *args)
     free (buf);
     return NULL;
   }
-  buf->data = calloc (1, buf->len);
+  buf->data = malloc (buf->len);
   if (buf->data == NULL) {
     PyErr_NoMemory ();
     free (buf);
@@ -192,4 +190,22 @@ nbd_internal_py_aio_buffer_to_bytearray (PyObject *self, PyObject *args)
     return NULL;
 
   return PyByteArray_FromStringAndSize (buf->data, buf->len);
+}
+
+PyObject *
+nbd_internal_py_aio_buffer_size (PyObject *self, PyObject *args)
+{
+  PyObject *obj;
+  struct py_aio_buffer *buf;
+
+  if (!PyArg_ParseTuple (args,
+                         (char *) "O:nbd_internal_py_aio_buffer_size",
+                         &obj))
+    return NULL;
+
+  buf = nbd_internal_py_get_aio_buffer (obj);
+  if (buf == NULL)
+    return NULL;
+
+  return PyLong_FromSsize_t (buf->len);
 }

@@ -43,21 +43,21 @@ def callback (user_data, err):
     assert user_data == 42
 
 # First try: succeed in both callbacks
-buf = nbd.aio_buffer (512)
+buf = nbd.Buffer (512)
 cookie = h.aio_pread_structured_callback (buf, 0,
                                           lambda *args: chunk (42, *args),
                                           lambda *args: callback (42, *args))
 while not (h.aio_command_completed (cookie)):
     h.poll (-1)
 
-buf = nbd.aio_buffer_to_bytearray (buf)
+buf = buf.to_bytearray ()
 
 print ("%r" % buf)
 
 assert buf == expected
 
 # Second try: fail only during callback
-buf = nbd.aio_buffer (512)
+buf = nbd.Buffer (512)
 cookie = h.aio_pread_structured_callback (buf, 0,
                                           lambda *args: chunk (42, *args),
                                           lambda *args: callback (43, *args))
@@ -69,7 +69,7 @@ except nbd.Error as ex:
     assert ex.errnum == errno.ENOMEM
 
 # Third try: fail during both
-buf = nbd.aio_buffer (512)
+buf = nbd.Buffer (512)
 cookie = h.aio_pread_structured_callback (buf, 0,
                                           lambda *args: chunk (43, *args),
                                           lambda *args: callback (44, *args))
@@ -81,7 +81,7 @@ except nbd.Error as ex:
     assert ex.errnum == errno.ENOMEM
 
 # Fourth try: fail only during chunk
-buf = nbd.aio_buffer (512)
+buf = nbd.Buffer (512)
 cookie = h.aio_pread_structured_callback (buf, 0,
                                           lambda *args: chunk (43, *args),
                                           lambda *args: callback (42, *args))

@@ -3981,8 +3981,10 @@ raise_exception ()
       pr "extern PyObject *nbd_internal_py_%s (PyObject *self, PyObject *args);\n"
          name;
   ) ([ "create"; "close";
-       "alloc_aio_buffer"; "aio_buffer_from_bytearray";
-       "aio_buffer_to_bytearray" ] @ List.map fst handle_calls);
+       "alloc_aio_buffer";
+       "aio_buffer_from_bytearray";
+       "aio_buffer_to_bytearray";
+       "aio_buffer_size" ] @ List.map fst handle_calls);
 
   pr "\n";
   pr "#endif /* LIBNBD_METHODS_H */\n"
@@ -4009,8 +4011,10 @@ let generate_python_libnbdmod_c () =
       pr "  { (char *) \"%s\", nbd_internal_py_%s, METH_VARARGS, NULL },\n"
          name name;
   ) ([ "create"; "close";
-       "alloc_aio_buffer"; "aio_buffer_from_bytearray";
-       "aio_buffer_to_bytearray" ] @ List.map fst handle_calls);
+       "alloc_aio_buffer";
+       "aio_buffer_from_bytearray";
+       "aio_buffer_to_bytearray";
+       "aio_buffer_size" ] @ List.map fst handle_calls);
   pr "  { NULL, NULL, 0, NULL }\n";
   pr "};\n";
   pr "\n";
@@ -4502,17 +4506,28 @@ Error.__str__ = _str
 
   pr "\
 
-# AIO buffer functions.
-def aio_buffer (len):
-    '''allocate an AIO buffer used for nbd.aio_pread and nbd.aio_pwrite'''
-    return libnbdmod.alloc_aio_buffer (len)
+class Buffer (object):
+    '''Asynchronous I/O persistent buffer'''
 
-def aio_buffer_from_bytearray (ba):
-    '''create an AIO buffer from a bytearray'''
-    return libnbdmod.aio_buffer_from_bytearray (ba)
-def aio_buffer_to_bytearray (buf):
-    '''copy an AIO buffer into a bytearray'''
-    return libnbdmod.aio_buffer_to_bytearray (buf)
+    def __init__ (self, len):
+        '''allocate an uninitialized AIO buffer used for nbd.aio_pread'''
+        self._o = libnbdmod.alloc_aio_buffer (len)
+
+    @classmethod
+    def from_bytearray (cls, ba):
+        '''create an AIO buffer from a bytearray'''
+        o = libnbdmod.aio_buffer_from_bytearray (ba)
+        self = cls (0)
+        self._o = o
+        return self
+
+    def to_bytearray (self):
+        '''copy an AIO buffer into a bytearray'''
+        return libnbdmod.aio_buffer_to_bytearray (self._o)
+
+    def size (self):
+        '''return the size of an AIO buffer'''
+        return libnbdmod.aio_buffer_size (self._o)
 
 class NBD (object):
     '''NBD handle'''
@@ -4532,42 +4547,46 @@ class NBD (object):
       let args =
         List.map (
           function
-          | Bool n -> n
-          | BytesIn (n, _) | BytesPersistIn (n, _) -> n
-          | BytesPersistOut (n, _) -> n
-          | BytesOut (_, count) -> count
-          | Closure { cbname } -> cbname
-          | Int n -> n
-          | Int64 n -> n
-          | Path n -> n
-          | SockAddrAndLen (n, _) -> n
-          | String n -> n
-          | StringList n -> n
-          | UInt n -> n
-          | UInt32 n -> n
-          | UInt64 n -> n
+          | Bool n -> n, None, None
+          | BytesIn (n, _) -> n, None, None
+          | BytesOut (_, count) -> count, None, None
+          | BytesPersistIn (n, _) -> n, None, Some (sprintf "%s._o" n)
+          | BytesPersistOut (n, _) -> n, None, Some (sprintf "%s._o" n)
+          | Closure { cbname } -> cbname, None, None
+          | Int n -> n, None, None
+          | Int64 n -> n, None, None
+          | Path n -> n, None, None
+          | SockAddrAndLen (n, _) -> n, None, None
+          | String n -> n, None, None
+          | StringList n -> n, None, None
+          | UInt n -> n, None, None
+          | UInt32 n -> n, None, None
+          | UInt64 n -> n, None, None
         ) args in
       let optargs =
         List.map (
           function
-          | OFlags n -> n, "0"
+          | OFlags n -> n, Some "0", None
         ) optargs in
-      let () =
-        let params = args @ List.map (fun (n, def) -> n ^ "=" ^ def) optargs in
-        let params = List.map ((^) ", ") params in
-        let params = String.concat "" params in
-        pr "    def %s (self%s):\n" name params in
-      let () =
-        let longdesc = Str.global_replace py_fn_rex "C<nbd." longdesc in
-        let longdesc = Str.global_replace py_const_rex "C<" longdesc in
-        let longdesc = pod2text longdesc in
-        pr "        '''▶ %s\n\n%s'''\n"
-           shortdesc (String.concat "\n" longdesc) in
-      let () =
-        let vars = args @ List.map fst optargs in
-        let vars = List.map ((^) ", ") vars in
-        let vars = String.concat "" vars in
-        pr "        return libnbdmod.%s (self._o%s)\n" name vars in
+      let args = args @ optargs in
+      pr "    def %s (self" name;
+      List.iter (
+        function
+        | n, None, _ -> pr ", %s" n
+        | n, Some default, _ -> pr ", %s=%s" n default
+      ) args;
+      pr "):\n";
+      let longdesc = Str.global_replace py_fn_rex "C<nbd." longdesc in
+      let longdesc = Str.global_replace py_const_rex "C<" longdesc in
+      let longdesc = pod2text longdesc in
+      pr "        '''▶ %s\n\n%s'''\n" shortdesc (String.concat "\n" longdesc);
+      pr "        return libnbdmod.%s (self._o" name;
+      List.iter (
+        function
+        | _, _, Some getter -> pr ", %s" getter
+        | n, _, None -> pr ", %s" n
+      ) args;
+      pr ")\n";
       pr "\n"
   ) handle_calls;
 

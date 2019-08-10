@@ -20,12 +20,12 @@ import nbd
 h = nbd.NBD ()
 h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
                     "pattern", "size=512"])
-buf = nbd.aio_buffer (512)
+buf = nbd.Buffer (512)
 cookie = h.aio_pread (buf, 0)
 while not (h.aio_command_completed (cookie)):
     h.poll (-1)
 
-buf = nbd.aio_buffer_to_bytearray (buf)
+buf = buf.to_bytearray ()
 
 print ("%r" % buf)
 
