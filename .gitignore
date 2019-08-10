@@ -100,15 +100,7 @@ Makefile.in
 /tests/aio-parallel-load
 /tests/aio-parallel-load-tls
 /tests/aio-parallel-tls
-/tests/can-flush-flag
-/tests/can-not-flush-flag
-/tests/can-fua-flag
-/tests/can-not-fua-flag
-/tests/can-multi-conn-flag
-/tests/can-not-multi-conn-flag
-/tests/can-trim-flag
-/tests/can-not-trim-flag
-/tests/can-zero-flag
+/tests/can-*-flag
 /tests/closure-lifetimes
 /tests/compile
 /tests/compile-ansi-c

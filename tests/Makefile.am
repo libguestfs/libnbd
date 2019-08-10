@@ -141,6 +141,7 @@ check_PROGRAMS += \
 	can-trim-flag \
 	can-not-trim-flag \
 	can-zero-flag \
+	can-not-zero-flag \
 	can-multi-conn-flag \
 	can-not-multi-conn-flag \
 	oldstyle \
@@ -172,6 +173,7 @@ TESTS += \
 	can-trim-flag \
 	can-not-trim-flag \
 	can-zero-flag \
+	can-not-zero-flag \
 	can-multi-conn-flag \
 	can-not-multi-conn-flag \
 	oldstyle \
@@ -275,8 +277,14 @@ can_zero_flag_CPPFLAGS = \
 	$(NULL)
 can_zero_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_zero_flag_LDADD = $(top_builddir)/lib/libnbd.la
-# Note: can't test not-zero case because nbdkit emulates zero if the
-# plugin can't do it.
+
+can_not_zero_flag_SOURCES = eflags.c
+can_not_zero_flag_CPPFLAGS = \
+	-I$(top_srcdir)/include -Dflag=can_zero -Dvalue=false \
+	-Dfilter='"--filter=nozero"' \
+	$(NULL)
+can_not_zero_flag_CFLAGS = $(WARNINGS_CFLAGS)
+can_not_zero_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 can_multi_conn_flag_SOURCES = eflags.c
 can_multi_conn_flag_CPPFLAGS = \

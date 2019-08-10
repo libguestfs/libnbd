@@ -54,6 +54,9 @@ main (int argc, char *argv[])
 
   char *args[] =
     { "nbdkit", "-s", "--exit-with-parent", "-v",
+#ifdef filter
+      filter,
+#endif
       "sh", plugin_path,
       key_param,
 #if value == true
