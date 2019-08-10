@@ -3614,12 +3614,16 @@ let generate_lib_api_c () =
     )
     else
       pr "  /* This function must not call set_error. */\n";
+
+    (* Lock the handle. *)
     if is_locked then
       pr "  pthread_mutex_lock (&h->lock);\n";
     if may_set_error then (
       print_trace_enter args optargs;
       pr "\n"
     );
+
+    (* Check current state is permitted for this call. *)
     if permitted_states <> [] then (
       let value = match errcode with
         | Some value -> value
@@ -3630,6 +3634,8 @@ let generate_lib_api_c () =
       pr "  }\n";
       need_out_label := true
     );
+
+    (* Check parameters are valid. *)
     List.iter (
       function
       | String n ->
@@ -3644,6 +3650,8 @@ let generate_lib_api_c () =
          need_out_label := true
       | _ -> ()
     ) args;
+
+    (* Make the call. *)
     pr "  ret = nbd_unlocked_%s " name;
     print_arg_list ~types:false ~handle:true args optargs;
     pr ";\n";
