@@ -4734,6 +4734,9 @@ module Buffer : sig
   val of_bytes : bytes -> t
   (** Copy an OCaml [bytes] object to a newly allocated buffer. *)
 
+  val size : t -> int
+  (** Return the size of the buffer. *)
+
 end
 (** Persistent buffer used in AIO calls. *)
 
@@ -4803,6 +4806,7 @@ module Buffer = struct
   external free : t -> unit = \"nbd_internal_ocaml_buffer_free\"
   external to_bytes : t -> bytes = \"nbd_internal_ocaml_buffer_to_bytes\"
   external of_bytes : bytes -> t = \"nbd_internal_ocaml_buffer_of_bytes\"
+  external size : t -> int = \"nbd_internal_ocaml_buffer_size\"
 end
 
 type t

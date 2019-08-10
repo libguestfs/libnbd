@@ -109,3 +109,13 @@ nbd_internal_ocaml_buffer_of_bytes (value bytesv)
   rv = Val_nbd_buffer (b);
   CAMLreturn (rv);
 }
+
+value
+nbd_internal_ocaml_buffer_size (value bv)
+{
+  CAMLparam1 (bv);
+  CAMLlocal1 (rv);
+  struct nbd_buffer *b = NBD_buffer_val (bv);
+
+  CAMLreturn (Val_int (b->len));
+}
