@@ -35,8 +35,6 @@ Suggested API improvements:
   - nbd_connect_command: allow passing char **env
 
   TLS:
-  - nbd_set_tls: either remove optiona (1/2) interface, or
-    define symbols for it
   - should be individual APIs for setting each TLS file
     (set_tls_certificates can continue to exist)
   - TLS should have a way to pass in PIN or password to

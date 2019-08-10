@@ -855,6 +855,7 @@ and arg =
 | BytesPersistIn of string * string (* same as above, but buffer persists *)
 | BytesPersistOut of string * string
 | Closure of closure       (* function pointer + void *opaque *)
+| Enum of string * enum    (* enum/union type, int in C *)
 | Int of string            (* small int *)
 | Int64 of string          (* 64 bit signed int *)
 | Path of string           (* filename or path *)
@@ -890,6 +891,10 @@ and cbarg =
 | CBString of string       (* like String *)
 | CBUInt of string         (* like UInt *)
 | CBUInt64 of string       (* like UInt64 *)
+and enum = {
+  enum_prefix : string;    (* prefix of each enum variant *)
+  enums : (string * int) list (* enum names and their values in C *)
+}
 and flags = {
   flag_prefix : string;    (* prefix of each flag name *)
   flags : (string * int) list (* flag names and their values in C *)
@@ -909,6 +914,17 @@ let default_call = { args = []; optargs = []; ret = RErr;
 let non_blocking_test_call_description = "\n
 This call does not block, because it returns data that is saved in
 the handle from the NBD protocol handshake."
+
+(* Enums. *)
+let tls_enum = {
+  enum_prefix = "TLS";
+  enums = [
+    "DISABLE", 0;
+    "ALLOW",   1;
+    "REQUIRE", 2;
+  ]
+}
+let all_enums = [ tls_enum ]
 
 (* Flags. *)
 let cmd_flags = {
@@ -1020,7 +1036,7 @@ Get the export name associated with the handle.";
 
   "set_tls", {
     default_call with
-    args = [Int "tls"]; ret = RErr;
+    args = [Enum ("tls", tls_enum)]; ret = RErr;
     permitted_states = [ Created ];
     shortdesc = "enable or require TLS (authentication and encryption)";
     longdesc = "\
@@ -1029,12 +1045,12 @@ NBD server.  The possible settings are:
 
 =over 4
 
-=item C<tls=0>
+=item C<LIBNBD_TLS_DISABLE>
 
 Disable TLS.  (The default setting, unless using C<nbd_connect_uri> with
 a URI that requires TLS)
 
-=item C<tls=1>
+=item C<LIBNBD_TLS_ALLOW>
 
 Enable TLS if possible.  In some cases this will fall back
 to an unencrypted and/or unauthenticated connection if
@@ -1042,7 +1058,7 @@ TLS could not be established.  However some servers will
 drop the connection if TLS fails so fallback may not be
 possible.
 
-=item C<tls=2>
+=item C<LIBNBD_TLS_REQUIRE>
 
 Require an encrypted and authenticated TLS connection.
 Always fail to connect if the connection is not encrypted
@@ -3307,6 +3323,7 @@ let rec name_of_arg = function
 | BytesPersistOut (n, len) -> [n; len]
 | Closure { cbname } ->
    [ sprintf "%s_callback" cbname; sprintf "%s_user_data" cbname ]
+| Enum (n, _) -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
 | Path n -> [n]
@@ -3351,6 +3368,9 @@ let rec print_arg_list ?(handle = false) ?(types = true) args optargs =
          pr ", ";
          if types then pr "void *";
          pr "%s_user_data" cbname
+      | Enum (n, _) ->
+         if types then pr "int ";
+         pr "%s" n
       | Int n ->
          if types then pr "int ";
          pr "%s" n
@@ -3512,6 +3532,15 @@ let generate_include_libnbd_h () =
   pr "\n";
   pr "struct nbd_handle;\n";
   pr "\n";
+  List.iter (
+    fun { enum_prefix; enums } ->
+      List.iter (
+        fun (enum, i) ->
+          let enum = sprintf "LIBNBD_%s_%s" enum_prefix enum in
+          pr "#define %-40s %d\n" enum i
+      ) enums;
+      pr "\n"
+  ) all_enums;
   List.iter (
     fun { flag_prefix; flags } ->
       List.iter (
@@ -3701,6 +3730,7 @@ let generate_lib_api_c () =
       | BytesOut (n, count)
       | BytesPersistOut (n, count) -> pr " %s=<buf> %s=%%zu" n count
       | Closure { cbname } -> pr " %s=<fun>" cbname
+      | Enum (n, _) -> pr " %s=%%d" n
       | Int n -> pr " %s=%%d" n
       | Int64 n -> pr " %s=%%\" PRIi64 \"" n
       | SockAddrAndLen (n, len) -> pr " %s=<sockaddr> %s=%%d" n len
@@ -3724,6 +3754,7 @@ let generate_lib_api_c () =
       | BytesOut (_, count)
       | BytesPersistOut (_, count) -> pr ", %s" count
       | Closure { cbname } -> ()
+      | Enum (n, _) -> pr ", %s" n
       | Int n -> pr ", %s" n
       | Int64 n -> pr ", %s" n
       | SockAddrAndLen (_, len) -> pr ", (int) %s" len
@@ -4210,6 +4241,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  struct py_aio_buffer *%s_buf;\n" n
     | Closure { cbname } ->
        pr "  PyObject *%s_user_data;\n" cbname
+    | Enum (n, _) -> pr "  int %s;\n" n
     | Int n -> pr "  int %s;\n" n
     | Int64 n ->
        pr "  int64_t %s_i64;\n" n;
@@ -4252,6 +4284,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesOut (_, count) -> pr " \"n\""
     | BytesPersistOut (_, count) -> pr " \"O\""
     | Closure _ -> pr " \"O\""
+    | Enum _ -> pr " \"i\""
     | Int n -> pr " \"i\""
     | Int64 n -> pr " \"L\""
     | Path n -> pr " \"O&\""
@@ -4276,6 +4309,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesPersistOut (n, _) -> pr ", &%s" n
     | BytesOut (_, count) -> pr ", &%s" count
     | Closure { cbname } -> pr ", &%s_user_data" cbname
+    | Enum (n, _) -> pr ", &%s" n
     | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
     | Path n -> pr ", PyUnicode_FSConverter, &py_%s" n
@@ -4310,6 +4344,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
            pr "                     \"callback parameter %s is not callable\");\n" cbname;
            pr "    return NULL;\n";
            pr "  }\n"
+    | Enum _ -> ()
     | Int _ -> ()
     | Int64 n -> pr "  %s_i64 = %s;\n" n n
     | Path n ->
@@ -4342,6 +4377,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Closure { cbname } ->
        pr ", %s_%s_wrapper" name cbname;
        pr ", %s_user_data" cbname
+    | Enum (n, _) -> pr ", %s" n
     | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
     | Path n -> pr ", %s" n
@@ -4377,6 +4413,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesIn _
     | BytesPersistIn _ | BytesPersistOut _
     | Closure _
+    | Enum _
     | Int _
     | Int64 _
     | Path _
@@ -4417,6 +4454,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesIn (n, _) -> pr "  PyBuffer_Release (&%s);\n" n
     | BytesPersistIn _ | BytesOut _ | BytesPersistOut _ -> ()
     | Closure _ -> ()
+    | Enum _ -> ()
     | Int _ -> ()
     | Int64 _ -> ()
     | Path n ->
@@ -4510,6 +4548,15 @@ Error.__str__ = _str
 ";
 
   List.iter (
+    fun { enum_prefix; enums } ->
+      List.iter (
+        fun (enum, i) ->
+          let enum = sprintf "%s_%s" enum_prefix enum in
+          pr "%-30s = %d\n" enum i
+      ) enums;
+      pr "\n"
+  ) all_enums;
+  List.iter (
     fun { flag_prefix; flags } ->
       List.iter (
         fun (flag, i) ->
@@ -4581,6 +4628,7 @@ class NBD (object):
           | BytesPersistIn (n, _) -> n, None, Some (sprintf "%s._o" n)
           | BytesPersistOut (n, _) -> n, None, Some (sprintf "%s._o" n)
           | Closure { cbname } -> cbname, None, None
+          | Enum (n, _) -> n, None, None
           | Int n -> n, None, None
           | Int64 n -> n, None, None
           | Path n -> n, None, None
@@ -4659,6 +4707,7 @@ and ocaml_arg_to_string = function
   | BytesPersistOut _ -> "Buffer.t"
   | Closure { cbargs } ->
      sprintf "(%s)" (ocaml_closuredecl_to_string cbargs)
+  | Enum (_, { enum_prefix }) -> sprintf "%s.t" enum_prefix
   | Int _ -> "int"
   | Int64 _ -> "int64"
   | Path _ -> "string"
@@ -4705,6 +4754,7 @@ let ocaml_name_of_arg = function
   | BytesPersistIn (n, len) -> n
   | BytesPersistOut (n, len) -> n
   | Closure { cbname } -> cbname
+  | Enum (n, _) -> n
   | Int n -> n
   | Int64 n -> n
   | Path n -> n
@@ -4746,6 +4796,17 @@ exception Closed of string
 
 ";
 
+  List.iter (
+    fun { enum_prefix; enums } ->
+      pr "module %s : sig\n" enum_prefix;
+      pr "  type t =\n";
+      List.iter (
+        fun (enum, _) ->
+          pr "  | %s\n" enum
+      ) enums;
+      pr "end\n";
+      pr "\n"
+  ) all_enums;
   List.iter (
     fun { flag_prefix; flags } ->
       pr "module %s : sig\n" flag_prefix;
@@ -4842,6 +4903,17 @@ let () =
 ";
 
   List.iter (
+    fun { enum_prefix; enums } ->
+      pr "module %s = struct\n" enum_prefix;
+      pr "  type t =\n";
+      List.iter (
+        fun (enum, _) ->
+          pr "  | %s\n" enum
+      ) enums;
+      pr "end\n";
+      pr "\n"
+  ) all_enums;
+  List.iter (
     fun { flag_prefix; flags } ->
       pr "module %s = struct\n" flag_prefix;
       pr "  type t =\n";
@@ -4896,6 +4968,30 @@ external close : t -> unit = \"nbd_internal_ocaml_nbd_close\"
         pr "\"nbd_internal_ocaml_nbd_%s_byte\" " name;
       pr "\"nbd_internal_ocaml_nbd_%s\"\n" name
   ) handle_calls
+
+let print_ocaml_enum_val { enum_prefix; enums } =
+  pr "/* Convert OCaml %s.t to int. */\n" enum_prefix;
+  pr "static int\n";
+  pr "%s_val (value v)\n" enum_prefix;
+  pr "{\n";
+  pr "  CAMLparam1 (v);\n";
+  pr "  int i, r = 0;\n";
+  pr "\n";
+  pr "  i = Int_val (Field (v, 0));\n";
+  pr "  /* i is the index of the enum in the type\n";
+  pr "   * (eg. i = 0 => enum = %s.%s).\n" enum_prefix (fst (List.hd enums));
+  pr "   * Convert it to the C representation.\n";
+  pr "   */\n";
+  pr "  switch (i) {\n";
+  List.iteri (
+    fun i (enum, _) ->
+      pr "  case %d: r = LIBNBD_%s_%s; break;\n" i enum_prefix enum
+  ) enums;
+  pr "  }\n";
+  pr "\n";
+  pr "  CAMLreturnT (int, r);\n";
+  pr "}\n";
+  pr "\n"
 
 let print_ocaml_flag_val { flag_prefix; flags } =
   pr "/* Convert OCaml %s.t list to uint32_t bitmask. */\n" flag_prefix;
@@ -5120,6 +5216,8 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
        pr "  *%s_user_data = %sv;\n" cbname cbname;
        pr "  caml_register_generational_global_root (%s_user_data);\n" cbname;
        pr "  const void *%s_callback = %s_%s_wrapper;\n" cbname name cbname
+    | Enum (n, { enum_prefix }) ->
+       pr "  int %s = %s_val (%sv);\n" n enum_prefix n
     | Int n ->
        pr "  int %s = Int_val (%sv);\n" n n
     | Int64 n ->
@@ -5177,6 +5275,7 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
     | BytesOut _
     | BytesPersistOut _
     | Closure _
+    | Enum _
     | Int _
     | Int64 _
     | Path _
@@ -5232,6 +5331,7 @@ let generate_ocaml_nbd_c () =
   pr "#pragma GCC diagnostic ignored \"-Wmissing-prototypes\"\n";
   pr "\n";
 
+  List.iter print_ocaml_enum_val all_enums;
   List.iter print_ocaml_flag_val all_flags;
   List.iter print_ocaml_binding handle_calls
 end
