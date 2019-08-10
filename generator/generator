@@ -3691,6 +3691,23 @@ let generate_lib_api_c () =
     (* Check parameters are valid. *)
     List.iter (
       function
+      | Enum (n, { enum_prefix; enums }) ->
+         let value = match errcode with
+           | Some value -> value
+           | None -> assert false in
+         pr "  switch (%s) {\n" n;
+         List.iter (
+           fun (enum, _) ->
+             pr "  case LIBNBD_%s_%s:\n" enum_prefix enum
+         ) enums;
+         pr "    break;\n";
+         pr "  default:\n";
+         pr "    set_error (EINVAL, \"%%s: invalid value for parameter: %%d\",\n";
+         pr "               \"%s\", %s);\n" n n;
+         pr "    ret = %s;\n" value;
+         pr "    goto out;\n";
+         pr "  }\n";
+         need_out_label := true
       | String n ->
          let value = match errcode with
            | Some value -> value
