@@ -53,11 +53,9 @@ let asynch_copy src dst =
   in
 
   (* This callback is called when any pwrite to the destination
-   * has completed.  We have to manually free the buffer here
-   * as it is no longer used.
+   * has completed.
    *)
   let write_completed buf _ =
-    NBD.Buffer.free buf;
     bytes_written := !bytes_written + NBD.Buffer.size buf;
     (* By returning 1 here we auto-retire the pwrite command. *)
     1

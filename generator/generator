@@ -4747,10 +4747,6 @@ module Buffer : sig
   (** Allocate an uninitialized buffer.  The parameter is the size
       in bytes. *)
 
-  val free : t -> unit
-  (** The buffer must be manually freed when it is no longer used.
-      An AIO completion callback is usually a good place. *)
-
   val to_bytes : t -> bytes
   (** Copy buffer to an OCaml [bytes] object. *)
 
@@ -4848,7 +4844,6 @@ let () =
 module Buffer = struct
   type t
   external alloc : int -> t = \"nbd_internal_ocaml_buffer_alloc\"
-  external free : t -> unit = \"nbd_internal_ocaml_buffer_free\"
   external to_bytes : t -> bytes = \"nbd_internal_ocaml_buffer_to_bytes\"
   external of_bytes : bytes -> t = \"nbd_internal_ocaml_buffer_of_bytes\"
   external size : t -> int = \"nbd_internal_ocaml_buffer_size\"
@@ -5085,18 +5080,18 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
     function
     | OClosure { cbname } ->
        pr "  nbd_%s_callback %s_callback = {0};\n" cbname cbname;
+       pr "  struct user_data *%s_user_data = alloc_user_data ();\n" cbname;
        pr "  if (%sv != Val_int (0)) { /* Some closure */\n" cbname;
        pr "    /* The function may save a reference to the closure, so we\n";
        pr "     * must treat it as a possible GC root.\n";
        pr "     */\n";
-       pr "    struct user_data *user_data = alloc_user_data ();\n";
-       pr "\n";
-       pr "    user_data->fnv = Field (%sv, 0);\n" cbname;
-       pr "    caml_register_generational_global_root (&user_data->fnv);\n";
+       pr "    %s_user_data->fnv = Field (%sv, 0);\n" cbname cbname;
+       pr "    caml_register_generational_global_root (&%s_user_data->fnv);\n"
+         cbname;
        pr "    %s_callback.callback = %s_wrapper;\n" cbname cbname;
-       pr "    %s_callback.user_data = user_data;\n" cbname;
-       pr "    %s_callback.free = free_user_data;\n" cbname;
        pr "  }\n";
+       pr "  %s_callback.user_data = %s_user_data;\n" cbname cbname;
+       pr "  %s_callback.free = free_user_data;\n" cbname;
     | OFlags (n, { flag_prefix }) ->
        pr "  uint32_t %s;\n" n;
        pr "  if (%sv != Val_int (0)) /* Some [ list of %s.t ] */\n"
@@ -5125,15 +5120,16 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
        pr "  void *%s = %s_buf->data;\n" n n;
        pr "  size_t %s = %s_buf->len;\n" count n
     | Closure { cbname } ->
+       pr "  nbd_%s_callback %s_callback;\n" cbname cbname;
+       pr "  struct user_data *%s_user_data = alloc_user_data ();\n" cbname;
        pr "  /* The function may save a reference to the closure, so we\n";
        pr "   * must treat it as a possible GC root.\n";
        pr "   */\n";
-       pr "  struct user_data *user_data = alloc_user_data ();\n";
-       pr "  user_data->fnv = %sv;\n" cbname;
-       pr "  caml_register_generational_global_root (&user_data->fnv);\n";
-       pr "  nbd_%s_callback %s_callback;\n" cbname cbname;
+       pr "  %s_user_data->fnv = %sv;\n" cbname cbname;
+       pr "  caml_register_generational_global_root (&%s_user_data->fnv);\n"
+         cbname;
        pr "  %s_callback.callback = %s_wrapper;\n" cbname cbname;
-       pr "  %s_callback.user_data = user_data;\n" cbname;
+       pr "  %s_callback.user_data = %s_user_data;\n" cbname cbname;
        pr "  %s_callback.free = free_user_data;\n" cbname
     | Enum (n, { enum_prefix }) ->
        pr "  int %s = %s_val (%sv);\n" n enum_prefix n
@@ -5157,6 +5153,19 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
        pr "  uint32_t %s = Int32_val (%sv);\n" n n
     | UInt64 n ->
        pr "  uint64_t %s = Int64_val (%sv);\n" n n
+  ) args;
+
+  (* If there is a BytesPersistIn/Out parameter then we need to
+   * register it as a global root and save that into the
+   * completion_callback.user_data so the root is removed on
+   * command completion.
+   *)
+  List.iter (
+    function
+    | BytesPersistIn (n, _) | BytesPersistOut (n, _) ->
+       pr "  completion_user_data->bufv = %sv;\n" n;
+       pr "  caml_register_generational_global_root (&completion_user_data->bufv);\n"
+    | _ -> ()
   ) args;
 
   let ret_c_type = C.type_of_ret ret and errcode = C.errcode_of_ret ret in
@@ -5257,7 +5266,8 @@ let generate_ocaml_nbd_c () =
   pr " * and freed in the free_user_data function below.\n";
   pr " */\n";
   pr "struct user_data {\n";
-  pr "  value fnv;      /* GC root pointing to OCaml function. */\n";
+  pr "  value fnv;     /* Optional GC root pointing to OCaml function. */\n";
+  pr "  value bufv;    /* Optional GC root pointing to persistent buffer. */\n";
   pr "};\n";
   pr "\n";
   pr "static struct user_data *\n";
@@ -5274,7 +5284,10 @@ let generate_ocaml_nbd_c () =
   pr "{\n";
   pr "  struct user_data *data = user_data;\n";
   pr "\n";
-  pr "  caml_remove_generational_global_root (&data->fnv);\n";
+  pr "  if (data->fnv != 0)\n";
+  pr "    caml_remove_generational_global_root (&data->fnv);\n";
+  pr "  if (data->bufv != 0)\n";
+  pr "    caml_remove_generational_global_root (&data->bufv);\n";
   pr "  free (data);\n";
   pr "}\n";
   pr "\n";
