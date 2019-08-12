@@ -4394,10 +4394,10 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  /* Increment refcount since pointer may be saved by libnbd. */\n";
        pr "  Py_INCREF (%s_user_data);\n" cbname;
        pr "  if (!PyCallable_Check (%s_user_data)) {\n" cbname;
-           pr "    PyErr_SetString (PyExc_TypeError,\n";
-           pr "                     \"callback parameter %s is not callable\");\n" cbname;
-           pr "    return NULL;\n";
-           pr "  }\n"
+       pr "    PyErr_SetString (PyExc_TypeError,\n";
+       pr "                     \"callback parameter %s is not callable\");\n" cbname;
+       pr "    return NULL;\n";
+       pr "  }\n"
     | Enum _ -> ()
     | Flags (n, _) -> pr "  %s_u32 = %s;\n" n n
     | Int _ -> ()
