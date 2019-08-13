@@ -85,7 +85,6 @@ struct nbd_handle {
   /* For debugging. */
   bool debug;
   nbd_debug_callback debug_callback;
-  void *debug_data;
 
   /* State machine.
    *
@@ -257,9 +256,7 @@ struct command_cb {
     nbd_extent_callback extent;
     nbd_chunk_callback chunk;
   } fn;
-  void *fn_user_data; /* associated with one of the fn callbacks above */
   nbd_completion_callback completion;
-  void *user_data; /* associated with the completion callback */
 };
 
 struct command {

@@ -101,19 +101,24 @@ main (int argc, char *argv[])
 
   /* Read the block status. */
   id = 1;
-  if (nbd_block_status (nbd, 65536, 0, check_extent, &id, 0) == -1) {
+  if (nbd_block_status (nbd, 65536, 0,
+                        (nbd_extent_callback) { .callback = check_extent, .user_data = &id },
+                        0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   id = 2;
-  if (nbd_block_status (nbd, 1024, 32768-512, check_extent, &id, 0) == -1) {
+  if (nbd_block_status (nbd, 1024, 32768-512,
+                        (nbd_extent_callback) { .callback = check_extent, .user_data = &id },
+                        0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   id = 3;
-  if (nbd_block_status (nbd, 1024, 32768-512, check_extent, &id,
+  if (nbd_block_status (nbd, 1024, 32768-512,
+                        (nbd_extent_callback) { .callback = check_extent, .user_data = &id },
                         LIBNBD_CMD_FLAG_REQ_ONE) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);

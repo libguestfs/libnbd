@@ -3228,10 +3228,7 @@ let rec print_arg_list ?(handle = false) ?(types = true) args optargs =
          pr "%s" len
       | Closure { cbname; cbargs } ->
          if types then pr "nbd_%s_callback " cbname;
-         pr "%s_callback" cbname;
-         pr ", ";
-         if types then pr "void *";
-         pr "%s_user_data" cbname
+         pr "%s_callback" cbname
       | Enum (n, _) ->
          if types then pr "int ";
          pr "%s" n
@@ -3273,10 +3270,7 @@ let rec print_arg_list ?(handle = false) ?(types = true) args optargs =
       match optarg with
       | OClosure { cbname; cbargs } ->
          if types then pr "nbd_%s_callback " cbname;
-         pr "%s_callback" cbname;
-         pr ", ";
-         if types then pr "void *";
-         pr "%s_user_data" cbname
+         pr "%s_callback" cbname
       | OFlags (n, _) ->
          if types then pr "uint32_t ";
          pr "%s" n
@@ -3339,14 +3333,36 @@ let print_cbarg_list ?(valid_flag = true) ?(types = true) cbargs =
   ) cbargs;
   pr ")"
 
-(* Callback typedefs in <libnbd.h> *)
-let print_closure_typedefs () =
+(* Callback structs/typedefs in <libnbd.h> *)
+let print_closure_structs () =
+  pr "/* These are used for callback parameters.  They are passed\n";
+  pr " * by value not by reference.  See CALLBACKS in libnbd(3).\n";
+  pr " */\n";
   List.iter (
     fun { cbname; cbargs } ->
-      pr "typedef int (*nbd_%s_callback) " cbname;
+      pr "typedef struct {\n";
+      pr "  int (*callback) ";
       print_cbarg_list cbargs;
       pr ";\n";
+      pr "  void *user_data;\n";
+      pr "} nbd_%s_callback;\n" cbname;
+      pr "\n";
   ) all_closures;
+
+  pr "/* Note NBD_NULL_* are only generated for callbacks which are\n";
+  pr " * optional.  (See OClosure in the generator).\n";
+  pr " */\n";
+  let oclosures =
+    let optargs = List.map (fun (_, { optargs }) -> optargs) handle_calls in
+    let optargs = List.flatten optargs in
+    let optargs =
+      List.filter_map (function OClosure cb -> Some cb | _ -> None) optargs in
+    sort_uniq optargs in
+  List.iter (
+    fun { cbname } ->
+      pr "#define NBD_NULL_%s ((nbd_%s_callback) { .callback = NULL })\n"
+        (String.uppercase_ascii cbname) cbname;
+  ) oclosures;
   pr "\n"
 
 let print_extern_and_define name args optargs ret =
@@ -3436,7 +3452,7 @@ let generate_include_libnbd_h () =
   pr "extern int nbd_get_errno (void);\n";
   pr "#define LIBNBD_HAVE_NBD_GET_ERRNO 1\n";
   pr "\n";
-  print_closure_typedefs ();
+  print_closure_structs ();
   List.iter (
     fun (name, { args; optargs; ret }) ->
       print_extern_and_define name args optargs ret
@@ -3568,7 +3584,7 @@ let generate_lib_api_c () =
          let value = match errcode with
            | Some value -> value
            | None -> assert false in
-         pr "  if (%s_callback == NULL) {\n" cbname;
+         pr "  if (%s_callback.callback == NULL) {\n" cbname;
          pr "    set_error (EFAULT, \"%%s cannot be NULL\", \"%s\");\n" cbname;
          pr "    ret = %s;\n" value;
          pr "    goto out;\n";
@@ -3680,7 +3696,8 @@ let generate_lib_api_c () =
     ) args;
     List.iter (
       function
-      | OClosure { cbname } -> pr ", %s_callback ? \"<fun>\" : \"NULL\"" cbname
+      | OClosure { cbname } ->
+         pr ", %s_callback.callback ? \"<fun>\" : \"NULL\"" cbname
       | OFlags (n, _) -> pr ", %s" n
     ) optargs;
     pr ");\n"
@@ -4133,7 +4150,8 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
           n;
        pr "  struct py_aio_buffer *%s_buf;\n" n
     | Closure { cbname } ->
-       pr "  PyObject *%s_user_data;\n" cbname
+       pr "  nbd_%s_callback %s = { .callback = %s_wrapper };\n"
+         cbname cbname cbname
     | Enum (n, _) -> pr "  int %s;\n" n
     | Flags (n, _) ->
        pr "  uint32_t %s_u32;\n" n;
@@ -4165,7 +4183,8 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   List.iter (
     function
     | OClosure { cbname } ->
-       pr "  PyObject *%s_user_data;\n" cbname
+       pr "  nbd_%s_callback %s = { .callback = %s_wrapper };\n"
+         cbname cbname cbname
     | OFlags (n, _) ->
        pr "  uint32_t %s_u32;\n" n;
        pr "  unsigned int %s; /* really uint32_t */\n" n
@@ -4208,7 +4227,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesIn (n, _) | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) -> pr ", &%s" n
     | BytesOut (_, count) -> pr ", &%s" count
-    | Closure { cbname } -> pr ", &%s_user_data" cbname
+    | Closure { cbname } -> pr ", &%s.user_data" cbname
     | Enum (n, _) -> pr ", &%s" n
     | Flags (n, _) -> pr ", &%s" n
     | Int n -> pr ", &%s" n
@@ -4223,7 +4242,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
-    | OClosure { cbname } -> pr ", &%s_user_data" cbname
+    | OClosure { cbname } -> pr ", &%s.user_data" cbname
     | OFlags (n, _) -> pr ", &%s" n
   ) optargs;
   pr "))\n";
@@ -4240,8 +4259,8 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  %s_buf = nbd_internal_py_get_aio_buffer (%s);\n" n n
     | Closure { cbname } ->
        pr "  /* Increment refcount since pointer may be saved by libnbd. */\n";
-       pr "  Py_INCREF (%s_user_data);\n" cbname;
-       pr "  if (!PyCallable_Check (%s_user_data)) {\n" cbname;
+       pr "  Py_INCREF (%s.user_data);\n" cbname;
+       pr "  if (!PyCallable_Check (%s.user_data)) {\n" cbname;
        pr "    PyErr_SetString (PyExc_TypeError,\n";
        pr "                     \"callback parameter %s is not callable\");\n" cbname;
        pr "    return NULL;\n";
@@ -4266,15 +4285,17 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   List.iter (
     function
     | OClosure { cbname } ->
-       pr "  if (%s_user_data != Py_None) {\n" cbname;
+       pr "  if (%s.user_data != Py_None) {\n" cbname;
        pr "    /* Increment refcount since pointer may be saved by libnbd. */\n";
-       pr "    Py_INCREF (%s_user_data);\n" cbname;
-       pr "    if (!PyCallable_Check (%s_user_data)) {\n" cbname;
+       pr "    Py_INCREF (%s.user_data);\n" cbname;
+       pr "    if (!PyCallable_Check (%s.user_data)) {\n" cbname;
        pr "      PyErr_SetString (PyExc_TypeError,\n";
        pr "                       \"callback parameter %s is not callable\");\n" cbname;
        pr "      return NULL;\n";
        pr "    }\n";
-       pr "  }\n"
+       pr "  }\n";
+       pr "  else\n";
+       pr "    %s.callback = NULL; /* we're not going to call it */\n" cbname
     | OFlags (n, _) -> pr "  %s_u32 = %s;\n" n n
   ) optargs;
 
@@ -4287,9 +4308,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesOut (n, count) -> pr ", %s, %s" n count
     | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) -> pr ", %s_buf->data, %s_buf->len" n n
-    | Closure { cbname } ->
-       pr ", %s_wrapper" cbname;
-       pr ", %s_user_data" cbname
+    | Closure { cbname } -> pr ", %s" cbname
     | Enum (n, _) -> pr ", %s" n
     | Flags (n, _) -> pr ", %s_u32" n
     | Int n -> pr ", %s" n
@@ -4304,9 +4323,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
-    | OClosure { cbname } ->
-       pr ", %s_user_data != Py_None ? %s_wrapper : NULL" cbname cbname;
-       pr ", %s_user_data != Py_None ? %s_user_data : NULL" cbname cbname
+    | OClosure { cbname } -> pr ", %s" cbname
     | OFlags (n, _) -> pr ", %s_u32" n
   ) optargs;
   pr ");\n";
@@ -5101,17 +5118,18 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
   List.iter (
     function
     | OClosure { cbname } ->
-       pr "  const void *%s_callback = NULL;\n" cbname;
-       pr "  value *%s_user_data = NULL;\n" cbname;
+       pr "  nbd_%s_callback %s_callback = {0};\n" cbname cbname;
        pr "  if (%sv != Val_int (0)) { /* Some closure */\n" cbname;
        pr "    /* The function may save a reference to the closure, so we\n";
        pr "     * must treat it as a possible GC root.\n";
        pr "     */\n";
-       pr "    %s_user_data = malloc (sizeof (value));\n" cbname;
-       pr "    if (%s_user_data == NULL) caml_raise_out_of_memory ();\n" cbname;
-       pr "    *%s_user_data = Field (%sv, 0);\n" cbname cbname;
-       pr "    caml_register_generational_global_root (%s_user_data);\n" cbname;
-       pr "    %s_callback = %s_wrapper;\n" cbname cbname;
+       pr "    %s_callback.user_data = malloc (sizeof (value));\n" cbname;
+       pr "    if (%s_callback.user_data == NULL)\n" cbname;
+       pr "      caml_raise_out_of_memory ();\n";
+       pr "    *(value *)%s_callback.user_data = Field (%sv, 0);\n"
+         cbname cbname;
+       pr "    caml_register_generational_global_root (%s_callback.user_data);\n" cbname;
+       pr "    %s_callback.callback = %s_wrapper;\n" cbname cbname;
        pr "  }\n";
     | OFlags (n, { flag_prefix }) ->
        pr "  uint32_t %s;\n" n;
@@ -5144,12 +5162,14 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
        pr "  /* The function may save a reference to the closure, so we\n";
        pr "   * must treat it as a possible GC root.\n";
        pr "   */\n";
-       pr "  value *%s_user_data;\n" cbname;
-       pr "  %s_user_data = malloc (sizeof (value));\n" cbname;
-       pr "  if (%s_user_data == NULL) caml_raise_out_of_memory ();\n" cbname;
-       pr "  *%s_user_data = %sv;\n" cbname cbname;
-       pr "  caml_register_generational_global_root (%s_user_data);\n" cbname;
-       pr "  const void *%s_callback = %s_wrapper;\n" cbname cbname
+       pr "  nbd_%s_callback %s_callback = { .callback = %s_wrapper };\n"
+         cbname cbname cbname;
+       pr "  %s_callback.user_data = malloc (sizeof (value));\n" cbname;
+       pr "  if (%s_callback.user_data == NULL) caml_raise_out_of_memory ();\n"
+         cbname;
+       pr "  *(value *)%s_callback.user_data = %sv;\n" cbname cbname;
+       pr "  caml_register_generational_global_root (%s_callback.user_data);\n"
+         cbname
     | Enum (n, { enum_prefix }) ->
        pr "  int %s = %s_val (%sv);\n" n enum_prefix n
     | Flags (n, { flag_prefix }) ->

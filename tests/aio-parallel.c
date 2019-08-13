@@ -271,12 +271,14 @@ start_thread (void *arg)
         + (rand () % (status->length[i] - BUFFERSIZE));
       cmd = rand () & 1;
       if (cmd == 0) {
-        cookie = nbd_aio_pwrite (nbd, buf, BUFFERSIZE, offset, NULL, NULL, 0);
+        cookie = nbd_aio_pwrite (nbd, buf, BUFFERSIZE, offset,
+                                 NBD_NULL_COMPLETION, 0);
         status->bytes_sent += BUFFERSIZE;
         memcpy (&ramdisk[offset], buf, BUFFERSIZE);
       }
       else {
-        cookie = nbd_aio_pread (nbd, buf, BUFFERSIZE, offset, NULL, NULL, 0);
+        cookie = nbd_aio_pread (nbd, buf, BUFFERSIZE, offset,
+                                NBD_NULL_COMPLETION, 0);
         status->bytes_received += BUFFERSIZE;
       }
       if (cookie == -1) {

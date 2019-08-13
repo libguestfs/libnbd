@@ -53,12 +53,13 @@ try_deadlock (void *arg)
 
   /* Issue commands. */
   cookies[0] = nbd_aio_pread (nbd, in, packetsize, 0,
-                              NULL, NULL, 0);
+                              NBD_NULL_COMPLETION, 0);
   if (cookies[0] == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto error;
   }
-  cookies[1] = nbd_aio_pwrite (nbd, out, packetsize, packetsize, NULL, NULL, 0);
+  cookies[1] = nbd_aio_pwrite (nbd, out, packetsize, packetsize,
+                               NBD_NULL_COMPLETION, 0);
   if (cookies[1] == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto error;

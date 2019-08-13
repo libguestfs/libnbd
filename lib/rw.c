@@ -49,7 +49,8 @@ nbd_unlocked_pread (struct nbd_handle *h, void *buf,
 {
   int64_t cookie;
 
-  cookie = nbd_unlocked_aio_pread (h, buf, count, offset, NULL, NULL, flags);
+  cookie = nbd_unlocked_aio_pread (h, buf, count, offset,
+                                   NBD_NULL_COMPLETION, flags);
   if (cookie == -1)
     return -1;
 
@@ -60,14 +61,15 @@ nbd_unlocked_pread (struct nbd_handle *h, void *buf,
 int
 nbd_unlocked_pread_structured (struct nbd_handle *h, void *buf,
                                size_t count, uint64_t offset,
-                               nbd_chunk_callback chunk, void *user_data,
+                               nbd_chunk_callback chunk,
                                uint32_t flags)
 {
   int64_t cookie;
 
   cookie = nbd_unlocked_aio_pread_structured (h, buf, count, offset,
-                                              chunk, user_data,
-                                              NULL, NULL, flags);
+                                              chunk,
+                                              NBD_NULL_COMPLETION,
+                                              flags);
   if (cookie == -1)
     return -1;
 
@@ -81,7 +83,8 @@ nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
 {
   int64_t cookie;
 
-  cookie = nbd_unlocked_aio_pwrite (h, buf, count, offset, NULL, NULL, flags);
+  cookie = nbd_unlocked_aio_pwrite (h, buf, count, offset,
+                                    NBD_NULL_COMPLETION, flags);
   if (cookie == -1)
     return -1;
 
@@ -94,7 +97,7 @@ nbd_unlocked_flush (struct nbd_handle *h, uint32_t flags)
 {
   int64_t cookie;
 
-  cookie = nbd_unlocked_aio_flush (h, NULL, NULL, flags);
+  cookie = nbd_unlocked_aio_flush (h, NBD_NULL_COMPLETION, flags);
   if (cookie == -1)
     return -1;
 
@@ -108,7 +111,8 @@ nbd_unlocked_trim (struct nbd_handle *h,
 {
   int64_t cookie;
 
-  cookie = nbd_unlocked_aio_trim (h, count, offset, NULL, NULL, flags);
+  cookie = nbd_unlocked_aio_trim (h, count, offset,
+                                  NBD_NULL_COMPLETION, flags);
   if (cookie == -1)
     return -1;
 
@@ -122,7 +126,8 @@ nbd_unlocked_cache (struct nbd_handle *h,
 {
   int64_t cookie;
 
-  cookie = nbd_unlocked_aio_cache (h, count, offset, NULL, NULL, flags);
+  cookie = nbd_unlocked_aio_cache (h, count, offset,
+                                   NBD_NULL_COMPLETION, flags);
   if (cookie == -1)
     return -1;
 
@@ -136,7 +141,8 @@ nbd_unlocked_zero (struct nbd_handle *h,
 {
   int64_t cookie;
 
-  cookie = nbd_unlocked_aio_zero (h, count, offset, NULL, NULL, flags);
+  cookie = nbd_unlocked_aio_zero (h, count, offset,
+                                  NBD_NULL_COMPLETION, flags);
   if (cookie == -1)
     return -1;
 
@@ -147,13 +153,13 @@ nbd_unlocked_zero (struct nbd_handle *h,
 int
 nbd_unlocked_block_status (struct nbd_handle *h,
                            uint64_t count, uint64_t offset,
-                           nbd_extent_callback extent, void *user_data,
+                           nbd_extent_callback extent,
                            uint32_t flags)
 {
   int64_t cookie;
 
-  cookie = nbd_unlocked_aio_block_status (h, count, offset, extent, user_data,
-                                          NULL, NULL, flags);
+  cookie = nbd_unlocked_aio_block_status (h, count, offset, extent,
+                                          NBD_NULL_COMPLETION, flags);
   if (cookie == -1)
     return -1;
 
@@ -257,10 +263,9 @@ int64_t
 nbd_unlocked_aio_pread (struct nbd_handle *h, void *buf,
                         size_t count, uint64_t offset,
                         nbd_completion_callback completion,
-                        void *user_data,
                         uint32_t flags)
 {
-  struct command_cb cb = { .completion = completion, .user_data = user_data, };
+  struct command_cb cb = { .completion = completion };
 
   /* We could silently accept flag DF, but it really only makes sense
    * with callbacks, because otherwise there is no observable change
@@ -279,15 +284,11 @@ int64_t
 nbd_unlocked_aio_pread_structured (struct nbd_handle *h, void *buf,
                                    size_t count, uint64_t offset,
                                    nbd_chunk_callback chunk,
-                                   void *read_user_data,
                                    nbd_completion_callback completion,
-                                   void *callback_user_data,
                                    uint32_t flags)
 {
   struct command_cb cb = { .fn.chunk = chunk,
-                           .fn_user_data = read_user_data,
-                           .completion = completion,
-                           .user_data = callback_user_data, };
+                           .completion = completion };
 
   if ((flags & ~LIBNBD_CMD_FLAG_DF) != 0) {
     set_error (EINVAL, "invalid flag: %" PRIu32, flags);
@@ -308,10 +309,9 @@ int64_t
 nbd_unlocked_aio_pwrite (struct nbd_handle *h, const void *buf,
                          size_t count, uint64_t offset,
                          nbd_completion_callback completion,
-                         void *user_data,
                          uint32_t flags)
 {
-  struct command_cb cb = { .completion = completion, .user_data = user_data, };
+  struct command_cb cb = { .completion = completion };
 
   if (nbd_unlocked_is_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
@@ -336,10 +336,9 @@ nbd_unlocked_aio_pwrite (struct nbd_handle *h, const void *buf,
 int64_t
 nbd_unlocked_aio_flush (struct nbd_handle *h,
                         nbd_completion_callback completion,
-                        void *user_data,
                         uint32_t flags)
 {
-  struct command_cb cb = { .completion = completion, .user_data = user_data, };
+  struct command_cb cb = { .completion = completion };
 
   if (nbd_unlocked_can_flush (h) != 1) {
     set_error (EINVAL, "server does not support flush operations");
@@ -359,10 +358,9 @@ int64_t
 nbd_unlocked_aio_trim (struct nbd_handle *h,
                        uint64_t count, uint64_t offset,
                        nbd_completion_callback completion,
-                       void *user_data,
                        uint32_t flags)
 {
-  struct command_cb cb = { .completion = completion, .user_data = user_data, };
+  struct command_cb cb = { .completion = completion };
 
   if (nbd_unlocked_is_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
@@ -393,10 +391,9 @@ int64_t
 nbd_unlocked_aio_cache (struct nbd_handle *h,
                         uint64_t count, uint64_t offset,
                         nbd_completion_callback completion,
-                        void *user_data,
                         uint32_t flags)
 {
-  struct command_cb cb = { .completion = completion, .user_data = user_data, };
+  struct command_cb cb = { .completion = completion };
 
   /* Actually according to the NBD protocol document, servers do exist
    * that support NBD_CMD_CACHE but don't advertise the
@@ -420,10 +417,9 @@ int64_t
 nbd_unlocked_aio_zero (struct nbd_handle *h,
                        uint64_t count, uint64_t offset,
                        nbd_completion_callback completion,
-                       void *user_data,
                        uint32_t flags)
 {
-  struct command_cb cb = { .completion = completion, .user_data = user_data, };
+  struct command_cb cb = { .completion = completion };
 
   if (nbd_unlocked_is_read_only (h) == 1) {
     set_error (EINVAL, "server does not support write operations");
@@ -454,15 +450,11 @@ int64_t
 nbd_unlocked_aio_block_status (struct nbd_handle *h,
                                uint64_t count, uint64_t offset,
                                nbd_extent_callback extent,
-                               void *extent_user_data,
                                nbd_completion_callback completion,
-                               void *callback_user_data,
                                uint32_t flags)
 {
   struct command_cb cb = { .fn.extent = extent,
-                           .fn_user_data = extent_user_data,
-                           .completion = completion,
-                           .user_data = callback_user_data };
+                           .completion = completion };
 
   if (!h->structured_replies) {
     set_error (ENOTSUP, "server does not support structured replies");

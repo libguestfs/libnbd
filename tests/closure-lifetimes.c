@@ -101,10 +101,10 @@ main (int argc, char *argv[])
   nbd = nbd_create ();
   if (nbd == NULL) NBD_ERROR;
 
-  nbd_set_debug_callback (nbd, debug_fn, NULL);
+  nbd_set_debug_callback (nbd, (nbd_debug_callback) { .callback = debug_fn });
   assert (debug_fn_free == 0);
 
-  nbd_set_debug_callback (nbd, debug_fn, NULL);
+  nbd_set_debug_callback (nbd, (nbd_debug_callback) { .callback = debug_fn});
   assert (debug_fn_free == 1);
 
   debug_fn_free = 0;
@@ -117,8 +117,9 @@ main (int argc, char *argv[])
   if (nbd_connect_command (nbd, nbdkit) == -1) NBD_ERROR;
 
   cookie = nbd_aio_pread_structured (nbd, buf, sizeof buf, 0,
-                                     read_cb, NULL,
-                                     completion_cb, NULL, 0);
+                                     (nbd_chunk_callback) { .callback = read_cb },
+                                     (nbd_completion_callback) { .callback = completion_cb },
+                                     0);
   if (cookie == -1) NBD_ERROR;
   assert (read_cb_free == 0);
   assert (completion_cb_free == 0);
@@ -144,8 +145,9 @@ main (int argc, char *argv[])
   if (nbd_connect_command (nbd, nbdkit_delay) == -1) NBD_ERROR;
 
   cookie = nbd_aio_pread_structured (nbd, buf, sizeof buf, 0,
-                                     read_cb, NULL,
-                                     completion_cb, NULL, 0);
+                                     (nbd_chunk_callback) { .callback = read_cb },
+                                     (nbd_completion_callback) { .callback = completion_cb },
+                                     0);
   if (cookie == -1) NBD_ERROR;
   nbd_kill_command (nbd, 0);
   nbd_close (nbd);

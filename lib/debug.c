@@ -41,23 +41,22 @@ nbd_unlocked_get_debug (struct nbd_handle *h)
 int
 nbd_unlocked_clear_debug_callback (struct nbd_handle *h)
 {
-  if (h->debug_callback)
+  if (h->debug_callback.callback)
     /* ignore return value */
-    h->debug_callback (LIBNBD_CALLBACK_FREE, h->debug_data, NULL, NULL);
-  h->debug_callback = NULL;
-  h->debug_data = NULL;
+    h->debug_callback.callback (LIBNBD_CALLBACK_FREE,
+                                h->debug_callback.user_data, NULL, NULL);
+  h->debug_callback.callback = NULL;
   return 0;
 }
 
 int
 nbd_unlocked_set_debug_callback (struct nbd_handle *h,
-                                 nbd_debug_callback debug_callback, void *data)
+                                 nbd_debug_callback debug_callback)
 {
   /* This can't fail at the moment - see implementation above. */
   nbd_unlocked_clear_debug_callback (h);
 
   h->debug_callback = debug_callback;
-  h->debug_data = data;
   return 0;
 }
 
@@ -87,9 +86,10 @@ nbd_internal_debug (struct nbd_handle *h, const char *fs, ...)
   if (r == -1)
     goto out;
 
-  if (h->debug_callback)
+  if (h->debug_callback.callback)
     /* ignore return value */
-    h->debug_callback (LIBNBD_CALLBACK_VALID, h->debug_data, context, msg);
+    h->debug_callback.callback (LIBNBD_CALLBACK_VALID,
+                                h->debug_callback.user_data, context, msg);
   else
     fprintf (stderr, "libnbd: debug: %s: %s: %s\n",
              h->hname, context ? : "unknown", msg);

@@ -222,7 +222,8 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
   check (ERANGE, "nbd_pread: ");
-  if (nbd_aio_pwrite (nbd, buf, MAXSIZE, 0, NULL, NULL, 0) != -1) {
+  if (nbd_aio_pwrite (nbd, buf, MAXSIZE, 0,
+                      NBD_NULL_COMPLETION, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_aio_pwrite did not fail with oversize request\n",
              argv[0]);
@@ -245,11 +246,13 @@ main (int argc, char *argv[])
    * command at a time and stalls on the first), then queue multiple
    * disconnects.
    */
-  if (nbd_aio_pwrite (nbd, buf, 2 * 1024 * 1024, 0, NULL, NULL, 0) == -1) {
+  if (nbd_aio_pwrite (nbd, buf, 2 * 1024 * 1024, 0,
+                      NBD_NULL_COMPLETION, 0) == -1) {
     fprintf (stderr, "%s: %s\n", argv[0], nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if (nbd_aio_pwrite (nbd, buf, 2 * 1024 * 1024, 0, NULL, NULL, 0) == -1) {
+  if (nbd_aio_pwrite (nbd, buf, 2 * 1024 * 1024, 0,
+                      NBD_NULL_COMPLETION, 0) == -1) {
     fprintf (stderr, "%s: %s\n", argv[0], nbd_get_error ());
     exit (EXIT_FAILURE);
   }

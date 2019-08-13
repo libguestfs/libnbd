@@ -77,12 +77,15 @@ main (int argc, char *argv[])
   /* Issue a read and trim that should not complete yet. Set up the
    * trim to auto-retire via callback.
    */
-  if ((cookie = nbd_aio_pread (nbd, buf, sizeof buf, 0, NULL, NULL, 0)) == -1) {
+  if ((cookie = nbd_aio_pread (nbd, buf, sizeof buf, 0,
+                               NBD_NULL_COMPLETION, 0)) == -1) {
     fprintf (stderr, "%s: test failed: nbd_aio_pread: %s\n", argv[0],
              nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if (nbd_aio_trim (nbd, sizeof buf, 0, callback, NULL, 0) == -1) {
+  if (nbd_aio_trim (nbd, sizeof buf, 0,
+                    (nbd_completion_callback) { .callback = callback },
+                    0) == -1) {
     fprintf (stderr, "%s: test failed: nbd_aio_trim: %s\n", argv[0],
              nbd_get_error ());
     exit (EXIT_FAILURE);

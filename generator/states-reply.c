@@ -168,14 +168,14 @@ save_reply_state (struct nbd_handle *h)
   retire = cmd->type == NBD_CMD_DISC;
 
   /* Notify the user */
-  if (cmd->cb.completion) {
+  if (cmd->cb.completion.callback) {
     int error = cmd->error;
     int r;
 
     assert (cmd->type != NBD_CMD_DISC);
-    r = cmd->cb.completion (LIBNBD_CALLBACK_VALID|LIBNBD_CALLBACK_FREE,
-                            cmd->cb.user_data, &error);
-    cmd->cb.completion = NULL; /* because we've freed it */
+    r = cmd->cb.completion.callback (LIBNBD_CALLBACK_VALID|LIBNBD_CALLBACK_FREE,
+                                     cmd->cb.completion.user_data, &error);
+    cmd->cb.completion.callback = NULL; /* because we've freed it */
     switch (r) {
     case -1:
       if (error)

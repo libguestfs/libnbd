@@ -599,14 +599,26 @@ will use your login name):
 
 =head1 CALLBACKS
 
-Some libnbd calls take function pointers (eg.
-L<nbd_set_debug_callback(3)>, L<nbd_aio_pread(3)>).  Libnbd can call these
-functions while processing.
+Some libnbd calls take callbacks (eg. L<nbd_set_debug_callback(3)>,
+L<nbd_aio_pread(3)>).  Libnbd can call these functions while processing.
 
-Callbacks have an opaque C<void *user_data> pointer.  This is passed
-as the second parameter to the callback.  The opaque pointer is only
-used from the C API, since in other languages you can use closures to
-achieve the same outcome.
+In the C API these libnbd calls take a structure which contains the
+function pointer and an optional opaque C<void *user_data> pointer:
+
+ nbd_aio_pread (nbd, buf, sizeof buf, offset,
+                (nbd_completion_callback) { .callback = my_fn,
+                                            .user_data = my_data },
+                0);
+
+For optional callbacks, if you don't want the callback, either set
+C<.callback> to C<NULL> or use the equivalent macros (such as
+C<NBD_NULL_COMPLETION>) defined in C<libnbd.h>:
+
+ nbd_aio_pread (nbd, buf, sizeof buf, offset,
+                NBD_NULL_COMPLETION, 0);
+
+From other languages the structure and opaque pointer are not needed
+because you can use closures to achieve the same effect.
 
 =head2 Callback lifetimes
 

@@ -32,15 +32,18 @@ void
 nbd_internal_retire_and_free_command (struct command *cmd)
 {
   /* Free the callbacks. */
-  if (cmd->type == NBD_CMD_BLOCK_STATUS && cmd->cb.fn.extent)
-    cmd->cb.fn.extent (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
-                       NULL, 0, NULL, 0, NULL);
-  if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk)
-    cmd->cb.fn.chunk (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
-                      NULL, 0, 0, 0, NULL);
-  if (cmd->cb.completion)
-    cmd->cb.completion (LIBNBD_CALLBACK_FREE, cmd->cb.user_data,
-                        NULL);
+  if (cmd->type == NBD_CMD_BLOCK_STATUS && cmd->cb.fn.extent.callback)
+    cmd->cb.fn.extent.callback (LIBNBD_CALLBACK_FREE,
+                                cmd->cb.fn.extent.user_data,
+                                NULL, 0, NULL, 0, NULL);
+  if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk.callback)
+    cmd->cb.fn.chunk.callback (LIBNBD_CALLBACK_FREE,
+                               cmd->cb.fn.chunk.user_data,
+                               NULL, 0, 0, 0, NULL);
+  if (cmd->cb.completion.callback)
+    cmd->cb.completion.callback (LIBNBD_CALLBACK_FREE,
+                                 cmd->cb.completion.user_data,
+                                 NULL);
 
   free (cmd);
 }

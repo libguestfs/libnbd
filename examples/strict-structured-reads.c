@@ -236,7 +236,8 @@ main (int argc, char *argv[])
     *d = (struct data) { .offset = offset, .count = maxsize, .flags = flags,
                          .remaining = r, };
     if (nbd_aio_pread_structured (nbd, buf, sizeof buf, offset,
-                                  read_chunk, d, read_verify, d,
+                                  (nbd_chunk_callback) { .callback = read_chunk, .user_data = d },
+                                  (nbd_completion_callback) { .callback = read_verify, .user_data = d },
                                   flags) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);

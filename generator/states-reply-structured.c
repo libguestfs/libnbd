@@ -168,7 +168,7 @@ valid_flags (struct nbd_handle *h)
       set_error (0, "invalid length in NBD_REPLY_TYPE_BLOCK_STATUS");
       return 0;
     }
-    if (cmd->cb.fn.extent == NULL) {
+    if (cmd->cb.fn.extent.callback == NULL) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "not expecting NBD_REPLY_TYPE_BLOCK_STATUS here");
       return 0;
@@ -304,7 +304,7 @@ valid_flags (struct nbd_handle *h)
                    offset, cmd->offset, cmd->count);
         return 0;
       }
-      if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk) {
+      if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk.callback) {
         int scratch = error;
         unsigned valid = valid_flags (h);
 
@@ -312,13 +312,14 @@ valid_flags (struct nbd_handle *h)
          * current error rather than any earlier one. If the callback fails
          * without setting errno, then use the server's error below.
          */
-        if (cmd->cb.fn.chunk (valid, cmd->cb.fn_user_data,
-                              cmd->data + (offset - cmd->offset),
-                              0, offset, LIBNBD_READ_ERROR, &scratch) == -1)
+        if (cmd->cb.fn.chunk.callback (valid, cmd->cb.fn.chunk.user_data,
+                                       cmd->data + (offset - cmd->offset),
+                                       0, offset, LIBNBD_READ_ERROR,
+                                       &scratch) == -1)
           if (cmd->error == 0)
             cmd->error = scratch;
         if (valid & LIBNBD_CALLBACK_FREE)
-          cmd->cb.fn.chunk = NULL; /* because we've freed it */
+          cmd->cb.fn.chunk.callback = NULL; /* because we've freed it */
       }
     }
 
@@ -398,18 +399,18 @@ valid_flags (struct nbd_handle *h)
     offset = be64toh (h->sbuf.sr.payload.offset_data.offset);
 
     assert (cmd); /* guaranteed by CHECK */
-    if (cmd->cb.fn.chunk) {
+    if (cmd->cb.fn.chunk.callback) {
       int error = cmd->error;
       unsigned valid = valid_flags (h);
 
-      if (cmd->cb.fn.chunk (valid, cmd->cb.fn_user_data,
-                            cmd->data + (offset - cmd->offset),
-                            length - sizeof offset, offset,
-                           LIBNBD_READ_DATA, &error) == -1)
+      if (cmd->cb.fn.chunk.callback (valid, cmd->cb.fn.chunk.user_data,
+                                     cmd->data + (offset - cmd->offset),
+                                     length - sizeof offset, offset,
+                                     LIBNBD_READ_DATA, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
       if (valid & LIBNBD_CALLBACK_FREE)
-        cmd->cb.fn.chunk = NULL; /* because we've freed it */
+        cmd->cb.fn.chunk.callback = NULL; /* because we've freed it */
     }
 
     SET_NEXT_STATE (%FINISH);
@@ -463,18 +464,18 @@ valid_flags (struct nbd_handle *h)
      * them as an extension, and this works even when length == 0.
      */
     memset (cmd->data + offset, 0, length);
-    if (cmd->cb.fn.chunk) {
+    if (cmd->cb.fn.chunk.callback) {
       int error = cmd->error;
       unsigned valid = valid_flags (h);
 
-      if (cmd->cb.fn.chunk (valid, cmd->cb.fn_user_data,
-                            cmd->data + offset, length,
-                            cmd->offset + offset,
-                            LIBNBD_READ_HOLE, &error) == -1)
+      if (cmd->cb.fn.chunk.callback (valid, cmd->cb.fn.chunk.user_data,
+                                     cmd->data + offset, length,
+                                     cmd->offset + offset,
+                                     LIBNBD_READ_HOLE, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
       if (valid & LIBNBD_CALLBACK_FREE)
-        cmd->cb.fn.chunk = NULL; /* because we've freed it */
+        cmd->cb.fn.chunk.callback = NULL; /* because we've freed it */
     }
 
     SET_NEXT_STATE(%FINISH);
@@ -499,7 +500,7 @@ valid_flags (struct nbd_handle *h)
 
     assert (cmd); /* guaranteed by CHECK */
     assert (cmd->type == NBD_CMD_BLOCK_STATUS);
-    assert (cmd->cb.fn.extent);
+    assert (cmd->cb.fn.extent.callback);
     assert (h->bs_entries);
     assert (length >= 12);
 
@@ -522,13 +523,14 @@ valid_flags (struct nbd_handle *h)
       int error = cmd->error;
       unsigned valid = valid_flags (h);
 
-      if (cmd->cb.fn.extent (valid, cmd->cb.fn_user_data,
-                             meta_context->name, cmd->offset,
-                             &h->bs_entries[1], (length-4) / 4, &error) == -1)
+      if (cmd->cb.fn.extent.callback (valid, cmd->cb.fn.extent.user_data,
+                                      meta_context->name, cmd->offset,
+                                      &h->bs_entries[1], (length-4) / 4,
+                                      &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
       if (valid & LIBNBD_CALLBACK_FREE)
-        cmd->cb.fn.extent = NULL; /* because we've freed it */
+        cmd->cb.fn.extent.callback = NULL; /* because we've freed it */
     }
     else
       /* Emit a debug message, but ignore it. */
@@ -545,13 +547,15 @@ valid_flags (struct nbd_handle *h)
 
   flags = be16toh (h->sbuf.sr.structured_reply.flags);
   if (flags & NBD_REPLY_FLAG_DONE) {
-    if (cmd->type == NBD_CMD_BLOCK_STATUS && cmd->cb.fn.extent)
-      cmd->cb.fn.extent (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
-                         NULL, 0, NULL, 0, NULL);
-    if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk)
-      cmd->cb.fn.chunk (LIBNBD_CALLBACK_FREE, cmd->cb.fn_user_data,
-                        NULL, 0, 0, 0, NULL);
-    cmd->cb.fn.chunk = NULL;
+    if (cmd->type == NBD_CMD_BLOCK_STATUS && cmd->cb.fn.extent.callback)
+      cmd->cb.fn.extent.callback (LIBNBD_CALLBACK_FREE,
+                                  cmd->cb.fn.extent.user_data,
+                                  NULL, 0, NULL, 0, NULL);
+    if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk.callback)
+      cmd->cb.fn.chunk.callback (LIBNBD_CALLBACK_FREE,
+                                 cmd->cb.fn.chunk.user_data,
+                                 NULL, 0, 0, 0, NULL);
+    cmd->cb.fn.chunk.callback = NULL;
     SET_NEXT_STATE (%^FINISH_COMMAND);
   }
   else {
