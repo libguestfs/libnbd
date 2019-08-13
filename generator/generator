@@ -3217,11 +3217,9 @@ let () =
     | name, { args; may_set_error = false }
          when List.exists
                 (function
-                 | Enum _ -> true
-                 | Flags _ -> true
-                 | String _ -> true
+                 | Closure _ | Enum _ | Flags _ | String _ -> true
                  | _ -> false) args ->
-       failwithf "%s: if args contains Enum/Flags/String parameter, may_set_error must be false" name
+       failwithf "%s: if args contains Closure/Enum/Flags/String parameter, may_set_error must be false" name
 
     (* !may_set_error is incompatible with certain optargs too.
      *)
@@ -3677,6 +3675,16 @@ let generate_lib_api_c () =
     in
     List.iter (
       function
+      | Closure { cbname } ->
+         let value = match errcode with
+           | Some value -> value
+           | None -> assert false in
+         pr "  if (%s_callback == NULL) {\n" cbname;
+         pr "    set_error (EFAULT, \"%%s cannot be NULL\", \"%s\");\n" cbname;
+         pr "    ret = %s;\n" value;
+         pr "    goto out;\n";
+         pr "  }\n";
+         need_out_label := true
       | Enum (n, { enum_prefix; enums }) ->
          let value = match errcode with
            | Some value -> value
