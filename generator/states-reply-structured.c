@@ -307,11 +307,8 @@
                                        &scratch) == -1)
           if (cmd->error == 0)
             cmd->error = scratch;
-        if (flags & NBD_REPLY_FLAG_DONE) {
-          if (cmd->cb.fn.chunk.free)
-            cmd->cb.fn.chunk.free (cmd->cb.fn.chunk.user_data);
-          cmd->cb.fn.chunk.callback = NULL; /* because we've freed it */
-        }
+        if (flags & NBD_REPLY_FLAG_DONE)
+          FREE_CALLBACK (cmd->cb.fn.chunk);
       }
     }
 
@@ -401,11 +398,8 @@
                                      LIBNBD_READ_DATA, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
-      if (flags & NBD_REPLY_FLAG_DONE) {
-        if (cmd->cb.fn.chunk.free)
-          cmd->cb.fn.chunk.free (cmd->cb.fn.chunk.user_data);
-        cmd->cb.fn.chunk.callback = NULL; /* because we've freed it */
-      }
+      if (flags & NBD_REPLY_FLAG_DONE)
+        FREE_CALLBACK (cmd->cb.fn.chunk);
     }
 
     SET_NEXT_STATE (%FINISH);
@@ -469,11 +463,8 @@
                                      LIBNBD_READ_HOLE, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
-      if (flags & NBD_REPLY_FLAG_DONE) {
-        if (cmd->cb.fn.chunk.free)
-          cmd->cb.fn.chunk.free (cmd->cb.fn.chunk.user_data);
-        cmd->cb.fn.chunk.callback = NULL; /* because we've freed it */
-      }
+      if (flags & NBD_REPLY_FLAG_DONE)
+        FREE_CALLBACK (cmd->cb.fn.chunk);
     }
 
     SET_NEXT_STATE(%FINISH);
@@ -527,11 +518,8 @@
                                       &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
-      if (flags & NBD_REPLY_FLAG_DONE) {
-        if (cmd->cb.fn.extent.free)
-          cmd->cb.fn.extent.free (cmd->cb.fn.extent.user_data);
-        cmd->cb.fn.extent.callback = NULL; /* because we've freed it */
-      }
+      if (flags & NBD_REPLY_FLAG_DONE)
+        FREE_CALLBACK (cmd->cb.fn.extent);
     }
     else
       /* Emit a debug message, but ignore it. */
@@ -548,16 +536,10 @@
 
   flags = be16toh (h->sbuf.sr.structured_reply.flags);
   if (flags & NBD_REPLY_FLAG_DONE) {
-    if (cmd->type == NBD_CMD_BLOCK_STATUS && cmd->cb.fn.extent.callback) {
-      if (cmd->cb.fn.extent.free)
-        cmd->cb.fn.extent.free (cmd->cb.fn.extent.user_data);
-    }
-    if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk.callback) {
-      if (cmd->cb.fn.chunk.free)
-        cmd->cb.fn.chunk.free (cmd->cb.fn.chunk.user_data);
-    }
-    cmd->cb.fn.extent.callback = NULL;
-    cmd->cb.fn.chunk.callback = NULL;
+    if (cmd->type == NBD_CMD_BLOCK_STATUS)
+      FREE_CALLBACK (cmd->cb.fn.extent);
+    if (cmd->type == NBD_CMD_READ)
+      FREE_CALLBACK (cmd->cb.fn.chunk);
     SET_NEXT_STATE (%^FINISH_COMMAND);
   }
   else {

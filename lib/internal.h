@@ -273,6 +273,20 @@ struct command {
   uint32_t error; /* Local errno value */
 };
 
+/* Free a callback.
+ *
+ * Note this works for any type of callback because the basic layout
+ * of the struct is the same for all of them.  Therefore casting cb to
+ * nbd_completion_callback does not change the effective code.
+ */
+#define FREE_CALLBACK(cb)                                               \
+  do {                                                                  \
+    nbd_completion_callback *_cb = (nbd_completion_callback *)&(cb);    \
+    if (_cb->callback != NULL && _cb->free != NULL)                     \
+      _cb->free (_cb->user_data);                                       \
+    _cb->callback = NULL;                                               \
+  } while (0)
+
 /* aio.c */
 extern void nbd_internal_retire_and_free_command (struct command *);
 

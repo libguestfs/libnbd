@@ -41,11 +41,7 @@ nbd_unlocked_get_debug (struct nbd_handle *h)
 int
 nbd_unlocked_clear_debug_callback (struct nbd_handle *h)
 {
-  if (h->debug_callback.callback)
-    if (h->debug_callback.free)
-      /* ignore return value */
-      h->debug_callback.free (h->debug_callback.user_data);
-  h->debug_callback.callback = NULL;
+  FREE_CALLBACK (h->debug_callback);
   return 0;
 }
 

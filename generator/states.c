@@ -127,9 +127,7 @@ void abort_commands (struct nbd_handle *h,
 
       assert (cmd->type != NBD_CMD_DISC);
       r = cmd->cb.completion.callback (cmd->cb.completion.user_data, &error);
-      if (cmd->cb.completion.free)
-        cmd->cb.completion.free (cmd->cb.completion.user_data);
-      cmd->cb.completion.callback = NULL; /* because we've freed it */
+      FREE_CALLBACK (cmd->cb.completion);
       switch (r) {
       case -1:
         if (error)
