@@ -867,6 +867,7 @@ and arg =
 | UInt32 of string         (* 32 bit unsigned int *)
 | UInt64 of string         (* 64 bit unsigned int *)
 and optarg =
+| OClosure of closure      (* optional closure *)
 | OFlags of string * flags (* optional flags, uint32_t in C *)
 and ret =
 | RBool                    (* return a boolean, or error *)
@@ -3184,16 +3185,6 @@ end = struct
 
 (* Check the API definition. *)
 let () =
-  (* Currently optargs can only be [] or [OFlags].  This condition
-   * will be relaxed later when we support more optional arguments.
-   *)
-  List.iter (
-    function
-    | _, { optargs = [] } | _, { optargs = [OFlags _] } -> ()
-    | (name, _) ->
-       failwithf "%s: optargs can only be empty list or [OFlags]" name
-  ) handle_calls;
-
   (* Check functions using may_set_error. *)
   List.iter (
     function
@@ -3226,7 +3217,8 @@ let () =
     | name, { optargs; may_set_error = false }
          when List.exists
                 (function
-                 | OFlags _ -> true) optargs ->
+                 | OFlags _ -> true
+                 | _ -> false) optargs ->
        failwithf "%s: if optargs contains an OFlags parameter, may_set_error must be false" name
 
     | _ -> ()
@@ -3388,6 +3380,12 @@ let rec print_arg_list ?(handle = false) ?(types = true) args optargs =
       if !comma then pr ", ";
       comma := true;
       match optarg with
+      | OClosure { cbname; cbargs } ->
+         if types then pr "nbd_%s_callback " cbname;
+         pr "%s_callback" cbname;
+         pr ", ";
+         if types then pr "void *";
+         pr "%s_user_data" cbname
       | OFlags (n, _) ->
          if types then pr "uint32_t ";
          pr "%s" n
@@ -3718,6 +3716,7 @@ let generate_lib_api_c () =
     ) args;
     List.iter (
       function
+      | OClosure _ -> ()
       | OFlags (n, flags) ->
          print_flags_check n flags
     ) optargs;
@@ -3767,6 +3766,7 @@ let generate_lib_api_c () =
     ) args;
     List.iter (
       function
+      | OClosure { cbname } -> pr " %s=%%s" cbname
       | OFlags (n, _) -> pr " %s=0x%%x" n
     ) optargs;
     pr "\"";
@@ -3789,6 +3789,7 @@ let generate_lib_api_c () =
     ) args;
     List.iter (
       function
+      | OClosure { cbname } -> pr ", %s_callback ? \"<fun>\" : \"NULL\"" cbname
       | OFlags (n, _) -> pr ", %s" n
     ) optargs;
     pr ");\n"
@@ -4297,6 +4298,8 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
+    | OClosure { cbname } ->
+       pr "  PyObject *%s_user_data;\n" cbname
     | OFlags (n, _) ->
        pr "  uint32_t %s_u32;\n" n;
        pr "  unsigned int %s; /* really uint32_t */\n" n
@@ -4327,6 +4330,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
+    | OClosure _ -> pr " \"O\""
     | OFlags _ -> pr " \"I\""
   ) optargs;
   pr "\n";
@@ -4353,6 +4357,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
+    | OClosure { cbname } -> pr ", &%s_user_data" cbname
     | OFlags (n, _) -> pr ", &%s" n
   ) optargs;
   pr "))\n";
@@ -4394,6 +4399,16 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
+    | OClosure { cbname } ->
+       pr "  if (%s_user_data != Py_None) {\n" cbname;
+       pr "    /* Increment refcount since pointer may be saved by libnbd. */\n";
+       pr "    Py_INCREF (%s_user_data);\n" cbname;
+       pr "    if (!PyCallable_Check (%s_user_data)) {\n" cbname;
+       pr "      PyErr_SetString (PyExc_TypeError,\n";
+       pr "                       \"callback parameter %s is not callable\");\n" cbname;
+       pr "      return NULL;\n";
+       pr "    }\n";
+       pr "  }\n"
     | OFlags (n, _) -> pr "  %s_u32 = %s;\n" n n
   ) optargs;
 
@@ -4423,6 +4438,9 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
+    | OClosure { cbname } ->
+       pr ", %s_user_data != Py_None ? %s_wrapper : NULL" cbname cbname;
+       pr ", %s_user_data != Py_None ? %s_user_data : NULL" cbname cbname
     | OFlags (n, _) -> pr ", %s_u32" n
   ) optargs;
   pr ");\n";
@@ -4679,6 +4697,7 @@ class NBD (object):
       let optargs =
         List.map (
           function
+          | OClosure { cbname } -> cbname, Some "None", None
           | OFlags (n, _) -> n, Some "0", None
         ) optargs in
       let args = args @ optargs in
@@ -4767,6 +4786,8 @@ and ocaml_ret_to_string = function
   | RUInt -> "int"
 
 and ocaml_optarg_to_string = function
+  | OClosure { cbname; cbargs } ->
+     sprintf "?%s:(%s)" cbname (ocaml_closuredecl_to_string cbargs)
   | OFlags (n, { flag_prefix }) -> sprintf "?%s:%s.t list" n flag_prefix
 
 and ocaml_closuredecl_to_string cbargs =
@@ -4805,6 +4826,7 @@ let ocaml_name_of_arg = function
   | UInt64 n -> n
 
 let ocaml_name_of_optarg = function
+  | OClosure { cbname } -> cbname
   | OFlags (n, _) -> n
 
 let num_params args optargs =
@@ -5213,6 +5235,19 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
 
   List.iter (
     function
+    | OClosure { cbname } ->
+       pr "  const void *%s_callback = NULL;\n" cbname;
+       pr "  value *%s_user_data = NULL;\n" cbname;
+       pr "  if (%sv != Val_int (0)) { /* Some closure */\n" cbname;
+       pr "    /* The function may save a reference to the closure, so we\n";
+       pr "     * must treat it as a possible GC root.\n";
+       pr "     */\n";
+       pr "    %s_user_data = malloc (sizeof (value));\n" cbname;
+       pr "    if (%s_user_data == NULL) caml_raise_out_of_memory ();\n" cbname;
+       pr "    *%s_user_data = Field (%sv, 0);\n" cbname cbname;
+       pr "    caml_register_generational_global_root (%s_user_data);\n" cbname;
+       pr "    %s_callback = %s_wrapper;\n" cbname cbname;
+       pr "  }\n";
     | OFlags (n, { flag_prefix }) ->
        pr "  uint32_t %s;\n" n;
        pr "  if (%sv != Val_int (0)) /* Some [ list of %s.t ] */\n"
