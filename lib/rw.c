@@ -49,7 +49,7 @@ nbd_unlocked_pread (struct nbd_handle *h, void *buf,
 {
   int64_t cookie;
 
-  cookie = nbd_unlocked_aio_pread (h, buf, count, offset, flags);
+  cookie = nbd_unlocked_aio_pread (h, buf, count, offset, NULL, NULL, flags);
   if (cookie == -1)
     return -1;
 
@@ -66,7 +66,8 @@ nbd_unlocked_pread_structured (struct nbd_handle *h, void *buf,
   int64_t cookie;
 
   cookie = nbd_unlocked_aio_pread_structured (h, buf, count, offset,
-                                              chunk, user_data, flags);
+                                              chunk, user_data,
+                                              NULL, NULL, flags);
   if (cookie == -1)
     return -1;
 
@@ -80,7 +81,7 @@ nbd_unlocked_pwrite (struct nbd_handle *h, const void *buf,
 {
   int64_t cookie;
 
-  cookie = nbd_unlocked_aio_pwrite (h, buf, count, offset, flags);
+  cookie = nbd_unlocked_aio_pwrite (h, buf, count, offset, NULL, NULL, flags);
   if (cookie == -1)
     return -1;
 
@@ -93,7 +94,7 @@ nbd_unlocked_flush (struct nbd_handle *h, uint32_t flags)
 {
   int64_t cookie;
 
-  cookie = nbd_unlocked_aio_flush (h, flags);
+  cookie = nbd_unlocked_aio_flush (h, NULL, NULL, flags);
   if (cookie == -1)
     return -1;
 
@@ -107,7 +108,7 @@ nbd_unlocked_trim (struct nbd_handle *h,
 {
   int64_t cookie;
 
-  cookie = nbd_unlocked_aio_trim (h, count, offset, flags);
+  cookie = nbd_unlocked_aio_trim (h, count, offset, NULL, NULL, flags);
   if (cookie == -1)
     return -1;
 
@@ -121,7 +122,7 @@ nbd_unlocked_cache (struct nbd_handle *h,
 {
   int64_t cookie;
 
-  cookie = nbd_unlocked_aio_cache (h, count, offset, flags);
+  cookie = nbd_unlocked_aio_cache (h, count, offset, NULL, NULL, flags);
   if (cookie == -1)
     return -1;
 
@@ -135,7 +136,7 @@ nbd_unlocked_zero (struct nbd_handle *h,
 {
   int64_t cookie;
 
-  cookie = nbd_unlocked_aio_zero (h, count, offset, flags);
+  cookie = nbd_unlocked_aio_zero (h, count, offset, NULL, NULL, flags);
   if (cookie == -1)
     return -1;
 
@@ -152,7 +153,7 @@ nbd_unlocked_block_status (struct nbd_handle *h,
   int64_t cookie;
 
   cookie = nbd_unlocked_aio_block_status (h, count, offset, extent, user_data,
-                                          flags);
+                                          NULL, NULL, flags);
   if (cookie == -1)
     return -1;
 
@@ -254,18 +255,10 @@ nbd_internal_command_common (struct nbd_handle *h,
 
 int64_t
 nbd_unlocked_aio_pread (struct nbd_handle *h, void *buf,
-                        size_t count, uint64_t offset, uint32_t flags)
-{
-  return nbd_unlocked_aio_pread_callback (h, buf, count, offset, NULL, NULL,
-                                          flags);
-}
-
-int64_t
-nbd_unlocked_aio_pread_callback (struct nbd_handle *h, void *buf,
-                                 size_t count, uint64_t offset,
-                                 nbd_completion_callback completion,
-                                 void *user_data,
-                                 uint32_t flags)
+                        size_t count, uint64_t offset,
+                        nbd_completion_callback completion,
+                        void *user_data,
+                        uint32_t flags)
 {
   struct command_cb cb = { .completion = completion, .user_data = user_data, };
 
@@ -285,23 +278,11 @@ nbd_unlocked_aio_pread_callback (struct nbd_handle *h, void *buf,
 int64_t
 nbd_unlocked_aio_pread_structured (struct nbd_handle *h, void *buf,
                                    size_t count, uint64_t offset,
-                                   nbd_chunk_callback chunk, void *user_data,
+                                   nbd_chunk_callback chunk,
+                                   void *read_user_data,
+                                   nbd_completion_callback completion,
+                                   void *callback_user_data,
                                    uint32_t flags)
-{
-  return nbd_unlocked_aio_pread_structured_callback (h, buf, count, offset,
-                                                     chunk, user_data,
-                                                     NULL, NULL,
-                                                     flags);
-}
-
-int64_t
-nbd_unlocked_aio_pread_structured_callback (struct nbd_handle *h, void *buf,
-                                            size_t count, uint64_t offset,
-                                            nbd_chunk_callback chunk,
-                                            void *read_user_data,
-                                            nbd_completion_callback completion,
-                                            void *callback_user_data,
-                                            uint32_t flags)
 {
   struct command_cb cb = { .fn.chunk = chunk,
                            .fn_user_data = read_user_data,
@@ -326,18 +307,9 @@ nbd_unlocked_aio_pread_structured_callback (struct nbd_handle *h, void *buf,
 int64_t
 nbd_unlocked_aio_pwrite (struct nbd_handle *h, const void *buf,
                          size_t count, uint64_t offset,
+                         nbd_completion_callback completion,
+                         void *user_data,
                          uint32_t flags)
-{
-  return nbd_unlocked_aio_pwrite_callback (h, buf, count, offset, NULL, NULL,
-                                           flags);
-}
-
-int64_t
-nbd_unlocked_aio_pwrite_callback (struct nbd_handle *h, const void *buf,
-                                  size_t count, uint64_t offset,
-                                  nbd_completion_callback completion,
-                                  void *user_data,
-                                  uint32_t flags)
 {
   struct command_cb cb = { .completion = completion, .user_data = user_data, };
 
@@ -362,16 +334,10 @@ nbd_unlocked_aio_pwrite_callback (struct nbd_handle *h, const void *buf,
 }
 
 int64_t
-nbd_unlocked_aio_flush (struct nbd_handle *h, uint32_t flags)
-{
-  return nbd_unlocked_aio_flush_callback (h, NULL, NULL, flags);
-}
-
-int64_t
-nbd_unlocked_aio_flush_callback (struct nbd_handle *h,
-                                 nbd_completion_callback completion,
-                                 void *user_data,
-                                 uint32_t flags)
+nbd_unlocked_aio_flush (struct nbd_handle *h,
+                        nbd_completion_callback completion,
+                        void *user_data,
+                        uint32_t flags)
 {
   struct command_cb cb = { .completion = completion, .user_data = user_data, };
 
@@ -392,17 +358,9 @@ nbd_unlocked_aio_flush_callback (struct nbd_handle *h,
 int64_t
 nbd_unlocked_aio_trim (struct nbd_handle *h,
                        uint64_t count, uint64_t offset,
+                       nbd_completion_callback completion,
+                       void *user_data,
                        uint32_t flags)
-{
-  return nbd_unlocked_aio_trim_callback (h, count, offset, NULL, NULL, flags);
-}
-
-int64_t
-nbd_unlocked_aio_trim_callback (struct nbd_handle *h,
-                                uint64_t count, uint64_t offset,
-                                nbd_completion_callback completion,
-                                void *user_data,
-                                uint32_t flags)
 {
   struct command_cb cb = { .completion = completion, .user_data = user_data, };
 
@@ -433,17 +391,10 @@ nbd_unlocked_aio_trim_callback (struct nbd_handle *h,
 
 int64_t
 nbd_unlocked_aio_cache (struct nbd_handle *h,
-                        uint64_t count, uint64_t offset, uint32_t flags)
-{
-  return nbd_unlocked_aio_cache_callback (h, count, offset, NULL, NULL, flags);
-}
-
-int64_t
-nbd_unlocked_aio_cache_callback (struct nbd_handle *h,
-                                 uint64_t count, uint64_t offset,
-                                 nbd_completion_callback completion,
-                                 void *user_data,
-                                 uint32_t flags)
+                        uint64_t count, uint64_t offset,
+                        nbd_completion_callback completion,
+                        void *user_data,
+                        uint32_t flags)
 {
   struct command_cb cb = { .completion = completion, .user_data = user_data, };
 
@@ -468,17 +419,9 @@ nbd_unlocked_aio_cache_callback (struct nbd_handle *h,
 int64_t
 nbd_unlocked_aio_zero (struct nbd_handle *h,
                        uint64_t count, uint64_t offset,
+                       nbd_completion_callback completion,
+                       void *user_data,
                        uint32_t flags)
-{
-  return nbd_unlocked_aio_zero_callback (h, count, offset, NULL, NULL, flags);
-}
-
-int64_t
-nbd_unlocked_aio_zero_callback (struct nbd_handle *h,
-                                uint64_t count, uint64_t offset,
-                                nbd_completion_callback completion,
-                                void *user_data,
-                                uint32_t flags)
 {
   struct command_cb cb = { .completion = completion, .user_data = user_data, };
 
@@ -510,23 +453,11 @@ nbd_unlocked_aio_zero_callback (struct nbd_handle *h,
 int64_t
 nbd_unlocked_aio_block_status (struct nbd_handle *h,
                                uint64_t count, uint64_t offset,
-                               nbd_extent_callback extent, void *user_data,
+                               nbd_extent_callback extent,
+                               void *extent_user_data,
+                               nbd_completion_callback completion,
+                               void *callback_user_data,
                                uint32_t flags)
-{
-  return nbd_unlocked_aio_block_status_callback (h, count, offset,
-                                                 extent, user_data,
-                                                 NULL, NULL,
-                                                 flags);
-}
-
-int64_t
-nbd_unlocked_aio_block_status_callback (struct nbd_handle *h,
-                                        uint64_t count, uint64_t offset,
-                                        nbd_extent_callback extent,
-                                        void *extent_user_data,
-                                        nbd_completion_callback completion,
-                                        void *callback_user_data,
-                                        uint32_t flags)
 {
   struct command_cb cb = { .fn.extent = extent,
                            .fn_user_data = extent_user_data,

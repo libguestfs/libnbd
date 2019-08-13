@@ -255,11 +255,11 @@ start_thread (void *arg)
       offset = rand () % (EXPORTSIZE - buf_size);
       cmd = rand () & 1;
       if (cmd == 0) {
-        cookie = nbd_aio_pwrite (nbd, buf, buf_size, offset, 0);
+        cookie = nbd_aio_pwrite (nbd, buf, buf_size, offset, NULL, NULL, 0);
         status->bytes_sent += buf_size;
       }
       else {
-        cookie = nbd_aio_pread (nbd, buf, buf_size, offset, 0);
+        cookie = nbd_aio_pread (nbd, buf, buf_size, offset, NULL, NULL, 0);
         status->bytes_received += buf_size;
       }
       if (cookie == -1) {

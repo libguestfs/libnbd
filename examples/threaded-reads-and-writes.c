@@ -252,9 +252,9 @@ start_thread (void *arg)
       offset = rand () % (exportsize - size);
       cmd = rand () & 1;
       if (cmd == 0)
-        cookie = nbd_aio_pwrite (nbd, buf, size, offset, 0);
+        cookie = nbd_aio_pwrite (nbd, buf, size, offset, NULL, NULL, 0);
       else
-        cookie = nbd_aio_pread (nbd, buf, size, offset, 0);
+        cookie = nbd_aio_pread (nbd, buf, size, offset, NULL, NULL, 0);
       if (cookie == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;

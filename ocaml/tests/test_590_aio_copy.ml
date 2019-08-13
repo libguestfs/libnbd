@@ -71,7 +71,7 @@ let asynch_copy src dst =
     if !soff < size && NBD.aio_in_flight src < max_reads_in_flight then (
       let bs = min bs (size -^ !soff) in
       let buf = NBD.Buffer.alloc (Int64.to_int bs) in
-      ignore (NBD.aio_pread_callback src buf !soff
+      ignore (NBD.aio_pread src buf !soff
                 ~completion:(read_completed buf !soff));
       soff := !soff +^ bs
     );
@@ -82,7 +82,7 @@ let asynch_copy src dst =
     List.iter (
       fun (buf, offset) ->
         (* Note the size of the write is implicitly stored in buf. *)
-        ignore (NBD.aio_pwrite_callback dst buf offset
+        ignore (NBD.aio_pwrite dst buf offset
                   ~completion:(write_completed buf))
     ) !writes;
     writes := [];

@@ -44,9 +44,9 @@ def callback (user_data, err):
 
 # First try: succeed in both callbacks
 buf = nbd.Buffer (512)
-cookie = h.aio_pread_structured_callback (buf, 0,
-                                          lambda *args: chunk (42, *args),
-                                          lambda *args: callback (42, *args))
+cookie = h.aio_pread_structured (buf, 0,
+                                 lambda *args: chunk (42, *args),
+                                 lambda *args: callback (42, *args))
 while not (h.aio_command_completed (cookie)):
     h.poll (-1)
 
@@ -58,9 +58,9 @@ assert buf == expected
 
 # Second try: fail only during callback
 buf = nbd.Buffer (512)
-cookie = h.aio_pread_structured_callback (buf, 0,
-                                          lambda *args: chunk (42, *args),
-                                          lambda *args: callback (43, *args))
+cookie = h.aio_pread_structured (buf, 0,
+                                 lambda *args: chunk (42, *args),
+                                 lambda *args: callback (43, *args))
 try:
     while not (h.aio_command_completed (cookie)):
         h.poll (-1)
@@ -70,9 +70,9 @@ except nbd.Error as ex:
 
 # Third try: fail during both
 buf = nbd.Buffer (512)
-cookie = h.aio_pread_structured_callback (buf, 0,
-                                          lambda *args: chunk (43, *args),
-                                          lambda *args: callback (44, *args))
+cookie = h.aio_pread_structured (buf, 0,
+                                 lambda *args: chunk (43, *args),
+                                 lambda *args: callback (44, *args))
 try:
     while not (h.aio_command_completed (cookie)):
         h.poll (-1)
@@ -82,9 +82,9 @@ except nbd.Error as ex:
 
 # Fourth try: fail only during chunk
 buf = nbd.Buffer (512)
-cookie = h.aio_pread_structured_callback (buf, 0,
-                                          lambda *args: chunk (43, *args),
-                                          lambda *args: callback (42, *args))
+cookie = h.aio_pread_structured (buf, 0,
+                                 lambda *args: chunk (43, *args),
+                                 lambda *args: callback (42, *args))
 try:
     while not (h.aio_command_completed (cookie)):
         h.poll (-1)

@@ -34,7 +34,7 @@ h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
                     "file", datafile])
 
 buf1 = nbd.Buffer.from_bytearray (buf)
-cookie = h.aio_pwrite (buf1, 0, nbd.CMD_FLAG_FUA)
+cookie = h.aio_pwrite (buf1, 0, flags=nbd.CMD_FLAG_FUA)
 while not (h.aio_command_completed (cookie)):
     h.poll (-1)
 

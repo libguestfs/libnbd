@@ -116,9 +116,9 @@ main (int argc, char *argv[])
   if (nbd == NULL) NBD_ERROR;
   if (nbd_connect_command (nbd, nbdkit) == -1) NBD_ERROR;
 
-  cookie = nbd_aio_pread_structured_callback (nbd, buf, sizeof buf, 0,
-                                              read_cb, NULL,
-                                              completion_cb, NULL, 0);
+  cookie = nbd_aio_pread_structured (nbd, buf, sizeof buf, 0,
+                                     read_cb, NULL,
+                                     completion_cb, NULL, 0);
   if (cookie == -1) NBD_ERROR;
   assert (read_cb_free == 0);
   assert (completion_cb_free == 0);
@@ -143,9 +143,9 @@ main (int argc, char *argv[])
   if (nbd == NULL) NBD_ERROR;
   if (nbd_connect_command (nbd, nbdkit_delay) == -1) NBD_ERROR;
 
-  cookie = nbd_aio_pread_structured_callback (nbd, buf, sizeof buf, 0,
-                                              read_cb, NULL,
-                                              completion_cb, NULL, 0);
+  cookie = nbd_aio_pread_structured (nbd, buf, sizeof buf, 0,
+                                     read_cb, NULL,
+                                     completion_cb, NULL, 0);
   if (cookie == -1) NBD_ERROR;
   nbd_kill_command (nbd, 0);
   nbd_close (nbd);

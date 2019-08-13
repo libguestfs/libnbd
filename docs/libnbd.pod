@@ -276,9 +276,8 @@ command has completed:
  }
 
 For almost all high level synchronous calls (eg. C<nbd_pread>) there
-are two low level asynchronous equivalents (eg. C<nbd_aio_pread> for
-starting a command, and C<nbd_aio_pread_callback> for also registering
-a callback to be invoked right before the command is complete).
+is a low level asynchronous equivalent (eg. C<nbd_aio_pread>) for
+starting a command.
 
 =head2 glib2 integration
 
@@ -600,8 +599,8 @@ will use your login name):
 =head1 CALLBACKS
 
 Some libnbd calls take function pointers (eg.
-C<nbd_set_debug_callback>, C<nbd_pread_callback>).  Libnbd can call
-these functions while processing.
+C<nbd_set_debug_callback>, C<nbd_aio_pread>).  Libnbd can call these
+functions while processing.
 
 Callbacks have an opaque C<void *user_data> pointer.  This is passed
 as the second parameter to the callback.  The opaque pointer is only
