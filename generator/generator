@@ -5038,123 +5038,118 @@ let print_ocaml_flag_val { flag_prefix; flags } =
   pr "}\n";
   pr "\n"
 
-let print_ocaml_binding (name, { args; optargs; ret }) =
-  (* Functions with a callback parameter require special handling. *)
+let print_ocaml_closure_wrapper { cbname; cbargs } =
+  let argnames =
+    List.map (
+      function
+      | CBArrayAndLen (UInt32 n, _) | CBBytesIn (n, _)
+      | CBInt n | CBInt64 n
+      | CBMutable (Int n) | CBString n | CBUInt n | CBUInt64 n ->
+         n ^ "v"
+      | CBArrayAndLen _ | CBMutable _ -> assert false
+      ) cbargs in
+
+  pr "/* Wrapper for %s callback. */\n" cbname;
+  pr "static int\n";
+  pr "%s_wrapper_locked " cbname;
+  C.print_cbarg_list ~valid_flag:false cbargs;
+  pr "\n";
+  pr "{\n";
+  pr "  CAMLparam0 ();\n";
+  assert (List.length argnames <= 5);
+  pr "  CAMLlocal%d (%s);\n" (List.length argnames)
+    (String.concat ", " argnames);
+  pr "  CAMLlocal2 (fnv, rv);\n";
+  pr "  int r;\n";
+  pr "  value args[%d];\n" (List.length argnames);
+  pr "\n";
+
   List.iter (
     function
-    | Closure { cbname; cbargs } ->
-       let argnames =
-         List.map (
-           function
-           | CBArrayAndLen (UInt32 n, _) | CBBytesIn (n, _)
-           | CBInt n | CBInt64 n
-           | CBMutable (Int n) | CBString n | CBUInt n | CBUInt64 n ->
-              n ^ "v"
-           | CBArrayAndLen _ | CBMutable _ -> assert false
-         ) cbargs in
+    | CBArrayAndLen (UInt32 n, count) ->
+       pr "  %sv = nbd_internal_ocaml_alloc_int32_array (%s, %s);\n"
+         n n count;
+    | CBBytesIn (n, len) ->
+       pr "  %sv = caml_alloc_string (%s);\n" n len;
+       pr "  memcpy (String_val (%sv), %s, %s);\n" n n len
+    | CBInt n | CBUInt n ->
+       pr "  %sv = Val_int (%s);\n" n n
+    | CBInt64 n ->
+       pr "  %sv = caml_copy_int64 (%s);\n" n n
+    | CBString n ->
+       pr "  %sv = caml_copy_string (%s);\n" n n
+    | CBUInt64 n ->
+       pr "  %sv = caml_copy_int64 (%s);\n" n n
+    | CBMutable (Int n) ->
+       pr "  %sv = caml_alloc_tuple (1);\n" n;
+       pr "  Store_field (%sv, 0, Val_int (*%s));\n" n n
+    | CBArrayAndLen _ | CBMutable _ -> assert false
+  ) cbargs;
 
-       pr "/* Wrapper for %s callback of %s. */\n" cbname name;
-       pr "static int\n";
-       pr "%s_%s_wrapper_locked " name cbname;
-       C.print_cbarg_list ~valid_flag:false cbargs;
-       pr "\n";
-       pr "{\n";
-       pr "  CAMLparam0 ();\n";
-       assert (List.length argnames <= 5);
-       pr "  CAMLlocal%d (%s);\n" (List.length argnames)
-          (String.concat ", " argnames);
-       pr "  CAMLlocal2 (fnv, rv);\n";
-       pr "  int r;\n";
-       pr "  value args[%d];\n" (List.length argnames);
-       pr "\n";
+  List.iteri (fun i n -> pr "  args[%d] = %s;\n" i n) argnames;
 
-       List.iter (
-         function
-         | CBArrayAndLen (UInt32 n, count) ->
-            pr "  %sv = nbd_internal_ocaml_alloc_int32_array (%s, %s);\n"
-               n n count;
-         | CBBytesIn (n, len) ->
-            pr "  %sv = caml_alloc_string (%s);\n" n len;
-            pr "  memcpy (String_val (%sv), %s, %s);\n" n n len
-         | CBInt n | CBUInt n ->
-            pr "  %sv = Val_int (%s);\n" n n
-         | CBInt64 n ->
-            pr "  %sv = caml_copy_int64 (%s);\n" n n
-         | CBString n ->
-            pr "  %sv = caml_copy_string (%s);\n" n n
-         | CBUInt64 n ->
-            pr "  %sv = caml_copy_int64 (%s);\n" n n
-         | CBMutable (Int n) ->
-            pr "  %sv = caml_alloc_tuple (1);\n" n;
-            pr "  Store_field (%sv, 0, Val_int (*%s));\n" n n
-         | CBArrayAndLen _ | CBMutable _ -> assert false
-       ) cbargs;
+  pr "  fnv = * (value *) user_data;\n";
 
-       List.iteri (fun i n -> pr "  args[%d] = %s;\n" i n) argnames;
+  pr "  rv = caml_callbackN_exn (fnv, %d, args);\n"
+    (List.length argnames);
 
-       pr "  fnv = * (value *) user_data;\n";
+  List.iter (
+    function
+    | CBArrayAndLen (UInt32 _, _)
+    | CBBytesIn _
+    | CBInt _
+    | CBInt64 _
+    | CBString _
+    | CBUInt _
+    | CBUInt64 _ -> ()
+    | CBMutable (Int n) ->
+       pr "  *%s = Int_val (Field (%sv, 0));\n" n n
+    | CBArrayAndLen _ | CBMutable _ -> assert false
+  ) cbargs;
 
-       pr "  rv = caml_callbackN_exn (fnv, %d, args);\n"
-          (List.length argnames);
+  pr "  if (Is_exception_result (rv)) {\n";
+  pr "    /* XXX This is not really an error as callbacks can return\n";
+  pr "     * an error indication.  But perhaps we should direct this\n";
+  pr "     * to a more suitable place or formalize what exception\n";
+  pr "     * means error versus unexpected failure.\n";
+  pr "     */\n";
+  pr "    fprintf (stderr,\n";
+  pr "             \"libnbd: uncaught OCaml exception: %%s\\n\",\n";
+  pr "             caml_format_exception (Extract_exception (rv)));\n";
+  pr "    CAMLreturnT (int, -1);\n";
+  pr "  }\n";
 
-       List.iter (
-         function
-         | CBArrayAndLen (UInt32 _, _)
-         | CBBytesIn _
-         | CBInt _
-         | CBInt64 _
-         | CBString _
-         | CBUInt _
-         | CBUInt64 _ -> ()
-         | CBMutable (Int n) ->
-            pr "  *%s = Int_val (Field (%sv, 0));\n" n n
-         | CBArrayAndLen _ | CBMutable _ -> assert false
-       ) cbargs;
+  pr "\n";
+  pr "  r = Int_val (rv);\n";
+  pr "  assert (r >= 0);\n";
+  pr "  CAMLreturnT (int, r);\n";
+  pr "}\n";
+  pr "\n";
+  pr "static int\n";
+  pr "%s_wrapper " cbname;
+  C.print_cbarg_list cbargs;
+  pr "\n";
+  pr "{\n";
+  pr "  int ret = 0;\n";
+  pr "\n";
+  pr "  if (valid_flag & LIBNBD_CALLBACK_VALID) {\n";
+  pr "  caml_leave_blocking_section ();\n";
+  pr "  ret = %s_wrapper_locked " cbname;
+  C.print_cbarg_list ~valid_flag:false ~types:false cbargs;
+  pr ";\n";
+  pr "  caml_enter_blocking_section ();\n";
+  pr "  }\n";
+  pr "\n";
+  pr "  if (valid_flag & LIBNBD_CALLBACK_FREE) {\n";
+  pr "    caml_remove_generational_global_root ((value *)user_data);\n";
+  pr "    free (user_data);\n";
+  pr "  }\n";
+  pr "\n";
+  pr "  return ret;\n";
+  pr "}\n";
+  pr "\n"
 
-       pr "  if (Is_exception_result (rv)) {\n";
-       pr "    /* XXX This is not really an error as callbacks can return\n";
-       pr "     * an error indication.  But perhaps we should direct this\n";
-       pr "     * to a more suitable place or formalize what exception\n";
-       pr "     * means error versus unexpected failure.\n";
-       pr "     */\n";
-       pr "    fprintf (stderr,\n";
-       pr "             \"libnbd: uncaught OCaml exception: %%s\\n\",\n";
-       pr "             caml_format_exception (Extract_exception (rv)));\n";
-       pr "    CAMLreturnT (int, -1);\n";
-       pr "  }\n";
-
-       pr "\n";
-       pr "  r = Int_val (rv);\n";
-       pr "  assert (r >= 0);\n";
-       pr "  CAMLreturnT (int, r);\n";
-       pr "}\n";
-       pr "\n";
-       pr "static int\n";
-       pr "%s_%s_wrapper " name cbname;
-       C.print_cbarg_list cbargs;
-       pr "\n";
-       pr "{\n";
-       pr "  int ret = 0;\n";
-       pr "\n";
-       pr "  if (valid_flag & LIBNBD_CALLBACK_VALID) {\n";
-       pr "  caml_leave_blocking_section ();\n";
-       pr "  ret = %s_%s_wrapper_locked " name cbname;
-       C.print_cbarg_list ~valid_flag:false ~types:false cbargs;
-       pr ";\n";
-       pr "  caml_enter_blocking_section ();\n";
-       pr "  }\n";
-       pr "\n";
-       pr "  if (valid_flag & LIBNBD_CALLBACK_FREE) {\n";
-       pr "    caml_remove_generational_global_root ((value *)user_data);\n";
-       pr "    free (user_data);\n";
-       pr "  }\n";
-       pr "\n";
-       pr "  return ret;\n";
-       pr "}\n";
-       pr "\n"
-    | _ -> ()
-  ) args;
-
+let print_ocaml_binding (name, { args; optargs; ret }) =
   (* Get the names of all the value arguments including the handle. *)
   let values =
     List.map ocaml_name_of_optarg optargs @ ["h"] @
@@ -5233,7 +5228,7 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
        pr "  if (%s_user_data == NULL) caml_raise_out_of_memory ();\n" cbname;
        pr "  *%s_user_data = %sv;\n" cbname cbname;
        pr "  caml_register_generational_global_root (%s_user_data);\n" cbname;
-       pr "  const void *%s_callback = %s_%s_wrapper;\n" cbname name cbname
+       pr "  const void *%s_callback = %s_wrapper;\n" cbname cbname
     | Enum (n, { enum_prefix }) ->
        pr "  int %s = %s_val (%sv);\n" n enum_prefix n
     | Flags (n, { flag_prefix }) ->
@@ -5352,6 +5347,7 @@ let generate_ocaml_nbd_c () =
   pr "#pragma GCC diagnostic ignored \"-Wmissing-prototypes\"\n";
   pr "\n";
 
+  List.iter print_ocaml_closure_wrapper all_closures;
   List.iter print_ocaml_enum_val all_enums;
   List.iter print_ocaml_flag_val all_flags;
   List.iter print_ocaml_binding handle_calls
