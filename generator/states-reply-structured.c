@@ -301,10 +301,10 @@
          * current error rather than any earlier one. If the callback fails
          * without setting errno, then use the server's error below.
          */
-        if (cmd->cb.fn.chunk.callback (cmd->cb.fn.chunk.user_data,
-                                       cmd->data + (offset - cmd->offset),
-                                       0, offset, LIBNBD_READ_ERROR,
-                                       &scratch) == -1)
+        if (CALL_CALLBACK (cmd->cb.fn.chunk,
+                           cmd->data + (offset - cmd->offset),
+                           0, offset, LIBNBD_READ_ERROR,
+                           &scratch) == -1)
           if (cmd->error == 0)
             cmd->error = scratch;
         if (flags & NBD_REPLY_FLAG_DONE)
@@ -392,10 +392,9 @@
       int error = cmd->error;
       uint16_t flags = be16toh (h->sbuf.sr.structured_reply.flags);
 
-      if (cmd->cb.fn.chunk.callback (cmd->cb.fn.chunk.user_data,
-                                     cmd->data + (offset - cmd->offset),
-                                     length - sizeof offset, offset,
-                                     LIBNBD_READ_DATA, &error) == -1)
+      if (CALL_CALLBACK (cmd->cb.fn.chunk, cmd->data + (offset - cmd->offset),
+                         length - sizeof offset, offset,
+                         LIBNBD_READ_DATA, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
       if (flags & NBD_REPLY_FLAG_DONE)
@@ -457,10 +456,10 @@
       int error = cmd->error;
       uint16_t flags = be16toh (h->sbuf.sr.structured_reply.flags);
 
-      if (cmd->cb.fn.chunk.callback (cmd->cb.fn.chunk.user_data,
-                                     cmd->data + offset, length,
-                                     cmd->offset + offset,
-                                     LIBNBD_READ_HOLE, &error) == -1)
+      if (CALL_CALLBACK (cmd->cb.fn.chunk,
+                         cmd->data + offset, length,
+                         cmd->offset + offset,
+                         LIBNBD_READ_HOLE, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
       if (flags & NBD_REPLY_FLAG_DONE)
@@ -512,10 +511,10 @@
       int error = cmd->error;
       uint16_t flags = be16toh (h->sbuf.sr.structured_reply.flags);
 
-      if (cmd->cb.fn.extent.callback (cmd->cb.fn.extent.user_data,
-                                      meta_context->name, cmd->offset,
-                                      &h->bs_entries[1], (length-4) / 4,
-                                      &error) == -1)
+      if (CALL_CALLBACK (cmd->cb.fn.extent,
+                         meta_context->name, cmd->offset,
+                         &h->bs_entries[1], (length-4) / 4,
+                         &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
       if (flags & NBD_REPLY_FLAG_DONE)

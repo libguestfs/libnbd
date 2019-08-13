@@ -273,6 +273,10 @@ struct command {
   uint32_t error; /* Local errno value */
 };
 
+/* Call a callback. */
+#define CALL_CALLBACK(cb, ...) \
+  (cb).callback ((cb).user_data, ##__VA_ARGS__)
+
 /* Free a callback.
  *
  * Note this works for any type of callback because the basic layout

@@ -64,10 +64,10 @@
       int error = 0;
 
       assert (cmd->error == 0);
-      if (cmd->cb.fn.chunk.callback (cmd->cb.fn.chunk.user_data,
-                                     cmd->data, cmd->count,
-                                     cmd->offset, LIBNBD_READ_DATA,
-                                     &error) == -1)
+      if (CALL_CALLBACK (cmd->cb.fn.chunk,
+                         cmd->data, cmd->count,
+                         cmd->offset, LIBNBD_READ_DATA,
+                         &error) == -1)
         cmd->error = error ? error : EPROTO;
       FREE_CALLBACK (cmd->cb.fn.chunk);
     }

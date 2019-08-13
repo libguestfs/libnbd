@@ -84,7 +84,7 @@ nbd_internal_debug (struct nbd_handle *h, const char *fs, ...)
 
   if (h->debug_callback.callback)
     /* ignore return value */
-    h->debug_callback.callback (h->debug_callback.user_data, context, msg);
+    CALL_CALLBACK (h->debug_callback, context, msg);
   else
     fprintf (stderr, "libnbd: debug: %s: %s: %s\n",
              h->hname, context ? : "unknown", msg);
