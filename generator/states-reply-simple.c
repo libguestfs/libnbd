@@ -64,12 +64,13 @@
       int error = 0;
 
       assert (cmd->error == 0);
-      if (cmd->cb.fn.chunk.callback (LIBNBD_CALLBACK_VALID|LIBNBD_CALLBACK_FREE,
-                                     cmd->cb.fn.chunk.user_data,
+      if (cmd->cb.fn.chunk.callback (cmd->cb.fn.chunk.user_data,
                                      cmd->data, cmd->count,
                                      cmd->offset, LIBNBD_READ_DATA,
                                      &error) == -1)
         cmd->error = error ? error : EPROTO;
+      if (cmd->cb.fn.chunk.free)
+        cmd->cb.fn.chunk.free (cmd->cb.fn.chunk.user_data);
       cmd->cb.fn.chunk.callback = NULL; /* because we've freed it */
     }
 

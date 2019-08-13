@@ -18,17 +18,6 @@
 
 /* State machine for parsing structured replies from the server. */
 
-static unsigned
-valid_flags (struct nbd_handle *h)
-{
-  unsigned valid = LIBNBD_CALLBACK_VALID;
-  uint16_t flags = be16toh (h->sbuf.sr.structured_reply.flags);
-
-  if (flags & NBD_REPLY_FLAG_DONE)
-    valid |= LIBNBD_CALLBACK_FREE;
-  return valid;
-}
-
 /*----- End of prologue. -----*/
 
 /* STATE MACHINE */ {
@@ -306,20 +295,23 @@ valid_flags (struct nbd_handle *h)
       }
       if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk.callback) {
         int scratch = error;
-        unsigned valid = valid_flags (h);
+        uint16_t flags = be16toh (h->sbuf.sr.structured_reply.flags);
 
         /* Different from successful reads: inform the callback about the
          * current error rather than any earlier one. If the callback fails
          * without setting errno, then use the server's error below.
          */
-        if (cmd->cb.fn.chunk.callback (valid, cmd->cb.fn.chunk.user_data,
+        if (cmd->cb.fn.chunk.callback (cmd->cb.fn.chunk.user_data,
                                        cmd->data + (offset - cmd->offset),
                                        0, offset, LIBNBD_READ_ERROR,
                                        &scratch) == -1)
           if (cmd->error == 0)
             cmd->error = scratch;
-        if (valid & LIBNBD_CALLBACK_FREE)
+        if (flags & NBD_REPLY_FLAG_DONE) {
+          if (cmd->cb.fn.chunk.free)
+            cmd->cb.fn.chunk.free (cmd->cb.fn.chunk.user_data);
           cmd->cb.fn.chunk.callback = NULL; /* because we've freed it */
+        }
       }
     }
 
@@ -401,16 +393,19 @@ valid_flags (struct nbd_handle *h)
     assert (cmd); /* guaranteed by CHECK */
     if (cmd->cb.fn.chunk.callback) {
       int error = cmd->error;
-      unsigned valid = valid_flags (h);
+      uint16_t flags = be16toh (h->sbuf.sr.structured_reply.flags);
 
-      if (cmd->cb.fn.chunk.callback (valid, cmd->cb.fn.chunk.user_data,
+      if (cmd->cb.fn.chunk.callback (cmd->cb.fn.chunk.user_data,
                                      cmd->data + (offset - cmd->offset),
                                      length - sizeof offset, offset,
                                      LIBNBD_READ_DATA, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
-      if (valid & LIBNBD_CALLBACK_FREE)
+      if (flags & NBD_REPLY_FLAG_DONE) {
+        if (cmd->cb.fn.chunk.free)
+          cmd->cb.fn.chunk.free (cmd->cb.fn.chunk.user_data);
         cmd->cb.fn.chunk.callback = NULL; /* because we've freed it */
+      }
     }
 
     SET_NEXT_STATE (%FINISH);
@@ -466,16 +461,19 @@ valid_flags (struct nbd_handle *h)
     memset (cmd->data + offset, 0, length);
     if (cmd->cb.fn.chunk.callback) {
       int error = cmd->error;
-      unsigned valid = valid_flags (h);
+      uint16_t flags = be16toh (h->sbuf.sr.structured_reply.flags);
 
-      if (cmd->cb.fn.chunk.callback (valid, cmd->cb.fn.chunk.user_data,
+      if (cmd->cb.fn.chunk.callback (cmd->cb.fn.chunk.user_data,
                                      cmd->data + offset, length,
                                      cmd->offset + offset,
                                      LIBNBD_READ_HOLE, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
-      if (valid & LIBNBD_CALLBACK_FREE)
+      if (flags & NBD_REPLY_FLAG_DONE) {
+        if (cmd->cb.fn.chunk.free)
+          cmd->cb.fn.chunk.free (cmd->cb.fn.chunk.user_data);
         cmd->cb.fn.chunk.callback = NULL; /* because we've freed it */
+      }
     }
 
     SET_NEXT_STATE(%FINISH);
@@ -521,16 +519,19 @@ valid_flags (struct nbd_handle *h)
     if (meta_context) {
       /* Call the caller's extent function. */
       int error = cmd->error;
-      unsigned valid = valid_flags (h);
+      uint16_t flags = be16toh (h->sbuf.sr.structured_reply.flags);
 
-      if (cmd->cb.fn.extent.callback (valid, cmd->cb.fn.extent.user_data,
+      if (cmd->cb.fn.extent.callback (cmd->cb.fn.extent.user_data,
                                       meta_context->name, cmd->offset,
                                       &h->bs_entries[1], (length-4) / 4,
                                       &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
-      if (valid & LIBNBD_CALLBACK_FREE)
+      if (flags & NBD_REPLY_FLAG_DONE) {
+        if (cmd->cb.fn.extent.free)
+          cmd->cb.fn.extent.free (cmd->cb.fn.extent.user_data);
         cmd->cb.fn.extent.callback = NULL; /* because we've freed it */
+      }
     }
     else
       /* Emit a debug message, but ignore it. */
@@ -547,14 +548,15 @@ valid_flags (struct nbd_handle *h)
 
   flags = be16toh (h->sbuf.sr.structured_reply.flags);
   if (flags & NBD_REPLY_FLAG_DONE) {
-    if (cmd->type == NBD_CMD_BLOCK_STATUS && cmd->cb.fn.extent.callback)
-      cmd->cb.fn.extent.callback (LIBNBD_CALLBACK_FREE,
-                                  cmd->cb.fn.extent.user_data,
-                                  NULL, 0, NULL, 0, NULL);
-    if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk.callback)
-      cmd->cb.fn.chunk.callback (LIBNBD_CALLBACK_FREE,
-                                 cmd->cb.fn.chunk.user_data,
-                                 NULL, 0, 0, 0, NULL);
+    if (cmd->type == NBD_CMD_BLOCK_STATUS && cmd->cb.fn.extent.callback) {
+      if (cmd->cb.fn.extent.free)
+        cmd->cb.fn.extent.free (cmd->cb.fn.extent.user_data);
+    }
+    if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk.callback) {
+      if (cmd->cb.fn.chunk.free)
+        cmd->cb.fn.chunk.free (cmd->cb.fn.chunk.user_data);
+    }
+    cmd->cb.fn.extent.callback = NULL;
     cmd->cb.fn.chunk.callback = NULL;
     SET_NEXT_STATE (%^FINISH_COMMAND);
   }

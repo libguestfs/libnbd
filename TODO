@@ -26,8 +26,6 @@ Improve function trace output so that:
 Suggested API improvements:
   general:
   - synchronous APIs that have a timeout or can be cancelled
-  - separate free_callback corresponding to every Closure
-    (instead of using valid_flag)
 
   connecting:
   - nbd_connect_tcp: allow control over whether IPv4 or IPv6 is desired

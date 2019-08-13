@@ -30,7 +30,7 @@
 
 #include <libnbd.h>
 
-static int check_extent (unsigned valid_flag, void *data,
+static int check_extent (void *data,
                          const char *metacontext,
                          uint64_t offset,
                          uint32_t *entries, size_t nr_entries, int *error);
@@ -134,16 +134,13 @@ main (int argc, char *argv[])
 }
 
 static int
-check_extent (unsigned valid_flag, void *data,
+check_extent (void *data,
               const char *metacontext,
               uint64_t offset,
               uint32_t *entries, size_t nr_entries, int *error)
 {
   size_t i;
   int id;
-
-  if (!(valid_flag & LIBNBD_CALLBACK_VALID))
-    return 0;
 
   id = * (int *)data;
 

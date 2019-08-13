@@ -622,56 +622,26 @@ because you can use closures to achieve the same effect.
 
 =head2 Callback lifetimes
 
-All callbacks have an C<unsigned valid_flag> parameter which is used
-to help with the lifetime of the callback.  C<valid_flag> contains the
-I<logical or> of:
+You can associate an optional free function with callbacks.  Libnbd
+will call this function when the callback will not be called again by
+libnbd.
 
-=over 4
+This can be used to free associated C<user_data>.  For example:
 
-=item C<LIBNBD_CALLBACK_VALID>
+ void *my_data = malloc (...);
+ 
+ nbd_aio_pread_structured (nbd, buf, sizeof buf, offset,
+                (nbd_chunk_callback) { .callback = my_fn,
+                                       .user_data = my_data,
+                                       .free = free },
+                NBD_NULL_CALLBACK(completion),
+                0);
 
-The callback parameters are valid and this is a normal callback.
+will call L<free(3)> on C<my_data> after the last time that the
+S<C<chunk.callback = my_fn>> function is called.
 
-=item C<LIBNBD_CALLBACK_FREE>
-
-This is the last time the library will call this function.  Any data
-associated with the callback can be freed.
-
-=item other bits
-
-Other bits in C<valid_flag> should be ignored.
-
-=back
-
-For example L<nbd_set_debug_callback(3)> sets up a callback which you
-could define like this:
-
- int my_debug_fn (unsigned valid_flag, void *user_data,
-                  const char *context, const char *msg)
- {
-   if (valid_flag & LIBNBD_CALLBACK_VALID) {
-     printf ("context = %s, msg = %s\n", context, msg);
-   }
-   if (valid_flag & LIBNBD_CALLBACK_FREE) {
-     /* If you need to free something, for example: */
-     free (user_data);
-   }
-   return 0;
- }
-
-If you don't care about the freeing feature then it is also correct to
-write this:
-
- int my_debug_fn (unsigned valid_flag, void *user_data,
-                  const char *context, const char *msg)
- {
-   if (!(valid_flag & LIBNBD_CALLBACK_VALID)) return 0;
-
-   // Rest of callback as normal.
- }
-
-The valid flag is only present in the C API.  It is not needed when
-using garbage-collected programming languages.
+The free function is only accessible in the C API as it is not needed
+in garbage collected programming languages.
 
 =head2 Callbacks and locking
 
@@ -685,10 +655,10 @@ All of the low-level commands have a completion callback variant that
 registers a callback function used right before the command is marked
 complete.
 
-When C<valid_flag> includes C<LIBNBD_CALLBACK_VALID>, and the
-completion callback returns C<1>, the command is automatically retired
-(there is no need to call L<nbd_aio_command_completed(3)>); for any other
-return value, the command still needs to be retired.
+When the completion callback returns C<1>, the command is
+automatically retired (there is no need to call
+L<nbd_aio_command_completed(3)>); for any other return value, the command
+still needs to be retired.
 
 =head2 Callbacks with C<int *error> parameter
 
@@ -700,8 +670,7 @@ all of the completion callbacks, include a parameter C<error>
 containing the value of any error detected so far; if the callback
 function fails, it should assign back into C<error> and return C<-1>
 to change the resulting error of the overall command.  Assignments
-into C<error> are ignored for any other return value or when
-C<valid_flag> did not contain C<LIBNBD_CALLBACK_VALID>; similarly,
+into C<error> are ignored for any other return value; similarly,
 assigning C<0> into C<error> does not have an effect.
 
 =head1 SEE ALSO

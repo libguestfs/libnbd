@@ -37,14 +37,11 @@ static char wbuf[512] = { 1, 2, 3, 4 }, rbuf[512];
 static const char *progname;
 
 static int
-pread_cb (unsigned valid_flag, void *data,
+pread_cb (void *data,
           const void *buf, size_t count, uint64_t offset,
           unsigned status, int *error)
 {
   int *calls;
-
-  if (!(valid_flag & LIBNBD_CALLBACK_VALID))
-    return 0;
 
   calls = data;
   ++*calls;

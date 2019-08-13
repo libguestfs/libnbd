@@ -38,48 +38,54 @@ static char *nbdkit_delay[] =
     "delay-read=10",
     NULL };
 
-static unsigned debug_fn_valid;
-static unsigned debug_fn_free;
-static unsigned read_cb_valid;
-static unsigned read_cb_free;
-static unsigned completion_cb_valid;
-static unsigned completion_cb_free;
+static unsigned debug_fn_called;
+static unsigned debug_fn_freed;
+static unsigned read_cb_called;
+static unsigned read_cb_freed;
+static unsigned completion_cb_called;
+static unsigned completion_cb_freed;
 
 static int
-debug_fn (unsigned valid_flag, void *opaque,
-          const char *context, const char *msg)
+debug_fn (void *opaque, const char *context, const char *msg)
 {
-  if (valid_flag & LIBNBD_CALLBACK_VALID)
-    debug_fn_valid++;
-  if (valid_flag & LIBNBD_CALLBACK_FREE)
-    debug_fn_free++;
+  debug_fn_called++;
   return 0;
 }
 
+static void
+debug_fn_free (void *opaque)
+{
+  debug_fn_freed++;
+}
+
 static int
-read_cb (unsigned valid_flag, void *opaque,
+read_cb (void *opaque,
          const void *subbuf, size_t count,
          uint64_t offset, unsigned status, int *error)
 {
-  assert (read_cb_free == 0);
-
-  if (valid_flag & LIBNBD_CALLBACK_VALID)
-    read_cb_valid++;
-  if (valid_flag & LIBNBD_CALLBACK_FREE)
-    read_cb_free++;
+  assert (!read_cb_freed);
+  read_cb_called++;
   return 0;
 }
 
-static int
-completion_cb (unsigned valid_flag, void *opaque, int *error)
+static void
+read_cb_free (void *opaque)
 {
-  assert (completion_cb_free == 0);
+  read_cb_freed++;
+}
 
-  if (valid_flag & LIBNBD_CALLBACK_VALID)
-    completion_cb_valid++;
-  if (valid_flag & LIBNBD_CALLBACK_FREE)
-    completion_cb_free++;
+static int
+completion_cb (void *opaque, int *error)
+{
+  assert (!completion_cb_freed);
+  completion_cb_called++;
   return 0;
+}
+
+static void
+completion_cb_free (void *opaque)
+{
+  completion_cb_freed++;
 }
 
 #define NBD_ERROR                                               \
@@ -101,15 +107,18 @@ main (int argc, char *argv[])
   nbd = nbd_create ();
   if (nbd == NULL) NBD_ERROR;
 
-  nbd_set_debug_callback (nbd, (nbd_debug_callback) { .callback = debug_fn });
-  assert (debug_fn_free == 0);
+  nbd_set_debug_callback (nbd,
+                          (nbd_debug_callback) { .callback = debug_fn,
+                                                 .free = debug_fn_free });
+  assert (debug_fn_freed == 0);
 
-  nbd_set_debug_callback (nbd, (nbd_debug_callback) { .callback = debug_fn});
-  assert (debug_fn_free == 1);
+  nbd_set_debug_callback (nbd, (nbd_debug_callback) { .callback = debug_fn,
+                                                      .free = debug_fn_free });
+  assert (debug_fn_freed == 1);
 
-  debug_fn_free = 0;
+  debug_fn_freed = 0;
   nbd_close (nbd);
-  assert (debug_fn_free == 1);
+  assert (debug_fn_freed == 1);
 
   /* Test command callbacks are freed when the command is retired. */
   nbd = nbd_create ();
@@ -117,20 +126,22 @@ main (int argc, char *argv[])
   if (nbd_connect_command (nbd, nbdkit) == -1) NBD_ERROR;
 
   cookie = nbd_aio_pread_structured (nbd, buf, sizeof buf, 0,
-                                     (nbd_chunk_callback) { .callback = read_cb },
-                                     (nbd_completion_callback) { .callback = completion_cb },
+                                     (nbd_chunk_callback) { .callback = read_cb,
+                                                            .free = read_cb_free },
+                                     (nbd_completion_callback) { .callback = completion_cb,
+                                                                 .free = completion_cb_free },
                                      0);
   if (cookie == -1) NBD_ERROR;
-  assert (read_cb_free == 0);
-  assert (completion_cb_free == 0);
+  assert (read_cb_freed == 0);
+  assert (completion_cb_freed == 0);
   while (!nbd_aio_command_completed (nbd, cookie)) {
     if (nbd_poll (nbd, -1) == -1) NBD_ERROR;
   }
 
-  assert (read_cb_valid == 1);
-  assert (completion_cb_valid == 1);
-  assert (read_cb_free == 1);
-  assert (completion_cb_free == 1);
+  assert (read_cb_called == 1);
+  assert (completion_cb_called == 1);
+  assert (read_cb_freed == 1);
+  assert (completion_cb_freed == 1);
 
   nbd_kill_command (nbd, 0);
   nbd_close (nbd);
@@ -138,22 +149,24 @@ main (int argc, char *argv[])
   /* Test command callbacks are freed if the handle is closed without
    * running the commands.
    */
-  read_cb_valid = read_cb_free =
-    completion_cb_valid = completion_cb_free = 0;
+  read_cb_called = read_cb_freed =
+    completion_cb_called = completion_cb_freed = 0;
   nbd = nbd_create ();
   if (nbd == NULL) NBD_ERROR;
   if (nbd_connect_command (nbd, nbdkit_delay) == -1) NBD_ERROR;
 
   cookie = nbd_aio_pread_structured (nbd, buf, sizeof buf, 0,
-                                     (nbd_chunk_callback) { .callback = read_cb },
-                                     (nbd_completion_callback) { .callback = completion_cb },
+                                     (nbd_chunk_callback) { .callback = read_cb,
+                                                            .free = read_cb_free },
+                                     (nbd_completion_callback) { .callback = completion_cb,
+                                                                 .free = completion_cb_free },
                                      0);
   if (cookie == -1) NBD_ERROR;
   nbd_kill_command (nbd, 0);
   nbd_close (nbd);
 
-  assert (read_cb_free == 1);
-  assert (completion_cb_free == 1);
+  assert (read_cb_freed == 1);
+  assert (completion_cb_freed == 1);
 
   exit (EXIT_SUCCESS);
 }

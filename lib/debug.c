@@ -42,9 +42,9 @@ int
 nbd_unlocked_clear_debug_callback (struct nbd_handle *h)
 {
   if (h->debug_callback.callback)
-    /* ignore return value */
-    h->debug_callback.callback (LIBNBD_CALLBACK_FREE,
-                                h->debug_callback.user_data, NULL, NULL);
+    if (h->debug_callback.free)
+      /* ignore return value */
+      h->debug_callback.free (h->debug_callback.user_data);
   h->debug_callback.callback = NULL;
   return 0;
 }
@@ -88,8 +88,7 @@ nbd_internal_debug (struct nbd_handle *h, const char *fs, ...)
 
   if (h->debug_callback.callback)
     /* ignore return value */
-    h->debug_callback.callback (LIBNBD_CALLBACK_VALID,
-                                h->debug_callback.user_data, context, msg);
+    h->debug_callback.callback (h->debug_callback.user_data, context, msg);
   else
     fprintf (stderr, "libnbd: debug: %s: %s: %s\n",
              h->hname, context ? : "unknown", msg);
