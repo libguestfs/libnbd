@@ -3211,12 +3211,25 @@ let () =
     | name, { ret = RUInt; may_set_error = true } ->
        failwithf "%s: if ret is RUInt, may_set_error must be false" name
 
-    (* !may_set_error is incompatible with String parameters because
+    (* !may_set_error is incompatible with certain parameters because
      * we have to do a NULL-check on those which may return an error.
      *)
     | name, { args; may_set_error = false }
-         when List.exists (function String _ -> true | _ -> false) args ->
-       failwithf "%s: if args contains a String parameter, may_set_error must be false" name
+         when List.exists
+                (function
+                 | Enum _ -> true
+                 | Flags _ -> true
+                 | String _ -> true
+                 | _ -> false) args ->
+       failwithf "%s: if args contains Enum/Flags/String parameter, may_set_error must be false" name
+
+    (* !may_set_error is incompatible with certain optargs too.
+     *)
+    | name, { optargs; may_set_error = false }
+         when List.exists
+                (function
+                 | OFlags _ -> true) optargs ->
+       failwithf "%s: if optargs contains an OFlags parameter, may_set_error must be false" name
 
     | _ -> ()
   ) handle_calls;
