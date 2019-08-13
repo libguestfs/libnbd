@@ -1015,6 +1015,17 @@ The callback should not call C<nbd_*> APIs on the same handle since it can
 be called while holding the handle lock and will cause a deadlock.";
 };
 
+  "clear_debug_callback", {
+    default_call with
+    args = [];
+    ret = RErr;
+    shortdesc = "clear the debug callback";
+    longdesc = "\
+Remove the debug callback if one was previously associated
+with the handle (with C<nbd_set_debug_callback>).  If no
+callback was associated this does nothing.";
+};
+
   "set_handle_name", {
     default_call with
     args = [ String "handle_name" ]; ret = RErr;

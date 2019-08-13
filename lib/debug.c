@@ -39,12 +39,23 @@ nbd_unlocked_get_debug (struct nbd_handle *h)
 }
 
 int
-nbd_unlocked_set_debug_callback (struct nbd_handle *h,
-                                 nbd_debug_callback debug_callback, void *data)
+nbd_unlocked_clear_debug_callback (struct nbd_handle *h)
 {
   if (h->debug_callback)
     /* ignore return value */
     h->debug_callback (LIBNBD_CALLBACK_FREE, h->debug_data, NULL, NULL);
+  h->debug_callback = NULL;
+  h->debug_data = NULL;
+  return 0;
+}
+
+int
+nbd_unlocked_set_debug_callback (struct nbd_handle *h,
+                                 nbd_debug_callback debug_callback, void *data)
+{
+  /* This can't fail at the moment - see implementation above. */
+  nbd_unlocked_clear_debug_callback (h);
+
   h->debug_callback = debug_callback;
   h->debug_data = data;
   return 0;
