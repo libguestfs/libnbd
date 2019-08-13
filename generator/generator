@@ -1836,9 +1836,8 @@ C<nbd_pread>.";
 
   "aio_pread_callback", {
     default_call with
-    args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
-             Closure completion_closure ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    args = [ BytesPersistOut ("buf", "count"); UInt64 "offset" ];
+    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server, with callback on completion";
@@ -1874,9 +1873,8 @@ documented in C<nbd_pread_structured>.";
   "aio_pread_structured_callback", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
-             Closure chunk_closure;
-             Closure completion_closure ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+             Closure chunk_closure ];
+    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server, with callback on completion";
@@ -1910,9 +1908,8 @@ C<nbd_pwrite>.";
 
   "aio_pwrite_callback", {
     default_call with
-    args = [ BytesPersistIn ("buf", "count"); UInt64 "offset";
-             Closure completion_closure ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    args = [ BytesPersistIn ("buf", "count"); UInt64 "offset" ];
+    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "write to the NBD server, with callback on completion";
@@ -1966,8 +1963,8 @@ Parameters behave as documented in C<nbd_flush>.";
 
   "aio_flush_callback", {
     default_call with
-    args = [ Closure completion_closure ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    args = [];
+    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send flush command to the NBD server, with callback on completion";
@@ -1999,8 +1996,8 @@ Parameters behave as documented in C<nbd_trim>.";
 
   "aio_trim_callback", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; Closure completion_closure ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    args = [ UInt64 "count"; UInt64 "offset" ];
+    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send trim command to the NBD server, with callback on completion";
@@ -2032,8 +2029,8 @@ Parameters behave as documented in C<nbd_cache>.";
 
   "aio_cache_callback", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; Closure completion_closure ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    args = [ UInt64 "count"; UInt64 "offset" ];
+    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send cache (prefetch) command to the NBD server, with callback on completion";
@@ -2065,8 +2062,8 @@ Parameters behave as documented in C<nbd_zero>.";
 
   "aio_zero_callback", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset"; Closure completion_closure ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    args = [ UInt64 "count"; UInt64 "offset" ];
+    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send write zeroes command to the NBD server, with callback on completion";
@@ -2098,9 +2095,8 @@ Parameters behave as documented in C<nbd_block_status>.";
 
   "aio_block_status_callback", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset";
-             Closure extent_closure; Closure completion_closure ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    args = [ UInt64 "count"; UInt64 "offset"; Closure extent_closure ];
+    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
     shortdesc = "send block status command to the NBD server, with callback on completion";

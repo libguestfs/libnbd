@@ -60,7 +60,8 @@ let () =
 
   (* First try: succeed in both callbacks *)
   let buf = NBD.Buffer.alloc 512 in
-  let cookie = NBD.aio_pread_structured_callback nbd buf 0_L (chunk 42) (callback 42) in
+  let cookie = NBD.aio_pread_structured_callback nbd buf 0_L (chunk 42)
+                 ~completion:(callback 42) in
   while not (NBD.aio_command_completed nbd cookie) do
     ignore (NBD.poll nbd (-1))
   done;
@@ -71,7 +72,8 @@ let () =
 
   (* Second try: fail only during callback *)
   let buf = NBD.Buffer.alloc 512 in
-  let cookie = NBD.aio_pread_structured_callback nbd buf 0_L (chunk 42) (callback 43) in
+  let cookie = NBD.aio_pread_structured_callback nbd buf 0_L (chunk 42)
+                 ~completion:(callback 43) in
   try
     while not (NBD.aio_command_completed nbd cookie) do
       ignore (NBD.poll nbd (-1))
@@ -84,7 +86,8 @@ let () =
 
   (* Third try: fail during both *)
   let buf = NBD.Buffer.alloc 512 in
-  let cookie = NBD.aio_pread_structured_callback nbd buf 0_L (chunk 43) (callback 44) in
+  let cookie = NBD.aio_pread_structured_callback nbd buf 0_L (chunk 43)
+                 ~completion:(callback 44) in
   try
     while not (NBD.aio_command_completed nbd cookie) do
       ignore (NBD.poll nbd (-1))
@@ -97,7 +100,8 @@ let () =
 
   (* Fourth try: fail only during chunk *)
   let buf = NBD.Buffer.alloc 512 in
-  let cookie = NBD.aio_pread_structured_callback nbd buf 0_L (chunk 43) (callback 42) in
+  let cookie = NBD.aio_pread_structured_callback nbd buf 0_L (chunk 43)
+                 ~completion:(callback 42) in
   try
     while not (NBD.aio_command_completed nbd cookie) do
       ignore (NBD.poll nbd (-1))
