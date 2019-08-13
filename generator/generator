@@ -4108,126 +4108,122 @@ PyInit_libnbdmod (void)
 }
 "
 
-let print_python_binding name { args; optargs; ret; may_set_error } =
-  (* Functions with a Closure parameter are special because we
-   * have to generate wrapper functions which translate the
-   * callbacks back to Python.
-   *)
+(* Functions with a Closure parameter are special because we
+ * have to generate wrapper functions which translate the
+ * callbacks back to Python.
+ *)
+let print_python_closure_wrapper { cbname; cbargs } =
+  pr "/* Wrapper for %s callback. */\n" cbname;
+  pr "static int\n";
+  pr "%s_wrapper " cbname;
+  C.print_cbarg_list cbargs;
+  pr "\n";
+  pr "{\n";
+  pr "  int ret = 0;\n";
+  pr "\n";
+  pr "  if (valid_flag & LIBNBD_CALLBACK_VALID) {\n";
+  pr "    PyGILState_STATE py_save = PyGILState_UNLOCKED;\n";
+  pr "    PyObject *py_args, *py_ret;\n";
   List.iter (
     function
-    | Closure { cbname; cbargs } ->
-       pr "/* Wrapper for %s callback of %s. */\n" cbname name;
-       pr "static int\n";
-       pr "%s_%s_wrapper " name cbname;
-       C.print_cbarg_list cbargs;
-       pr "\n";
-       pr "{\n";
-       pr "  int ret = 0;\n";
-       pr "\n";
-       pr "  if (valid_flag & LIBNBD_CALLBACK_VALID) {\n";
-       pr "    PyGILState_STATE py_save = PyGILState_UNLOCKED;\n";
-       pr "    PyObject *py_args, *py_ret;\n";
-       List.iter (
-         function
-         | CBArrayAndLen (UInt32 n, len) ->
-            pr "    PyObject *py_%s = PyList_New (%s);\n" n len;
-            pr "    for (size_t i = 0; i < %s; ++i)\n" len;
-            pr "      PyList_SET_ITEM (py_%s, i, PyLong_FromUnsignedLong (%s[i]));\n" n n
-         | CBBytesIn _
-         | CBInt _
-         | CBInt64 _ -> ()
-         | CBMutable (Int n) ->
-            pr "    PyObject *py_%s_modname = PyUnicode_FromString (\"ctypes\");\n" n;
-            pr "    if (!py_%s_modname) { PyErr_PrintEx (0); return -1; }\n" n;
-            pr "    PyObject *py_%s_mod = PyImport_Import (py_%s_modname);\n" n n;
-            pr "    Py_DECREF (py_%s_modname);\n" n;
-            pr "    if (!py_%s_mod) { PyErr_PrintEx (0); return -1; }\n" n;
-            pr "    PyObject *py_%s = PyObject_CallMethod (py_%s_mod, \"c_int\", \"i\", *%s);\n" n n n;
-            pr "    if (!py_%s) { PyErr_PrintEx (0); return -1; }\n" n;
-         | CBString _
-         | CBUInt _
-         | CBUInt64 _ -> ()
-         | CBArrayAndLen _ | CBMutable _ -> assert false
-       ) cbargs;
-       pr "\n";
+    | CBArrayAndLen (UInt32 n, len) ->
+       pr "    PyObject *py_%s = PyList_New (%s);\n" n len;
+       pr "    for (size_t i = 0; i < %s; ++i)\n" len;
+       pr "      PyList_SET_ITEM (py_%s, i, PyLong_FromUnsignedLong (%s[i]));\n" n n
+    | CBBytesIn _
+    | CBInt _
+    | CBInt64 _ -> ()
+    | CBMutable (Int n) ->
+       pr "    PyObject *py_%s_modname = PyUnicode_FromString (\"ctypes\");\n" n;
+       pr "    if (!py_%s_modname) { PyErr_PrintEx (0); return -1; }\n" n;
+       pr "    PyObject *py_%s_mod = PyImport_Import (py_%s_modname);\n" n n;
+       pr "    Py_DECREF (py_%s_modname);\n" n;
+       pr "    if (!py_%s_mod) { PyErr_PrintEx (0); return -1; }\n" n;
+       pr "    PyObject *py_%s = PyObject_CallMethod (py_%s_mod, \"c_int\", \"i\", *%s);\n" n n n;
+       pr "    if (!py_%s) { PyErr_PrintEx (0); return -1; }\n" n;
+    | CBString _
+    | CBUInt _
+    | CBUInt64 _ -> ()
+    | CBArrayAndLen _ | CBMutable _ -> assert false
+  ) cbargs;
+  pr "\n";
 
-       pr "    py_args = Py_BuildValue (\"(\"";
-       List.iter (
-         function
-         | CBArrayAndLen (UInt32 n, len) -> pr " \"O\""
-         | CBBytesIn (n, len) -> pr " \"y#\""
-         | CBInt n -> pr " \"i\""
-         | CBInt64 n -> pr " \"L\""
-         | CBMutable (Int n) -> pr " \"O\""
-         | CBString n -> pr " \"s\""
-         | CBUInt n -> pr " \"I\""
-         | CBUInt64 n -> pr " \"K\""
-         | CBArrayAndLen _ | CBMutable _ -> assert false
-       ) cbargs;
-       pr " \")\"";
-       List.iter (
-         function
-         | CBArrayAndLen (UInt32 n, _) -> pr ", py_%s" n
-         | CBBytesIn (n, len) -> pr ", %s, (int) %s" n len
-         | CBMutable (Int n) -> pr ", py_%s" n
-         | CBInt n | CBInt64 n
-         | CBString n
-         | CBUInt n | CBUInt64 n -> pr ", %s" n
-         | CBArrayAndLen _ | CBMutable _ -> assert false
-       ) cbargs;
-       pr ");\n";
-       pr "    Py_INCREF (py_args);\n";
-       pr "\n";
-       pr "    if (PyEval_ThreadsInitialized ())\n";
-       pr "      py_save = PyGILState_Ensure ();\n";
-       pr "\n";
-       pr "    py_ret = PyObject_CallObject ((PyObject *)user_data, py_args);\n";
-       pr "\n";
-       pr "    if (PyEval_ThreadsInitialized ())\n";
-       pr "      PyGILState_Release (py_save);\n";
-       pr "\n";
-       pr "    Py_DECREF (py_args);\n";
-       pr "\n";
-       pr "    if (py_ret != NULL) {\n";
-       pr "      if (PyLong_Check (py_ret))\n";
-       pr "        ret = PyLong_AsLong (py_ret);\n";
-       pr "      else\n";
-       pr "        /* If it's not a long, just assume it's 0. */\n";
-       pr "        ret = 0;\n";
-       pr "      Py_DECREF (py_ret);\n";
-       pr "    }\n";
-       pr "    else {\n";
-       pr "      ret = -1;\n";
-       pr "      PyErr_PrintEx (0); /* print exception */\n";
-       pr "    };\n";
-       pr "\n";
-       List.iter (
-         function
-         | CBArrayAndLen (UInt32 n, _) ->
-            pr "    Py_DECREF (py_%s);\n" n
-         | CBMutable (Int n) ->
-            pr "    PyObject *py_%s_ret = PyObject_GetAttrString (py_%s, \"value\");\n" n n;
-            pr "    *%s = PyLong_AsLong (py_%s_ret);\n" n n;
-            pr "    Py_DECREF (py_%s_ret);\n" n;
-            pr "    Py_DECREF (py_%s);\n" n
-         | CBBytesIn _
-         | CBInt _ | CBInt64 _
-         | CBString _
-         | CBUInt _ | CBUInt64 _ -> ()
-         | CBArrayAndLen _ | CBMutable _ -> assert false
-       ) cbargs;
-       pr "  }\n";
-       pr "\n";
-       pr "  if (valid_flag & LIBNBD_CALLBACK_FREE)\n";
-       pr "    Py_DECREF ((PyObject *)user_data);\n";
-       pr "\n";
-       pr "  return ret;\n";
-       pr "}\n";
-       pr "\n"
-    | _ -> ()
-  ) args;
+  pr "    py_args = Py_BuildValue (\"(\"";
+  List.iter (
+    function
+    | CBArrayAndLen (UInt32 n, len) -> pr " \"O\""
+    | CBBytesIn (n, len) -> pr " \"y#\""
+    | CBInt n -> pr " \"i\""
+    | CBInt64 n -> pr " \"L\""
+    | CBMutable (Int n) -> pr " \"O\""
+    | CBString n -> pr " \"s\""
+    | CBUInt n -> pr " \"I\""
+    | CBUInt64 n -> pr " \"K\""
+    | CBArrayAndLen _ | CBMutable _ -> assert false
+  ) cbargs;
+  pr " \")\"";
+  List.iter (
+    function
+    | CBArrayAndLen (UInt32 n, _) -> pr ", py_%s" n
+    | CBBytesIn (n, len) -> pr ", %s, (int) %s" n len
+    | CBMutable (Int n) -> pr ", py_%s" n
+    | CBInt n | CBInt64 n
+    | CBString n
+    | CBUInt n | CBUInt64 n -> pr ", %s" n
+    | CBArrayAndLen _ | CBMutable _ -> assert false
+  ) cbargs;
+  pr ");\n";
+  pr "    Py_INCREF (py_args);\n";
+  pr "\n";
+  pr "    if (PyEval_ThreadsInitialized ())\n";
+  pr "      py_save = PyGILState_Ensure ();\n";
+  pr "\n";
+  pr "    py_ret = PyObject_CallObject ((PyObject *)user_data, py_args);\n";
+  pr "\n";
+  pr "    if (PyEval_ThreadsInitialized ())\n";
+  pr "      PyGILState_Release (py_save);\n";
+  pr "\n";
+  pr "    Py_DECREF (py_args);\n";
+  pr "\n";
+  pr "    if (py_ret != NULL) {\n";
+  pr "      if (PyLong_Check (py_ret))\n";
+  pr "        ret = PyLong_AsLong (py_ret);\n";
+  pr "      else\n";
+  pr "        /* If it's not a long, just assume it's 0. */\n";
+  pr "        ret = 0;\n";
+  pr "      Py_DECREF (py_ret);\n";
+  pr "    }\n";
+  pr "    else {\n";
+  pr "      ret = -1;\n";
+  pr "      PyErr_PrintEx (0); /* print exception */\n";
+  pr "    };\n";
+  pr "\n";
+  List.iter (
+    function
+    | CBArrayAndLen (UInt32 n, _) ->
+       pr "    Py_DECREF (py_%s);\n" n
+    | CBMutable (Int n) ->
+       pr "    PyObject *py_%s_ret = PyObject_GetAttrString (py_%s, \"value\");\n" n n;
+       pr "    *%s = PyLong_AsLong (py_%s_ret);\n" n n;
+       pr "    Py_DECREF (py_%s_ret);\n" n;
+       pr "    Py_DECREF (py_%s);\n" n
+    | CBBytesIn _
+    | CBInt _ | CBInt64 _
+    | CBString _
+    | CBUInt _ | CBUInt64 _ -> ()
+    | CBArrayAndLen _ | CBMutable _ -> assert false
+  ) cbargs;
+  pr "  }\n";
+  pr "\n";
+  pr "  if (valid_flag & LIBNBD_CALLBACK_FREE)\n";
+  pr "    Py_DECREF ((PyObject *)user_data);\n";
+  pr "\n";
+  pr "  return ret;\n";
+  pr "}\n";
+  pr "\n"
 
-  (* Generate the Python binding. *)
+(* Generate the Python binding. *)
+let print_python_binding name { args; optargs; ret; may_set_error } =
   pr "PyObject *\n";
   pr "nbd_internal_py_%s (PyObject *self, PyObject *args)\n" name;
   pr "{\n";
@@ -4390,7 +4386,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) -> pr ", %s_buf->data, %s_buf->len" n n
     | Closure { cbname } ->
-       pr ", %s_%s_wrapper" name cbname;
+       pr ", %s_wrapper" cbname;
        pr ", %s_user_data" cbname
     | Enum (n, _) -> pr ", %s" n
     | Flags (n, _) -> pr ", %s_u32" n
@@ -4503,6 +4499,7 @@ let generate_python_methods_c () =
   pr "\n";
   pr "#include <methods.h>\n";
   pr "\n";
+  List.iter print_python_closure_wrapper all_closures;
   List.iter (
     fun (name, fn) ->
       print_python_binding name fn
