@@ -916,6 +916,32 @@ let non_blocking_test_call_description = "\n
 This call does not block, because it returns data that is saved in
 the handle from the NBD protocol handshake."
 
+(* Closures. *)
+let chunk_closure = {
+  cbname = "chunk";
+  cbargs = [ CBBytesIn ("subbuf", "count");
+             CBUInt64 "offset"; CBUInt "status";
+             CBMutable (Int "error") ]
+}
+let completion_closure = {
+  cbname = "completion";
+  cbargs = [ CBMutable (Int "error") ]
+}
+let debug_closure = {
+  cbname = "debug";
+  cbargs = [ CBString "context"; CBString "msg" ]
+}
+let extent_closure = {
+  cbname = "extent";
+  cbargs = [ CBString "metacontext";
+             CBUInt64 "offset";
+             CBArrayAndLen (UInt32 "entries",
+                            "nr_entries");
+             CBMutable (Int "error") ]
+}
+let all_closures = [ chunk_closure; completion_closure;
+                     debug_closure; extent_closure ]
+
 (* Enums. *)
 let tls_enum = {
   enum_prefix = "TLS";
@@ -973,8 +999,7 @@ Return the state of the debug flag on this handle.";
 
   "set_debug_callback", {
     default_call with
-    args = [ Closure { cbname="debug";
-                       cbargs=[CBString "context"; CBString "msg"] } ];
+    args = [ Closure debug_closure ];
     ret = RErr;
     shortdesc = "set the debug callback";
     longdesc = "\
@@ -1445,10 +1470,7 @@ protocol extensions).";
   "pread_structured", {
     default_call with
     args = [ BytesOut ("buf", "count"); UInt64 "offset";
-             Closure { cbname="chunk";
-                       cbargs=[CBBytesIn ("subbuf", "count");
-                               CBUInt64 "offset"; CBUInt "status";
-                               CBMutable (Int "error")] } ];
+             Closure chunk_closure ];
     optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RErr;
     permitted_states = [ Connected ];
@@ -1641,13 +1663,7 @@ punching a hole.";
 
   "block_status", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset";
-             Closure { cbname="extent";
-                       cbargs=[CBString "metacontext";
-                               CBUInt64 "offset";
-                               CBArrayAndLen (UInt32 "entries",
-                                              "nr_entries");
-                               CBMutable (Int "error")] } ];
+    args = [ UInt64 "count"; UInt64 "offset"; Closure extent_closure ];
     optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RErr;
     permitted_states = [ Connected ];
@@ -1820,8 +1836,7 @@ C<nbd_pread>.";
   "aio_pread_callback", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
-             Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] } ];
+             Closure completion_closure ];
     optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1841,11 +1856,7 @@ completed.  Other parameters behave as documented in C<nbd_pread>.";
   "aio_pread_structured", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
-             Closure { cbname="chunk";
-                       cbargs=[CBBytesIn ("subbuf", "count");
-                               CBUInt64 "offset";
-                               CBUInt "status";
-                               CBMutable (Int "error")] } ];
+             Closure chunk_closure ];
     optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1862,13 +1873,8 @@ documented in C<nbd_pread_structured>.";
   "aio_pread_structured_callback", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
-             Closure { cbname="chunk";
-                       cbargs=[CBBytesIn ("subbuf", "count");
-                               CBUInt64 "offset";
-                               CBUInt "status";
-                               CBMutable (Int "error")] };
-             Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] } ];
+             Closure chunk_closure;
+             Closure completion_closure ];
     optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1904,8 +1910,7 @@ C<nbd_pwrite>.";
   "aio_pwrite_callback", {
     default_call with
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset";
-             Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] } ];
+             Closure completion_closure ];
     optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1960,8 +1965,7 @@ Parameters behave as documented in C<nbd_flush>.";
 
   "aio_flush_callback", {
     default_call with
-    args = [ Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] } ];
+    args = [ Closure completion_closure ];
     optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -1994,9 +1998,7 @@ Parameters behave as documented in C<nbd_trim>.";
 
   "aio_trim_callback", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset";
-             Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] } ];
+    args = [ UInt64 "count"; UInt64 "offset"; Closure completion_closure ];
     optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -2029,9 +2031,7 @@ Parameters behave as documented in C<nbd_cache>.";
 
   "aio_cache_callback", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset";
-             Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] } ];
+    args = [ UInt64 "count"; UInt64 "offset"; Closure completion_closure ];
     optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -2064,9 +2064,7 @@ Parameters behave as documented in C<nbd_zero>.";
 
   "aio_zero_callback", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset";
-             Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] } ];
+    args = [ UInt64 "count"; UInt64 "offset"; Closure completion_closure ];
     optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -2084,12 +2082,7 @@ Other parameters behave as documented in C<nbd_zero>.";
 
   "aio_block_status", {
     default_call with
-    args = [ UInt64 "count"; UInt64 "offset";
-             Closure { cbname="extent";
-                       cbargs=[CBString "metacontext"; CBUInt64 "offset";
-                               CBArrayAndLen (UInt32 "entries",
-                                            "nr_entries");
-                               CBMutable (Int "error")] } ];
+    args = [ UInt64 "count"; UInt64 "offset"; Closure extent_closure ];
     optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -2105,13 +2098,7 @@ Parameters behave as documented in C<nbd_block_status>.";
   "aio_block_status_callback", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset";
-             Closure { cbname="extent";
-                       cbargs=[CBString "metacontext"; CBUInt64 "offset";
-                               CBArrayAndLen (UInt32 "entries",
-                                              "nr_entries");
-                               CBMutable (Int "error")] };
-             Closure { cbname="completion";
-                       cbargs=[CBMutable (Int "error")] } ];
+             Closure extent_closure; Closure completion_closure ];
     optargs = [ OFlags ("flags", cmd_flags) ];
     ret = RInt64;
     permitted_states = [ Connected ];
@@ -3207,30 +3194,6 @@ let () =
        failwithf "%s: optargs can only be empty list or [OFlags]" name
   ) handle_calls;
 
-  (* Closures must be uniquely named across all calls. *)
-  let () =
-    let all_args =
-      List.flatten (List.map (fun (_, { args }) -> args) handle_calls) in
-    let h = Hashtbl.create 13 in
-    List.iter (
-      function
-      | Closure { cbname; cbargs } ->
-         (try
-            (* If we've already added this name to the hash, check
-             * closure args are identical.
-             *)
-            let other_cbargs = Hashtbl.find h cbname in
-            if cbargs <> other_cbargs then
-              failwithf "%s: Closure has different arguments across methods"
-                cbname
-          with Not_found ->
-                (* Otherwise add it to the hash. *)
-                Hashtbl.add h cbname cbargs
-         )
-      | _ -> ()
-    ) all_args
-  in
-
   (* Check functions using may_set_error. *)
   List.iter (
     function
@@ -3478,20 +3441,12 @@ let print_cbarg_list ?(valid_flag = true) ?(types = true) cbargs =
 
 (* Callback typedefs in <libnbd.h> *)
 let print_closure_typedefs () =
-  let all_cls =
-    List.map (
-      fun (_, { args }) ->
-        filter_map (function Closure cl -> Some cl | _ -> None) args
-    ) handle_calls in
-  let all_cls = List.flatten all_cls in
-  let cmp { cbname = n1 } { cbname = n2 } = compare n1 n2 in
-  let unique_cls = sort_uniq ~cmp all_cls in
   List.iter (
     fun { cbname; cbargs } ->
       pr "typedef int (*nbd_%s_callback) " cbname;
       print_cbarg_list cbargs;
       pr ";\n";
-  ) unique_cls;
+  ) all_closures;
   pr "\n"
 
 let print_extern_and_define name args optargs ret =
