@@ -4994,9 +4994,11 @@ let print_ocaml_closure_wrapper { cbname; cbargs } =
   pr "     * to a more suitable place or formalize what exception\n";
   pr "     * means error versus unexpected failure.\n";
   pr "     */\n";
+  pr "    char *s = caml_format_exception (Extract_exception (rv));\n";
+  pr "\n";
   pr "    fprintf (stderr,\n";
-  pr "             \"libnbd: uncaught OCaml exception: %%s\\n\",\n";
-  pr "             caml_format_exception (Extract_exception (rv)));\n";
+  pr "             \"libnbd: uncaught OCaml exception: %%s\\n\", s);\n";
+  pr "    free (s);\n";
   pr "    CAMLreturnT (int, -1);\n";
   pr "  }\n";
 
