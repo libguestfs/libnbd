@@ -4262,6 +4262,20 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | OFlags (n, _) -> pr "  %s_u32 = %s;\n" n n
   ) optargs;
 
+  (* If there is a BytesPersistIn/Out parameter then we need to
+   * increment the refcount and save the pointer into
+   * completion_callback.user_data so we can decrement the
+   * refcount on command completion.
+   *)
+  List.iter (
+    function
+    | BytesPersistIn (n, _) | BytesPersistOut (n, _) ->
+       pr "  /* Increment refcount since buffer may be saved by libnbd. */\n";
+       pr "  Py_INCREF (%s);\n" n;
+       pr "  completion_user_data->buf = %s;\n" n;
+    | _ -> ()
+  ) args;
+
   (* Call the underlying C function. *)
   pr "  ret = nbd_%s (h" name;
   List.iter (
@@ -4389,7 +4403,8 @@ let generate_python_methods_c () =
   pr " * and freed in the free_user_data function below.\n";
   pr " */\n";
   pr "struct user_data {\n";
-  pr "  PyObject *fn;    /* Pointer to Python function. */\n";
+  pr "  PyObject *fn;    /* Optional pointer to Python function. */\n";
+  pr "  PyObject *buf;   /* Optional pointer to persistent buffer. */\n";
   pr "};\n";
   pr "\n";
   pr "static struct user_data *\n";
@@ -4408,7 +4423,10 @@ let generate_python_methods_c () =
   pr "{\n";
   pr "  struct user_data *data = user_data;\n";
   pr "\n";
-  pr "  Py_DECREF (data->fn);\n";
+  pr "  if (data->fn != NULL)\n";
+  pr "    Py_DECREF (data->fn);\n";
+  pr "  if (data->buf != NULL)\n";
+  pr "    Py_DECREF (data->buf);\n";
   pr "  free (data);\n";
   pr "}\n";
   pr "\n";
