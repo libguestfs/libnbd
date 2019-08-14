@@ -3740,41 +3740,12 @@ let generate_lib_api_c () =
 let generate_docs_Makefile_inc () =
   generate_header HashStyle;
 
-  pr "generator_built += \\\n";
+  pr "api_built += \\\n";
   List.iter (
     fun (name, _) ->
-      pr "\tnbd_%s.pod \\\n" name;
+      pr "\tnbd_%s \\\n" name;
   ) handle_calls;
-  pr "\t$(NULL)\n";
-  pr "\n";
-
-  pr "CLEANFILES += \\\n";
-  List.iter (
-    fun (name, _) ->
-      pr "\tnbd_%s.3 \\\n" name;
-  ) handle_calls;
-  pr "\t$(NULL)\n";
-  pr "\n";
-
-  pr "if HAVE_POD\n";
-  pr "\n";
-  pr "man_MANS += \\\n";
-  List.iter (
-    fun (name, _) ->
-      pr "\tnbd_%s.3 \\\n" name;
-  ) handle_calls;
-  pr "\t$(NULL)\n";
-  pr "\n";
-
-  List.iter (
-    fun (name, _) ->
-      pr "nbd_%s.3: nbd_%s.pod $(top_builddir)/podwrapper.pl\n" name name;
-      pr "\t$(PODWRAPPER) --allow-long-lines --section=3 --man $@ \\\n";
-      pr "\t    --html $(top_builddir)/html/$@.html \\\n";
-      pr "\t    $<\n";
-      pr "\n";
-  ) handle_calls;
-  pr "endif HAVE_POD\n"
+  pr "\t$(NULL)\n"
 
 let generate_docs_nbd_pod name { args; optargs; ret;
                                  shortdesc; longdesc;

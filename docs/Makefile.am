@@ -17,8 +17,13 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
+api_built=
+
+include $(srcdir)/Makefile.inc
+
 generator_built = \
 	Makefile.inc \
+	$(api_built:%=%.pod) \
 	$(NULL)
 
 EXTRA_DIST = \
@@ -38,12 +43,21 @@ man_MANS = \
 	nbd_close.3 \
 	nbd_get_error.3 \
 	nbd_get_errno.3 \
+	$(api_built:%=%.3) \
 	$(NULL)
 CLEANFILES += \
 	libnbd.3 \
 	nbd_create.3 \
+	$(api_built:%=%.3) \
 	$(NULL)
 
+# Generic .pod -> .3
+nbd_%.3: nbd_%.pod $(top_builddir)/podwrapper.pl
+	$(PODWRAPPER) --allow-long-lines --section=3 --man $@ \
+	    --html $(top_builddir)/html/$@.html \
+	    $<
+
+# Specific .pod -> .3, overridden to forbid long lines
 libnbd.3: libnbd.pod $(top_builddir)/podwrapper.pl
 	$(PODWRAPPER) --section=3 --man $@ \
 	    --html $(top_builddir)/html/$@.html \
@@ -55,5 +69,3 @@ nbd_create.3: nbd_create.pod $(top_builddir)/podwrapper.pl
 	    $<
 
 endif HAVE_POD
-
-include $(srcdir)/Makefile.inc
