@@ -45,12 +45,13 @@ let chunk user_data buf2 offset s err =
   0
 
 let callback user_data err =
-  if user_data <= 43 then
+  if fst user_data = 42 then
     assert (!err = 0)
   else
     assert (!err = 100);
   err := 101;
-  if user_data <> 42 then invalid_arg "this should be turned into NBD.Error";
+  if snd user_data <> 42 then
+    invalid_arg "this should be turned into NBD.Error";
   0
 
 let () =
@@ -61,7 +62,7 @@ let () =
   (* First try: succeed in both callbacks *)
   let buf = NBD.Buffer.alloc 512 in
   let cookie = NBD.aio_pread_structured nbd buf 0_L (chunk 42)
-                 ~completion:(callback 42) in
+                 ~completion:(callback (42, 42)) in
   while not (NBD.aio_command_completed nbd cookie) do
     ignore (NBD.poll nbd (-1))
   done;
@@ -73,7 +74,7 @@ let () =
   (* Second try: fail only during callback *)
   let buf = NBD.Buffer.alloc 512 in
   let cookie = NBD.aio_pread_structured nbd buf 0_L (chunk 42)
-                 ~completion:(callback 43) in
+                 ~completion:(callback (42, 43)) in
   try
     while not (NBD.aio_command_completed nbd cookie) do
       ignore (NBD.poll nbd (-1))
@@ -86,8 +87,8 @@ let () =
 
   (* Third try: fail during both *)
   let buf = NBD.Buffer.alloc 512 in
-  let cookie = NBD.aio_pread_structured nbd buf 0_L (chunk 43)
-                 ~completion:(callback 44) in
+  let cookie = NBD.aio_pread_structured nbd buf 0_L (chunk 44)
+                 ~completion:(callback (43, 43)) in
   try
     while not (NBD.aio_command_completed nbd cookie) do
       ignore (NBD.poll nbd (-1))
@@ -101,7 +102,7 @@ let () =
   (* Fourth try: fail only during chunk *)
   let buf = NBD.Buffer.alloc 512 in
   let cookie = NBD.aio_pread_structured nbd buf 0_L (chunk 43)
-                 ~completion:(callback 42) in
+                 ~completion:(callback (43, 42)) in
   try
     while not (NBD.aio_command_completed nbd cookie) do
       ignore (NBD.poll nbd (-1))
