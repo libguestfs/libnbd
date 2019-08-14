@@ -88,8 +88,12 @@ if HAVE_OCAMLOPT
 	LD_LIBRARY_PATH=../../lib/.libs $(OCAMLFIND) ocamlopt $(OCAMLFLAGS) -cclib -L$(top_builddir)/lib/.libs -I . -package unix -linkpkg mlnbd.cmxa $< -o $@
 endif
 
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 OCAMLRUNPARAM=b $(top_builddir)/run
+TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 OCAMLRUNPARAM=b
+LOG_COMPILER = $(top_builddir)/run
 TESTS = $(tests_bc) $(tests_opt)
+
+check-valgrind:
+	LIBNBD_VALGRIND=1 $(MAKE) check TESTS="$(tests_opt)"
 
 endif HAVE_OCAML
 

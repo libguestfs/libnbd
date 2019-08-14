@@ -1,0 +1,62 @@
+# nbd client library in userspace
+# Copyright (C) 2013-2019 Red Hat Inc.
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+# OCaml, by design, doesn't bother to free the major heap before
+# calling exit.  Ignore that leak.
+{
+   ocaml_heap_leak
+   Memcheck:Leak
+   ...
+   fun:caml_alloc_for_heap
+}
+
+# On the other hand, these seem to be a real bugs in OCaml:
+{
+   ocaml_heap_leak_2
+   Memcheck:Leak
+   fun:malloc
+   fun:caml_thread_new_descriptor
+   fun:caml_thread_new
+}
+{
+   ocaml_heap_leak_3
+   Memcheck:Leak
+   fun:malloc
+   fun:caml_thread_new_descriptor
+   fun:caml_thread_initialize
+}
+{
+   ocaml_heap_leak_4
+   Memcheck:Leak
+   ...
+   fun:pthread_create*
+   ...
+   fun:caml_thread_new
+}
+{
+   ocaml_heap_leak_5
+   Memcheck:Leak
+   fun:malloc
+   fun:caml_stat_alloc
+}
+{
+   ocaml_heap_leak_6
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:caml_build_primitive_table
+}
