@@ -50,7 +50,7 @@ To run the tests under valgrind:
 
 Requirements:
 
- * Only a C compiler, make, shell are required.
+ * Only a C99 compiler, GNU make, and shell are required.
 
 Optional:
 
