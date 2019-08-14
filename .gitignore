@@ -37,8 +37,12 @@ Makefile.in
 /config.sub
 /configure
 /depcomp
-/docs/libnbd.3
-/docs/nbd_create.3
+/docs/*.3
+/docs/*.pod
+!/docs/libnbd.pod
+!/docs/nbd_close.3
+!/docs/nbd_create.pod
+!/docs/nbd_get_err??.3
 /examples/batched-read-write
 /examples/glib-main-loop
 /examples/threaded-reads-and-writes

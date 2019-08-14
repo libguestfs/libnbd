@@ -3064,7 +3064,6 @@ module C : sig
   val generate_include_libnbd_h : unit -> unit
   val generate_lib_unlocked_h : unit -> unit
   val generate_lib_api_c : unit -> unit
-  val generate_docs_gitignore : unit -> unit
   val generate_docs_Makefile_inc : unit -> unit
   val generate_docs_nbd_pod : string -> call -> unit -> unit
   val print_arg_list : ?handle:bool -> ?types:bool ->
@@ -3733,15 +3732,6 @@ let generate_lib_api_c () =
   pr "#include \"internal.h\"\n";
   pr "\n";
   List.iter print_wrapper handle_calls
-
-let generate_docs_gitignore () =
-  generate_header HashStyle;
-
-  List.iter (
-    fun (name, _) ->
-      pr "nbd_%s.3\n" name;
-      pr "nbd_%s.pod\n" name;
-  ) handle_calls
 
 (* We generate a fragment of Makefile.am containing rules for
  * building the manual pages.  Note this file is committed to
@@ -5298,7 +5288,6 @@ let () =
   output_to "include/libnbd.h" C.generate_include_libnbd_h;
   output_to "lib/unlocked.h" C.generate_lib_unlocked_h;
   output_to "lib/api.c" C.generate_lib_api_c;
-  output_to "docs/.gitignore" C.generate_docs_gitignore;
   output_to "docs/Makefile.inc" C.generate_docs_Makefile_inc;
   List.iter (
     fun (name, call) ->
