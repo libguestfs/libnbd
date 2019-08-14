@@ -982,12 +982,12 @@ let [@warning "-23"] handle_calls = [
 Set or clear the debug flag.  When debugging is enabled,
 debugging messages from the library are printed to stderr,
 unless a debugging callback has been defined too
-(see C<nbd_set_debug_callback>) in which case they are
+(see L<nbd_set_debug_callback(3)>) in which case they are
 sent to that function.  This flag defaults to false on
 newly created handles, except if C<LIBNBD_DEBUG=1> is
 set in the environment in which case it defaults to true.
 
-See also C<nbd_set_handle_name>.";
+See also L<nbd_set_handle_name(3)>.";
   };
 
   "get_debug", {
@@ -1022,7 +1022,7 @@ be called while holding the handle lock and will cause a deadlock.";
     shortdesc = "clear the debug callback";
     longdesc = "\
 Remove the debug callback if one was previously associated
-with the handle (with C<nbd_set_debug_callback>).  If no
+with the handle (with L<nbd_set_debug_callback(3)>).  If no
 callback was associated this does nothing.";
 };
 
@@ -1046,7 +1046,7 @@ to make debugging output easier to understand.";
     shortdesc = "get the handle name";
     longdesc = "\
 Get the name of the handle.  If it was previously set by calling
-C<nbd_set_handle_name> then this returns the name that was set.
+L<nbd_set_handle_name(3)> then this returns the name that was set.
 Otherwise it will return a generic name like C<\"nbdE<lt>NE<gt>\">.";
   };
 
@@ -1059,7 +1059,7 @@ Otherwise it will return a generic name like C<\"nbdE<lt>NE<gt>\">.";
 For servers which require an export name or can serve different
 content on different exports, set the C<export_name> to
 connect to.  This is only relevant for the newstyle protocol.
-This call may be skipped if using C<nbd_connect_uri> to connect
+This call may be skipped if using L<nbd_connect_uri(3)> to connect
 to a URI that includes an export name.  The default is to use
 the empty string.";
   };
@@ -1085,7 +1085,7 @@ NBD server.  The possible settings are:
 
 =item C<LIBNBD_TLS_DISABLE>
 
-Disable TLS.  (The default setting, unless using C<nbd_connect_uri> with
+Disable TLS.  (The default setting, unless using L<nbd_connect_uri(3)> with
 a URI that requires TLS)
 
 =item C<LIBNBD_TLS_ALLOW>
@@ -1110,13 +1110,13 @@ and authenticated.
 =back
 
 As well as calling this you may also need to supply
-the path to the certificates directory (C<nbd_set_tls_certificates>),
-the username (C<nbd_set_tls_username>) and/or
-the Pre-Shared Keys (PSK) file (C<nbd_set_tls_psk_file>).  For now,
-when using C<nbd_connect_uri>, any URI query parameters related to
+the path to the certificates directory (L<nbd_set_tls_certificates(3)>),
+the username (L<nbd_set_tls_username(3)>) and/or
+the Pre-Shared Keys (PSK) file (L<nbd_set_tls_psk_file(3)>).  For now,
+when using L<nbd_connect_uri(3)>, any URI query parameters related to
 TLS are not handled automatically.  Setting the level higher than
 zero will fail if libnbd was not compiled against gnutls; you can
-test whether this is the case with C<nbd_supports_tls>.
+test whether this is the case with L<nbd_supports_tls(3)>.
 
 For more information see L<libnbd(3)/ENCRYPTION AND AUTHENTICATION>.";
   };
@@ -1126,7 +1126,7 @@ For more information see L<libnbd(3)/ENCRYPTION AND AUTHENTICATION>.";
     args = []; ret = RInt;
     shortdesc = "get the current TLS setting";
     longdesc = "\
-Get the current TLS setting.  See C<nbd_set_tls>.";
+Get the current TLS setting.  See L<nbd_set_tls(3)>.";
   };
 
   "set_tls_certificates", {
@@ -1143,7 +1143,7 @@ none of these directories can be found then the system
 trusted CAs are used.
 
 This function may be called regardless of whether TLS is
-supported, but will have no effect unless C<nbd_set_tls>
+supported, but will have no effect unless L<nbd_set_tls(3)>
 is also used to request or require TLS.";
   };
 
@@ -1154,7 +1154,7 @@ is also used to request or require TLS.";
     args = []; ret = RString;
     shortdesc = "get the current TLS certificates directory";
     longdesc = "\
-Get the current TLS directory.  See C<nbd_set_tls_certificates>.";
+Get the current TLS directory.  See L<nbd_set_tls_certificates(3)>.";
   };
 *)
 
@@ -1170,7 +1170,7 @@ authority.  This defaults to true when connecting to TCP servers
 using TLS certificate authentication, and false otherwise.
 
 This function may be called regardless of whether TLS is
-supported, but will have no effect unless C<nbd_set_tls>
+supported, but will have no effect unless L<nbd_set_tls(3)>
 is also used to request or require TLS.";
   };
 
@@ -1193,7 +1193,7 @@ if authenticating with PSK over TLS is enabled.
 If not set then the local username is used.
 
 This function may be called regardless of whether TLS is
-supported, but will have no effect unless C<nbd_set_tls>
+supported, but will have no effect unless L<nbd_set_tls(3)>
 is also used to request or require TLS.";
   };
 
@@ -1202,7 +1202,7 @@ is also used to request or require TLS.";
     args = []; ret = RString;
     shortdesc = "get the current TLS username";
     longdesc = "\
-Get the current TLS username.  See C<nbd_set_tls_username>.";
+Get the current TLS username.  See L<nbd_set_tls_username(3)>.";
   };
 
   "set_tls_psk_file", {
@@ -1217,7 +1217,7 @@ key.  There is no default so if this is not set then PSK
 authentication cannot be used to connect to the server.
 
 This function may be called regardless of whether TLS is
-supported, but will have no effect unless C<nbd_set_tls>
+supported, but will have no effect unless L<nbd_set_tls(3)>
 is also used to request or require TLS.";
   };
 
@@ -1228,7 +1228,7 @@ is also used to request or require TLS.";
     args = []; ret = RString;
     shortdesc = "get the current TLS PSK filename";
     longdesc = "\
-Get the current TLS PSK filename.  See C<nbd_set_tls_psk_file>.";
+Get the current TLS PSK filename.  See L<nbd_set_tls_psk_file(3)>.";
   };
 *)
 
@@ -1241,7 +1241,7 @@ Get the current TLS PSK filename.  See C<nbd_set_tls_psk_file>.";
 During connection libnbd can negotiate zero or more metadata
 contexts with the server.  Metadata contexts are features (such
 as C<\"base:allocation\">) which describe information returned
-by the C<nbd_block_status> command (for C<\"base:allocation\">
+by the L<nbd_block_status(3)> command (for C<\"base:allocation\">
 this is whether blocks of data are allocated, zero or sparse).
 
 This call adds one metadata context to the list to be negotiated.
@@ -1249,7 +1249,7 @@ You can call it as many times as needed.  The list is initially
 empty when the handle is created.
 
 Not all servers support all metadata contexts.  To learn if a context
-was actually negotiated, call C<nbd_can_meta_context> after
+was actually negotiated, call L<nbd_can_meta_context(3)> after
 connecting.
 
 The single parameter is the name of the metadata context,
@@ -1260,7 +1260,7 @@ to pass in other contexts.
 
 Other metadata contexts are server-specific, but include
 C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
-(see qemu-nbd I<-B> option).  See also C<nbd_block_status>.";
+(see qemu-nbd I<-B> option).  See also L<nbd_block_status(3)>.";
   };
 
   "connect_uri", {
@@ -1271,14 +1271,14 @@ C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
     longdesc = "\
 Connect (synchronously) to an NBD server and export by specifying
 the NBD URI.  This call parses the URI and may call
-C<nbd_set_export_name> and C<nbd_set_tls> as needed, followed by
-C<nbd_connect_tcp> or C<nbd_connect_unix>.  This call returns when
+L<nbd_set_export_name(3)> and L<nbd_set_tls(3)> as needed, followed by
+L<nbd_connect_tcp(3)> or L<nbd_connect_unix(3)>.  This call returns when
 the connection has been made.
 
 This call will fail if libnbd was not compiled with libxml2; you can
-test whether this is the case with C<nbd_supports_uri>.  Support for
+test whether this is the case with L<nbd_supports_uri(3)>.  Support for
 URIs that require TLS will fail if libnbd was not compiled with
-gnutls; you can test whether this is the case with C<nbd_supports_tls>.";
+gnutls; you can test whether this is the case with L<nbd_supports_tls(3)>.";
   };
 
   "connect_unix", {
@@ -1315,7 +1315,7 @@ Run the command as a subprocess and connect to it over
 stdin/stdout.  This is for use with NBD servers which can
 behave like inetd clients, such as C<nbdkit --single>.
 
-See also C<nbd_kill_command>.";
+See also L<nbd_kill_command(3)>.";
   };
 
   "is_read_only", {
@@ -1336,7 +1336,7 @@ write-like operations will fail."
     shortdesc = "does the server support the flush command?";
     longdesc = "\
 Returns true if the server supports the flush command
-(see C<nbd_flush>, C<nbd_aio_flush>).  Returns false if
+(see L<nbd_flush(3)>, L<nbd_aio_flush(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
   };
@@ -1348,7 +1348,7 @@ the server does not."
     shortdesc = "does the server support the FUA flag?";
     longdesc = "\
 Returns true if the server supports the FUA flag on
-certain commands (see C<nbd_pwrite>)."
+certain commands (see L<nbd_pwrite(3)>)."
 ^ non_blocking_test_call_description;
   };
 
@@ -1372,7 +1372,7 @@ RAM disk)."
     shortdesc = "does the server support the trim command?";
     longdesc = "\
 Returns true if the server supports the trim command
-(see C<nbd_trim>, C<nbd_aio_trim>).  Returns false if
+(see L<nbd_trim(3)>, L<nbd_aio_trim(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
   };
@@ -1384,7 +1384,7 @@ the server does not."
     shortdesc = "does the server support the zero command?";
     longdesc = "\
 Returns true if the server supports the zero command
-(see C<nbd_zero>, C<nbd_aio_zero>).  Returns false if
+(see L<nbd_zero(3)>, L<nbd_aio_zero(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
   };
@@ -1395,8 +1395,8 @@ the server does not."
     shortdesc = "does the server support the don't fragment flag to pread?";
     longdesc = "\
 Returns true if the server supports structured reads with an
-ability to request a non-fragmented read (see C<nbd_pread_structured>,
-C<nbd_aio_pread_structured>).  Returns false if the server either lacks
+ability to request a non-fragmented read (see L<nbd_pread_structured(3)>,
+L<nbd_aio_pread_structured(3)>).  Returns false if the server either lacks
 structured reads or if it does not support a non-fragmented read request."
 ^ non_blocking_test_call_description;
   };
@@ -1426,7 +1426,7 @@ required."
     shortdesc = "does the server support the cache command?";
     longdesc = "\
 Returns true if the server supports the cache command
-(see C<nbd_cache>, C<nbd_aio_cache>).  Returns false if
+(see L<nbd_cache(3)>, L<nbd_aio_cache(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
   };
@@ -1438,7 +1438,7 @@ the server does not."
     shortdesc = "does the server support a specific meta context?";
     longdesc = "\
 Returns true if the server supports the given meta context
-(see C<nbd_add_meta_context>).  Returns false if
+(see L<nbd_add_meta_context(3)>).  Returns false if
 the server does not.
 
 The single parameter is the name of the metadata context,
@@ -1471,7 +1471,7 @@ Issue a read command to the NBD server for the range starting
 at C<offset> and ending at C<offset> + C<count> - 1.  NBD
 can only read all or nothing using this call.  The call
 returns when the data has been read fully into C<buf> or there is an
-error.  See also C<nbd_pread_structured>, if finer visibility is
+error.  See also L<nbd_pread_structured(3)>, if finer visibility is
 required into the server's replies, or if you want to use
 C<LIBNBD_CMD_FLAG_DF>.
 
@@ -1550,7 +1550,7 @@ the entire request.
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_DF> meaning that the server should not reply with
 more than one fragment (if that is supported - some servers cannot do
-this, see C<nbd_can_df>). Libnbd does not validate that the server
+this, see L<nbd_can_df(3)>). Libnbd does not validate that the server
 actually obeys the flag.";
   };
 
@@ -1572,7 +1572,7 @@ The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
-C<nbd_can_fua>).";
+L<nbd_can_fua(3)>).";
   };
 
   "shutdown", {
@@ -1584,12 +1584,12 @@ C<nbd_can_fua>).";
 Issue the disconnect command to the NBD server.  This is
 a nice way to tell the server we are going away, but from the
 client's point of view has no advantage over abruptly closing
-the connection (see C<nbd_close>).
+the connection (see L<nbd_close(3)>).
 
 This function works whether or not the handle is ready for
 transmission of commands, and as such does not take a C<flags>
 parameter. If more fine-grained control is needed, see
-C<nbd_aio_disconnect>.
+L<nbd_aio_disconnect(3)>.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
@@ -1604,7 +1604,7 @@ protocol extensions).";
 Issue the flush command to the NBD server.  The function should
 return when all write commands which have completed have been
 committed to permanent storage on the server.  Note this will
-return an error if C<nbd_can_flush> is false.
+return an error if L<nbd_can_flush(3)> is false.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
@@ -1628,7 +1628,7 @@ The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
-C<nbd_can_fua>).";
+L<nbd_can_fua(3)>).";
   };
 
   "cache", {
@@ -1642,9 +1642,9 @@ C<nbd_can_fua>).";
 Issue the cache (prefetch) command to the NBD server, which
 if supported by the server causes data to be prefetched
 into faster storage by the server, speeding up a subsequent
-C<nbd_pread> call.  The server can also silently ignore
+L<nbd_pread(3)> call.  The server can also silently ignore
 this command.  Note this will return an error if
-C<nbd_can_cache> is false.
+L<nbd_can_cache(3)> is false.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
@@ -1668,7 +1668,7 @@ The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
-C<nbd_can_fua>), and/or C<LIBNBD_CMD_FLAG_NO_HOLE> meaning that
+L<nbd_can_fua(3)>), and/or C<LIBNBD_CMD_FLAG_NO_HOLE> meaning that
 the server should favor writing actual allocated zeroes over
 punching a hole.";
   };
@@ -1691,8 +1691,8 @@ are supported, the number of blocks and cumulative length
 of those blocks need not be identical between contexts.
 
 Depending on which metadata contexts were enabled before
-connecting (see C<nbd_add_meta_context>) and which are
-supported by the server (see C<nbd_can_meta_context>) this call
+connecting (see L<nbd_add_meta_context(3)>) and which are
+supported by the server (see L<nbd_can_meta_context(3)>) this call
 returns information about extents by calling back to the
 C<extent> function.  The callback cannot call C<nbd_*> APIs on the
 same handle since it holds the handle lock and will
@@ -1758,11 +1758,11 @@ intended as something you would use.";
     shortdesc = "connect to the NBD server";
     longdesc = "\
 Begin connecting to the NBD server.  Parameters behave as documented
-in C<nbd_connect>.
+in L<nbd_connect(3)>.
 
 You can check if the connection is still connecting by calling
-C<nbd_aio_is_connecting>, or if it has connected to the server
-and completed the NBD handshake by calling C<nbd_aio_is_ready>,
+L<nbd_aio_is_connecting(3)>, or if it has connected to the server
+and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
   };
 
@@ -1773,11 +1773,11 @@ on the connection.";
     shortdesc = "connect to an NBD URI";
     longdesc = "\
 Begin connecting to the NBD URI C<uri>.  Parameters behave as
-documented in C<nbd_connect_uri>.
+documented in L<nbd_connect_uri(3)>.
 
 You can check if the connection is still connecting by calling
-C<nbd_aio_is_connecting>, or if it has connected to the server
-and completed the NBD handshake by calling C<nbd_aio_is_ready>,
+L<nbd_aio_is_connecting(3)>, or if it has connected to the server
+and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
   };
 
@@ -1789,11 +1789,11 @@ on the connection.";
     longdesc = "\
 Begin connecting to the NBD server over Unix domain socket
 (C<unixsocket>).  Parameters behave as documented in
-C<nbd_connect_unix>.
+L<nbd_connect_unix(3)>.
 
 You can check if the connection is still connecting by calling
-C<nbd_aio_is_connecting>, or if it has connected to the server
-and completed the NBD handshake by calling C<nbd_aio_is_ready>,
+L<nbd_aio_is_connecting(3)>, or if it has connected to the server
+and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
   };
 
@@ -1804,11 +1804,11 @@ on the connection.";
     shortdesc = "connect to the NBD server over a TCP port";
     longdesc = "\
 Begin connecting to the NBD server listening on C<hostname:port>.
-Parameters behave as documented in C<nbd_connect_tcp>.
+Parameters behave as documented in L<nbd_connect_tcp(3)>.
 
 You can check if the connection is still connecting by calling
-C<nbd_aio_is_connecting>, or if it has connected to the server
-and completed the NBD handshake by calling C<nbd_aio_is_ready>,
+L<nbd_aio_is_connecting(3)>, or if it has connected to the server
+and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
   };
 
@@ -1820,11 +1820,11 @@ on the connection.";
     longdesc = "\
 Run the command as a subprocess and begin connecting to it over
 stdin/stdout.  Parameters behave as documented in
-C<nbd_connect_command>.
+L<nbd_connect_command(3)>.
 
 You can check if the connection is still connecting by calling
-C<nbd_aio_is_connecting>, or if it has connected to the server
-and completed the NBD handshake by calling C<nbd_aio_is_ready>,
+L<nbd_aio_is_connecting(3)>, or if it has connected to the server
+and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
   };
 
@@ -1840,12 +1840,12 @@ Issue a read command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.
 
-To check if the command completed, call C<nbd_aio_command_completed>.
+To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Note that you must ensure C<buf> is valid until the command has
-completed.  Other parameters behave as documented in C<nbd_pread>.";
+completed.  Other parameters behave as documented in L<nbd_pread(3)>.";
   };
 
   "aio_pread_structured", {
@@ -1861,11 +1861,11 @@ Issue a read command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.
 
-To check if the command completed, call C<nbd_aio_command_completed>.
+To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
-Other parameters behave as documented in C<nbd_pread_structured>.";
+Other parameters behave as documented in L<nbd_pread_structured(3)>.";
   };
 
   "aio_pwrite", {
@@ -1880,12 +1880,12 @@ Issue a write command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.
 
-To check if the command completed, call C<nbd_aio_command_completed>.
+To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Note that you must ensure C<buf> is valid until the command has
-completed.  Other parameters behave as documented in C<nbd_pwrite>.";
+completed.  Other parameters behave as documented in L<nbd_pwrite(3)>.";
   };
 
   "aio_disconnect", {
@@ -1897,18 +1897,18 @@ completed.  Other parameters behave as documented in C<nbd_pwrite>.";
 Issue the disconnect command to the NBD server.  This is
 not a normal command because NBD servers are not obliged
 to send a reply.  Instead you should wait for
-C<nbd_aio_is_closed> to become true on the connection.  Once this
+L<nbd_aio_is_closed(3)> to become true on the connection.  Once this
 command is issued, you cannot issue any further commands.
 
 Although libnbd does not prevent you from issuing this command while
 still waiting on the replies to previous commands, the NBD protocol
 recommends that you wait until there are no other commands in flight
-(see C<nbd_aio_in_flight>), to give the server a better chance at a
+(see L<nbd_aio_in_flight(3)>), to give the server a better chance at a
 clean shutdown.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).  There is no direct synchronous counterpart;
-however, C<nbd_shutdown> will call this function if appropriate.";
+however, L<nbd_shutdown(3)> will call this function if appropriate.";
   };
 
   "aio_flush", {
@@ -1923,11 +1923,11 @@ Issue the flush command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.
 
-To check if the command completed, call C<nbd_aio_command_completed>.
+To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
-Other parameters behave as documented in C<nbd_flush>.";
+Other parameters behave as documented in L<nbd_flush(3)>.";
   };
 
   "aio_trim", {
@@ -1942,11 +1942,11 @@ Issue a trim command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.
 
-To check if the command completed, call C<nbd_aio_command_completed>.
+To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
-Other parameters behave as documented in C<nbd_trim>.";
+Other parameters behave as documented in L<nbd_trim(3)>.";
   };
 
   "aio_cache", {
@@ -1961,11 +1961,11 @@ Issue the cache (prefetch) command to the NBD server.  This
 returns the unique positive 64 bit cookie for this command, or
 C<-1> on error.
 
-To check if the command completed, call C<nbd_aio_command_completed>.
+To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
-Other parameters behave as documented in C<nbd_cache>.";
+Other parameters behave as documented in L<nbd_cache(3)>.";
   };
 
   "aio_zero", {
@@ -1980,11 +1980,11 @@ Issue a write zeroes command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.
 
-To check if the command completed, call C<nbd_aio_command_completed>.
+To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
-Other parameters behave as documented in C<nbd_zero>.";
+Other parameters behave as documented in L<nbd_zero(3)>.";
   };
 
   "aio_block_status", {
@@ -1999,11 +1999,11 @@ Send the block status command to the NBD server.  This returns the
 unique positive 64 bit cookie for this command, or C<-1> on
 error.
 
-To check if the command completed, call C<nbd_aio_command_completed>.
+To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
-Other parameters behave as documented in C<nbd_block_status>.";
+Other parameters behave as documented in L<nbd_block_status(3)>.";
   };
 
   "aio_get_fd", {
@@ -2013,8 +2013,8 @@ Other parameters behave as documented in C<nbd_block_status>.";
     longdesc = "\
 Return the underlying file descriptor associated with this
 connection.  You can use this to check if the file descriptor
-is ready for reading or writing and call C<nbd_aio_notify_read>
-or C<nbd_aio_notify_write>.  See also C<nbd_aio_get_direction>.
+is ready for reading or writing and call L<nbd_aio_notify_read(3)>
+or L<nbd_aio_notify_write(3)>.  See also L<nbd_aio_get_direction(3)>.
 Do not do anything else with the file descriptor.";
   };
 
@@ -2034,17 +2034,17 @@ data to the server, or both.  It returns
 We are not expected to interact with the server file descriptor from
 the current state. It is not worth attempting to use L<poll(2)>; if
 the connection is not dead, then state machine progress must instead
-come from some other means such as C<nbd_aio_connect>.
+come from some other means such as L<nbd_aio_connect(3)>.
 
 =item C<LIBNBD_AIO_DIRECTION_READ> = 1
 
 We are expected next to read from the server.  If using L<poll(2)>
 you would set C<events = POLLIN>.  If C<revents> returns C<POLLIN>
-or C<POLLHUP> you would then call C<nbd_aio_notify_read>.
+or C<POLLHUP> you would then call L<nbd_aio_notify_read(3)>.
 
-Note that once libnbd reaches C<nbd_aio_is_ready>, this direction is
+Note that once libnbd reaches L<nbd_aio_is_ready(3)>, this direction is
 returned even when there are no commands in flight (see
-C<nbd_aio_in_flight>). In a single-threaded use of libnbd, it is not
+L<nbd_aio_in_flight(3)>). In a single-threaded use of libnbd, it is not
 worth polling until after issuing a command, as otherwise the server
 will never wake up the poll. In a multi-threaded scenario, you can
 have one thread begin a polling loop prior to any commands, but any
@@ -2058,14 +2058,14 @@ a signal that is masked except during L<ppoll(2)>.
 
 We are expected next to write to the server.  If using L<poll(2)>
 you would set C<events = POLLOUT>.  If C<revents> returns C<POLLOUT>
-you would then call C<nbd_aio_notify_write>.
+you would then call L<nbd_aio_notify_write(3)>.
 
 =item C<LIBNBD_AIO_DIRECTION_BOTH> = 3
 
 We are expected next to either read or write to the server.  If using
 L<poll(2)> you would set C<events = POLLIN|POLLOUT>.  If only one of
 C<POLLIN> or C<POLLOUT> is returned, then see above.  However, if both
-are returned, it is better to call only C<nbd_aio_notify_read>, as
+are returned, it is better to call only L<nbd_aio_notify_read(3)>, as
 processing the server's reply may change the state of the connection
 and invalidate the need to write more commands.
 
@@ -2102,7 +2102,7 @@ connection is writable.";
 Return true if this connection has just been created.  This
 is the state before the handle has started connecting to a
 server.  In this state the handle can start to be connected
-by calling functions such as C<nbd_aio_connect>.";
+by calling functions such as L<nbd_aio_connect(3)>.";
   };
 
   "aio_is_connecting", {
@@ -2113,7 +2113,7 @@ by calling functions such as C<nbd_aio_connect>.";
 Return true if this connection is connecting to the server
 or in the process of handshaking and negotiating options
 which happens before the handle becomes ready to
-issue commands (see C<nbd_aio_is_ready>).";
+issue commands (see L<nbd_aio_is_ready(3)>).";
   };
 
   "aio_is_ready", {
@@ -2136,7 +2136,7 @@ Return true if this connection is connected to the NBD server,
 the handshake has completed, and the connection is processing
 commands (either writing out a request or reading a reply).
 
-Note the ready state (C<nbd_aio_is_ready>) is not included.
+Note the ready state (L<nbd_aio_is_ready(3)>) is not included.
 In the ready state commands may be I<in flight> (the I<server>
 is processing them), but libnbd is not processing them.";
   };
@@ -2174,7 +2174,7 @@ the command is also retired).  A command is retired either via
 this command, or by using a completion callback which returns C<1>.
 
 The C<cookie> parameter is the positive unique 64 bit cookie
-for the command, as returned by a call such as C<nbd_aio_pread>.";
+for the command, as returned by a call such as L<nbd_aio_pread(3)>.";
   };
 
   "aio_peek_command_completed", {
@@ -2186,7 +2186,7 @@ Return the unique positive 64 bit cookie of the first non-retired but
 completed command, C<0> if there are in-flight commands but none of
 them are awaiting retirement, or C<-1> on error including when there
 are no in-flight commands. Any cookie returned by this function must
-still be passed to C<nbd_aio_command_completed> to actually retire
+still be passed to L<nbd_aio_command_completed(3)> to actually retire
 the command and learn whether the command was successful.";
   };
 
@@ -2200,16 +2200,16 @@ the command and learn whether the command was successful.";
 Return the number of in-flight aio commands that are still awaiting a
 response from the server before they can be retired.  If this returns
 a non-zero value when requesting a disconnect from the server (see
-C<nbd_aio_disconnect> and C<nbd_shutdown>), libnbd does not try to
+L<nbd_aio_disconnect(3)> and L<nbd_shutdown(3)>), libnbd does not try to
 wait for those commands to complete gracefully; if the server strands
-commands while shutting down, C<nbd_aio_command_completed> will report
+commands while shutting down, L<nbd_aio_command_completed(3)> will report
 those commands as failed with a status of C<ENOTCONN>.";
   };
 
   "connection_state", {
     default_call with
     args = []; ret = RStaticString;
-    shortdesc = "return a descriptive string for the state of the connection";
+    shortdesc = "return string describing the state of the connection";
     longdesc = "\
 Returns a descriptive string for the state of the connection.  This
 can be used for debugging or troubleshooting, but you should not
@@ -2255,7 +2255,7 @@ branch.";
     shortdesc = "kill server running as a subprocess";
     longdesc = "\
 This call may be used to kill the server running as a subprocess
-that was previously created using C<nbd_connect_command>.  You
+that was previously created using L<nbd_connect_command(3)>.  You
 do not need to use this call.  It is only needed if the server
 does not exit when the socket is closed.
 
@@ -2266,20 +2266,20 @@ The C<signum> parameter is the optional signal number to send
   "supports_tls", {
     default_call with
     args = []; ret = RBool; is_locked = false; may_set_error = false;
-    shortdesc = "return true if libnbd was compiled with support for TLS";
+    shortdesc = "true if libnbd was compiled with support for TLS";
     longdesc = "\
 Returns true if libnbd was compiled with gnutls which is required
-to support TLS encryption, or false if not.  See C<nbd_set_tls>.";
+to support TLS encryption, or false if not.  See L<nbd_set_tls(3)>.";
   };
 
   "supports_uri", {
     default_call with
     args = []; ret = RBool; is_locked = false; may_set_error = false;
-    shortdesc = "return true if libnbd was compiled with support for NBD URIs";
+    shortdesc = "true if libnbd was compiled with support for NBD URIs";
     longdesc = "\
 Returns true if libnbd was compiled with libxml2 which is required
-to support NBD URIs, or false if not.  See C<nbd_connect_uri> and
-C<nbd_aio_connect_uri>.";
+to support NBD URIs, or false if not.  See L<nbd_connect_uri(3)> and
+L<nbd_aio_connect_uri(3)>.";
   };
 
 ]
@@ -3064,7 +3064,9 @@ module C : sig
   val generate_include_libnbd_h : unit -> unit
   val generate_lib_unlocked_h : unit -> unit
   val generate_lib_api_c : unit -> unit
-  val generate_docs_libnbd_api_pod : unit -> unit
+  val generate_docs_gitignore : unit -> unit
+  val generate_docs_Makefile_inc : unit -> unit
+  val generate_docs_nbd_pod : string -> call -> unit -> unit
   val print_arg_list : ?handle:bool -> ?types:bool ->
                        arg list -> optarg list -> unit
   val print_cbarg_list : ?valid_flag:bool -> ?types:bool -> cbarg list -> unit
@@ -3381,7 +3383,7 @@ let generate_include_libnbd_h () =
   pr "/* This is the public interface to libnbd, a client library for\n";
   pr " * accessing Network Block Device (NBD) servers.\n";
   pr " *\n";
-  pr " * Please read the libnbd(3) and libnbd-api(3) manual pages to\n";
+  pr " * Please read the libnbd(3) manual page to\n";
   pr " * find out how to use this library.\n";
   pr " */\n";
   pr "\n";
@@ -3722,15 +3724,76 @@ let generate_lib_api_c () =
   pr "\n";
   List.iter print_wrapper handle_calls
 
-let print_api (name, { args; optargs; ret; permitted_states;
-                       shortdesc; longdesc;
-                       may_set_error }) =
-  pr "=head2 %s —\n" name;
-  pr "%s\n" shortdesc;
+let generate_docs_gitignore () =
+  generate_header HashStyle;
+
+  List.iter (
+    fun (name, _) ->
+      pr "nbd_%s.3\n" name;
+      pr "nbd_%s.pod\n" name;
+  ) handle_calls
+
+(* We generate a fragment of Makefile.am containing rules for
+ * building the manual pages.  Note this file is committed to
+ * git because otherwise you can't clone and run autoreconf.
+ *)
+let generate_docs_Makefile_inc () =
+  generate_header HashStyle;
+
+  pr "generator_built += \\\n";
+  List.iter (
+    fun (name, _) ->
+      pr "\tnbd_%s.pod \\\n" name;
+  ) handle_calls;
+  pr "\t$(NULL)\n";
   pr "\n";
-  pr " ";
-  print_call name args optargs ret; pr ";";
+
+  pr "CLEANFILES += \\\n";
+  List.iter (
+    fun (name, _) ->
+      pr "\tnbd_%s.3 \\\n" name;
+  ) handle_calls;
+  pr "\t$(NULL)\n";
   pr "\n";
+
+  pr "if HAVE_POD\n";
+  pr "\n";
+  pr "man_MANS += \\\n";
+  List.iter (
+    fun (name, _) ->
+      pr "\tnbd_%s.3 \\\n" name;
+  ) handle_calls;
+  pr "\t$(NULL)\n";
+  pr "\n";
+
+  List.iter (
+    fun (name, _) ->
+      pr "nbd_%s.3: nbd_%s.pod\n" name name;
+      pr "\t$(PODWRAPPER) --allow-long-lines --section=3 --man $@ \\\n";
+      pr "\t    --html $(top_builddir)/html/$@.html \\\n";
+      pr "\t    $<\n";
+      pr "\n";
+  ) handle_calls;
+  pr "endif HAVE_POD\n"
+
+let generate_docs_nbd_pod name { args; optargs; ret;
+                                 shortdesc; longdesc;
+                                 permitted_states; may_set_error;
+                                 first_version = (major, minor) } () =
+  pr "=head1 NAME\n";
+  pr "\n";
+  pr "nbd_%s - %s\n" name shortdesc;
+  pr "\n";
+
+  pr "=head1 SYNOPSIS\n";
+  pr "\n";
+  pr "#include <libnbd.h>\n";
+  pr "\n";
+  print_call name args optargs ret;
+  pr ";\n";
+  pr "\n";
+
+  pr "=head1 DESCRIPTION\n";
   pr "\n";
   pr "%s\n" longdesc;
   pr "\n";
@@ -3773,107 +3836,21 @@ let print_api (name, { args; optargs; ret; permitted_states;
   )
   else
     pr "This function does not fail.\n";
-  pr "\n"
-
-let generate_docs_libnbd_api_pod () =
-  pr "
-=head1 NAME
-
-libnbd-api - libnbd C API
-
-=head1 SYNOPSIS
-
- #include <libnbd.h>
- 
- struct nbd_handle *nbd;
- char buf[512];
- 
- if ((nbd = nbd_create ()) == NULL ||
-     nbd_connect_tcp (nbd, \"server.example.com\", \"nbd\") == -1 ||
-     nbd_pread (nbd, buf, sizeof buf, 0, 0) == -1)
-   fprintf (stderr, \"%%s\\n\", nbd_get_error ());
-   nbd_close (nbd);
-   exit (EXIT_FAILURE);
- }
- nbd_close (nbd);
-
- cc prog.c -o prog -lnbd
-or:
- cc prog.c -o prog `pkg-config libnbd --cflags --libs`
-
-=head1 DESCRIPTION
-
-This manual page describes all of the libnbd API calls from C
-in detail.  If you want an overview of using the API, or to see
-how to call the API from other programming languages, start
-with libnbd(3).
-
-For the sake of conditional compilation across a range of libnbd
-versions, where a client may take advantage of newer API when present
-but gracefully continue to compile even when it is not, all functions
-declared in B<E<lt>libnbd.hE<gt>> have a corresponding witness macro
-with prefix C<LIBNBD_HAVE_>. For example, C<nbd_create> has a
-counterpart macro C<LIBNBD_HAVE_NBD_CREATE> defined to C<1>.
-
-=head1 CREATE, GET AND CLOSE HANDLES
-
- struct nbd_handle *nbd;
-
-This opaque structure describes an NBD client handle and
-connection to an NBD server.
-
- struct nbd_handle *nbd_create (void);
-
-Create a new handle.  Returns a pointer to the opaque handle
-structure.
-
-On error this returns C<NULL>.  See L<libnbd(3)/ERROR HANDLING>
-for how to get further details of the error.
-
- void nbd_close (struct nbd_handle *nbd);
-
-Closes the handle and frees any associated resources.  The final
-status of any command that has not been retired (whether by
-C<nbd_aio_command_completed> or by a low-level completion callback
-returning C<1>) is lost.  This function is not safe to call while
-any other thread is still using any C<nbd_*> API on the same handle.
-
-=head1 GETTING THE LATEST ERROR MESSAGE IN THE THREAD
-
-See L<libnbd(3)/ERROR HANDLING> for more discussion of how
-error handling works in libnbd.
-
- const char *nbd_get_error (void);
-
-Return the most recent error message in the current thread.
-The error message is only valid if called immediately after
-the failing call, from the same thread.  The error string
-returned will be freed up next time any libnbd API is called
-from the same thread, so if you need to keep it you must make
-a copy.
-
-This should never return C<NULL> provided there was an error
-returned from the immediately preceding libnbd call in the
-current thread.
-
- int nbd_get_errno (void);
-
-Return the most recent C<errno> in the current thread.  Not all
-errors have corresponding errnos, so even if there has been an error
-this may return C<0>.  Error codes are the standard ones from
-C<E<lt>errno.hE<gt>>.
-
-";
-
-  pr "=head1 API CALLS\n";
   pr "\n";
-
-  List.iter print_api handle_calls;
+  pr "=head1 VERSION\n";
+  pr "\n";
+  pr "This function first appeared in libnbd %d.%d.\n" major minor;
+  pr "\n";
+  pr "If you need to test if this function is available at compile time\n";
+  pr "check if the following macro is defined:\n";
+  pr "\n";
+  pr " #define LIBNBD_HAVE_NBD_%s 1\n" (String.uppercase_ascii name);
+  pr "\n";
 
   pr "\
 =head1 SEE ALSO
 
-L<libnbd(3)>.
+L<nbd_create(3)>, L<libnbd(3)>.
 
 =head1 AUTHORS
 
@@ -4433,7 +4410,7 @@ let generate_python_methods_c () =
       print_python_binding name fn
   ) handle_calls
 
-let py_fn_rex = Str.regexp "C<nbd_"
+let py_fn_rex = Str.regexp "L<nbd_\\([a-z0-9_]+\\)(3)>"
 let py_const_rex = Str.regexp "C<LIBNBD_"
 
 let generate_python_nbd_py () =
@@ -4597,7 +4574,7 @@ class NBD (object):
         | n, Some default, _ -> pr ", %s=%s" n default
       ) args;
       pr "):\n";
-      let longdesc = Str.global_replace py_fn_rex "C<nbd." longdesc in
+      let longdesc = Str.global_replace py_fn_rex "C<nbd.\\1>" longdesc in
       let longdesc = Str.global_replace py_const_rex "C<" longdesc in
       let longdesc = pod2text longdesc in
       pr "        '''▶ %s\n\n%s'''\n" shortdesc (String.concat "\n" longdesc);
@@ -4727,8 +4704,7 @@ let generate_ocaml_nbd_mli () =
   pr "\
 (** OCaml bindings for libnbd.
 
-    For full documentation see:
-    libnbd-ocaml(3), libnbd(3) and libnbd-api(3).
+    For full documentation see libnbd-ocaml(3) and libnbd(3).
 
     For examples written in OCaml see the libnbd source code
     [ocaml/examples] subdirectory.
@@ -5308,7 +5284,13 @@ let () =
   output_to "include/libnbd.h" C.generate_include_libnbd_h;
   output_to "lib/unlocked.h" C.generate_lib_unlocked_h;
   output_to "lib/api.c" C.generate_lib_api_c;
-  output_to "docs/libnbd-api.pod" C.generate_docs_libnbd_api_pod;
+  output_to "docs/.gitignore" C.generate_docs_gitignore;
+  output_to "docs/Makefile.inc" C.generate_docs_Makefile_inc;
+  List.iter (
+    fun (name, call) ->
+      output_to (sprintf "docs/nbd_%s.pod" name)
+                (C.generate_docs_nbd_pod name call)
+  ) handle_calls;
   output_to "python/methods.h" Python.generate_python_methods_h;
   output_to "python/libnbdmod.c" Python.generate_python_libnbdmod_c;
   output_to "python/methods.c" Python.generate_python_methods_c;

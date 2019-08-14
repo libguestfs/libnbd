@@ -38,8 +38,7 @@ Makefile.in
 /configure
 /depcomp
 /docs/libnbd.3
-/docs/libnbd-api.3
-/docs/libnbd-api.pod
+/docs/nbd_create.3
 /examples/batched-read-write
 /examples/glib-main-loop
 /examples/threaded-reads-and-writes

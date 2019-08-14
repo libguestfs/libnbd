@@ -18,30 +18,43 @@
 include $(top_srcdir)/subdir-rules.mk
 
 generator_built = \
-	libnbd-api.pod \
+	.gitignore \
+	Makefile.inc \
 	$(NULL)
 
 EXTRA_DIST = \
 	$(generator_built) \
 	libnbd.pod \
+	nbd_create.pod \
+	nbd_close.3 \
+	nbd_get_error.3 \
+	nbd_get_errno.3 \
 	$(NULL)
 
 if HAVE_POD
 
 man_MANS = \
 	libnbd.3 \
-	libnbd-api.3 \
+	nbd_create.3 \
+	nbd_close.3 \
+	nbd_get_error.3 \
+	nbd_get_errno.3 \
 	$(NULL)
-CLEANFILES += $(man_MANS)
+CLEANFILES += \
+	libnbd.3 \
+	nbd_create.3 \
+	$(NULL)
 
 libnbd.3: libnbd.pod
 	$(PODWRAPPER) --section=3 --man $@ \
 	    --html $(top_builddir)/html/$@.html \
 	    $<
 
-libnbd-api.3: libnbd-api.pod
+nbd_create.3: nbd_create.pod
 	$(PODWRAPPER) --section=3 --man $@ \
 	    --html $(top_builddir)/html/$@.html \
 	    $<
 
 endif HAVE_POD
+
+include $(srcdir)/Makefile.inc

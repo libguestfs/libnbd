@@ -14,8 +14,7 @@ libnbd-ocaml - how to use libnbd from OCaml
 This manual page documents how to use libnbd to access Network Block
 Device (NBD) servers from the OCaml programming language.  The OCaml
 bindings work very similarly to the C bindings so you should start by
-reading L<libnbd(3)>.  For detailed documentation on the API see
-L<libnbd-api(3)>.
+reading L<libnbd(3)>..
 
 =head1 HANDLES
 
@@ -31,7 +30,7 @@ then the API will throw an C<NBD.Closed> exception.
 Libnbd errors are turned automatically into S<C<NBD.Error (str, errno)>>
 exceptions.  This exception has two parameters.  The first is a string
 which is the printable error message.  The second is the raw C<errno>,
-if available (see C<nbd_get_errno>).  The raw C<errno> is not
+if available (see L<nbd_get_errno(3)>).  The raw C<errno> is not
 compatible with errors in the OCaml C<Unix> module unfortunately.
 
 =head1 AIO BUFFERS
@@ -64,8 +63,7 @@ L<https://github.com/libguestfs/libnbd/tree/master/ocaml/examples>
 
 =head1 SEE ALSO
 
-L<libnbd(3)>,
-L<libnbd-api(3)>.
+L<libnbd(3)>.
 
 =head1 AUTHORS
 

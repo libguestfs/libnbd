@@ -36,16 +36,16 @@ but the library is available from other programming languages.
 
 =over 4
 
-=item L<libnbd-api(3)>
+=item L<nbd_create(3)>, L<nbd_pread(3)>, etc.
 
-Covers the C API in detail.
+Each manual page covers one function from the C API in detail.
 
 =back
 
 =head1 HANDLES
 
 To use the API at all you must first open a handle by calling
-C<nbd_create> (or its equivalent in other languages):
+L<nbd_create(3)> (or its equivalent in other languages):
 
  struct nbd_handle *nbd;
  
@@ -122,7 +122,7 @@ another “main loop” such as the GLib main event loop.
 
 Use the C<nbd_aio_*> variants to issue commands asynchronously
 (without waiting for the command to complete before returning).  For
-example the asynchronous variant of C<nbd_pread> is:
+example the asynchronous variant of L<nbd_pread(3)> is:
 
  int64_t cookie;
  
@@ -210,15 +210,15 @@ The notify calls move the state machine along, reading and writing
 from the socket possibly multiple times, until the socket would block
 again, at which point they return control to the caller.
 
-=head2 Simple implementation with C<nbd_poll>
+=head2 Simple implementation with L<nbd_poll(3)>
 
 In fact if you want to use L<poll(2)> on a single handle, a simple
-implementation has already been written called C<nbd_poll>.  It is
+implementation has already been written called L<nbd_poll(3)>.  It is
 also useful to examine how this is implemented (F<lib/poll.c> in the
 libnbd source code) because that will tell you how to integrate libnbd
 with more complex main loops.
 
-Some examples of using C<nbd_poll> follow.
+Some examples of using L<nbd_poll(3)> follow.
 
 As with the high level API, it all starts by creating a handle:
 
@@ -232,7 +232,7 @@ As with the high level API, it all starts by creating a handle:
  }
 
 To connect to the server asynchronously, we start the connection using
-C<nbd_aio_connect> and then enter our main loop to check for events
+L<nbd_aio_connect(3)> and then enter our main loop to check for events
 until the connection becomes ready:
 
  int fd;
@@ -275,8 +275,8 @@ command has completed:
    }
  }
 
-For almost all high level synchronous calls (eg. C<nbd_pread>) there
-is a low level asynchronous equivalent (eg. C<nbd_aio_pread>) for
+For almost all high level synchronous calls (eg. L<nbd_pread(3)>) there
+is a low level asynchronous equivalent (eg. L<nbd_aio_pread(3)>) for
 starting a command.
 
 =head2 glib2 integration
@@ -289,7 +289,7 @@ L<https://github.com/libguestfs/libnbd/blob/master/examples/glib-main-loop.c>
 When any API call returns an error (C<-1> or C<NULL> depending on the
 API), an error message and sometimes an errno value are available.
 You can retrieve the error message and/or errno of the most recently
-failed call using C<nbd_get_error> and C<nbd_get_errno>.  For example:
+failed call using L<nbd_get_error(3)> and L<nbd_get_errno(3)>.  For example:
 
  if (nbd_connect_tcp (nbd, "remote", "nbd") == -1) {
    fprintf (stderr,
@@ -299,16 +299,16 @@ failed call using C<nbd_get_error> and C<nbd_get_errno>.  For example:
 
 These functions use thread-local storage to return the most recent
 error in the current thread.  This is why you don't need to pass the
-handle to these calls.  They even work if C<nbd_create> returns
+handle to these calls.  They even work if L<nbd_create(3)> returns
 C<NULL> when there is no handle at all.
 
 For this reason you cannot call them from a different thread.  You
 should call them immediately after the failed API call, from the same
-thread.  Furthermore the error string returned by C<nbd_get_error> is
+thread.  Furthermore the error string returned by L<nbd_get_error(3)> is
 only valid until the next libnbd API call in the current thread, so if
 you need to keep the string you must copy it (eg. using L<strdup(3)>).
 
-Even when a call returns an error, C<nbd_get_errno> might return C<0>.
+Even when a call returns an error, L<nbd_get_errno(3)> might return C<0>.
 This means no additional errno information is available for this
 error.
 
@@ -325,7 +325,7 @@ or set the C<LIBNBD_DEBUG=1> environment variable which will enable
 debugging by default on all new handles.
 
 Debugging messages are sent to stderr by default, but you can redirect
-them to a logging system using C<nbd_set_debug_callback>.
+them to a logging system using L<nbd_set_debug_callback(3)>.
 
 =head1 CONNECTING TO LOCAL OR REMOTE NBD SERVERS
 
@@ -337,7 +337,7 @@ connection.  The high level API calls are:
  nbd_connect_unix (nbd, "socket");
  nbd_connect_tcp (nbd, "localhost", "nbd");
 
-For C<nbd_connect_tcp> the third parameter is the port name or number,
+For L<nbd_connect_tcp(3)> the third parameter is the port name or number,
 which can either be a name from F</etc/services> or the port number as
 a string (eg. C<"10809">).
 
@@ -370,10 +370,10 @@ export name, TLS parameters, and finally connect over a Unix domain
 socket or TCP.
 
 URI support is an optional feature of the library, requiring libxml2
-at compile time.  The C<nbd_connect_uri> and C<nbd_aio_connect_uri>
+at compile time.  The L<nbd_connect_uri(3)> and L<nbd_aio_connect_uri(3)>
 calls will raise an error (with errno = C<ENOTSUP>) if it was not
 built with this feature, and you can also test for it explicitly using
-C<nbd_supports_uri>.
+L<nbd_supports_uri(3)>.
 
 =head1 EXPORTS AND FLAGS
 
@@ -395,7 +395,8 @@ APIs such as:
  int is_read_only = nbd_is_read_only (nbd);
  int can_flush = nbd_can_flush (nbd);
 
-(and several more, see L<libnbd-api(3)>).
+(and several more, see C<include/libnbd.h> for all of the C<nbd_is_*>
+and C<nbd_can_*> functions available).
 
 To get the size of the export in bytes, use:
 
@@ -412,17 +413,17 @@ Some servers also support:
 
 =item trim/discard
 
-If C<nbd_can_trim> returns true, C<nbd_trim> can be used to “punch
+If L<nbd_can_trim(3)> returns true, L<nbd_trim(3)> can be used to “punch
 holes” in the backing storage of the disk on the server.  Normally
 (although not in every case) the holes read back as zeroes but take up
 no space.
 
 =item zeroing
 
-If C<nbd_can_zero> returns true, C<nbd_zero> can be used to
+If L<nbd_can_zero(3)> returns true, L<nbd_zero(3)> can be used to
 efficiently zero parts of the disk without having to send large
 amounts of zero bytes over the network (as would be necessary if using
-C<nbd_pwrite>).
+L<nbd_pwrite(3)>).
 
 This is slightly different from trimming because the backing storage
 is still allocated.  For some storage types this can make future
@@ -433,9 +434,9 @@ space errors.
 
 Some servers can commit data to permanent storage and tell you that
 this has happened reliably.  There are two export flags associated
-with this: C<nbd_can_flush> and C<nbd_can_fua>.
+with this: L<nbd_can_flush(3)> and L<nbd_can_fua(3)>.
 
-The C<nbd_flush> call (available if C<nbd_can_flush> returns true)
+The L<nbd_flush(3)> call (available if L<nbd_can_flush(3)> returns true)
 flushes all pending writes to disk and does not complete until that
 operation has finished.  It is similar to using L<sync(2)> on POSIX
 systems.
@@ -448,7 +449,7 @@ permanent storage, but it does not involve flushing the entire disk.
 =item prefetching
 
 Some servers can prefetch data, making subsequent reads faster.  The
-C<nbd_cache> call (available if C<nbd_can_cache> returns true) is used
+L<nbd_cache(3)> call (available if L<nbd_can_cache(3)> returns true) is used
 to prefetch.
 
 =back
@@ -462,7 +463,7 @@ multiple requests in flight over the same connection at the same time.
 Libnbd supports this when using the low level API.
 
 To use it you simply issue more requests as needed (eg. using calls
-like C<nbd_aio_pread>, C<nbd_aio_pwrite>) without waiting for previous
+like L<nbd_aio_pread(3)>, L<nbd_aio_pwrite(3)>) without waiting for previous
 commands to complete.  You need to be careful that requests in flight
 do not overlap with disk offsets of other write-like commands in
 flight — an overlapping read may see indeterminate data, and an
@@ -519,7 +520,7 @@ The NBD protocol and libnbd supports TLS (sometimes incorrectly called
 “SSL”) for encryption of the data stream and authentication of clients
 and servers.  Libnbd defaults to TLS I<disabled> for maximum
 interoperability.  To enable it on a handle you must call
-C<nbd_set_tls> before connecting:
+L<nbd_set_tls(3)> before connecting:
 
  /* To allow TLS, but fall back to unencrypted.
   * Avoid this mode if man-in-the-middle attacks are a concern.
@@ -599,7 +600,7 @@ will use your login name):
 =head1 CALLBACKS
 
 Some libnbd calls take function pointers (eg.
-C<nbd_set_debug_callback>, C<nbd_aio_pread>).  Libnbd can call these
+L<nbd_set_debug_callback(3)>, L<nbd_aio_pread(3)>).  Libnbd can call these
 functions while processing.
 
 Callbacks have an opaque C<void *user_data> pointer.  This is passed
@@ -630,7 +631,7 @@ Other bits in C<valid_flag> should be ignored.
 
 =back
 
-For example C<nbd_set_debug_callback> sets up a callback which you
+For example L<nbd_set_debug_callback(3)> sets up a callback which you
 could define like this:
 
  int my_debug_fn (unsigned valid_flag, void *user_data,
@@ -674,13 +675,13 @@ complete.
 
 When C<valid_flag> includes C<LIBNBD_CALLBACK_VALID>, and the
 completion callback returns C<1>, the command is automatically retired
-(there is no need to call C<nbd_aio_command_completed>); for any other
+(there is no need to call L<nbd_aio_command_completed(3)>); for any other
 return value, the command still needs to be retired.
 
 =head2 Callbacks with C<int *error> parameter
 
-Some of the high-level commands (C<nbd_pread_structured>,
-C<nbd_block_status>) involve the use of a callback function invoked by
+Some of the high-level commands (L<nbd_pread_structured(3)>,
+L<nbd_block_status(3)>) involve the use of a callback function invoked by
 the state machine at appropriate points in the server's reply before
 the overall command is complete.  These callback functions, along with
 all of the completion callbacks, include a parameter C<error>
@@ -693,7 +694,7 @@ assigning C<0> into C<error> does not have an effect.
 
 =head1 SEE ALSO
 
-L<libnbd-api(3)>,
+L<nbd_create(3)>,
 L<certtool(1)>,
 L<nbdkit(1)>,
 L<nbdkit-tls(1)>,
