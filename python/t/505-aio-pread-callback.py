@@ -28,7 +28,8 @@ def chunk (user_data, buf2, offset, s, err):
     print ("in chunk, user_data %d" % user_data)
     assert err.value == 0
     err.value = errno.EPROTO
-    assert user_data == 42
+    if user_data != 42:
+        raise ValueError('unexpected user_data')
     assert buf2 == expected
     assert offset == 0
     assert s == nbd.READ_DATA
@@ -40,7 +41,8 @@ def callback (user_data, err):
     else:
         assert err.value == errno.EPROTO
     err.value = errno.ENOMEM
-    assert user_data == 42
+    if user_data != 42:
+        raise ValueError('unexpected user_data')
 
 # First try: succeed in both callbacks
 buf = nbd.Buffer (512)

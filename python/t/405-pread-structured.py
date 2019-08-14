@@ -27,7 +27,8 @@ expected = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\x0
 def f (user_data, buf2, offset, s, err):
     assert err.value == 0
     err.value = errno.EPROTO
-    assert user_data == 42
+    if user_data != 42:
+        raise ValueError('unexpected user_data')
     assert buf2 == expected
     assert offset == 0
     assert s == nbd.READ_DATA

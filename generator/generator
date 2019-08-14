@@ -4053,6 +4053,11 @@ let print_python_closure_wrapper { cbname; cbargs } =
   pr "    Py_DECREF (py_ret);\n";
   pr "  }\n";
   pr "  else {\n";
+  pr "    /* Special case failed assertions to be fatal. */\n";
+  pr "    if (PyErr_ExceptionMatches (PyExc_AssertionError)) {\n";
+  pr "      PyErr_Print ();\n";
+  pr "      abort ();\n";
+  pr "    }\n";
   pr "    ret = -1;\n";
   pr "    PyErr_PrintEx (0); /* print exception */\n";
   pr "  };\n";
