@@ -54,7 +54,7 @@ LOG_COMPILER = $(top_builddir)/run
 
 check_PROGRAMS += \
 	compile-header-only \
-	compile \
+	compile-c \
 	compile-ansi-c \
 	debug \
 	debug-environment \
@@ -64,7 +64,7 @@ check_PROGRAMS += \
 
 TESTS += \
 	compile-header-only \
-	compile \
+	compile-c \
 	compile-ansi-c \
 	debug \
 	debug-environment \
@@ -72,15 +72,18 @@ TESTS += \
 	export-name \
 	$(NULL)
 
+# Even though we have a compile.c, we do not want make to create a 'compile'
+.PHONY: compile
+
 compile_header_only_SOURCES = compile-header-only.c
 compile_header_only_CPPFLAGS = -I$(top_srcdir)/include
 compile_header_only_CFLAGS = $(WARNINGS_CFLAGS)
 compile_header_only_LDADD = $(top_builddir)/lib/libnbd.la
 
-compile_SOURCES = compile.c
-compile_CPPFLAGS = -I$(top_srcdir)/include
-compile_CFLAGS = $(WARNINGS_CFLAGS)
-compile_LDADD = $(top_builddir)/lib/libnbd.la
+compile_c_SOURCES = compile.c
+compile_c_CPPFLAGS = -I$(top_srcdir)/include
+compile_c_CFLAGS = $(WARNINGS_CFLAGS)
+compile_c_LDADD = $(top_builddir)/lib/libnbd.la
 
 compile_ansi_c_SOURCES = compile-ansi-c.c
 compile_ansi_c_CPPFLAGS = \
