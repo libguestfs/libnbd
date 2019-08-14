@@ -18,7 +18,6 @@
 include $(top_srcdir)/subdir-rules.mk
 
 generator_built = \
-	.gitignore \
 	Makefile.inc \
 	$(NULL)
 
