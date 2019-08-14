@@ -3935,7 +3935,7 @@ let generate_docs_api_links_pod () =
 
 let generate_docs_api_flag_links_pod () =
   let pages =
-    List.filter_map (
+    filter_map (
       fun (name, _) ->
         if is_prefix name "is_" || is_prefix name "can_" then
           Some (sprintf "nbd_%s(3)" name)
