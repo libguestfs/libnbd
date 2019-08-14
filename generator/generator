@@ -4945,7 +4945,8 @@ let print_ocaml_closure_wrapper { cbname; cbargs } =
   assert (List.length argnames <= 5);
   pr "  CAMLlocal%d (%s);\n" (List.length argnames)
     (String.concat ", " argnames);
-  pr "  CAMLlocal3 (fnv, exn, rv);\n";
+  pr "  CAMLlocal2 (exn, rv);\n";
+  pr "  const struct user_data *data = user_data;\n";
   pr "  int r;\n";
   pr "  value args[%d];\n" (List.length argnames);
   pr "\n";
@@ -4974,9 +4975,7 @@ let print_ocaml_closure_wrapper { cbname; cbargs } =
 
   List.iteri (fun i n -> pr "  args[%d] = %s;\n" i n) argnames;
 
-  pr "  fnv = * (value *) user_data;\n";
-
-  pr "  rv = caml_callbackN_exn (fnv, %d, args);\n"
+  pr "  rv = caml_callbackN_exn (data->fnv, %d, args);\n"
     (List.length argnames);
 
   List.iter (
@@ -5039,15 +5038,7 @@ let print_ocaml_closure_wrapper { cbname; cbargs } =
   pr ";\n";
   pr "  caml_enter_blocking_section ();\n";
   pr "  return ret;\n";
-  pr "}\n";
-
-  pr "static void\n";
-  pr "%s_free (void *user_data)\n" cbname;
-  pr "{\n";
-  pr "  caml_remove_generational_global_root (user_data);\n";
-  pr "  free (user_data);\n";
-  pr "}\n";
-  pr "\n"
+  pr "}\n"
 
 let print_ocaml_binding (name, { args; optargs; ret }) =
   (* Get the names of all the value arguments including the handle. *)
@@ -5098,14 +5089,13 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
        pr "    /* The function may save a reference to the closure, so we\n";
        pr "     * must treat it as a possible GC root.\n";
        pr "     */\n";
-       pr "    %s_callback.user_data = malloc (sizeof (value));\n" cbname;
-       pr "    if (%s_callback.user_data == NULL)\n" cbname;
-       pr "      caml_raise_out_of_memory ();\n";
-       pr "    *(value *)%s_callback.user_data = Field (%sv, 0);\n"
-         cbname cbname;
-       pr "    caml_register_generational_global_root (%s_callback.user_data);\n" cbname;
+       pr "    struct user_data *user_data = alloc_user_data ();\n";
+       pr "\n";
+       pr "    user_data->fnv = Field (%sv, 0);\n" cbname;
+       pr "    caml_register_generational_global_root (&user_data->fnv);\n";
        pr "    %s_callback.callback = %s_wrapper;\n" cbname cbname;
-       pr "    %s_callback.free = %s_free;\n" cbname cbname;
+       pr "    %s_callback.user_data = user_data;\n" cbname;
+       pr "    %s_callback.free = free_user_data;\n" cbname;
        pr "  }\n";
     | OFlags (n, { flag_prefix }) ->
        pr "  uint32_t %s;\n" n;
@@ -5138,14 +5128,13 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
        pr "  /* The function may save a reference to the closure, so we\n";
        pr "   * must treat it as a possible GC root.\n";
        pr "   */\n";
-       pr "  nbd_%s_callback %s_callback = { .callback = %s_wrapper, .free = %s_free };\n"
-         cbname cbname cbname cbname;
-       pr "  %s_callback.user_data = malloc (sizeof (value));\n" cbname;
-       pr "  if (%s_callback.user_data == NULL) caml_raise_out_of_memory ();\n"
-         cbname;
-       pr "  *(value *)%s_callback.user_data = %sv;\n" cbname cbname;
-       pr "  caml_register_generational_global_root (%s_callback.user_data);\n"
-         cbname
+       pr "  struct user_data *user_data = alloc_user_data ();\n";
+       pr "  user_data->fnv = %sv;\n" cbname;
+       pr "  caml_register_generational_global_root (&user_data->fnv);\n";
+       pr "  nbd_%s_callback %s_callback;\n" cbname cbname;
+       pr "  %s_callback.callback = %s_wrapper;\n" cbname cbname;
+       pr "  %s_callback.user_data = user_data;\n" cbname;
+       pr "  %s_callback.free = free_user_data;\n" cbname
     | Enum (n, { enum_prefix }) ->
        pr "  int %s = %s_val (%sv);\n" n enum_prefix n
     | Flags (n, { flag_prefix }) ->
@@ -5262,6 +5251,32 @@ let generate_ocaml_nbd_c () =
   pr "#include <caml/threads.h>\n";
   pr "\n";
   pr "#pragma GCC diagnostic ignored \"-Wmissing-prototypes\"\n";
+  pr "\n";
+
+  pr "/* This is passed to *_wrapper as the user_data pointer";
+  pr " * and freed in the free_user_data function below.\n";
+  pr " */\n";
+  pr "struct user_data {\n";
+  pr "  value fnv;      /* GC root pointing to OCaml function. */\n";
+  pr "};\n";
+  pr "\n";
+  pr "static struct user_data *\n";
+  pr "alloc_user_data (void)\n";
+  pr "{\n";
+  pr "  struct user_data *data = calloc (1, sizeof *data);\n";
+  pr "  if (data == NULL)\n";
+  pr "    caml_raise_out_of_memory ();\n";
+  pr "  return data;\n";
+  pr "}\n";
+  pr "\n";
+  pr "static void\n";
+  pr "free_user_data (void *user_data)\n";
+  pr "{\n";
+  pr "  struct user_data *data = user_data;\n";
+  pr "\n";
+  pr "  caml_remove_generational_global_root (&data->fnv);\n";
+  pr "  free (data);\n";
+  pr "}\n";
   pr "\n";
 
   List.iter print_ocaml_closure_wrapper all_closures;
