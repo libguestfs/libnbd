@@ -35,20 +35,20 @@ def chunk (user_data, buf2, offset, s, err):
     assert s == nbd.READ_DATA
 
 def callback (user_data, err):
-    print ("in callback, user_data %d" % user_data)
-    if user_data <= 43:
+    print ("in callback, user_data %d,%d" % user_data)
+    if user_data[0] == 42:
         assert err.value == 0
     else:
         assert err.value == errno.EPROTO
     err.value = errno.ENOMEM
-    if user_data != 42:
+    if user_data[1] != 42:
         raise ValueError('unexpected user_data')
 
 # First try: succeed in both callbacks
 buf = nbd.Buffer (512)
 cookie = h.aio_pread_structured (buf, 0,
                                  lambda *args: chunk (42, *args),
-                                 lambda *args: callback (42, *args))
+                                 lambda *args: callback ((42, 42), *args))
 while not (h.aio_command_completed (cookie)):
     h.poll (-1)
 
@@ -62,7 +62,7 @@ assert buf == expected
 buf = nbd.Buffer (512)
 cookie = h.aio_pread_structured (buf, 0,
                                  lambda *args: chunk (42, *args),
-                                 lambda *args: callback (43, *args))
+                                 lambda *args: callback ((42, 43), *args))
 try:
     while not (h.aio_command_completed (cookie)):
         h.poll (-1)
@@ -74,7 +74,7 @@ except nbd.Error as ex:
 buf = nbd.Buffer (512)
 cookie = h.aio_pread_structured (buf, 0,
                                  lambda *args: chunk (43, *args),
-                                 lambda *args: callback (44, *args))
+                                 lambda *args: callback ((43, 43), *args))
 try:
     while not (h.aio_command_completed (cookie)):
         h.poll (-1)
@@ -86,7 +86,7 @@ except nbd.Error as ex:
 buf = nbd.Buffer (512)
 cookie = h.aio_pread_structured (buf, 0,
                                  lambda *args: chunk (43, *args),
-                                 lambda *args: callback (42, *args))
+                                 lambda *args: callback ((43, 42), *args))
 try:
     while not (h.aio_command_completed (cookie)):
         h.poll (-1)
