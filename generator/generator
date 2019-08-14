@@ -3352,7 +3352,7 @@ let print_closure_structs () =
     let optargs = List.map (fun (_, { optargs }) -> optargs) handle_calls in
     let optargs = List.flatten optargs in
     let optargs =
-      List.filter_map (function OClosure cb -> Some cb | _ -> None) optargs in
+      filter_map (function OClosure cb -> Some cb | _ -> None) optargs in
     sort_uniq optargs in
   List.iter (
     fun { cbname } ->
