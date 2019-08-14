@@ -38,7 +38,7 @@ let expected =
 let f user_data buf2 offset s err =
   assert (!err = 0);
   err := 100;
-  assert (user_data = 42);
+  if user_data <> 42 then invalid_arg "this should be turned into NBD.Error";
   assert (buf2 = expected);
   assert (offset = 0_L);
   assert (s = Int32.to_int NBD.read_data);
