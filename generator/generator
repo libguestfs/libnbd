@@ -2229,7 +2229,7 @@ the library was modified with another name at compile time.";
   "get_version", {
     default_call with
     args = []; ret = RStaticString; is_locked = false; may_set_error = false;
-    shortdesc = "return a descriptive string for the state of the connection";
+    shortdesc = "return the version of the library";
     longdesc = "\
 Return the version of libnbd.  This is returned as a string
 in the form C<\"major.minor.release\"> where each of major, minor
