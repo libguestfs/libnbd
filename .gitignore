@@ -39,6 +39,7 @@ Makefile.in
 /depcomp
 /docs/*.3
 /docs/*.pod
+/docs/Makefile.inc
 !/docs/libnbd.pod
 !/docs/nbd_close.3
 !/docs/nbd_create.pod

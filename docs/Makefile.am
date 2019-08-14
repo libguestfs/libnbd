@@ -19,7 +19,10 @@ include $(top_srcdir)/subdir-rules.mk
 
 api_built=
 
-include $(srcdir)/Makefile.inc
+# Our use of sinclude to bypass Automake is intentional; this file won't
+# exist in a fresh git checkout until after the generator has run, but
+# should already be present in any released tarball.
+sinclude $(srcdir)/Makefile.inc
 
 generator_built = \
 	Makefile.inc \

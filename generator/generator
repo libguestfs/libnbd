@@ -3733,9 +3733,10 @@ let generate_lib_api_c () =
   pr "\n";
   List.iter print_wrapper handle_calls
 
-(* We generate a fragment of Makefile.am containing rules for
- * building the manual pages.  Note this file is committed to
- * git because otherwise you can't clone and run autoreconf.
+(* We generate a fragment of Makefile.am containing the list
+ * of generated functions, used in rules for building the manual
+ * pages.  We exploit GNU make's sinclude to use this file without
+ * upsetting automake.
  *)
 let generate_docs_Makefile_inc () =
   generate_header HashStyle;
