@@ -105,8 +105,8 @@ Makefile.in
 /tests/aio-parallel-tls
 /tests/can-*-flag
 /tests/closure-lifetimes
-/tests/compile
 /tests/compile-ansi-c
+/tests/compile-c
 /tests/compile-cxx
 /tests/compile-header-only
 /tests/connect-tcp
