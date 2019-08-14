@@ -35,7 +35,7 @@ if HAVE_POD
 man_MANS = libnbd-ocaml.3
 CLEANFILES += $(man_MANS)
 
-libnbd-ocaml.3: libnbd-ocaml.pod
+libnbd-ocaml.3: libnbd-ocaml.pod $(top_builddir)/podwrapper.pl
 	$(PODWRAPPER) --section=3 --man $@ \
 	    --html $(top_builddir)/html/$@.html \
 	    $<

@@ -3778,7 +3778,7 @@ let generate_docs_Makefile_inc () =
 
   List.iter (
     fun (name, _) ->
-      pr "nbd_%s.3: nbd_%s.pod\n" name name;
+      pr "nbd_%s.3: nbd_%s.pod $(top_builddir)/podwrapper.pl\n" name name;
       pr "\t$(PODWRAPPER) --allow-long-lines --section=3 --man $@ \\\n";
       pr "\t    --html $(top_builddir)/html/$@.html \\\n";
       pr "\t    $<\n";

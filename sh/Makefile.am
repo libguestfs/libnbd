@@ -32,7 +32,7 @@ if HAVE_POD
 man_MANS = nbdsh.1
 CLEANFILES += $(man_MANS)
 
-nbdsh.1: nbdsh.pod
+nbdsh.1: nbdsh.pod $(top_builddir)/podwrapper.pl
 	$(PODWRAPPER) --section=1 --man $@ \
 	    --html $(top_builddir)/html/$@.html \
 	    --verbatim $(srcdir)/examples/hexdump.sh:__EXAMPLES_HEXDUMP__ \

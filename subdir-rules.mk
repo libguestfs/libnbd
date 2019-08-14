@@ -28,3 +28,6 @@ if HAVE_OCAMLOPT
 %.cmx: $(srcdir)/%.ml
 	$(OCAMLFIND) ocamlopt $(OCAMLFLAGS) $(OCAMLPACKAGES) -c $< -o $@
 endif
+
+$(top_builddir)/podwrapper.pl: $(top_srcdir)/podwrapper.pl.in
+	$(MAKE) -C $(top_builddir) podwrapper.pl

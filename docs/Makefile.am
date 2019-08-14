@@ -45,12 +45,12 @@ CLEANFILES += \
 	nbd_create.3 \
 	$(NULL)
 
-libnbd.3: libnbd.pod
+libnbd.3: libnbd.pod $(top_builddir)/podwrapper.pl
 	$(PODWRAPPER) --section=3 --man $@ \
 	    --html $(top_builddir)/html/$@.html \
 	    $<
 
-nbd_create.3: nbd_create.pod
+nbd_create.3: nbd_create.pod $(top_builddir)/podwrapper.pl
 	$(PODWRAPPER) --section=3 --man $@ \
 	    --html $(top_builddir)/html/$@.html \
 	    $<
