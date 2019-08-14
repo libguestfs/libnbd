@@ -3979,6 +3979,7 @@ let print_python_closure_wrapper { cbname; cbargs } =
   C.print_cbarg_list cbargs;
   pr "\n";
   pr "{\n";
+  pr "  const struct user_data *data = user_data;\n";
   pr "  int ret = 0;\n";
   pr "\n";
   pr "  PyGILState_STATE py_save = PyGILState_UNLOCKED;\n";
@@ -4037,7 +4038,7 @@ let print_python_closure_wrapper { cbname; cbargs } =
   pr "  if (PyEval_ThreadsInitialized ())\n";
   pr "    py_save = PyGILState_Ensure ();\n";
   pr "\n";
-  pr "  py_ret = PyObject_CallObject ((PyObject *)user_data, py_args);\n";
+  pr "  py_ret = PyObject_CallObject (data->fn, py_args);\n";
   pr "\n";
   pr "  if (PyEval_ThreadsInitialized ())\n";
   pr "    PyGILState_Release (py_save);\n";
@@ -4079,13 +4080,6 @@ let print_python_closure_wrapper { cbname; cbargs } =
   ) cbargs;
   pr "  return ret;\n";
   pr "}\n";
-  pr "\n";
-  pr "/* Free for %s callback. */\n" cbname;
-  pr "static void\n";
-  pr "%s_free (void *user_data)\n" cbname;
-  pr "{\n";
-  pr "  Py_DECREF (user_data);\n";
-  pr "}\n";
   pr "\n"
 
 (* Generate the Python binding. *)
@@ -4111,8 +4105,12 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
           n;
        pr "  struct py_aio_buffer *%s_buf;\n" n
     | Closure { cbname } ->
-       pr "  nbd_%s_callback %s = { .callback = %s_wrapper, .free = %s_free };\n"
-         cbname cbname cbname cbname
+       pr "  struct user_data *%s_user_data = alloc_user_data ();\n" cbname;
+       pr "  if (%s_user_data == NULL) return NULL;\n" cbname;
+       pr "  nbd_%s_callback %s = { .callback = %s_wrapper,\n"
+         cbname cbname cbname;
+       pr "                         .user_data = %s_user_data,\n" cbname;
+       pr "                         .free = free_user_data };\n"
     | Enum (n, _) -> pr "  int %s;\n" n
     | Flags (n, _) ->
        pr "  uint32_t %s_u32;\n" n;
@@ -4144,8 +4142,12 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   List.iter (
     function
     | OClosure { cbname } ->
-       pr "  nbd_%s_callback %s = { .callback = %s_wrapper, .free = %s_free };\n"
-         cbname cbname cbname cbname
+       pr "  struct user_data *%s_user_data = alloc_user_data ();\n" cbname;
+       pr "  if (%s_user_data == NULL) return NULL;\n" cbname;
+       pr "  nbd_%s_callback %s = { .callback = %s_wrapper,\n"
+         cbname cbname cbname;
+       pr "                         .user_data = %s_user_data,\n" cbname;
+       pr "                         .free = free_user_data };\n"
     | OFlags (n, _) ->
        pr "  uint32_t %s_u32;\n" n;
        pr "  unsigned int %s; /* really uint32_t */\n" n
@@ -4188,7 +4190,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesIn (n, _) | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) -> pr ", &%s" n
     | BytesOut (_, count) -> pr ", &%s" count
-    | Closure { cbname } -> pr ", &%s.user_data" cbname
+    | Closure { cbname } -> pr ", &%s_user_data->fn" cbname
     | Enum (n, _) -> pr ", &%s" n
     | Flags (n, _) -> pr ", &%s" n
     | Int n -> pr ", &%s" n
@@ -4203,7 +4205,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
-    | OClosure { cbname } -> pr ", &%s.user_data" cbname
+    | OClosure { cbname } -> pr ", &%s_user_data->fn" cbname
     | OFlags (n, _) -> pr ", &%s" n
   ) optargs;
   pr "))\n";
@@ -4220,8 +4222,8 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  %s_buf = nbd_internal_py_get_aio_buffer (%s);\n" n n
     | Closure { cbname } ->
        pr "  /* Increment refcount since pointer may be saved by libnbd. */\n";
-       pr "  Py_INCREF (%s.user_data);\n" cbname;
-       pr "  if (!PyCallable_Check (%s.user_data)) {\n" cbname;
+       pr "  Py_INCREF (%s_user_data->fn);\n" cbname;
+       pr "  if (!PyCallable_Check (%s_user_data->fn)) {\n" cbname;
        pr "    PyErr_SetString (PyExc_TypeError,\n";
        pr "                     \"callback parameter %s is not callable\");\n" cbname;
        pr "    return NULL;\n";
@@ -4246,10 +4248,10 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   List.iter (
     function
     | OClosure { cbname } ->
-       pr "  if (%s.user_data != Py_None) {\n" cbname;
+       pr "  if (%s_user_data->fn != Py_None) {\n" cbname;
        pr "    /* Increment refcount since pointer may be saved by libnbd. */\n";
-       pr "    Py_INCREF (%s.user_data);\n" cbname;
-       pr "    if (!PyCallable_Check (%s.user_data)) {\n" cbname;
+       pr "    Py_INCREF (%s_user_data->fn);\n" cbname;
+       pr "    if (!PyCallable_Check (%s_user_data->fn)) {\n" cbname;
        pr "      PyErr_SetString (PyExc_TypeError,\n";
        pr "                       \"callback parameter %s is not callable\");\n" cbname;
        pr "      return NULL;\n";
@@ -4382,6 +4384,35 @@ let generate_python_methods_c () =
   pr "\n";
   pr "#include <methods.h>\n";
   pr "\n";
+
+  pr "/* This is passed to *_wrapper as the user_data pointer";
+  pr " * and freed in the free_user_data function below.\n";
+  pr " */\n";
+  pr "struct user_data {\n";
+  pr "  PyObject *fn;    /* Pointer to Python function. */\n";
+  pr "};\n";
+  pr "\n";
+  pr "static struct user_data *\n";
+  pr "alloc_user_data (void)\n";
+  pr "{\n";
+  pr "  struct user_data *data = calloc (1, sizeof *data);\n";
+  pr "  if (data == NULL) {\n";
+  pr "    PyErr_NoMemory ();\n";
+  pr "    return NULL;\n";
+  pr "  }\n";
+  pr "  return data;\n";
+  pr "}\n";
+  pr "\n";
+  pr "static void\n";
+  pr "free_user_data (void *user_data)\n";
+  pr "{\n";
+  pr "  struct user_data *data = user_data;\n";
+  pr "\n";
+  pr "  Py_DECREF (data->fn);\n";
+  pr "  free (data);\n";
+  pr "}\n";
+  pr "\n";
+
   List.iter print_python_closure_wrapper all_closures;
   List.iter (
     fun (name, fn) ->
