@@ -295,7 +295,6 @@
       }
       if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk.callback) {
         int scratch = error;
-        uint16_t flags = be16toh (h->sbuf.sr.structured_reply.flags);
 
         /* Different from successful reads: inform the callback about the
          * current error rather than any earlier one. If the callback fails
@@ -307,8 +306,6 @@
                            &scratch) == -1)
           if (cmd->error == 0)
             cmd->error = scratch;
-        if (flags & NBD_REPLY_FLAG_DONE)
-          FREE_CALLBACK (cmd->cb.fn.chunk);
       }
     }
 
@@ -390,15 +387,12 @@
     assert (cmd); /* guaranteed by CHECK */
     if (cmd->cb.fn.chunk.callback) {
       int error = cmd->error;
-      uint16_t flags = be16toh (h->sbuf.sr.structured_reply.flags);
 
       if (CALL_CALLBACK (cmd->cb.fn.chunk, cmd->data + (offset - cmd->offset),
                          length - sizeof offset, offset,
                          LIBNBD_READ_DATA, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
-      if (flags & NBD_REPLY_FLAG_DONE)
-        FREE_CALLBACK (cmd->cb.fn.chunk);
     }
 
     SET_NEXT_STATE (%FINISH);
@@ -454,7 +448,6 @@
     memset (cmd->data + offset, 0, length);
     if (cmd->cb.fn.chunk.callback) {
       int error = cmd->error;
-      uint16_t flags = be16toh (h->sbuf.sr.structured_reply.flags);
 
       if (CALL_CALLBACK (cmd->cb.fn.chunk,
                          cmd->data + offset, length,
@@ -462,8 +455,6 @@
                          LIBNBD_READ_HOLE, &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
-      if (flags & NBD_REPLY_FLAG_DONE)
-        FREE_CALLBACK (cmd->cb.fn.chunk);
     }
 
     SET_NEXT_STATE(%FINISH);
@@ -509,7 +500,6 @@
     if (meta_context) {
       /* Call the caller's extent function. */
       int error = cmd->error;
-      uint16_t flags = be16toh (h->sbuf.sr.structured_reply.flags);
 
       if (CALL_CALLBACK (cmd->cb.fn.extent,
                          meta_context->name, cmd->offset,
@@ -517,8 +507,6 @@
                          &error) == -1)
         if (cmd->error == 0)
           cmd->error = error ? error : EPROTO;
-      if (flags & NBD_REPLY_FLAG_DONE)
-        FREE_CALLBACK (cmd->cb.fn.extent);
     }
     else
       /* Emit a debug message, but ignore it. */
@@ -530,15 +518,10 @@
   return 0;
 
  REPLY.STRUCTURED_REPLY.FINISH:
-  struct command *cmd = h->reply_cmd;
   uint16_t flags;
 
   flags = be16toh (h->sbuf.sr.structured_reply.flags);
   if (flags & NBD_REPLY_FLAG_DONE) {
-    if (cmd->type == NBD_CMD_BLOCK_STATUS)
-      FREE_CALLBACK (cmd->cb.fn.extent);
-    if (cmd->type == NBD_CMD_READ)
-      FREE_CALLBACK (cmd->cb.fn.chunk);
     SET_NEXT_STATE (%^FINISH_COMMAND);
   }
   else {

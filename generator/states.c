@@ -127,7 +127,6 @@ void abort_commands (struct nbd_handle *h,
 
       assert (cmd->type != NBD_CMD_DISC);
       r = CALL_CALLBACK (cmd->cb.completion, &error);
-      FREE_CALLBACK (cmd->cb.completion);
       switch (r) {
       case -1:
         if (error)

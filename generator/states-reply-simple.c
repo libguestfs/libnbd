@@ -69,7 +69,6 @@
                          cmd->offset, LIBNBD_READ_DATA,
                          &error) == -1)
         cmd->error = error ? error : EPROTO;
-      FREE_CALLBACK (cmd->cb.fn.chunk);
     }
 
     SET_NEXT_STATE (%^FINISH_COMMAND);
