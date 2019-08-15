@@ -31,7 +31,7 @@ generator_built = \
 EXTRA_DIST = \
 	$(generator_built) \
 	nbdsh.py \
-	t/*.py
+	$(srcdir)/t/*.py
 
 if HAVE_PYTHON
 
