@@ -282,17 +282,11 @@ struct command {
 #define CALL_CALLBACK(cb, ...) \
   (cb).callback ((cb).user_data, ##__VA_ARGS__)
 
-/* Free a callback.
- *
- * Note this works for any type of callback because the basic layout
- * of the struct is the same for all of them.  Therefore casting cb to
- * nbd_completion_callback does not change the effective code.
- */
+/* Free a callback. */
 #define FREE_CALLBACK(cb)                                               \
   do {                                                                  \
-    nbd_completion_callback *_cb = (nbd_completion_callback *)&(cb);    \
-    if (CALLBACK_IS_NOT_NULL (cb) && _cb->free != NULL)                 \
-      _cb->free (_cb->user_data);                                       \
+    if (CALLBACK_IS_NOT_NULL (cb) && (cb).free != NULL)                 \
+      (cb).free ((cb).user_data);                                       \
     SET_CALLBACK_TO_NULL (cb);                                          \
   } while (0)
 
