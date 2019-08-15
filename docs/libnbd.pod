@@ -643,6 +643,21 @@ S<C<chunk.callback = my_fn>> function is called.
 The free function is only accessible in the C API as it is not needed
 in garbage collected programming languages.
 
+=head2 Callbacks with C<.callback=NULL> and C<.free!=NULL>
+
+It is possible to register a callback like this:
+
+  ...
+    (nbd_completion_callback) { .callback = NULL,
+                                .user_data = my_data,
+                                .free = free },
+  ...
+
+The meaning of this is that the callback is never called, but the free
+function is still called after the last time the callback would have
+been called.  This is useful for applying generic freeing actions when
+asynchronous commands are retired.
+
 =head2 Callbacks and locking
 
 The callbacks are invoked at a point where the libnbd lock is held; as

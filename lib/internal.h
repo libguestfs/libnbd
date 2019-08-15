@@ -274,20 +274,20 @@ struct command {
 };
 
 /* Test if a callback is "null" or not, and set it to null. */
-#define CALLBACK_IS_NULL(cb)     ((cb).callback == NULL)
+#define CALLBACK_IS_NULL(cb)     ((cb).callback == NULL && (cb).free == NULL)
 #define CALLBACK_IS_NOT_NULL(cb) (! CALLBACK_IS_NULL ((cb)))
-#define SET_CALLBACK_TO_NULL(cb) ((cb).callback = NULL)
+#define SET_CALLBACK_TO_NULL(cb) ((cb).callback = NULL, (cb).free = NULL)
 
 /* Call a callback. */
-#define CALL_CALLBACK(cb, ...) \
-  (cb).callback ((cb).user_data, ##__VA_ARGS__)
+#define CALL_CALLBACK(cb, ...)                                          \
+  ((cb).callback != NULL ? (cb).callback ((cb).user_data, ##__VA_ARGS__) : 0)
 
 /* Free a callback. */
-#define FREE_CALLBACK(cb)                                               \
-  do {                                                                  \
-    if (CALLBACK_IS_NOT_NULL (cb) && (cb).free != NULL)                 \
-      (cb).free ((cb).user_data);                                       \
-    SET_CALLBACK_TO_NULL (cb);                                          \
+#define FREE_CALLBACK(cb)                               \
+  do {                                                  \
+    if ((cb).free != NULL)                              \
+      (cb).free ((cb).user_data);                       \
+    SET_CALLBACK_TO_NULL (cb);                          \
   } while (0)
 
 /* aio.c */
