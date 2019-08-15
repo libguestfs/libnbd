@@ -27,8 +27,10 @@ CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so *.bc *.opt
 
 if HAVE_OCAML
 
-OCAMLFLAGS = $(OCAML_FLAGS) $(OCAML_WARN_ERROR) -ccopt '$(CFLAGS)' -I ..
-OCAMLPACKAGES = -package unix
+OCAMLFLAGS = $(OCAML_FLAGS) $(OCAML_WARN_ERROR) -ccopt '$(CFLAGS)'
+OCAMLPACKAGES = \
+	-package unix \
+	-I $(srcdir)/.. -I $(builddir)/.. -I $(srcdir) -I $(builddir)
 
 noinst_SCRIPTS = asynch_copy.bc extents.bc
 if HAVE_OCAMLOPT

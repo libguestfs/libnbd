@@ -20,12 +20,12 @@
 
 include $(top_srcdir)/common-rules.mk
 
-%.cmi: $(srcdir)/%.mli
+%.cmi: %.mli
 	$(OCAMLFIND) ocamlc $(OCAMLFLAGS) $(OCAMLPACKAGES) -c $< -o $@
-%.cmo: $(srcdir)/%.ml
+%.cmo: %.ml
 	$(OCAMLFIND) ocamlc $(OCAMLFLAGS) $(OCAMLPACKAGES) -c $< -o $@
 if HAVE_OCAMLOPT
-%.cmx: $(srcdir)/%.ml
+%.cmx: %.ml
 	$(OCAMLFIND) ocamlopt $(OCAMLFLAGS) $(OCAMLPACKAGES) -c $< -o $@
 endif
 

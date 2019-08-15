@@ -45,7 +45,7 @@ endif HAVE_POD
 if HAVE_OCAML
 
 OCAMLFLAGS = $(OCAML_FLAGS) $(OCAML_WARN_ERROR) -ccopt '$(CFLAGS)'
-OCAMLPACKAGES = -package unix
+OCAMLPACKAGES = -package unix -I $(srcdir) -I $(builddir)
 
 noinst_DATA = mlnbd.cma META
 if HAVE_OCAMLOPT
@@ -72,11 +72,13 @@ endif
 
 stamp-mlnbd: libnbdocaml.a $(nbd_cmm)
 	$(OCAMLFIND) mklib -o mlnbd \
+	  $(OCAMLPACKAGES) \
 	  -ldopt '$(LDFLAGS)' \
 	  $(libnbdocaml_a_OBJECTS) NBD.cmo \
 	  -L../lib/.libs -lnbd
 if HAVE_OCAMLOPT
 	$(OCAMLFIND) mklib -o mlnbd \
+	  $(OCAMLPACKAGES) \
 	  -ldopt '$(LDFLAGS)' \
 	  $(libnbdocaml_a_OBJECTS) NBD.cmx \
 	  -L../lib/.libs -lnbd

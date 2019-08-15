@@ -72,8 +72,10 @@ CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so *.bc *.opt
 
 if HAVE_OCAML
 
-OCAMLFLAGS = $(OCAML_FLAGS) $(OCAML_WARN_ERROR) -ccopt '$(CFLAGS)' -I ..
-OCAMLPACKAGES = -package unix
+OCAMLFLAGS = $(OCAML_FLAGS) $(OCAML_WARN_ERROR) -ccopt '$(CFLAGS)'
+OCAMLPACKAGES = \
+	-package unix \
+	-I $(srcdir)/.. -I $(builddir)/.. -I $(srcdir) -I $(builddir)
 
 check_SCRIPTS = $(tests_bc)
 if HAVE_OCAMLOPT
@@ -81,11 +83,18 @@ check_SCRIPTS += $(tests_opt)
 endif
 
 %.bc: %.cmo ../mlnbd.cma
-	LD_LIBRARY_PATH=../../lib/.libs $(OCAMLFIND) ocamlc $(OCAMLFLAGS) -package unix -linkpkg mlnbd.cma $< -o $@
+	LD_LIBRARY_PATH=../../lib/.libs \
+	$(OCAMLFIND) ocamlc \
+	  $(OCAMLFLAGS) $(OCAMLPACKAGES) -linkpkg \
+	  mlnbd.cma $< -o $@
 
 if HAVE_OCAMLOPT
 %.opt: %.cmx ../mlnbd.cmxa
-	LD_LIBRARY_PATH=../../lib/.libs $(OCAMLFIND) ocamlopt $(OCAMLFLAGS) -cclib -L$(top_builddir)/lib/.libs -I . -package unix -linkpkg mlnbd.cmxa $< -o $@
+	LD_LIBRARY_PATH=../../lib/.libs \
+	$(OCAMLFIND) ocamlopt \
+	  $(OCAMLFLAGS) $(OCAMLPACKAGES) \
+	  -cclib -L$(top_builddir)/lib/.libs -linkpkg \
+	  mlnbd.cmxa $< -o $@
 endif
 
 TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 OCAMLRUNPARAM=b
