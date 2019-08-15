@@ -143,7 +143,7 @@ main (int argc, char *argv[])
   assert (read_cb_freed == 1);
   assert (completion_cb_freed == 1);
 
-  nbd_kill_command (nbd, 0);
+  nbd_kill_subprocess (nbd, 0);
   nbd_close (nbd);
 
   /* Test command callbacks are freed if the handle is closed without
@@ -162,7 +162,7 @@ main (int argc, char *argv[])
                                                                  .free = completion_cb_free },
                                      0);
   if (cookie == -1) NBD_ERROR;
-  nbd_kill_command (nbd, 0);
+  nbd_kill_subprocess (nbd, 0);
   nbd_close (nbd);
 
   assert (read_cb_freed == 1);

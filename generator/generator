@@ -1315,7 +1315,7 @@ Run the command as a subprocess and connect to it over
 stdin/stdout.  This is for use with NBD servers which can
 behave like inetd clients, such as C<nbdkit --single>.
 
-See also L<nbd_kill_command(3)>.";
+See also L<nbd_kill_subprocess(3)>.";
   };
 
   "is_read_only", {
@@ -2249,7 +2249,7 @@ The release number is incremented for each release along a particular
 branch.";
   };
 
-  "kill_command", {
+  "kill_subprocess", {
     default_call with
     args = [ Int "signum" ]; ret = RErr;
     shortdesc = "kill server running as a subprocess";

@@ -254,7 +254,7 @@ nbd_unlocked_get_version (struct nbd_handle *h)
 }
 
 int
-nbd_unlocked_kill_command (struct nbd_handle *h, int signum)
+nbd_unlocked_kill_subprocess (struct nbd_handle *h, int signum)
 {
   if (h->pid == -1) {
     set_error (ESRCH, "no subprocess exists");

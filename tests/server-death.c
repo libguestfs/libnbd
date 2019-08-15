@@ -102,8 +102,8 @@ main (int argc, char *argv[])
    * actually exiting), although it's a race whether our signal
    * arrives while nbdkit has a pending transaction.
    */
-  if (nbd_kill_command (nbd, SIGKILL) == -1) {
-    fprintf (stderr, "%s: test failed: nbd_kill_command: %s\n", argv[0],
+  if (nbd_kill_subprocess (nbd, SIGKILL) == -1) {
+    fprintf (stderr, "%s: test failed: nbd_kill_subprocess: %s\n", argv[0],
              nbd_get_error ());
     exit (EXIT_FAILURE);
   }
