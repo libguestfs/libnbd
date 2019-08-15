@@ -28,7 +28,7 @@ EXTRA_DIST = \
 	libnbd-ocaml.pod \
 	$(NULL)
 
-CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so
+CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so *.cma *.cmxa
 
 if HAVE_POD
 
