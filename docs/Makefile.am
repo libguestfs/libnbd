@@ -21,8 +21,12 @@ api_built=
 
 # Our use of sinclude to bypass Automake is intentional; this file won't
 # exist in a fresh git checkout until after the generator has run, but
-# should already be present in any released tarball.
+# should already be present in any released tarball.  But, since automake
+# can't see into this file, it did not hoist the resulting prerequisites
+# prior to its 'all-am: Makefile $(MANS)' rule, which gets parsed before
+# $(MANS) has grown in size, so we have to add a second all-am dependency.
 sinclude $(srcdir)/Makefile.inc
+all-am: $(api_built:%=%.3)
 
 generator_built = \
 	Makefile.inc \
