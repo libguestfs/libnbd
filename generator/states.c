@@ -121,7 +121,7 @@ void abort_commands (struct nbd_handle *h,
     bool retire = cmd->type == NBD_CMD_DISC;
 
     next = cmd->next;
-    if (cmd->cb.completion.callback) {
+    if (CALLBACK_IS_NOT_NULL (cmd->cb.completion)) {
       int error = cmd->error ? cmd->error : ENOTCONN;
       int r;
 

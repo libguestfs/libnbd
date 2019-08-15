@@ -82,7 +82,7 @@ nbd_internal_debug (struct nbd_handle *h, const char *fs, ...)
   if (r == -1)
     goto out;
 
-  if (h->debug_callback.callback)
+  if (CALLBACK_IS_NOT_NULL (h->debug_callback))
     /* ignore return value */
     CALL_CALLBACK (h->debug_callback, context, msg);
   else

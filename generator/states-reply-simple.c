@@ -60,7 +60,7 @@
   case 0:
     /* guaranteed by START */
     assert (cmd);
-    if (cmd->cb.fn.chunk.callback) {
+    if (CALLBACK_IS_NOT_NULL (cmd->cb.fn.chunk)) {
       int error = 0;
 
       assert (cmd->error == 0);

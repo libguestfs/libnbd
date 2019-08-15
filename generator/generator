@@ -3576,7 +3576,7 @@ let generate_lib_api_c () =
          let value = match errcode with
            | Some value -> value
            | None -> assert false in
-         pr "  if (%s_callback.callback == NULL) {\n" cbname;
+         pr "  if (CALLBACK_IS_NULL (%s_callback)) {\n" cbname;
          pr "    set_error (EFAULT, \"%%s cannot be NULL\", \"%s\");\n" cbname;
          pr "    ret = %s;\n" value;
          pr "    goto out;\n";
@@ -3689,7 +3689,7 @@ let generate_lib_api_c () =
     List.iter (
       function
       | OClosure { cbname } ->
-         pr ", %s_callback.callback ? \"<fun>\" : \"NULL\"" cbname
+         pr ", CALLBACK_IS_NULL (%s_callback) ? \"<fun>\" : \"NULL\"" cbname
       | OFlags (n, _) -> pr ", %s" n
     ) optargs;
     pr ");\n"

@@ -157,7 +157,7 @@
       set_error (0, "invalid length in NBD_REPLY_TYPE_BLOCK_STATUS");
       return 0;
     }
-    if (cmd->cb.fn.extent.callback == NULL) {
+    if (CALLBACK_IS_NULL (cmd->cb.fn.extent)) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "not expecting NBD_REPLY_TYPE_BLOCK_STATUS here");
       return 0;
@@ -293,7 +293,8 @@
                    offset, cmd->offset, cmd->count);
         return 0;
       }
-      if (cmd->type == NBD_CMD_READ && cmd->cb.fn.chunk.callback) {
+      if (cmd->type == NBD_CMD_READ &&
+          CALLBACK_IS_NOT_NULL (cmd->cb.fn.chunk)) {
         int scratch = error;
 
         /* Different from successful reads: inform the callback about the
@@ -385,7 +386,7 @@
     offset = be64toh (h->sbuf.sr.payload.offset_data.offset);
 
     assert (cmd); /* guaranteed by CHECK */
-    if (cmd->cb.fn.chunk.callback) {
+    if (CALLBACK_IS_NOT_NULL (cmd->cb.fn.chunk)) {
       int error = cmd->error;
 
       if (CALL_CALLBACK (cmd->cb.fn.chunk, cmd->data + (offset - cmd->offset),
@@ -446,7 +447,7 @@
      * them as an extension, and this works even when length == 0.
      */
     memset (cmd->data + offset, 0, length);
-    if (cmd->cb.fn.chunk.callback) {
+    if (CALLBACK_IS_NOT_NULL (cmd->cb.fn.chunk)) {
       int error = cmd->error;
 
       if (CALL_CALLBACK (cmd->cb.fn.chunk,
@@ -479,7 +480,7 @@
 
     assert (cmd); /* guaranteed by CHECK */
     assert (cmd->type == NBD_CMD_BLOCK_STATUS);
-    assert (cmd->cb.fn.extent.callback);
+    assert (CALLBACK_IS_NOT_NULL (cmd->cb.fn.extent));
     assert (h->bs_entries);
     assert (length >= 12);
 

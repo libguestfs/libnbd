@@ -168,7 +168,7 @@ save_reply_state (struct nbd_handle *h)
   retire = cmd->type == NBD_CMD_DISC;
 
   /* Notify the user */
-  if (cmd->cb.completion.callback) {
+  if (CALLBACK_IS_NOT_NULL (cmd->cb.completion)) {
     int error = cmd->error;
     int r;
 

@@ -273,6 +273,11 @@ struct command {
   uint32_t error; /* Local errno value */
 };
 
+/* Test if a callback is "null" or not, and set it to null. */
+#define CALLBACK_IS_NULL(cb)     ((cb).callback == NULL)
+#define CALLBACK_IS_NOT_NULL(cb) (! CALLBACK_IS_NULL ((cb)))
+#define SET_CALLBACK_TO_NULL(cb) ((cb).callback = NULL)
+
 /* Call a callback. */
 #define CALL_CALLBACK(cb, ...) \
   (cb).callback ((cb).user_data, ##__VA_ARGS__)
@@ -286,9 +291,9 @@ struct command {
 #define FREE_CALLBACK(cb)                                               \
   do {                                                                  \
     nbd_completion_callback *_cb = (nbd_completion_callback *)&(cb);    \
-    if (_cb->callback != NULL && _cb->free != NULL)                     \
+    if (CALLBACK_IS_NOT_NULL (cb) && _cb->free != NULL)                 \
       _cb->free (_cb->user_data);                                       \
-    _cb->callback = NULL;                                               \
+    SET_CALLBACK_TO_NULL (cb);                                          \
   } while (0)
 
 /* aio.c */
