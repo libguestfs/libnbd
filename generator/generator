@@ -3121,6 +3121,31 @@ let () =
         failwithf "%s: first_version must be 1.x" name;
       if minor mod 2 <> 0 then
         failwithf "%s: first_version must refer to a stable release" name
+  ) handle_calls;
+
+  (* Because of the way we use completion free callbacks to
+   * free persistent buffers in non-C languages, any function
+   * with a BytesPersistIn/Out parameter must have only one.
+   * And it must have an OClosure completion optarg.
+   *)
+  List.iter (
+    fun (name, { args; optargs }) ->
+      let is_persistent_buffer_arg = function
+        | BytesPersistIn _ | BytesPersistOut _ -> true
+        | _ -> false
+      and is_oclosure_completion = function
+        | OClosure { cbname = "completion" } -> true
+        | _ -> false
+      in
+      if List.exists is_persistent_buffer_arg args then (
+        let bpargs = List.filter is_persistent_buffer_arg args in
+        if List.length bpargs >= 2 then
+          failwithf "%s: multiple BytesPersistIn/Out params not supported"
+            name;
+        if not (List.exists is_oclosure_completion optargs) then
+          failwithf "%s: functions with BytesPersistIn/Out arg must have completion callback"
+            name
+      )
   ) handle_calls
 
 let generate_lib_libnbd_syms () =
