@@ -71,12 +71,12 @@ nbd_cmm += NBD.cmx
 endif
 
 stamp-mlnbd: libnbdocaml.a $(nbd_cmm)
-	$(OCAMLMKLIB) -o mlnbd \
+	$(OCAMLFIND) mklib -o mlnbd \
 	  -ldopt '$(LDFLAGS)' \
 	  $(libnbdocaml_a_OBJECTS) NBD.cmo \
 	  -L../lib/.libs -lnbd
 if HAVE_OCAMLOPT
-	$(OCAMLMKLIB) -o mlnbd \
+	$(OCAMLFIND) mklib -o mlnbd \
 	  -ldopt '$(LDFLAGS)' \
 	  $(libnbdocaml_a_OBJECTS) NBD.cmx \
 	  -L../lib/.libs -lnbd
