@@ -4424,7 +4424,7 @@ let generate_python_methods_c () =
   pr "#include <methods.h>\n";
   pr "\n";
 
-  pr "/* This is passed to *_wrapper as the user_data pointer";
+  pr "/* This is passed to *_wrapper as the user_data pointer\n";
   pr " * and freed in the free_user_data function below.\n";
   pr " */\n";
   pr "struct user_data {\n";
@@ -5318,7 +5318,7 @@ let generate_ocaml_nbd_c () =
   pr "#pragma GCC diagnostic ignored \"-Wmissing-prototypes\"\n";
   pr "\n";
 
-  pr "/* This is passed to *_wrapper as the user_data pointer";
+  pr "/* This is passed to *_wrapper as the user_data pointer\n";
   pr " * and freed in the free_user_data function below.\n";
   pr " */\n";
   pr "struct user_data {\n";
