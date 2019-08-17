@@ -4947,7 +4947,9 @@ let print_ocaml_enum_val { enum_prefix; enums } =
   pr "static int\n";
   pr "%s_val (value v)\n" enum_prefix;
   pr "{\n";
-  pr "  CAMLparam1 (v);\n";
+  pr "  /* NB: No allocation in this function, don't need to use\n";
+  pr "   * CAML* wrappers.\n";
+  pr "   */\n";
   pr "  int i, r = 0;\n";
   pr "\n";
   pr "  i = Int_val (Field (v, 0));\n";
@@ -4962,7 +4964,7 @@ let print_ocaml_enum_val { enum_prefix; enums } =
   ) enums;
   pr "  }\n";
   pr "\n";
-  pr "  CAMLreturnT (int, r);\n";
+  pr "  return r;\n";
   pr "}\n";
   pr "\n"
 
@@ -4971,7 +4973,9 @@ let print_ocaml_flag_val { flag_prefix; flags } =
   pr "static uint32_t\n";
   pr "%s_val (value v)\n" flag_prefix;
   pr "{\n";
-  pr "  CAMLparam1 (v);\n";
+  pr "  /* NB: No allocation in this function, don't need to use\n";
+  pr "   * CAML* wrappers.\n";
+  pr "   */\n";
   pr "  int i;\n";
   pr "  uint32_t r = 0;\n";
   pr "\n";
@@ -4989,7 +4993,7 @@ let print_ocaml_flag_val { flag_prefix; flags } =
   pr "    }\n";
   pr "  }\n";
   pr "\n";
-  pr "  CAMLreturnT (uint32_t, r);\n";
+  pr "  return r;\n";
   pr "}\n";
   pr "\n"
 
