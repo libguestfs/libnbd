@@ -99,11 +99,6 @@ Val_nbd_buffer (struct nbd_buffer b)
   CAMLreturn (rv);
 }
 
-struct callback_data {
-  value *cb;
-  value *data;
-};
-
 extern char **nbd_internal_ocaml_string_list (value);
 extern value nbd_internal_ocaml_alloc_int32_array (uint32_t *, size_t);
 extern void nbd_internal_ocaml_exception_in_wrapper (const char *, value);
