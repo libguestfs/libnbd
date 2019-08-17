@@ -27,23 +27,27 @@
 #include <caml/memory.h>
 #include <caml/mlvalues.h>
 
-// Workaround for OCaml < 4.06.0
+/* Workaround for OCaml < 4.06.0 */
 #ifndef Bytes_val
 #define Bytes_val(x) String_val(x)
 #endif
 
-extern void libnbd_finalize (value);
-extern void nbd_buffer_finalize (value);
+extern void nbd_internal_ocaml_handle_finalize (value);
+extern void nbd_internal_ocaml_buffer_finalize (value);
 
 extern void nbd_internal_ocaml_raise_error (void) Noreturn;
 extern void nbd_internal_ocaml_raise_closed (const char *func) Noreturn;
+
+extern char **nbd_internal_ocaml_string_list (value);
+extern value nbd_internal_ocaml_alloc_int32_array (uint32_t *, size_t);
+extern void nbd_internal_ocaml_exception_in_wrapper (const char *, value);
 
 /* Extract an NBD handle from an OCaml heap value. */
 #define NBD_val(v) (*((struct nbd_handle **)Data_custom_val(v)))
 
 static struct custom_operations libnbd_custom_operations = {
   (char *) "libnbd_custom_operations",
-  libnbd_finalize,
+  nbd_internal_ocaml_handle_finalize,
   custom_compare_default,
   custom_hash_default,
   custom_serialize_default,
@@ -78,7 +82,7 @@ struct nbd_buffer {
 
 static struct custom_operations nbd_buffer_custom_operations = {
   (char *) "nbd_buffer_custom_operations",
-  nbd_buffer_finalize,
+  nbd_internal_ocaml_buffer_finalize,
   custom_compare_default,
   custom_hash_default,
   custom_serialize_default,
@@ -98,9 +102,5 @@ Val_nbd_buffer (struct nbd_buffer b)
   *NBD_buffer_val (rv) = b;
   CAMLreturn (rv);
 }
-
-extern char **nbd_internal_ocaml_string_list (value);
-extern value nbd_internal_ocaml_alloc_int32_array (uint32_t *, size_t);
-extern void nbd_internal_ocaml_exception_in_wrapper (const char *, value);
 
 #endif /* LIBNBD_NBD_C_H */

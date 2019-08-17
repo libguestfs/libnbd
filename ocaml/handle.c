@@ -32,7 +32,7 @@
 #include "nbd-c.h"
 
 void
-libnbd_finalize (value hv)
+nbd_internal_ocaml_handle_finalize (value hv)
 {
   struct nbd_handle *h = NBD_val (hv);
 
@@ -59,7 +59,7 @@ nbd_internal_ocaml_nbd_close (value hv)
 {
   CAMLparam1 (hv);
 
-  libnbd_finalize (hv);
+  nbd_internal_ocaml_handle_finalize (hv);
 
   /* So we don't double-free in the finalizer. */
   NBD_val (hv) = NULL;

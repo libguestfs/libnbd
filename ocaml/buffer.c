@@ -32,7 +32,7 @@
 #include "nbd-c.h"
 
 void
-nbd_buffer_finalize (value bv)
+nbd_internal_ocaml_buffer_finalize (value bv)
 {
   struct nbd_buffer *b = NBD_buffer_val (bv);
 
