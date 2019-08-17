@@ -5107,7 +5107,8 @@ let print_ocaml_closure_wrapper { cbname; cbargs } =
   pr ";\n";
   pr "  caml_enter_blocking_section ();\n";
   pr "  return ret;\n";
-  pr "}\n"
+  pr "}\n";
+  pr "\n"
 
 let print_ocaml_binding (name, { args; optargs; ret }) =
   (* Get the names of all the value arguments including the handle. *)
