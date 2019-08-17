@@ -17,6 +17,8 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
+CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so *.bc *.opt
+
 EXTRA_DIST = \
 	test_010_import.ml \
 	test_100_handle.ml \
@@ -67,8 +69,6 @@ tests_opt = \
 	test_600_debug_callback.opt \
 	test_610_exception.opt \
 	$(NULL)
-
-CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so *.bc *.opt
 
 if HAVE_OCAML
 
