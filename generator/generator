@@ -5062,29 +5062,7 @@ let print_ocaml_closure_wrapper { cbname; cbargs } =
   ) cbargs;
 
   pr "  if (Is_exception_result (rv)) {\n";
-  pr "    /* XXX This is not really an error as callbacks can return\n";
-  pr "     * an error indication.\n";
-  pr "     */\n";
-  pr "    char *exn_name, *s;\n";
-  pr "\n";
-  pr "    exn = Extract_exception (rv);\n";
-  pr "    /* For how we're getting the name, see:\n";
-  pr "     * https://github.com/libguestfs/libguestfs/blob/5d94be2583d557cfc7f8a8cfee7988abfa45a3f8/daemon/daemon-c.c#L40\n";
-  pr "     */\n";
-  pr "    if (Tag_val (Field (exn, 0)) == String_tag)\n";
-  pr "      exn_name = String_val (Field (exn, 0));\n";
-  pr "    else\n";
-  pr "      exn_name = String_val (Field (Field (exn, 0), 0));\n";
-  pr "\n";
-  pr "    s = caml_format_exception (exn);\n";
-  pr "    fprintf (stderr,\n";
-  pr "             \"libnbd: uncaught OCaml exception: %%s\\n\", s);\n";
-  pr "    free (s);\n";
-  pr "\n";
-  pr "    /* If the exception is fatal (like Assert_failure) then exit. */\n";
-  pr "    if (exn_name && strcmp (exn_name, \"Assert_failure\") == 0)\n";
-  pr "      abort ();\n";
-  pr "\n";
+  pr "    nbd_internal_ocaml_exception_in_wrapper (\"%s\", rv);\n" cbname;
   pr "    CAMLreturnT (int, -1);\n";
   pr "  }\n";
 
@@ -5331,7 +5309,6 @@ let generate_ocaml_nbd_c () =
   pr "#include <caml/fail.h>\n";
   pr "#include <caml/memory.h>\n";
   pr "#include <caml/mlvalues.h>\n";
-  pr "#include <caml/printexc.h>\n";
   pr "#include <caml/threads.h>\n";
   pr "\n";
   pr "#pragma GCC diagnostic ignored \"-Wmissing-prototypes\"\n";

@@ -22,12 +22,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <caml/alloc.h>
 #include <caml/callback.h>
 #include <caml/fail.h>
 #include <caml/memory.h>
 #include <caml/mlvalues.h>
+#include <caml/printexc.h>
 
 #include <libnbd.h>
 
@@ -108,4 +110,38 @@ nbd_internal_ocaml_alloc_int32_array (uint32_t *a, size_t len)
   }
 
   CAMLreturn (rv);
+}
+
+/* Common code when an exception is raised in an OCaml callback and
+ * the wrapper has to deal with it.  Callbacks are not supposed to
+ * raise exceptions, so we print it.  We also handle Assert_failure
+ * specially by abort()-ing.
+ */
+void
+nbd_internal_ocaml_exception_in_wrapper (const char *cbname, value rv)
+{
+  CAMLparam1 (rv);
+  CAMLlocal1 (exn);
+  char *exn_name, *s;
+
+  exn = Extract_exception (rv);
+
+  /* For how we're getting the exception name, see:
+   * https://github.com/libguestfs/libguestfs/blob/5d94be2583d557cfc7f8a8cfee7988abfa45a3f8/daemon/daemon-c.c#L40
+   */
+  if (Tag_val (Field (exn, 0)) == String_tag)
+    exn_name = String_val (Field (exn, 0));
+  else
+    exn_name = String_val (Field (Field (exn, 0), 0));
+
+  s = caml_format_exception (exn);
+  fprintf (stderr,
+           "libnbd: %s: uncaught OCaml exception: %s\n", cbname, s);
+  free (s);
+
+  /* If the exception is fatal (like Assert_failure) then abort. */
+  if (exn_name && strcmp (exn_name, "Assert_failure") == 0)
+    abort ();
+
+  CAMLreturn0;
 }
