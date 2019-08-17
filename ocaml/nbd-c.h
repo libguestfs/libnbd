@@ -32,6 +32,12 @@
 #define Bytes_val(x) String_val(x)
 #endif
 
+/* Wrapper around caml_alloc_custom_mem for pre-2019 versions of OCaml. */
+#ifndef HAVE_CAML_ALLOC_CUSTOM_MEM
+#define caml_alloc_custom_mem(ops, obj, size) \
+  caml_alloc_custom ((ops), (obj), 0, 1)
+#endif
+
 extern void nbd_internal_ocaml_handle_finalize (value);
 extern void nbd_internal_ocaml_buffer_finalize (value);
 
@@ -62,8 +68,13 @@ Val_nbd (struct nbd_handle *h)
   CAMLparam0 ();
   CAMLlocal1 (rv);
 
-  rv = caml_alloc_custom (&libnbd_custom_operations,
-                          sizeof (struct nbd_handle *), 0, 1);
+  /* We don't have a good way to estimate the size of the C handle,
+   * but on 2019-08-17, just the handle (not even including any linked
+   * buffers or structures) was 4720 bytes.
+   */
+  rv = caml_alloc_custom_mem (&libnbd_custom_operations,
+                              sizeof (struct nbd_handle *),
+                              5000);
   NBD_val (rv) = h;
   CAMLreturn (rv);
 }
@@ -97,8 +108,9 @@ Val_nbd_buffer (struct nbd_buffer b)
   CAMLparam0 ();
   CAMLlocal1 (rv);
 
-  rv = caml_alloc_custom (&nbd_buffer_custom_operations,
-                          sizeof (struct nbd_buffer), 0, 1);
+  rv = caml_alloc_custom_mem (&nbd_buffer_custom_operations,
+                              sizeof (struct nbd_buffer),
+                              sizeof b + b.len);
   *NBD_buffer_val (rv) = b;
   CAMLreturn (rv);
 }

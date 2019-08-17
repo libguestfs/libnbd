@@ -216,6 +216,24 @@ AM_CONDITIONAL([HAVE_OCAMLOPT],
     [test "x$OCAMLOPT" != "xno" && test "x$OCAMLFIND" != "xno" && \
      test "x$enable_ocaml" = "xyes"])
 
+dnl Check if OCaml has caml_alloc_custom_mem (added late 2018).
+AS_IF([test "x$OCAMLC" != "xno" && test "x$OCAMLFIND" != "xno" && \
+       test "x$enable_ocaml" = "xyes"],[
+    AC_MSG_CHECKING([for caml_alloc_custom_mem])
+    cat >conftest.c <<'EOF'
+#include <caml/custom.h>
+int main () { char *p = (void *) caml_alloc_custom_mem; return 0; }
+EOF
+    AS_IF([$OCAMLC conftest.c >&AS_MESSAGE_LOG_FD 2>&1],[
+        AC_MSG_RESULT([yes])
+        AC_DEFINE([HAVE_CAML_ALLOC_CUSTOM_MEM],[1],
+                  [caml_alloc_custom_mem found at compile time.])
+    ],[
+        AC_MSG_RESULT([no])
+    ])
+    rm -f conftest.c conftest.o
+])
+
 dnl Python, optional for the Python bindings and shell.
 PYTHON_PREFIX=
 PYTHON_VERSION=

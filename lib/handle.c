@@ -87,6 +87,7 @@ nbd_create (void)
     goto error2;
 
   debug (h, "opening handle");
+  /*debug (h, "sizeof *h = %zu", sizeof *h);*/
   return h;
 
  error2:
