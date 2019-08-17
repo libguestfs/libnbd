@@ -25,6 +25,10 @@
 #define PY_SSIZE_T_CLEAN 1
 #include <Python.h>
 
+#if PY_MAJOR_VERSION == 2
+#error "These bindings will not work with Python 2.  Recompile using Python 3 or use ./configure --disable-python."
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
