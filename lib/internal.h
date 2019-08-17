@@ -19,8 +19,14 @@
 #ifndef LIBNBD_INTERNAL_H
 #define LIBNBD_INTERNAL_H
 
-#include <stdbool.h>
+#ifdef HAVE_STDATOMIC_H
 #include <stdatomic.h>
+#else
+/* Rely on ints being atomic enough on the platform. */
+#define _Atomic /**/
+#endif
+
+#include <stdbool.h>
 #include <string.h>
 #include <netdb.h>
 #include <sys/types.h>

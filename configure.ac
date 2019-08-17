@@ -74,6 +74,7 @@ dnl Check for other headers, all optional.
 AC_CHECK_HEADERS([\
     byteswap.h \
     endian.h \
+    stdatomic.h \
     sys/endian.h])
 
 dnl Check for GnuTLS (optional, for TLS support).
