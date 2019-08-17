@@ -71,6 +71,7 @@ tests_opt = \
 	$(NULL)
 
 if HAVE_OCAML
+if HAVE_NBDKIT
 
 OCAMLFLAGS = $(OCAML_FLAGS) $(OCAML_WARN_ERROR) -ccopt '$(CFLAGS)'
 OCAMLPACKAGES = \
@@ -104,6 +105,7 @@ TESTS = $(tests_bc) $(tests_opt)
 check-valgrind:
 	LIBNBD_VALGRIND=1 $(MAKE) check TESTS="$(tests_opt)"
 
+endif HAVE_NBDKIT
 endif HAVE_OCAML
 
 # Dependencies.
