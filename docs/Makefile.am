@@ -58,19 +58,12 @@ CLEANFILES += \
 	$(api_built:%=%.3) \
 	$(NULL)
 
-# Generic .pod -> .3
 nbd_%.3: nbd_%.pod $(top_builddir)/podwrapper.pl
-	$(PODWRAPPER) --allow-long-lines --section=3 --man $@ \
-	    --html $(top_builddir)/html/$@.html \
-	    $<
-
-# Specific .pod -> .3, overridden to forbid long lines
-libnbd.3: libnbd.pod $(top_builddir)/podwrapper.pl
 	$(PODWRAPPER) --section=3 --man $@ \
 	    --html $(top_builddir)/html/$@.html \
 	    $<
 
-nbd_create.3: nbd_create.pod $(top_builddir)/podwrapper.pl
+libnbd.3: libnbd.pod $(top_builddir)/podwrapper.pl
 	$(PODWRAPPER) --section=3 --man $@ \
 	    --html $(top_builddir)/html/$@.html \
 	    $<

@@ -3497,7 +3497,7 @@ let print_closure_structs () =
     fun { cbname; cbargs } ->
       pr "typedef struct {\n";
       pr "  int (*callback) ";
-      print_cbarg_list cbargs;
+      print_cbarg_list ~wrap:true cbargs;
       pr ";\n";
       pr "  void *user_data;\n";
       pr "  void (*free) (void *user_data);\n";
@@ -3608,7 +3608,7 @@ let generate_include_libnbd_h () =
   print_closure_structs ();
   List.iter (
     fun (name, { args; optargs; ret }) ->
-      print_extern_and_define name args optargs ret
+      print_extern_and_define ~wrap:true name args optargs ret
   ) handle_calls;
   List.iter (
     fun (ns, ctxts) -> print_ns ns ctxts
@@ -3627,7 +3627,7 @@ let generate_lib_unlocked_h () =
   pr "\n";
   List.iter (
     fun (name, { args; optargs; ret }) ->
-      print_extern ("unlocked_" ^ name) args optargs ret
+      print_extern ~wrap:true ("unlocked_" ^ name) args optargs ret
   ) handle_calls;
   pr "\n";
   pr "#endif /* LIBNBD_UNLOCKED_H */\n"
@@ -3685,7 +3685,7 @@ let generate_lib_api_c () =
     let ret_c_type = type_of_ret ret and errcode = errcode_of_ret ret in
     pr "%s\n" ret_c_type;
     pr "nbd_%s " name;
-    print_arg_list ~handle:true args optargs;
+    print_arg_list ~wrap:true ~handle:true args optargs;
     pr "\n";
     pr "{\n";
     pr "  %s ret;\n" ret_c_type;
@@ -3783,7 +3783,7 @@ let generate_lib_api_c () =
 
     (* Make the call. *)
     pr "  ret = nbd_unlocked_%s " name;
-    print_arg_list ~types:false ~handle:true args optargs;
+    print_arg_list ~wrap:true ~types:false ~handle:true args optargs;
     pr ";\n";
     if may_set_error then (
       pr "\n";
@@ -3922,7 +3922,7 @@ let generate_docs_nbd_pod name { args; optargs; ret;
   pr "\n";
   pr "#include <libnbd.h>\n";
   pr "\n";
-  print_call name args optargs ret;
+  print_call ~wrap:true name args optargs ret;
   pr ";\n";
   pr "\n";
 
@@ -4137,7 +4137,7 @@ let print_python_closure_wrapper { cbname; cbargs } =
   pr "/* Wrapper for %s callback. */\n" cbname;
   pr "static int\n";
   pr "%s_wrapper " cbname;
-  C.print_cbarg_list cbargs;
+  C.print_cbarg_list ~wrap:true cbargs;
   pr "\n";
   pr "{\n";
   pr "  const struct user_data *data = user_data;\n";
@@ -5147,7 +5147,7 @@ let print_ocaml_closure_wrapper { cbname; cbargs } =
   pr "/* Wrapper for %s callback. */\n" cbname;
   pr "static int\n";
   pr "%s_wrapper_locked " cbname;
-  C.print_cbarg_list cbargs;
+  C.print_cbarg_list ~wrap:true cbargs;
   pr "\n";
   pr "{\n";
   pr "  CAMLparam0 ();\n";
@@ -5214,14 +5214,14 @@ let print_ocaml_closure_wrapper { cbname; cbargs } =
   pr "\n";
   pr "static int\n";
   pr "%s_wrapper " cbname;
-  C.print_cbarg_list cbargs;
+  C.print_cbarg_list ~wrap:true cbargs;
   pr "\n";
   pr "{\n";
   pr "  int ret = 0;\n";
   pr "\n";
   pr "  caml_leave_blocking_section ();\n";
   pr "  ret = %s_wrapper_locked " cbname;
-  C.print_cbarg_list ~types:false cbargs;
+  C.print_cbarg_list ~wrap:true ~types:false cbargs;
   pr ";\n";
   pr "  caml_enter_blocking_section ();\n";
   pr "  return ret;\n";
@@ -5239,7 +5239,9 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
   pr "value\n";
   let params = List.map (sprintf "value %s") values in
   let params = String.concat ", " params in
-  pr "nbd_internal_ocaml_nbd_%s (%s)\n" name params;
+  pr "nbd_internal_ocaml_nbd_%s (" name;
+  pr_wrap ',' (fun () -> pr "%s" params);
+  pr ")\n";
   pr "{\n";
   (* CAMLparam<N> can only take up to 5 parameters.  Further parameters
    * have to be passed in groups of 5 to CAMLxparam<N> calls.
@@ -5366,7 +5368,7 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
   pr "\n";
   pr "  caml_enter_blocking_section ();\n";
   pr "  r =  nbd_%s " name;
-  C.print_arg_list ~handle:true ~types:false args optargs;
+  C.print_arg_list ~wrap:true ~handle:true ~types:false args optargs;
   pr ";\n";
   pr "  caml_leave_blocking_section ();\n";
   pr "\n";
