@@ -2347,8 +2347,16 @@ let sort_uniq ?(cmp = Pervasives.compare) xs =
   let xs = uniq ~cmp xs in
   xs
 
-let chan = ref Pervasives.stdout
-let pr fs = ksprintf (fun str -> output_string !chan str) fs
+type chan = NoOutput | OutChannel of out_channel | Buffer of Buffer.t
+let chan = ref NoOutput
+let pr fs =
+  ksprintf (
+    fun str ->
+      match !chan with
+      | NoOutput -> failwithf "use ‘output_to’ to set output"
+      | OutChannel chan -> output_string chan str
+      | Buffer b -> Buffer.add_string b str
+  ) fs
 
 type comment_style =
   | CStyle | CPlusPlusStyle | HashStyle | OCamlStyle | HaskellStyle
@@ -2404,10 +2412,11 @@ let files_equal n1 n2 =
 
 let output_to filename k =
   let filename_new = filename ^ ".new" in
-  chan := open_out filename_new;
+  let c = open_out filename_new in
+  chan := OutChannel c;
   k ();
-  close_out !chan;
-  chan := Pervasives.stdout;
+  close_out c;
+  chan := NoOutput;
 
   (* Is the new file different from the current file? *)
   if Sys.file_exists filename && files_equal filename filename_new then
