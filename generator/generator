@@ -2347,11 +2347,28 @@ let sort_uniq ?(cmp = compare) xs =
   let xs = uniq ~cmp xs in
   xs
 
+(* Last output column. *)
+let col = ref 0
+
 type chan = NoOutput | OutChannel of out_channel | Buffer of Buffer.t
 let chan = ref NoOutput
 let pr fs =
   ksprintf (
     fun str ->
+      (* Maintain the current output column.  We can simply do this
+       * by counting backwards from the end of the string until we
+       * reach a \n (or the beginning).  The number we count is
+       * the new column.  This only works for 7 bit ASCII but
+       * that's enough for what we need this for.
+       *)
+      let rec loop i acc =
+        if i >= 0 then (
+          if String.unsafe_get str i = '\n' then acc
+          else loop (i-1) (acc+1)
+        )
+        else !col + acc
+      in
+      col := loop (String.length str - 1) 0;
       match !chan with
       | NoOutput -> failwithf "use ‘output_to’ to set output"
       | OutChannel chan -> output_string chan str
