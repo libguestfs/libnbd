@@ -2328,7 +2328,7 @@ let rec group_by = function
 | (day, x) :: rest ->
    (day, [x]) :: group_by rest
 
-let uniq ?(cmp = Pervasives.compare) xs =
+let uniq ?(cmp = compare) xs =
   let rec loop acc = function
     | [] -> acc
     | [x] -> x :: acc
@@ -2342,7 +2342,7 @@ let uniq ?(cmp = Pervasives.compare) xs =
 (* This is present in OCaml 4.04, so we can remove it when
  * we depend on OCaml >= 4.04.
  *)
-let sort_uniq ?(cmp = Pervasives.compare) xs =
+let sort_uniq ?(cmp = compare) xs =
   let xs = List.sort cmp xs in
   let xs = uniq ~cmp xs in
   xs
