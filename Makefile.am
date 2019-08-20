@@ -34,6 +34,7 @@ SUBDIRS = \
 	docs \
 	examples \
 	valgrind \
+	. \
 	tests \
 	python \
 	sh \
