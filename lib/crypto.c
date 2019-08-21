@@ -102,7 +102,7 @@ nbd_unlocked_set_tls_username (struct nbd_handle *h, const char *username)
 char *
 nbd_unlocked_get_tls_username (struct nbd_handle *h)
 {
-  char *ret;
+  char *s, *ret;
 
   if (h->tls_username) {
     ret = strdup (h->tls_username);
@@ -113,7 +113,21 @@ nbd_unlocked_get_tls_username (struct nbd_handle *h)
     return ret;
   }
 
-  /* Otherwise we return the local login name. */
+  /* Otherwise we return the local login name.  Try $LOGNAME first for
+   * two reasons: (1) So the user can override it.  (2) Because
+   * getlogin fails with ENXIO if there is no controlling terminal
+   * (which is often the case in test and embedded environments).
+   */
+  s = getenv ("LOGNAME");
+  if (s) {
+    ret = strdup (s);
+    if (ret == NULL) {
+      set_error (errno, "strdup");
+      return NULL;
+    }
+    return ret;
+  }
+
   ret = malloc (L_cuserid);
   if (ret == NULL) {
     set_error (errno, "malloc");
