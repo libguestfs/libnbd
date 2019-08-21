@@ -81,7 +81,7 @@ main (int argc, char *argv[])
 {
   pthread_t threads[NR_MULTI_CONN];
   struct thread_status status[NR_MULTI_CONN];
-  size_t i, j;
+  uint64_t i, j;
   time_t t;
   int err;
   unsigned requests, most_in_flight, errors;
@@ -146,7 +146,7 @@ main (int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
     if (status[i].status != 0) {
-      fprintf (stderr, "thread %zu failed with status %d\n",
+      fprintf (stderr, "thread %" PRIu64 " failed with status %d\n",
                i, status[i].status);
       errors++;
     }
