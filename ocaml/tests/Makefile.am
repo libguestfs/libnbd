@@ -36,6 +36,9 @@ EXTRA_DIST = \
 	test_610_exception.ml \
 	$(NULL)
 
+if HAVE_OCAML
+if HAVE_NBDKIT
+
 tests_bc = \
 	test_010_import.bc \
 	test_100_handle.bc \
@@ -70,9 +73,6 @@ tests_opt = \
 	test_610_exception.opt \
 	$(NULL)
 
-if HAVE_OCAML
-if HAVE_NBDKIT
-
 OCAMLFLAGS = $(OCAML_FLAGS) $(OCAML_WARN_ERROR) -ccopt '$(CFLAGS)'
 OCAMLPACKAGES = \
 	-package unix \
@@ -102,11 +102,11 @@ TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 OCAMLRUNPARAM=b
 LOG_COMPILER = $(top_builddir)/run
 TESTS = $(tests_bc) $(tests_opt)
 
-check-valgrind:
-	LIBNBD_VALGRIND=1 $(MAKE) check TESTS="$(tests_opt)"
-
 endif HAVE_NBDKIT
 endif HAVE_OCAML
+
+check-valgrind:
+	LIBNBD_VALGRIND=1 $(MAKE) check TESTS="$(tests_opt)"
 
 # Dependencies.
 #.depend: $(srcdir)/*.mli $(srcdir)/*.ml
