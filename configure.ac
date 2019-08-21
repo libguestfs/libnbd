@@ -137,27 +137,39 @@ AS_IF([test "$with_libxml2" != "no"],[
     ])
 ])
 
-dnl nbdkit, nbdkit-sh-plugin and development headers are only needed
-dnl to run the test suite.
+dnl nbdkit, basic plugins and nbdkit-sh-plugin are only needed to run
+dnl the test suite.
+nbdkit_plugins="memory null pattern sh"
+nbdkit_min_minor="12" ;# 1.12
 AC_CHECK_PROG([NBDKIT], [nbdkit], [nbdkit])
 AS_IF([test "x$NBDKIT" != "x"], [
-    PKG_CHECK_MODULES([NBDKIT], [nbdkit >= 1.12], [
-        AC_SUBST([NBDKIT_CFLAGS])
-        AC_SUBST([NBDKIT_LIBS])
-        have_nbdkit_devel=yes
-        ], [
-        AC_MSG_WARN([nbdkit development package is not installed, tests will be disabled])
+    have_nbdkit_features=yes
+
+    AC_MSG_CHECKING([for nbdkit >= 1.$nbdkit_min_minor])
+    nbdkit_minor="$(
+        $NBDKIT --version | $SED 's/^nbdkit 1\.\(@<:@0-9@:>@*\)\..*/\1/'
+    )"
+    AS_IF([test $nbdkit_minor -ge $nbdkit_min_minor],[
+        AC_MSG_RESULT([yes (1.$nbdkit_minor)])
+    ],[
+        AC_MSG_RESULT([no (1.$nbdkit_minor)])
+        AC_MSG_WARN([nbdkit is too old, some tests will be disabled])
+        have_nbdkit_features=no
     ])
 
-    AC_MSG_CHECKING([for nbdkit-sh-plugin])
-    AS_IF([$NBDKIT sh --version >&AS_MESSAGE_LOG_FD 2>&1], [
-        AC_MSG_RESULT([yes])
-        have_nbdkit_sh_plugin=yes
-    ],[
-        AC_MSG_RESULT([no])
-    ])
+    for p in $nbdkit_plugins; do
+        AC_MSG_CHECKING([for nbdkit $p plugin])
+        AS_IF([$NBDKIT $p --version >&AS_MESSAGE_LOG_FD 2>&1], [
+            AC_MSG_RESULT([yes])
+        ],[
+            AC_MSG_RESULT([no])
+            AC_MSG_WARN([nbdkit $p plugin is missing, some tests will be disabled])
+            have_nbdkit_features=no
+        ])
+    done
 ])
-AM_CONDITIONAL([HAVE_NBDKIT], [test "x$NBDKIT" != "x" && test "x$have_nbdkit_devel" = "xyes" && test "x$have_nbdkit_sh_plugin" = "xyes"])
+AM_CONDITIONAL([HAVE_NBDKIT],
+    [test "x$NBDKIT" != "x" && test "x$have_nbdkit_features" = "xyes"])
 
 dnl nbd-server and qemu-nbd for interop testing.
 AC_CHECK_PROG([NBD_SERVER], [nbd-server], [nbd-server])
