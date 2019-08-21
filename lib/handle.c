@@ -67,7 +67,8 @@ nbd_create (void)
   s = getenv ("LIBNBD_DEBUG");
   h->debug = s && strcmp (s, "1") == 0;
 
-  h->state = h->public_state = STATE_START;
+  h->public_state = STATE_START;
+  h->state = STATE_START;
   h->pid = -1;
 
   h->export_name = strdup ("");
