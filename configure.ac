@@ -355,3 +355,47 @@ AC_CONFIG_FILES([Makefile
                  valgrind/Makefile])
 
 AC_OUTPUT
+
+dnl Summary.
+echo
+echo
+echo "----------------------------------------------------------------------"
+echo "Thank you for downloading $PACKAGE_STRING"
+echo
+echo "This is how we have configured the optional components for you today:"
+echo
+
+feature ()
+{
+    printf %s "    $1"
+    shift
+    if $@; then echo "yes"; else echo "no"; fi
+}
+
+echo "Optional library features:"
+echo
+feature "TLS support ............................ " \
+        test "x$HAVE_GNUTLS_TRUE" = "x"
+feature "NBD URI support ........................ " \
+        test "x$LIBXML2_LIBS" != "x"
+feature "Manual pages ........................... " \
+        test "x$HAVE_POD_TRUE" = "x"
+
+echo
+echo "Language bindings:"
+echo
+feature "OCaml .................................. " \
+        test "x$HAVE_OCAML_TRUE" = "x"
+feature "Python ................................. " \
+        test "x$HAVE_PYTHON_TRUE" = "x"
+
+
+echo
+echo "If any optional component is configured ‘no’ when you expected ‘yes’"
+echo "then you should check the preceding messages and README."
+echo
+echo "Please report bugs back to the mailing list:"
+echo "http://www.redhat.com/mailman/listinfo/libguestfs"
+echo
+echo "Next you should type 'make' to build the package,"
+echo "then 'make check' to run the tests."
