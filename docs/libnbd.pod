@@ -432,6 +432,8 @@ Note that some servers (like L<nbdkit(1)>) ignore this, and others
 (like L<qemu-nbd(8)>) require it to be set correctly but cannot serve
 different content.
 
+=head2 Flag calls
+
 After connecting the server will send back a set of flags describing
 the export, such as whether it is writable and if it can support flush
 to permanent storage.  These flags can be accessed from libnbd using
@@ -440,10 +442,11 @@ APIs such as:
  int is_read_only = nbd_is_read_only (nbd);
  int can_flush = nbd_can_flush (nbd);
 
-(and several more, see C<include/libnbd.h> for all of the C<nbd_is_*>
-and C<nbd_can_*> functions available).
+Other flag calls are: __API_FLAG_LINKS__
 
-To get the size of the export in bytes, use:
+=head2 Size of the export
+
+To get the size of the export in bytes, use L<nbd_get_size(3)>:
 
  int64_t size = nbd_get_size (nbd);
 
@@ -537,8 +540,9 @@ Some NBD servers advertise “multi-conn” which means that it is safe to
 make multiple connections to the server and load-balance commands
 across all of the connections.
 
-To do this you should open a single connection first and test it for
-this feature.  Without error handling it would look like this:
+To do this you should open a single connection first and test for this
+feature using L<nbd_can_multi_conn(3)>.  Without error handling it
+would look like this:
 
  struct nbd_handle nbd[4];
  size_t i;

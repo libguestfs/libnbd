@@ -2347,6 +2347,10 @@ let sort_uniq ?(cmp = compare) xs =
   let xs = uniq ~cmp xs in
   xs
 
+let is_prefix str prefix =
+  let n = String.length prefix in
+  String.length str >= n && String.sub str 0 n = prefix
+
 let rec find s sub =
   let len = String.length s in
   let sublen = String.length sub in
@@ -3189,6 +3193,7 @@ module C : sig
   val generate_lib_api_c : unit -> unit
   val generate_docs_Makefile_inc : unit -> unit
   val generate_docs_api_links_pod : unit -> unit
+  val generate_docs_api_flag_links_pod : unit -> unit
   val generate_docs_nbd_pod : string -> call -> unit -> unit
   val print_arg_list : ?wrap:bool -> ?handle:bool -> ?types:bool ->
                        arg list -> optarg list -> unit
@@ -3919,6 +3924,24 @@ let generate_docs_api_links_pod () =
     "nbd_get_error(3)" ::
     "nbd_get_errno(3)" ::
     pages in
+  let pages = List.sort compare pages in
+
+  List.iteri (
+    fun i page ->
+      if i > 0 then pr ",\n";
+      pr "L<%s>" page
+  ) pages;
+  pr ".\n"
+
+let generate_docs_api_flag_links_pod () =
+  let pages =
+    List.filter_map (
+      fun (name, _) ->
+        if is_prefix name "is_" || is_prefix name "can_" then
+          Some (sprintf "nbd_%s(3)" name)
+        else
+          None
+    ) handle_calls in
   let pages = List.sort compare pages in
 
   List.iteri (
@@ -5523,6 +5546,7 @@ let () =
   output_to "lib/api.c" C.generate_lib_api_c;
   output_to "docs/Makefile.inc" C.generate_docs_Makefile_inc;
   output_to "docs/api-links.pod" C.generate_docs_api_links_pod;
+  output_to "docs/api-flag-links.pod" C.generate_docs_api_flag_links_pod;
   List.iter (
     fun (name, call) ->
       output_to (sprintf "docs/nbd_%s.pod" name)
