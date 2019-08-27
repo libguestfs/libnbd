@@ -317,9 +317,44 @@ thread.  Furthermore the error string returned by L<nbd_get_error(3)> is
 only valid until the next libnbd API call in the current thread, so if
 you need to keep the string you must copy it (eg. using L<strdup(3)>).
 
-Even when a call returns an error, L<nbd_get_errno(3)> might return C<0>.
-This means no additional errno information is available for this
-error.
+=head2 Errno
+
+For some errors, a system call error number (L<errno(3)>) is
+available.  You can find the error number by calling
+L<nbd_get_errno(3)>.  It works the same way as L<nbd_get_error(3)>
+with respect to threads.
+
+Even when a call returns an error, L<nbd_get_errno(3)> might return
+C<0>.  This does I<not> mean there was no error.  It means no
+additional errno information is available for this error.
+
+The error number is often the raw error returned by a system call that
+failed.
+
+It can also be used to indicate special conditions.  The most common
+cases are:
+
+=over 4
+
+=item C<EINVAL>
+
+Invalid parameters or state for the current libnbd call.
+
+=item C<ENOTSUP>
+
+The libnbd call is not available in this build of libnbd (eg. when
+using a TLS API if the library was compiled without TLS support).
+
+=item C<ENOMEM>
+
+The library ran out of memory while performing some operation.
+
+=item C<ERANGE>
+
+A request is too large, for example if you try to read too many bytes
+in a single L<nbd_pread(3)> call.
+
+=back
 
 =head1 DEBUGGING MESSAGES
 
