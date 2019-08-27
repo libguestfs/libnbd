@@ -3188,6 +3188,7 @@ module C : sig
   val generate_lib_unlocked_h : unit -> unit
   val generate_lib_api_c : unit -> unit
   val generate_docs_Makefile_inc : unit -> unit
+  val generate_docs_api_links_pod : unit -> unit
   val generate_docs_nbd_pod : string -> call -> unit -> unit
   val print_arg_list : ?wrap:bool -> ?handle:bool -> ?types:bool ->
                        arg list -> optarg list -> unit
@@ -3908,6 +3909,24 @@ let generate_docs_Makefile_inc () =
       pr "\tnbd_%s \\\n" name;
   ) handle_calls;
   pr "\t$(NULL)\n"
+
+let generate_docs_api_links_pod () =
+  let pages =
+    List.map (fun (name, _) -> sprintf "nbd_%s(3)" name) handle_calls in
+  let pages =
+    "nbd_create(3)" ::
+    "nbd_close(3)" ::
+    "nbd_get_error(3)" ::
+    "nbd_get_errno(3)" ::
+    pages in
+  let pages = List.sort compare pages in
+
+  List.iteri (
+    fun i page ->
+      if i > 0 then pr ",\n";
+      pr "L<%s>" page
+  ) pages;
+  pr ".\n"
 
 let generate_docs_nbd_pod name { args; optargs; ret;
                                  shortdesc; longdesc;
@@ -5503,6 +5522,7 @@ let () =
   output_to "lib/unlocked.h" C.generate_lib_unlocked_h;
   output_to "lib/api.c" C.generate_lib_api_c;
   output_to "docs/Makefile.inc" C.generate_docs_Makefile_inc;
+  output_to "docs/api-links.pod" C.generate_docs_api_links_pod;
   List.iter (
     fun (name, call) ->
       output_to (sprintf "docs/nbd_%s.pod" name)

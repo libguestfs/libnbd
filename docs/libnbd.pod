@@ -38,7 +38,8 @@ but the library is available from other programming languages.
 
 =item L<nbd_create(3)>, L<nbd_pread(3)>, etc.
 
-Each manual page covers one function from the C API in detail.
+Each manual page covers one function from the C API in detail.  There
+is a full list in section L</C API> below.
 
 =back
 
@@ -690,14 +691,25 @@ assigning C<0> into C<error> does not have an effect.
 
 =head1 SEE ALSO
 
-L<nbd_create(3)>,
-L<certtool(1)>,
+=head2 C API
+
+__API_LINKS__
+
+=head2 Servers
+
 L<nbdkit(1)>,
-L<nbdkit-tls(1)>,
 L<nbd-server(1)>,
-L<psktool(1)>,
-L<qemu(1)>,
 L<qemu-nbd(8)>.
+
+=head2 Encryption tools
+
+L<certtool(1)>,
+L<nbdkit-tls(1)>,
+L<psktool(1)>.
+
+=head2 Other
+
+L<qemu(1)>.
 
 =head1 AUTHORS
 
