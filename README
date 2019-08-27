@@ -1,13 +1,15 @@
-NBD — Network Block Device — is a protocol for accessing Block Devices
-(hard disks and disk-like things) over a Network.
+NBD client library in userspace
 
-This is the NBD client library in userspace, a simple library for
-writing NBD clients.
+NBD — Network Block Device — is a protocol for accessing Block Devices
+(hard disks and disk-like things) over a Network.  This is the NBD
+client library in userspace, a simple library for writing NBD clients.
 
 The key features are:
 
- * Synchronous and asynchronous APIs, both for ease of use and for
-   writing non-blocking, multithreaded clients.
+ * Synchronous API for ease of use.
+
+ * Asynchronous API for writing non-blocking, multithreaded clients.
+   You can mix both APIs freely.
 
  * High performance.
 
@@ -16,6 +18,8 @@ The key features are:
  * Well-documented, stable API.
 
  * Bindings in several programming languages.
+
+ * Shell (nbdsh) for command line and scripting.
 
 For documentation, see the ‘docs/’ and ‘examples/’ subdirectories.
 
@@ -50,35 +54,47 @@ To run the tests under valgrind:
 
 Requirements:
 
- * Only a C99 compiler, GNU make, and shell are required.
+ * GCC or Clang
 
-Optional:
+ * GNU make
+
+ * bash
+
+Required for building from git, optional for tarballs:
 
  * OCaml is required to run the generator, which is needed for
    building from git.  However it is not needed if building from
-   tarballs, so this is classified as an optional dependency.
+   tarballs.
 
- * GnuTLS is recommended for TLS support.  If not available then TLS
-   support will be disabled in the library.
+Optional:
+
+ * GnuTLS is recommended for TLS support.  If not available then you
+   will not be able to access encrypted servers and some APIs related
+   to TLS will always return an error.
 
  * libxml2 is recommended for NBD URI support.  If not available then
-   a few APIs related to URIs will always return error.
+   a few APIs related to URIs will always return an error.
 
- * The nbdkit command, basic plugins and nbdkit-sh-plugin are
-   recommended as they are needed to run the test suite.
+ * Perl Pod::Man and Pod::Simple to generate the documentation.
+
+ * OCaml and ocamlfind are both needed to generate the OCaml bindings.
+
+ * Python >= 3.3 to build the Python 3 bindings and NBD shell (nbdsh).
+
+Optional, only needed to run the test suite:
+
+ * nbdkit >= 1.12, the nbdkit basic plugins and the nbdkit basic
+   filters are recommended as they are needed to run the test suite.
 
  * nbd-server and qemu-nbd if you want to do interoperability testing
    against these servers.
 
+ * A C++ compiler is needed if you want to test that the library works
+   from C++.
+
  * qemu, qemu-io, qemu-img for interoperability testing.
 
  * glib2 for examples that interoperate with the glib main loop.
-
- * OCaml and ocamlfind are both needed to generate the OCaml bindings.
-
- * Perl Pod::Man and Pod::Simple to generate the documentation.
-
- * Python >= 3.3 to build the Python 3 bindings and NBD shell (nbdsh).
 
  * psktool and certtool (part of GnuTLS) for testing TLS support.
 
