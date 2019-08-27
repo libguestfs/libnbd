@@ -41,6 +41,14 @@ but the library is available from other programming languages.
 Each manual page covers one function from the C API in detail.  There
 is a full list in section L</C API> below.
 
+=item L<libnbd-ocaml(3)>
+
+Using the API from OCaml.
+
+=item L<nbdsh(1)>
+
+Using the NBD shell (nbdsh) for command line and scripting.
+
 =back
 
 =head1 HANDLES
