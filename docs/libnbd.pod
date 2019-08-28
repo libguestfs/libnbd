@@ -552,7 +552,7 @@ To do this you should open a single connection first and test for this
 feature using L<nbd_can_multi_conn(3)>.  Without error handling it
 would look like this:
 
- struct nbd_handle nbd[4];
+ struct nbd_handle *nbd[4];
  size_t i;
  bool supports_multi_conn;
  
@@ -562,9 +562,11 @@ would look like this:
 
 If multi-conn is supported then you can open further connections:
 
- for (i = 1; i <= 3; ++i) {
-   nbd[i] = nbd_create ();
-   nbd_connect_tcp (nbd[i], "server", "10809");
+ if (supports_multi_conn) {
+   for (i = 1; i <= 3; ++i) {
+     nbd[i] = nbd_create ();
+     nbd_connect_tcp (nbd[i], "server", "10809");
+   }
  }
 
 If you are issuing multiple in-flight requests (see above) and
