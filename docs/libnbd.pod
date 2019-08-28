@@ -746,6 +746,26 @@ to change the resulting error of the overall command.  Assignments
 into C<error> are ignored for any other return value; similarly,
 assigning C<0> into C<error> does not have an effect.
 
+=head1 ENVIRONMENT VARIABLES
+
+=over 4
+
+=item C<HOME>
+
+Used in some situations to find TLS certificates.  See
+L<nbd_set_tls_certificates(3)>.
+
+=item C<LIBNBD_DEBUG>
+
+If this is set to the exact string C<1> when the handle is created
+then debugging is enabled.  See L</DEBUGGING MESSAGES> above.
+
+=item C<LOGNAME>
+
+The default TLS username.  See L<nbd_set_tls_username(3)>.
+
+=back
+
 =head1 SEE ALSO
 
 =head2 C API
