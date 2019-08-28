@@ -460,8 +460,8 @@ To get the size of the export in bytes, use L<nbd_get_size(3)>:
 
 =head1 DATA COMMANDS
 
-You can read and write data from the NBD server using C<pread> and
-C<pwrite> or their asynchronous equivalents.
+You can read and write data from the NBD server using L<nbd_pread(3)>
+and L<nbd_pwrite(3)> or their asynchronous equivalents.
 
 Some servers also support:
 
