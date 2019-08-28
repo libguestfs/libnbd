@@ -327,7 +327,7 @@ you need to keep the string you must copy it (eg. using L<strdup(3)>).
 
 =head2 Errno
 
-For some errors, a system call error number (L<errno(3)>) is
+For some errors, a system call error number (see L<errno(3)>) is
 available.  You can find the error number by calling
 L<nbd_get_errno(3)>.  It works the same way as L<nbd_get_error(3)>
 with respect to threads.
