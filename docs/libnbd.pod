@@ -135,7 +135,8 @@ example the asynchronous variant of L<nbd_pread(3)> is:
 
  int64_t cookie;
  
- cookie = nbd_aio_pread (nbd, buf, sizeof buf, 0, 0);
+ cookie = nbd_aio_pread (nbd, buf, sizeof buf,
+                         NBD_NULL_COMPLETION, 0);
  if (cookie == -1) {
    fprintf (stderr, "%s\n", nbd_get_error ());
    nbd_close (nbd);
@@ -166,6 +167,12 @@ You can issue multiple commands on the same handle at the same time.
 
 A cookie is returned which identifies this command in subsequent
 calls.  The cookie is unique (per libnbd handle) and E<ge> 1.
+
+=item *
+
+You may register a function which is called when the command
+completes, see L</Completion callbacks> below.  In this case we have
+specified a null completion callback.
 
 =back
 
@@ -270,7 +277,8 @@ command has completed:
  int64_t cookie;
  char buf[512];
  
- cookie = nbd_aio_pread (nbd, buf, sizeof buf, offset, 0)
+ cookie = nbd_aio_pread (nbd, buf, sizeof buf, offset,
+                         NBD_NULL_COMPLETION, 0);
  if (cookie == -1) {
    fprintf (stderr, "%s\n", nbd_get_error ());
    nbd_close (nbd);
