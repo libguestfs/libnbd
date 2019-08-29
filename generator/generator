@@ -877,6 +877,7 @@ and ret =
 | RFd                      (* return a file descriptor, or error *)
 | RInt                     (* return a small int, -1 = error *)
 | RInt64                   (* 64 bit int, -1 = error *)
+| RCookie                  (* 64 bit command cookie (>= 1), -1 = error *)
 | RString                  (* return a newly allocated string,
                               caller frees, NULL for error *)
 | RUInt                    (* return a bitmask, no error possible *)
@@ -1832,13 +1833,11 @@ on the connection.";
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset" ];
     optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
-    ret = RInt64;
+    ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
     longdesc = "\
-Issue a read command to the NBD server.  This returns the
-unique positive 64 bit cookie for this command, or C<-1> on
-error.
+Issue a read command to the NBD server.
 
 To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
@@ -1853,13 +1852,11 @@ completed.  Other parameters behave as documented in L<nbd_pread(3)>.";
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
              Closure chunk_closure ];
     optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
-    ret = RInt64;
+    ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
     longdesc = "\
-Issue a read command to the NBD server.  This returns the
-unique positive 64 bit cookie for this command, or C<-1> on
-error.
+Issue a read command to the NBD server.
 
 To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
@@ -1872,13 +1869,11 @@ Other parameters behave as documented in L<nbd_pread_structured(3)>.";
     default_call with
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset" ];
     optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
-    ret = RInt64;
+    ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "write to the NBD server";
     longdesc = "\
-Issue a write command to the NBD server.  This returns the
-unique positive 64 bit cookie for this command, or C<-1> on
-error.
+Issue a write command to the NBD server.
 
 To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
@@ -1915,13 +1910,11 @@ however, L<nbd_shutdown(3)> will call this function if appropriate.";
     default_call with
     args = [];
     optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
-    ret = RInt64;
+    ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "send flush command to the NBD server";
     longdesc = "\
-Issue the flush command to the NBD server.  This returns the
-unique positive 64 bit cookie for this command, or C<-1> on
-error.
+Issue the flush command to the NBD server.
 
 To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
@@ -1934,13 +1927,11 @@ Other parameters behave as documented in L<nbd_flush(3)>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
     optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
-    ret = RInt64;
+    ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "send trim command to the NBD server";
     longdesc = "\
-Issue a trim command to the NBD server.  This returns the
-unique positive 64 bit cookie for this command, or C<-1> on
-error.
+Issue a trim command to the NBD server.
 
 To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
@@ -1953,13 +1944,11 @@ Other parameters behave as documented in L<nbd_trim(3)>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
     optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
-    ret = RInt64;
+    ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "send cache (prefetch) command to the NBD server";
     longdesc = "\
-Issue the cache (prefetch) command to the NBD server.  This
-returns the unique positive 64 bit cookie for this command, or
-C<-1> on error.
+Issue the cache (prefetch) command to the NBD server.
 
 To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
@@ -1972,13 +1961,11 @@ Other parameters behave as documented in L<nbd_cache(3)>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
     optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
-    ret = RInt64;
+    ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "send write zeroes command to the NBD server";
     longdesc = "\
-Issue a write zeroes command to the NBD server.  This returns the
-unique positive 64 bit cookie for this command, or C<-1> on
-error.
+Issue a write zeroes command to the NBD server.
 
 To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
@@ -1991,13 +1978,11 @@ Other parameters behave as documented in L<nbd_zero(3)>.";
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Closure extent_closure ];
     optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
-    ret = RInt64;
+    ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "send block status command to the NBD server";
     longdesc = "\
-Send the block status command to the NBD server.  This returns the
-unique positive 64 bit cookie for this command, or C<-1> on
-error.
+Send the block status command to the NBD server.
 
 To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
@@ -3319,14 +3304,14 @@ let generate_lib_libnbd_syms () =
 
 let errcode_of_ret =
   function
-  | RBool | RErr | RFd | RInt | RInt64 -> Some "-1"
+  | RBool | RErr | RFd | RInt | RInt64 | RCookie -> Some "-1"
   | RStaticString | RString -> Some "NULL"
   | RUInt -> None (* errors not possible *)
 
 let type_of_ret =
   function
   | RBool | RErr | RFd | RInt -> "int"
-  | RInt64 -> "int64_t"
+  | RInt64 | RCookie -> "int64_t"
   | RStaticString -> "const char *"
   | RString -> "char *"
   | RUInt -> "unsigned"
@@ -3875,7 +3860,7 @@ let generate_lib_api_c () =
     pr "      debug (h, \"leave: ret=";
     (match ret with
      | RBool | RErr | RFd | RInt -> pr "%%d"
-     | RInt64 -> pr "%%\" PRIi64 \""
+     | RInt64 | RCookie -> pr "%%\" PRIi64 \""
      | RStaticString | RString -> pr "\\\"%%s\\\""
      | RUInt -> pr "%%u"
     );
@@ -3972,12 +3957,9 @@ let generate_docs_nbd_pod name { args; optargs; ret;
   pr "\n";
   pr "%s\n" longdesc;
   pr "\n";
-  if permitted_states <> [] then (
-    pr "The handle must be\n";
-    pr "%s,\n" (permitted_state_text permitted_states);
-    pr "otherwise this call will return an error.\n";
-    pr "\n"
-  );
+
+  pr "=head1 RETURN VALUE\n";
+  pr "\n";
   let errcode = errcode_of_ret ret in
   (match ret with
    | RBool ->
@@ -3991,9 +3973,13 @@ let generate_docs_nbd_pod name { args; optargs; ret;
    | RFd ->
       pr "This call returns a file descriptor.\n"
    | RInt ->
-      pr "This call returns an integer E<ge> 0.\n";
+      pr "This call returns an integer E<ge> C<0>.\n";
    | RInt64 ->
-      pr "This call returns a 64 bit signed integer E<ge> 0.\n";
+      pr "This call returns a 64 bit signed integer E<ge> C<0>.\n";
+   | RCookie ->
+      pr "This call returns the 64 bit cookie of the command.\n";
+      pr "The cookie is E<ge> C<1>.\n";
+      pr "Cookies are unique (per libnbd handle, not globally).\n"
    | RString ->
       pr "This call returns a string.  The caller must free the\n";
       pr "returned string to avoid a memory leak.\n";
@@ -4001,17 +3987,31 @@ let generate_docs_nbd_pod name { args; optargs; ret;
       pr "This call returns a bitmask.\n"
   );
   pr "\n";
+
+  pr "=head1 ERRORS\n";
+  pr "\n";
   if may_set_error then (
     let value = match errcode with
       | Some value -> value
       | None -> assert false in
     pr "On error C<%s> is returned.\n" value;
-    pr "See L<libnbd(3)/ERROR HANDLING> for how to get further details\n";
-    pr "of the error.\n"
+    pr "\n";
+    pr "Refer to L<libnbd(3)/ERROR HANDLING>\n";
+    pr "for how to get further details of the error.\n"
   )
   else
     pr "This function does not fail.\n";
   pr "\n";
+
+  if permitted_states <> [] then (
+    pr "=head1 HANDLE STATE\n";
+    pr "\n";
+    pr "The handle must be\n";
+    pr "%s,\n" (permitted_state_text permitted_states);
+    pr "otherwise this call will return an error.\n";
+    pr "\n"
+  );
+
   pr "=head1 VERSION\n";
   pr "\n";
   pr "This function first appeared in libnbd %d.%d.\n" major minor;
@@ -4553,7 +4553,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | RInt
     | RUInt ->
        pr "  py_ret = PyLong_FromLong (ret);\n"
-    | RInt64 ->
+    | RInt64 | RCookie ->
        pr "  py_ret = PyLong_FromLongLong (ret);\n"
     | RString ->
        pr "  py_ret = PyUnicode_FromString (ret);\n";
@@ -4878,6 +4878,7 @@ and ocaml_ret_to_string = function
   | RFd -> "Unix.file_descr"
   | RInt -> "int"
   | RInt64 -> "int64"
+  | RCookie -> "cookie"
   | RString -> "string"
   | RUInt -> "int"
 
@@ -4949,6 +4950,8 @@ exception Error of string * int
 
 exception Closed of string
 (** Exception thrown if you call a closed handle. *)
+
+type cookie = int64
 
 ";
 
@@ -5046,6 +5049,7 @@ let generate_ocaml_nbd_ml () =
   pr "\
 exception Error of string * int
 exception Closed of string
+type cookie = int64
 
 (* Give the exceptions names so that they can be raised from the C code. *)
 let () =
@@ -5425,7 +5429,7 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
    | RBool -> pr "  rv = Val_bool (r);\n"
    | RErr -> pr "  rv = Val_unit;\n"
    | RFd | RInt | RUInt -> pr "  rv = Val_int (r);\n"
-   | RInt64 -> pr "  rv = caml_copy_int64 (r);\n"
+   | RInt64 | RCookie -> pr "  rv = caml_copy_int64 (r);\n"
    | RStaticString -> pr "  rv = caml_copy_string (r);\n"
    | RString ->
       pr "  rv = caml_copy_string (r);\n";
