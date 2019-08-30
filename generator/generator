@@ -3310,7 +3310,7 @@ let generate_lib_libnbd_syms () =
       (match !prev with
        | None -> ()
        | Some (old_major, old_minor) ->
-          pr " LIBNBD_%d.%d" old_minor old_minor
+          pr " LIBNBD_%d.%d" old_major old_minor
       );
       pr ";\n";
       pr "\n";
