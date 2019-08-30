@@ -44,6 +44,7 @@ Makefile.in
 !/docs/nbd_close.3
 !/docs/nbd_create.pod
 !/docs/nbd_get_err??.3
+/examples/aio-connect-read
 /examples/batched-read-write
 /examples/connect-command
 /examples/encryption

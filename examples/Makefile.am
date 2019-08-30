@@ -20,6 +20,7 @@ include $(top_srcdir)/subdir-rules.mk
 EXTRA_DIST = LICENSE-FOR-EXAMPLES
 
 noinst_PROGRAMS = \
+	aio-connect-read \
 	batched-read-write \
 	connect-command \
 	encryption \
@@ -35,6 +36,19 @@ if HAVE_GLIB
 noinst_PROGRAMS += \
 	glib-main-loop
 endif
+
+aio_connect_read_SOURCES = \
+	aio-connect-read.c \
+	$(NULL)
+aio_connect_read_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	$(NULL)
+aio_connect_read_CFLAGS = \
+	$(WARNINGS_CFLAGS) \
+	$(NULL)
+aio_connect_read_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(NULL)
 
 connect_command_SOURCES = \
 	connect-command.c \

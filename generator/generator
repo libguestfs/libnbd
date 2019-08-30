@@ -1799,6 +1799,7 @@ flight, using an infinite timeout will permanently block).
 This function is mainly useful as an example of how you might
 integrate libnbd with your own main loop, rather than being
 intended as something you would use.";
+    example = Some "examples/aio-connect-read.c";
   };
 
   "aio_connect", {
@@ -1845,6 +1846,7 @@ You can check if the connection is still connecting by calling
 L<nbd_aio_is_connecting(3)>, or if it has connected to the server
 and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
+    example = Some "examples/aio-connect-read.c";
   };
 
   "aio_connect_tcp", {
@@ -1894,6 +1896,8 @@ as described in L<libnbd(3)/Completion callbacks>.
 
 Note that you must ensure C<buf> is valid until the command has
 completed.  Other parameters behave as documented in L<nbd_pread(3)>.";
+    example = Some "examples/aio-connect-read.c";
+    see_also = ["L<libnbd(3)/Issuing asynchronous commands>"];
   };
 
   "aio_pread_structured", {
@@ -2242,6 +2246,7 @@ L<nbd_aio_disconnect(3)> and L<nbd_shutdown(3)>), libnbd does not try to
 wait for those commands to complete gracefully; if the server strands
 commands while shutting down, L<nbd_aio_command_completed(3)> will report
 those commands as failed with a status of C<ENOTCONN>.";
+    example = Some "examples/aio-connect-read.c";
     see_also = ["L<nbd_aio_disconnect(3)>"];
   };
 
