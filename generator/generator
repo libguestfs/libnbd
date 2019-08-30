@@ -1121,6 +1121,7 @@ when using L<nbd_connect_uri(3)>, any URI query parameters related to
 TLS are not handled automatically.  Setting the level higher than
 zero will fail if libnbd was not compiled against gnutls; you can
 test whether this is the case with L<nbd_supports_tls(3)>.";
+    example = Some "examples/encryption.c";
     see_also = ["L<libnbd(3)/ENCRYPTION AND AUTHENTICATION>"];
   };
 
@@ -1200,6 +1201,7 @@ If not set then the local username is used.
 This function may be called regardless of whether TLS is
 supported, but will have no effect unless L<nbd_set_tls(3)>
 is also used to request or require TLS.";
+    example = Some "examples/encryption.c";
   };
 
   "get_tls_username", {
@@ -1225,6 +1227,7 @@ authentication cannot be used to connect to the server.
 This function may be called regardless of whether TLS is
 supported, but will have no effect unless L<nbd_set_tls(3)>
 is also used to request or require TLS.";
+    example = Some "examples/encryption.c";
   };
 
 (* Can't implement this because we need a way to return string that

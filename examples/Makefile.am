@@ -22,6 +22,7 @@ EXTRA_DIST = LICENSE-FOR-EXAMPLES
 noinst_PROGRAMS = \
 	batched-read-write \
 	connect-command \
+	encryption \
 	fetch-first-sector \
 	get-size \
 	reads-and-writes \
@@ -45,6 +46,19 @@ connect_command_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
 	$(NULL)
 connect_command_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(NULL)
+
+encryption_SOURCES = \
+	encryption.c \
+	$(NULL)
+encryption_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	$(NULL)
+encryption_CFLAGS = \
+	$(WARNINGS_CFLAGS) \
+	$(NULL)
+encryption_LDADD = \
 	$(top_builddir)/lib/libnbd.la \
 	$(NULL)
 

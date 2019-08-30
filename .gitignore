@@ -46,6 +46,7 @@ Makefile.in
 !/docs/nbd_get_err??.3
 /examples/batched-read-write
 /examples/connect-command
+/examples/encryption
 /examples/fetch-first-sector
 /examples/get-size
 /examples/glib-main-loop
