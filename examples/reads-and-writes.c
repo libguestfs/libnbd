@@ -1,9 +1,12 @@
-/* Example usage with nbdkit:
+/* This example shows how to do synchronous reads
+ * and writes randomly over the first megabyte of an
+ * NBD server.  Note this will destroy any existing
+ * content on the NBD server.
  *
- * nbdkit -U - memory 1M --run './simple-reads-and-writes $unixsocket'
+ * To test it with nbdkit and a RAM disk:
  *
- * This will read and write randomly over the first megabyte of the
- * plugin using synchronous I/O.
+ * nbdkit -U - memory 1M \
+ *     --run './simple-reads-and-writes $unixsocket'
  */
 
 #include <stdio.h>
@@ -30,16 +33,24 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  /* Create the libnbd handle. */
   nbd = nbd_create ();
   if (nbd == NULL) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+
+  /* Connect to the NBD server over a
+   * Unix domain socket.
+   */
   if (nbd_connect_unix (nbd, argv[1]) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
+  /* Get the size of the disk and check
+   * it's large enough.
+   */
   exportsize = nbd_get_size (nbd);
   if (exportsize == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
@@ -47,8 +58,11 @@ main (int argc, char *argv[])
   }
   assert (exportsize >= sizeof buf);
 
+  /* Check that the server is writable. */
   if (nbd_is_read_only (nbd) == 1) {
-    fprintf (stderr, "%s: error: this NBD export is read-only\n", argv[0]);
+    fprintf (stderr, "%s: "
+             "error: this NBD export is read-only\n",
+             argv[0]);
     exit (EXIT_FAILURE);
   }
 
@@ -59,7 +73,8 @@ main (int argc, char *argv[])
   for (i = 0; i < 1000; ++i) {
     offset = rand () % (exportsize - sizeof buf);
 
-    if (nbd_pwrite (nbd, buf, sizeof buf, offset, 0) == -1) {
+    if (nbd_pwrite (nbd, buf, sizeof buf,
+                    offset, 0) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
@@ -68,18 +83,21 @@ main (int argc, char *argv[])
   /* 1000 reads and writes. */
   for (i = 0; i < 1000; ++i) {
     offset = rand () % (exportsize - sizeof buf);
-    if (nbd_pread (nbd, buf, sizeof buf, offset, 0) == -1) {
+    if (nbd_pread (nbd, buf, sizeof buf,
+                   offset, 0) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
 
     offset = rand () % (exportsize - sizeof buf);
-    if (nbd_pwrite (nbd, buf, sizeof buf, offset, 0) == -1) {
+    if (nbd_pwrite (nbd, buf, sizeof buf,
+                    offset, 0) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
   }
 
+  /* Sends a graceful shutdown to the server. */
   if (nbd_shutdown (nbd, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);

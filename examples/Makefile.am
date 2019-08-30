@@ -21,10 +21,13 @@ EXTRA_DIST = LICENSE-FOR-EXAMPLES
 
 noinst_PROGRAMS = \
 	batched-read-write \
-	simple-fetch-first-sector \
-	simple-reads-and-writes \
-	threaded-reads-and-writes \
+	connect-command \
+	fetch-first-sector \
+	get-size \
+	reads-and-writes \
+	server-flags \
 	strict-structured-reads \
+	threaded-reads-and-writes \
 	$(NULL)
 
 if HAVE_GLIB
@@ -32,29 +35,68 @@ noinst_PROGRAMS += \
 	glib-main-loop
 endif
 
-simple_fetch_first_sector_SOURCES = \
-	simple-fetch-first-sector.c \
+connect_command_SOURCES = \
+	connect-command.c \
 	$(NULL)
-simple_fetch_first_sector_CPPFLAGS = \
+connect_command_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	$(NULL)
-simple_fetch_first_sector_CFLAGS = \
+connect_command_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
 	$(NULL)
-simple_fetch_first_sector_LDADD = \
+connect_command_LDADD = \
 	$(top_builddir)/lib/libnbd.la \
 	$(NULL)
 
-simple_reads_and_writes_SOURCES = \
-	simple-reads-and-writes.c \
+fetch_first_sector_SOURCES = \
+	fetch-first-sector.c \
 	$(NULL)
-simple_reads_and_writes_CPPFLAGS = \
+fetch_first_sector_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	$(NULL)
-simple_reads_and_writes_CFLAGS = \
+fetch_first_sector_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
 	$(NULL)
-simple_reads_and_writes_LDADD = \
+fetch_first_sector_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(NULL)
+
+get_size_SOURCES = \
+	get-size.c \
+	$(NULL)
+get_size_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	$(NULL)
+get_size_CFLAGS = \
+	$(WARNINGS_CFLAGS) \
+	$(NULL)
+get_size_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(NULL)
+
+reads_and_writes_SOURCES = \
+	reads-and-writes.c \
+	$(NULL)
+reads_and_writes_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	$(NULL)
+reads_and_writes_CFLAGS = \
+	$(WARNINGS_CFLAGS) \
+	$(NULL)
+reads_and_writes_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(NULL)
+
+server_flags_SOURCES = \
+	server-flags.c \
+	$(NULL)
+server_flags_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	$(NULL)
+server_flags_CFLAGS = \
+	$(WARNINGS_CFLAGS) \
+	$(NULL)
+server_flags_LDADD = \
 	$(top_builddir)/lib/libnbd.la \
 	$(NULL)
 

@@ -828,6 +828,7 @@ type call = {
   ret : ret;               (* return value *)
   shortdesc : string;      (* short description *)
   longdesc : string;       (* long description *)
+  example : string option; (* path to example code (under top_srcdir) *)
   (* List of permitted states for making this call.  [[]] = Any state. *)
   permitted_states : permitted_state list;
   (* Most functions must take a lock.  The only known exceptions are:
@@ -910,7 +911,7 @@ and permitted_state =
 | Closed | Dead            (* can be called when the handle is CLOSED or DEAD *)
 
 let default_call = { args = []; optargs = []; ret = RErr;
-                     shortdesc = ""; longdesc = "";
+                     shortdesc = ""; longdesc = ""; example = None;
                      permitted_states = [];
                      is_locked = true; may_set_error = true;
                      first_version = (1, 0) }
@@ -1292,6 +1293,7 @@ gnutls; you can test whether this is the case with L<nbd_supports_tls(3)>.";
 Connect (synchronously) over the named Unix domain socket (C<unixsocket>)
 to an NBD server running on the same machine.  This call returns
 when the connection has been made.";
+    example = Some "examples/fetch-first-sector.c";
   };
 
   "connect_tcp", {
@@ -1318,6 +1320,7 @@ stdin/stdout.  This is for use with NBD servers which can
 behave like inetd clients, such as C<nbdkit --single>.
 
 See also L<nbd_kill_subprocess(3)>.";
+    example = Some "examples/connect-command.c";
   };
 
   "is_read_only", {
@@ -1329,6 +1332,7 @@ See also L<nbd_kill_subprocess(3)>.";
 Returns true if the NBD export is read-only; writes and
 write-like operations will fail."
 ^ non_blocking_test_call_description;
+    example = Some "examples/server-flags.c";
   };
 
   "can_flush", {
@@ -1341,6 +1345,7 @@ Returns true if the server supports the flush command
 (see L<nbd_flush(3)>, L<nbd_aio_flush(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
+    example = Some "examples/server-flags.c";
   };
 
   "can_fua", {
@@ -1352,6 +1357,7 @@ the server does not."
 Returns true if the server supports the FUA flag on
 certain commands (see L<nbd_pwrite(3)>)."
 ^ non_blocking_test_call_description;
+    example = Some "examples/server-flags.c";
   };
 
   "is_rotational", {
@@ -1365,6 +1371,7 @@ Returns true if the disk exposed over NBD is rotational
 the disk has no penalty for random access (like an SSD or
 RAM disk)."
 ^ non_blocking_test_call_description;
+    example = Some "examples/server-flags.c";
   };
 
   "can_trim", {
@@ -1377,6 +1384,7 @@ Returns true if the server supports the trim command
 (see L<nbd_trim(3)>, L<nbd_aio_trim(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
+    example = Some "examples/server-flags.c";
   };
 
   "can_zero", {
@@ -1389,6 +1397,7 @@ Returns true if the server supports the zero command
 (see L<nbd_zero(3)>, L<nbd_aio_zero(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
+    example = Some "examples/server-flags.c";
   };
 
   "can_df", {
@@ -1401,6 +1410,7 @@ ability to request a non-fragmented read (see L<nbd_pread_structured(3)>,
 L<nbd_aio_pread_structured(3)>).  Returns false if the server either lacks
 structured reads or if it does not support a non-fragmented read request."
 ^ non_blocking_test_call_description;
+    example = Some "examples/server-flags.c";
   };
 
   "can_multi_conn", {
@@ -1419,6 +1429,7 @@ way to check for this is to open one connection, check
 this flag is true, then open further connections as
 required."
 ^ non_blocking_test_call_description;
+    example = Some "examples/server-flags.c";
   };
 
   "can_cache", {
@@ -1431,6 +1442,7 @@ Returns true if the server supports the cache command
 (see L<nbd_cache(3)>, L<nbd_aio_cache(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
+    example = Some "examples/server-flags.c";
   };
 
   "can_meta_context", {
@@ -1459,6 +1471,7 @@ are free to pass in other contexts."
     longdesc = "\
 Returns the size in bytes of the NBD export."
 ^ non_blocking_test_call_description;
+    example = Some "examples/get-size.c";
   };
 
   "pread", {
@@ -1479,6 +1492,7 @@ C<LIBNBD_CMD_FLAG_DF>.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
+    example = Some "examples/fetch-first-sector.c";
   };
 
   "pread_structured", {
@@ -1575,6 +1589,7 @@ C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
 L<nbd_can_fua(3)>).";
+    example = Some "examples/reads-and-writes.c";
   };
 
   "shutdown", {
@@ -1595,6 +1610,7 @@ L<nbd_aio_disconnect(3)>.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
+    example = Some "examples/reads-and-writes.c";
   };
 
   "flush", {
@@ -3938,7 +3954,7 @@ let generate_docs_api_flag_links_pod () =
   pr ".\n"
 
 let generate_docs_nbd_pod name { args; optargs; ret;
-                                 shortdesc; longdesc;
+                                 shortdesc; longdesc; example;
                                  permitted_states; may_set_error;
                                  first_version = (major, minor) } () =
   pr "=head1 NAME\n";
@@ -4022,6 +4038,28 @@ let generate_docs_nbd_pod name { args; optargs; ret;
   pr "\n";
   pr " #define LIBNBD_HAVE_NBD_%s 1\n" (String.uppercase_ascii name);
   pr "\n";
+
+  (match example with
+   | None -> ()
+   | Some filename ->
+      pr "=head1 EXAMPLE\n";
+      pr "\n";
+      pr "This example is also available as F<%s>\n" filename;
+      pr "in the libnbd source code.\n";
+      pr "\n";
+      let chan = open_in filename in
+      (try
+         while true do
+           let line = input_line chan in
+           if String.length line > 60 then
+             failwithf "%s: %s: line too long in example" name filename;
+           pr " %s\n" line
+         done
+       with End_of_file -> ()
+      );
+      close_in chan;
+      pr "\n"
+  );
 
   pr "\
 =head1 SEE ALSO
