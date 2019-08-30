@@ -41,7 +41,7 @@ main (int argc, char *argv[])
     "-v",
 
     /* The nbdkit plugin name - this is a RAM disk. */
-    "memory", "1M",
+    "memory", "size=1M",
 
     /* Use NULL to terminate the arg list. */
     NULL
