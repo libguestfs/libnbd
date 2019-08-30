@@ -829,6 +829,7 @@ type call = {
   shortdesc : string;      (* short description *)
   longdesc : string;       (* long description *)
   example : string option; (* path to example code (under top_srcdir) *)
+  see_also : string list;  (* "SEE ALSO" section in man page *)
   (* List of permitted states for making this call.  [[]] = Any state. *)
   permitted_states : permitted_state list;
   (* Most functions must take a lock.  The only known exceptions are:
@@ -912,6 +913,7 @@ and permitted_state =
 
 let default_call = { args = []; optargs = []; ret = RErr;
                      shortdesc = ""; longdesc = ""; example = None;
+                     see_also = [];
                      permitted_states = [];
                      is_locked = true; may_set_error = true;
                      first_version = (1, 0) }
@@ -987,9 +989,8 @@ unless a debugging callback has been defined too
 (see L<nbd_set_debug_callback(3)>) in which case they are
 sent to that function.  This flag defaults to false on
 newly created handles, except if C<LIBNBD_DEBUG=1> is
-set in the environment in which case it defaults to true.
-
-See also L<nbd_set_handle_name(3)>.";
+set in the environment in which case it defaults to true.";
+    see_also = ["L<nbd_set_handle_name(3)>"; "L<nbd_set_debug_callback(3)>"];
   };
 
   "get_debug", {
@@ -1119,9 +1120,8 @@ the Pre-Shared Keys (PSK) file (L<nbd_set_tls_psk_file(3)>).  For now,
 when using L<nbd_connect_uri(3)>, any URI query parameters related to
 TLS are not handled automatically.  Setting the level higher than
 zero will fail if libnbd was not compiled against gnutls; you can
-test whether this is the case with L<nbd_supports_tls(3)>.
-
-For more information see L<libnbd(3)/ENCRYPTION AND AUTHENTICATION>.";
+test whether this is the case with L<nbd_supports_tls(3)>.";
+    see_also = ["L<libnbd(3)/ENCRYPTION AND AUTHENTICATION>"];
   };
 
   "get_tls", {
@@ -1129,7 +1129,8 @@ For more information see L<libnbd(3)/ENCRYPTION AND AUTHENTICATION>.";
     args = []; ret = RInt;
     shortdesc = "get the current TLS setting";
     longdesc = "\
-Get the current TLS setting.  See L<nbd_set_tls(3)>.";
+Get the current TLS setting.";
+    see_also = ["L<nbd_set_tls(3)>"];
   };
 
   "set_tls_certificates", {
@@ -1157,7 +1158,8 @@ is also used to request or require TLS.";
     args = []; ret = RString;
     shortdesc = "get the current TLS certificates directory";
     longdesc = "\
-Get the current TLS directory.  See L<nbd_set_tls_certificates(3)>.";
+Get the current TLS directory.";
+    see_also = ["L<nbd_set_tls_certificates(3)>"];
   };
 *)
 
@@ -1205,7 +1207,8 @@ is also used to request or require TLS.";
     args = []; ret = RString;
     shortdesc = "get the current TLS username";
     longdesc = "\
-Get the current TLS username.  See L<nbd_set_tls_username(3)>.";
+Get the current TLS username.";
+    see_also = ["L<nbd_set_tls_username(3)>"];
   };
 
   "set_tls_psk_file", {
@@ -1231,7 +1234,8 @@ is also used to request or require TLS.";
     args = []; ret = RString;
     shortdesc = "get the current TLS PSK filename";
     longdesc = "\
-Get the current TLS PSK filename.  See L<nbd_set_tls_psk_file(3)>.";
+Get the current TLS PSK filename.";
+    see_also = ["L<nbd_set_tls_psk_file(3)>"];
   };
 *)
 
@@ -1263,7 +1267,8 @@ to pass in other contexts.
 
 Other metadata contexts are server-specific, but include
 C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
-(see qemu-nbd I<-B> option).  See also L<nbd_block_status(3)>.";
+(see qemu-nbd I<-B> option).";
+    see_also = ["L<nbd_block_status(3)>"];
   };
 
   "connect_uri", {
@@ -1317,9 +1322,8 @@ has been made.";
     longdesc = "\
 Run the command as a subprocess and connect to it over
 stdin/stdout.  This is for use with NBD servers which can
-behave like inetd clients, such as C<nbdkit --single>.
-
-See also L<nbd_kill_subprocess(3)>.";
+behave like inetd clients, such as C<nbdkit --single>.";
+    see_also = ["L<nbd_kill_subprocess(3)>"];
     example = Some "examples/connect-command.c";
   };
 
@@ -1332,6 +1336,7 @@ See also L<nbd_kill_subprocess(3)>.";
 Returns true if the NBD export is read-only; writes and
 write-like operations will fail."
 ^ non_blocking_test_call_description;
+    see_also = ["L<libnbd(3)/Flag calls>"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1345,6 +1350,8 @@ Returns true if the server supports the flush command
 (see L<nbd_flush(3)>, L<nbd_aio_flush(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
+    see_also = ["L<libnbd(3)/Flag calls>";
+                "L<nbd_flush(3)>"; "L<nbd_aio_flush(3)>"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1357,6 +1364,7 @@ the server does not."
 Returns true if the server supports the FUA flag on
 certain commands (see L<nbd_pwrite(3)>)."
 ^ non_blocking_test_call_description;
+    see_also = ["L<libnbd(3)/Flag calls>"; "L<nbd_pwrite(3)>"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1371,6 +1379,7 @@ Returns true if the disk exposed over NBD is rotational
 the disk has no penalty for random access (like an SSD or
 RAM disk)."
 ^ non_blocking_test_call_description;
+    see_also = ["L<libnbd(3)/Flag calls>"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1384,6 +1393,8 @@ Returns true if the server supports the trim command
 (see L<nbd_trim(3)>, L<nbd_aio_trim(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
+    see_also = ["L<libnbd(3)/Flag calls>";
+                "L<nbd_trim(3)>"; "L<nbd_aio_trim(3)>"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1397,6 +1408,8 @@ Returns true if the server supports the zero command
 (see L<nbd_zero(3)>, L<nbd_aio_zero(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
+    see_also = ["L<libnbd(3)/Flag calls>";
+                "L<nbd_zero(3)>"; "L<nbd_aio_zero(3)>"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1410,6 +1423,9 @@ ability to request a non-fragmented read (see L<nbd_pread_structured(3)>,
 L<nbd_aio_pread_structured(3)>).  Returns false if the server either lacks
 structured reads or if it does not support a non-fragmented read request."
 ^ non_blocking_test_call_description;
+    see_also = ["L<libnbd(3)/Flag calls>";
+                "L<nbd_pread_structured(3)>";
+                "L<nbd_aio_pread_structured(3)>"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1429,6 +1445,7 @@ way to check for this is to open one connection, check
 this flag is true, then open further connections as
 required."
 ^ non_blocking_test_call_description;
+    see_also = ["L<libnbd(3)/Multi-conn>"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1442,6 +1459,8 @@ Returns true if the server supports the cache command
 (see L<nbd_cache(3)>, L<nbd_aio_cache(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
+    see_also = ["L<libnbd(3)/Flag calls>";
+                "L<nbd_cache(3)>"; "L<nbd_aio_cache(3)>"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1461,6 +1480,8 @@ B<E<lt>libnbd.hE<gt>> includes defined constants for well-known
 namespace contexts beginning with C<LIBNBD_CONTEXT_>, but you
 are free to pass in other contexts."
 ^ non_blocking_test_call_description;
+    see_also = ["L<libnbd(3)/Flag calls>";
+                "L<nbd_add_meta_context(3)>"];
   };
 
   "get_size", {
@@ -1471,6 +1492,7 @@ are free to pass in other contexts."
     longdesc = "\
 Returns the size in bytes of the NBD export."
 ^ non_blocking_test_call_description;
+    see_also = ["L<libnbd(3)/Size of the export>"];
     example = Some "examples/get-size.c";
   };
 
@@ -1492,6 +1514,7 @@ C<LIBNBD_CMD_FLAG_DF>.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
+    see_also = ["L<nbd_pread_structured(3)>"];
     example = Some "examples/fetch-first-sector.c";
   };
 
@@ -1568,6 +1591,7 @@ C<LIBNBD_CMD_FLAG_DF> meaning that the server should not reply with
 more than one fragment (if that is supported - some servers cannot do
 this, see L<nbd_can_df(3)>). Libnbd does not validate that the server
 actually obeys the flag.";
+    see_also = ["L<nbd_can_df(3)>"];
   };
 
   "pwrite", {
@@ -1589,6 +1613,7 @@ C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
 L<nbd_can_fua(3)>).";
+    see_also = ["L<nbd_can_fua(3)>"];
     example = Some "examples/reads-and-writes.c";
   };
 
@@ -1610,6 +1635,7 @@ L<nbd_aio_disconnect(3)>.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
+    see_also = ["L<nbd_close(3)>"; "L<nbd_aio_disconnect(3)>"];
     example = Some "examples/reads-and-writes.c";
   };
 
@@ -1647,6 +1673,7 @@ C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
 L<nbd_can_fua(3)>).";
+    see_also = ["L<nbd_can_fua(3)>"];
   };
 
   "cache", {
@@ -1689,6 +1716,7 @@ return until the data has been committed to permanent storage
 L<nbd_can_fua(3)>), and/or C<LIBNBD_CMD_FLAG_NO_HOLE> meaning that
 the server should favor writing actual allocated zeroes over
 punching a hole.";
+    see_also = ["L<nbd_can_fua(3)>"];
   };
 
   "block_status", {
@@ -1748,6 +1776,7 @@ C<LIBNBD_CMD_FLAG_REQ_ONE> meaning that the server should
 return only one extent per metadata context where that extent
 does not exceed C<count> bytes; however, libnbd does not
 validate that the server obeyed the flag.";
+    see_also = ["L<nbd_add_meta_context(3)>"; "L<nbd_can_meta_context(3)>"];
   };
 
   "poll", {
@@ -1921,6 +1950,7 @@ clean shutdown.
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).  There is no direct synchronous counterpart;
 however, L<nbd_shutdown(3)> will call this function if appropriate.";
+    see_also = ["L<nbd_aio_in_flight(3)>"];
   };
 
   "aio_flush", {
@@ -2018,6 +2048,7 @@ connection.  You can use this to check if the file descriptor
 is ready for reading or writing and call L<nbd_aio_notify_read(3)>
 or L<nbd_aio_notify_write(3)>.  See also L<nbd_aio_get_direction(3)>.
 Do not do anything else with the file descriptor.";
+    see_also = ["L<nbd_aio_get_direction(3)>"];
   };
 
   "aio_get_direction", {
@@ -2072,6 +2103,7 @@ processing the server's reply may change the state of the connection
 and invalidate the need to write more commands.
 
 =back";
+    see_also = ["L<nbd_aio_in_flight(3)>"];
   };
 
   "aio_notify_read", {
@@ -2116,6 +2148,7 @@ Return true if this connection is connecting to the server
 or in the process of handshaking and negotiating options
 which happens before the handle becomes ready to
 issue commands (see L<nbd_aio_is_ready(3)>).";
+    see_also = ["L<nbd_aio_is_ready(3)>"];
   };
 
   "aio_is_ready", {
@@ -2206,6 +2239,7 @@ L<nbd_aio_disconnect(3)> and L<nbd_shutdown(3)>), libnbd does not try to
 wait for those commands to complete gracefully; if the server strands
 commands while shutting down, L<nbd_aio_command_completed(3)> will report
 those commands as failed with a status of C<ENOTCONN>.";
+    see_also = ["L<nbd_aio_disconnect(3)>"];
   };
 
   "connection_state", {
@@ -2263,6 +2297,7 @@ does not exit when the socket is closed.
 
 The C<signum> parameter is the optional signal number to send
 (see L<signal(7)>).  If C<signum> is C<0> then C<SIGTERM> is sent.";
+    see_also = ["L<signal(7)>"];
   };
 
   "supports_tls", {
@@ -2271,7 +2306,8 @@ The C<signum> parameter is the optional signal number to send
     shortdesc = "true if libnbd was compiled with support for TLS";
     longdesc = "\
 Returns true if libnbd was compiled with gnutls which is required
-to support TLS encryption, or false if not.  See L<nbd_set_tls(3)>.";
+to support TLS encryption, or false if not.";
+    see_also = ["L<nbd_set_tls(3)>"];
   };
 
   "supports_uri", {
@@ -2280,8 +2316,8 @@ to support TLS encryption, or false if not.  See L<nbd_set_tls(3)>.";
     shortdesc = "true if libnbd was compiled with support for NBD URIs";
     longdesc = "\
 Returns true if libnbd was compiled with libxml2 which is required
-to support NBD URIs, or false if not.  See L<nbd_connect_uri(3)> and
-L<nbd_aio_connect_uri(3)>.";
+to support NBD URIs, or false if not.";
+    see_also = ["L<nbd_connect_uri(3)>"; "L<nbd_aio_connect_uri(3)>"];
   };
 
 ]
@@ -3954,7 +3990,7 @@ let generate_docs_api_flag_links_pod () =
   pr ".\n"
 
 let generate_docs_nbd_pod name { args; optargs; ret;
-                                 shortdesc; longdesc; example;
+                                 shortdesc; longdesc; example; see_also;
                                  permitted_states; may_set_error;
                                  first_version = (major, minor) } () =
   pr "=head1 NAME\n";
@@ -4061,11 +4097,14 @@ let generate_docs_nbd_pod name { args; optargs; ret;
       pr "\n"
   );
 
+  pr "=head1 SEE ALSO\n";
+  pr "\n";
+  List.iter (pr "%s,\n") see_also;
+  pr "L<nbd_create(3)>,\n";
+  pr "L<libnbd(3)>.\n";
+  pr "\n";
+
   pr "\
-=head1 SEE ALSO
-
-L<nbd_create(3)>, L<libnbd(3)>.
-
 =head1 AUTHORS
 
 Eric Blake
