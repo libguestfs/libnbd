@@ -46,3 +46,9 @@ Suggested API improvements:
     support encrypted keys
   - allow use of TLS memory APIs (gnutls_datum_t + gnutls_*_mem)
   - support PKCS11 URIs (RFC 7512)
+
+  Easier server implementation testing:
+  - a way to disable requesting structured replies
+  - a way to forcefully violate protocol (such as allowing writes to a
+    readonly connection, or sending a request that exceeds bounds) for
+    testing server reactions
