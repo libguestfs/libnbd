@@ -2,6 +2,8 @@ Explore if nbd_aio_notify_error is needed for faster response if
 server goes away.
 
 Bindings in other languages.
+ - Latest attempt at adding Rust:
+   https://www.redhat.com/archives/libguestfs/2019-August/msg00416.html
 
 Example code integrating with ppoll, pollfd, APR pollset (and others?).
 
