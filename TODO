@@ -23,6 +23,10 @@ Improve function trace output so that:
  - Buffers are partially printed.
  - Lists of strings are printed.
 
+Should we ship a "nbdcp" copying tool?
+ - Could upload, download or copy between servers.
+ - Duplicates functionality already available in qemu-img convert.
+
 Suggested API improvements:
   general:
   - synchronous APIs that have a timeout or can be cancelled
@@ -31,6 +35,7 @@ Suggested API improvements:
   - nbd_connect_tcp: allow control over whether IPv4 or IPv6 is desired
   - nbd_connect_uri: allow control over which features are enabled
   - nbd_connect_command: allow passing char **env
+  - connection completed callback
 
   TLS:
   - should be individual APIs for setting each TLS file
