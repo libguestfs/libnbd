@@ -426,7 +426,8 @@ nbd_unlocked_aio_zero (struct nbd_handle *h,
     return -1;
   }
 
-  if ((flags & ~(LIBNBD_CMD_FLAG_FUA | LIBNBD_CMD_FLAG_NO_HOLE)) != 0) {
+  if ((flags & ~(LIBNBD_CMD_FLAG_FUA | LIBNBD_CMD_FLAG_NO_HOLE |
+                 LIBNBD_CMD_FLAG_FAST_ZERO)) != 0) {
     set_error (EINVAL, "invalid flag: %" PRIu32, flags);
     return -1;
   }
@@ -434,6 +435,12 @@ nbd_unlocked_aio_zero (struct nbd_handle *h,
   if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
       nbd_unlocked_can_fua (h) != 1) {
     set_error (EINVAL, "server does not support the FUA flag");
+    return -1;
+  }
+
+  if ((flags & LIBNBD_CMD_FLAG_FAST_ZERO) != 0 &&
+      nbd_unlocked_can_fast_zero (h) != 1) {
+    set_error (EINVAL, "server does not support the fast zero flag");
     return -1;
   }
 

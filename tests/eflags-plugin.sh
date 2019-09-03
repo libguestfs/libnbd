@@ -52,6 +52,11 @@ case "$1" in
         # be read-only and methods like can_trim will never be called.
         exit 0
         ;;
+    can_zero)
+	# We have to default to answering this with true before
+	# can_fast_zero has an effect.
+	exit 0
+	;;
     *)
         exit 2
         ;;

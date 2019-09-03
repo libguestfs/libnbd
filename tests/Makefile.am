@@ -145,6 +145,8 @@ check_PROGRAMS += \
 	can-not-trim-flag \
 	can-zero-flag \
 	can-not-zero-flag \
+	can-fast-zero-flag \
+	can-not-fast-zero-flag \
 	can-multi-conn-flag \
 	can-not-multi-conn-flag \
 	can-cache-flag \
@@ -177,6 +179,8 @@ TESTS += \
 	can-not-trim-flag \
 	can-zero-flag \
 	can-not-zero-flag \
+	can-fast-zero-flag \
+	can-not-fast-zero-flag \
 	can-multi-conn-flag \
 	can-not-multi-conn-flag \
 	can-cache-flag \
@@ -288,6 +292,22 @@ can_not_zero_flag_CPPFLAGS = \
 	$(NULL)
 can_not_zero_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_zero_flag_LDADD = $(top_builddir)/lib/libnbd.la
+
+can_fast_zero_flag_SOURCES = eflags.c
+can_fast_zero_flag_CPPFLAGS = \
+	-I$(top_srcdir)/include -Dflag=can_fast_zero \
+	-Drequire='"has_can_fast_zero=1"' \
+	$(NULL)
+can_fast_zero_flag_CFLAGS = $(WARNINGS_CFLAGS)
+can_fast_zero_flag_LDADD = $(top_builddir)/lib/libnbd.la
+
+can_not_fast_zero_flag_SOURCES = eflags.c
+can_not_fast_zero_flag_CPPFLAGS = \
+	-I$(top_srcdir)/include -Dflag=can_fast_zero -Dvalue=false \
+	-Drequire='"has_can_fast_zero=1"' \
+	$(NULL)
+can_not_fast_zero_flag_CFLAGS = $(WARNINGS_CFLAGS)
+can_not_fast_zero_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
 can_multi_conn_flag_SOURCES = eflags.c
 can_multi_conn_flag_CPPFLAGS = \

@@ -47,6 +47,12 @@ nbd_internal_set_size_and_flags (struct nbd_handle *h,
     eflags &= ~NBD_FLAG_SEND_DF;
   }
 
+  if (eflags & NBD_FLAG_SEND_FAST_ZERO &&
+      !(eflags & NBD_FLAG_SEND_WRITE_ZEROES)) {
+    debug (h, "server lacks write zeroes, ignoring claim of fast zero");
+    eflags &= ~NBD_FLAG_SEND_FAST_ZERO;
+  }
+
   h->exportsize = exportsize;
   h->eflags = eflags;
   return 0;
@@ -98,6 +104,12 @@ int
 nbd_unlocked_can_zero (struct nbd_handle *h)
 {
   return get_flag (h, NBD_FLAG_SEND_WRITE_ZEROES);
+}
+
+int
+nbd_unlocked_can_fast_zero (struct nbd_handle *h)
+{
+  return get_flag (h, NBD_FLAG_SEND_FAST_ZERO);
 }
 
 int

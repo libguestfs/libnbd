@@ -108,6 +108,7 @@ struct nbd_fixed_new_option_reply {
 #define NBD_FLAG_SEND_DF           (1 << 7)
 #define NBD_FLAG_CAN_MULTI_CONN    (1 << 8)
 #define NBD_FLAG_SEND_CACHE        (1 << 10)
+#define NBD_FLAG_SEND_FAST_ZERO    (1 << 11)
 
 /* NBD options (new style handshake only). */
 #define NBD_OPT_EXPORT_NAME        1
@@ -250,6 +251,7 @@ struct nbd_structured_reply_error {
 #define NBD_EINVAL     22
 #define NBD_ENOSPC     28
 #define NBD_EOVERFLOW  75
+#define NBD_ENOTSUP    95
 #define NBD_ESHUTDOWN 108
 
 #endif /* NBD_PROTOCOL_H */
