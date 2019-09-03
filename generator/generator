@@ -1367,7 +1367,8 @@ the server does not."
 Returns true if the server supports the FUA flag on
 certain commands (see L<nbd_pwrite(3)>)."
 ^ non_blocking_test_call_description;
-    see_also = ["L<libnbd(3)/Flag calls>"; "L<nbd_pwrite(3)>"];
+    see_also = ["L<libnbd(3)/Flag calls>"; "L<nbd_pwrite(3)>";
+                "L<nbd_zero(3)>"; "L<nbd_trim(3)>"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1484,7 +1485,8 @@ namespace contexts beginning with C<LIBNBD_CONTEXT_>, but you
 are free to pass in other contexts."
 ^ non_blocking_test_call_description;
     see_also = ["L<libnbd(3)/Flag calls>";
-                "L<nbd_add_meta_context(3)>"];
+                "L<nbd_add_meta_context(3)>";
+                "L<nbd_block_status(3)>"; "L<nbd_aio_block_status(3)>"];
   };
 
   "get_size", {
@@ -1517,7 +1519,7 @@ C<LIBNBD_CMD_FLAG_DF>.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
-    see_also = ["L<nbd_pread_structured(3)>"];
+    see_also = ["L<nbd_aio_pread(3)>"; "L<nbd_pread_structured(3)>"];
     example = Some "examples/fetch-first-sector.c";
   };
 
@@ -1594,7 +1596,8 @@ C<LIBNBD_CMD_FLAG_DF> meaning that the server should not reply with
 more than one fragment (if that is supported - some servers cannot do
 this, see L<nbd_can_df(3)>). Libnbd does not validate that the server
 actually obeys the flag.";
-    see_also = ["L<nbd_can_df(3)>"];
+    see_also = ["L<nbd_can_df(3)>"; "L<nbd_pread(3)>";
+                "L<nbd_aio_pread_structured(3)>"];
   };
 
   "pwrite", {
@@ -1616,7 +1619,8 @@ C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
 L<nbd_can_fua(3)>).";
-    see_also = ["L<nbd_can_fua(3)>"];
+    see_also = ["L<nbd_can_fua(3)>"; "L<nbd_can_write(3)>";
+                "L<nbd_aio_pwrite(3)>"];
     example = Some "examples/reads-and-writes.c";
   };
 
@@ -1655,6 +1659,7 @@ return an error if L<nbd_can_flush(3)> is false.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
+    see_also = ["L<nbd_can_flush(3)>"; "L<nbd_aio_flush(3)>"];
   };
 
   "trim", {
@@ -1676,7 +1681,8 @@ C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
 L<nbd_can_fua(3)>).";
-    see_also = ["L<nbd_can_fua(3)>"];
+    see_also = ["L<nbd_can_fua(3)>"; "L<nbd_can_trim(3)>";
+                "L<nbd_aio_trim(3)>"];
   };
 
   "cache", {
@@ -1696,6 +1702,7 @@ L<nbd_can_cache(3)> is false.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
+    see_also = ["L<nbd_can_cache(3)>"; "L<nbd_aio_cache(3)>"];
   };
 
   "zero", {
@@ -1719,7 +1726,8 @@ return until the data has been committed to permanent storage
 L<nbd_can_fua(3)>), and/or C<LIBNBD_CMD_FLAG_NO_HOLE> meaning that
 the server should favor writing actual allocated zeroes over
 punching a hole.";
-    see_also = ["L<nbd_can_fua(3)>"];
+    see_also = ["L<nbd_can_fua(3)>"; "L<nbd_can_zero(3)>";
+                "L<nbd_aio_zero(3)>"];
   };
 
   "block_status", {
@@ -1779,7 +1787,8 @@ C<LIBNBD_CMD_FLAG_REQ_ONE> meaning that the server should
 return only one extent per metadata context where that extent
 does not exceed C<count> bytes; however, libnbd does not
 validate that the server obeyed the flag.";
-    see_also = ["L<nbd_add_meta_context(3)>"; "L<nbd_can_meta_context(3)>"];
+    see_also = ["L<nbd_add_meta_context(3)>"; "L<nbd_can_meta_context(3)>";
+                "L<nbd_aio_block_status(3)>"];
   };
 
   "poll", {
@@ -1897,7 +1906,8 @@ as described in L<libnbd(3)/Completion callbacks>.
 Note that you must ensure C<buf> is valid until the command has
 completed.  Other parameters behave as documented in L<nbd_pread(3)>.";
     example = Some "examples/aio-connect-read.c";
-    see_also = ["L<libnbd(3)/Issuing asynchronous commands>"];
+    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
+                "L<nbd_aio_pread_structured(3)>"; "L<nbd_pread(3)>"];
   };
 
   "aio_pread_structured", {
@@ -1916,6 +1926,8 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Other parameters behave as documented in L<nbd_pread_structured(3)>.";
+    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
+                "L<nbd_aio_pread(3)>"; "L<nbd_pread_structured(3)>"];
   };
 
   "aio_pwrite", {
@@ -1934,6 +1946,8 @@ as described in L<libnbd(3)/Completion callbacks>.
 
 Note that you must ensure C<buf> is valid until the command has
 completed.  Other parameters behave as documented in L<nbd_pwrite(3)>.";
+    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
+                "L<nbd_can_write(3)>"; "L<nbd_pwrite(3)>"];
   };
 
   "aio_disconnect", {
@@ -1975,6 +1989,8 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Other parameters behave as documented in L<nbd_flush(3)>.";
+    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
+                "L<nbd_can_flush(3)>"; "L<nbd_flush(3)>"];
   };
 
   "aio_trim", {
@@ -1992,6 +2008,8 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Other parameters behave as documented in L<nbd_trim(3)>.";
+    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
+                "L<nbd_can_trim(3)>"; "L<nbd_trim(3)>"];
   };
 
   "aio_cache", {
@@ -2009,6 +2027,8 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Other parameters behave as documented in L<nbd_cache(3)>.";
+    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
+                "L<nbd_can_cache(3)>"; "L<nbd_cache(3)>"];
   };
 
   "aio_zero", {
@@ -2026,6 +2046,8 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Other parameters behave as documented in L<nbd_zero(3)>.";
+    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
+                "L<nbd_can_zero(3)>"; "L<nbd_zero(3)>"];
   };
 
   "aio_block_status", {
@@ -2043,6 +2065,8 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Other parameters behave as documented in L<nbd_block_status(3)>.";
+    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
+                "L<nbd_can_meta_context(3)>"; "L<nbd_block_status(3)>"];
   };
 
   "aio_get_fd", {
@@ -2305,7 +2329,7 @@ does not exit when the socket is closed.
 
 The C<signum> parameter is the optional signal number to send
 (see L<signal(7)>).  If C<signum> is C<0> then C<SIGTERM> is sent.";
-    see_also = ["L<signal(7)>"];
+    see_also = ["L<signal(7)>"; "L<nbd_connect_command(3)>"];
   };
 
   "supports_tls", {
