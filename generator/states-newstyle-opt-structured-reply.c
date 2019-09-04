@@ -20,6 +20,11 @@
 
 /* STATE MACHINE */ {
  NEWSTYLE.OPT_STRUCTURED_REPLY.START:
+  if (!h->request_sr) {
+    SET_NEXT_STATE (%^OPT_SET_META_CONTEXT.START);
+    return 0;
+  }
+
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (NBD_OPT_STRUCTURED_REPLY);
   h->sbuf.option.optlen = htobe32 (0);

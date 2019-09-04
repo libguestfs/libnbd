@@ -63,6 +63,7 @@ nbd_create (void)
 
   h->unique = 1;
   h->tls_verify_peer = true;
+  h->request_sr = true;
 
   s = getenv ("LIBNBD_DEBUG");
   h->debug = s && strcmp (s, "1") == 0;
@@ -240,6 +241,20 @@ nbd_unlocked_add_meta_context (struct nbd_handle *h, const char *name)
   list[len+1] = NULL;
 
   return 0;
+}
+
+int
+nbd_unlocked_set_request_structured_replies (struct nbd_handle *h,
+                                             bool request)
+{
+  h->request_sr = request;
+  return 0;
+}
+
+int
+nbd_unlocked_get_request_structured_replies (struct nbd_handle *h)
+{
+  return h->request_sr;
 }
 
 const char *

@@ -1243,6 +1243,36 @@ Get the current TLS PSK filename.";
   };
 *)
 
+  "set_request_structured_replies", {
+    default_call with
+    args = [Bool "request"]; ret = RErr;
+    permitted_states = [ Created ];
+    first_version = (1, 2);
+    shortdesc = "control use of structured replies";
+    longdesc = "\
+By default, libnbd tries to negotiate structured replies with the
+server, as this protocol extension must be in use before
+C<nbd_can_meta_context> or C<nbd_can_df> can return true.  However,
+for integration testing, it can be useful to clear this flag
+rather than find a way to alter the server to fail the negotiation
+request.";
+    see_also = ["L<nbd_get_request_structured_replies(3)>";
+                "L<nbd_can_meta_context(3)>"; "L<nbd_can_df(3)>"];
+  };
+
+  "get_request_structured_replies", {
+    default_call with
+    args = []; ret = RBool;
+    first_version = (1, 2);
+    shortdesc = "see if structured replies are attempted";
+    longdesc = "\
+Return the state of the request structured replies flag on this
+handle.  Note that this only reports whether the client attempts
+to negotiate structured replies, and not whether the server was
+able to honor that request";
+    see_also = ["L<nbd_set_request_structured_replies(3)>"];
+  };
+
   "add_meta_context", {
     default_call with
     args = [ String "name" ]; ret = RErr;

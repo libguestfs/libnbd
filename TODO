@@ -48,7 +48,7 @@ Suggested API improvements:
   - support PKCS11 URIs (RFC 7512)
 
   Easier server implementation testing:
-  - a way to disable requesting structured replies
+  - a way to force NBD_OPT_EXPORT_NAME over NBD_OPT_GO
   - a way to forcefully violate protocol (such as allowing writes to a
     readonly connection, or sending a request that exceeds bounds) for
     testing server reactions

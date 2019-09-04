@@ -73,6 +73,7 @@ struct nbd_handle {
   char *tls_psk_file;           /* PSK filename, NULL = no PSK */
 
   /* Desired metadata contexts. */
+  bool request_sr;
   char **request_meta_contexts;
 
   /* Global flags from the server. */
