@@ -66,7 +66,7 @@ AC_ARG_ENABLE([gcc-warnings],
       [gcc_warnings=no]
 )
 if test "x$gcc_warnings" = "xyes"; then
-    WARNINGS_CFLAGS="-Wall -Werror"
+    WARNINGS_CFLAGS="-Wall -Wvla -Werror"
     AC_SUBST([WARNINGS_CFLAGS])
 fi
 
