@@ -845,9 +845,11 @@ type call = {
   may_set_error : bool;
   (* The first stable version that the symbol appeared in, for
    * example (1, 2) if the symbol was added in development cycle
-   * 1.1.x and thus the first stable version was 1.2
+   * 1.1.x and thus the first stable version was 1.2.  This is
+   * filled in by the generator, add new calls to the first_version
+   * table instead.
    *)
-  first_version : int * int;
+  mutable first_version : int * int;
 }
 and arg =
 | Bool of string           (* bool *)
@@ -916,7 +918,7 @@ let default_call = { args = []; optargs = []; ret = RErr;
                      see_also = [];
                      permitted_states = [];
                      is_locked = true; may_set_error = true;
-                     first_version = (1, 0) }
+                     first_version = (0, 0) }
 let non_blocking_test_call_description = "\n
 This call does not block, because it returns data that is saved in
 the handle from the NBD protocol handshake."
@@ -1247,7 +1249,6 @@ Get the current TLS PSK filename.";
     default_call with
     args = [Bool "request"]; ret = RErr;
     permitted_states = [ Created ];
-    first_version = (1, 2);
     shortdesc = "control use of structured replies";
     longdesc = "\
 By default, libnbd tries to negotiate structured replies with the
@@ -1263,7 +1264,6 @@ request.";
   "get_request_structured_replies", {
     default_call with
     args = []; ret = RBool;
-    first_version = (1, 2);
     shortdesc = "see if structured replies are attempted";
     longdesc = "\
 Return the state of the request structured replies flag on this
@@ -1453,7 +1453,6 @@ the server does not."
     default_call with
     args = []; ret = RBool;
     permitted_states = [ Connected; Closed ];
-    first_version = (1, 2);
     shortdesc = "does the server support the fast zero flag?";
     longdesc = "\
 Returns true if the server supports the use of the
@@ -2404,7 +2403,99 @@ Returns true if libnbd was compiled with libxml2 which is required
 to support NBD URIs, or false if not.";
     see_also = ["L<nbd_connect_uri(3)>"; "L<nbd_aio_connect_uri(3)>"];
   };
+]
 
+(* The first stable version that the symbol appeared in, for
+ * example (1, 2) if the symbol was added in development cycle
+ * 1.1.x and thus the first stable version was 1.2.
+ *)
+let first_version = [
+  "set_debug", (1, 0);
+  "get_debug", (1, 0);
+  "set_debug_callback", (1, 0);
+  "clear_debug_callback", (1, 0);
+  "set_handle_name", (1, 0);
+  "get_handle_name", (1, 0);
+  "set_export_name", (1, 0);
+  "get_export_name", (1, 0);
+  "set_tls", (1, 0);
+  "get_tls", (1, 0);
+  "set_tls_certificates", (1, 0);
+  "set_tls_verify_peer", (1, 0);
+  "get_tls_verify_peer", (1, 0);
+  "set_tls_username", (1, 0);
+  "get_tls_username", (1, 0);
+  "set_tls_psk_file", (1, 0);
+  "add_meta_context", (1, 0);
+  "connect_uri", (1, 0);
+  "connect_unix", (1, 0);
+  "connect_tcp", (1, 0);
+  "connect_command", (1, 0);
+  "is_read_only", (1, 0);
+  "can_flush", (1, 0);
+  "can_fua", (1, 0);
+  "is_rotational", (1, 0);
+  "can_trim", (1, 0);
+  "can_zero", (1, 0);
+  "can_df", (1, 0);
+  "can_multi_conn", (1, 0);
+  "can_cache", (1, 0);
+  "can_meta_context", (1, 0);
+  "get_size", (1, 0);
+  "pread", (1, 0);
+  "pread_structured", (1, 0);
+  "pwrite", (1, 0);
+  "shutdown", (1, 0);
+  "flush", (1, 0);
+  "trim", (1, 0);
+  "cache", (1, 0);
+  "zero", (1, 0);
+  "block_status", (1, 0);
+  "poll", (1, 0);
+  "aio_connect", (1, 0);
+  "aio_connect_uri", (1, 0);
+  "aio_connect_unix", (1, 0);
+  "aio_connect_tcp", (1, 0);
+  "aio_connect_command", (1, 0);
+  "aio_pread", (1, 0);
+  "aio_pread_structured", (1, 0);
+  "aio_pwrite", (1, 0);
+  "aio_disconnect", (1, 0);
+  "aio_flush", (1, 0);
+  "aio_trim", (1, 0);
+  "aio_cache", (1, 0);
+  "aio_zero", (1, 0);
+  "aio_block_status", (1, 0);
+  "aio_get_fd", (1, 0);
+  "aio_get_direction", (1, 0);
+  "aio_notify_read", (1, 0);
+  "aio_notify_write", (1, 0);
+  "aio_is_created", (1, 0);
+  "aio_is_connecting", (1, 0);
+  "aio_is_ready", (1, 0);
+  "aio_is_processing", (1, 0);
+  "aio_is_dead", (1, 0);
+  "aio_is_closed", (1, 0);
+  "aio_command_completed", (1, 0);
+  "aio_peek_command_completed", (1, 0);
+  "aio_in_flight", (1, 0);
+  "connection_state", (1, 0);
+  "get_package_name", (1, 0);
+  "get_version", (1, 0);
+  "kill_subprocess", (1, 0);
+  "supports_tls", (1, 0);
+  "supports_uri", (1, 0);
+
+  (* Added in 1.1.x development cycle, will be stable and supported in 1.2. *)
+  "can_fast_zero", (1, 2);
+  "set_request_structured_replies", (1, 2);
+  "get_request_structured_replies", (1, 2);
+
+  (* These calls are proposed for a future version of libnbd, but
+   * have not been added to any released version so far.
+  "get_tls_certificates", (1, ??);
+  "get_tls_psk_file", (1, ??);
+   *)
 ]
 
 (* Constants, etc. *)
@@ -3366,13 +3457,37 @@ let () =
     | _ -> ()
   ) handle_calls;
 
-  (* First stable version must be 1.x where x is even. *)
+  (* first_version must be (0, 0) in handle_calls (we will modify it). *)
   List.iter (
-    fun (name, { first_version = (major, minor) }) ->
-      if major <> 1 then
-        failwithf "%s: first_version must be 1.x" name;
-      if minor mod 2 <> 0 then
-        failwithf "%s: first_version must refer to a stable release" name
+    function
+    | (_, { first_version = (0, 0) }) -> ()
+    | (name, _) ->
+        failwithf "%s: first_version field must not be set in handle_calls table" name
+  ) handle_calls;
+
+  (* Check every entry in first_version corresponds 1-1 with handle_calls. *)
+  let () =
+    let fv_names = List.sort compare (List.map fst first_version) in
+    let hc_names = List.sort compare (List.map fst handle_calls) in
+    if fv_names <> hc_names then (
+      eprintf "first_version names:\n";
+      List.iter (eprintf "\t%s\n") fv_names;
+      eprintf "handle_calls names:\n";
+      List.iter (eprintf "\t%s\n") hc_names;
+      failwithf "first_version and handle_calls are not a 1-1 mapping.  You probably forgot to add a new API to the first_version table."
+    ) in
+
+  (* Check and update first_version field in handle_calls. *)
+  List.iter (
+    function
+    | (name, entry) ->
+       let major, minor = List.assoc name first_version in
+       (* First stable version must be 1.x where x is even. *)
+       if major <> 1 then
+         failwithf "%s: first_version must be 1.x" name;
+       if minor mod 2 <> 0 then
+         failwithf "%s: first_version must refer to a stable release" name;
+       entry.first_version <- (major, minor)
   ) handle_calls;
 
   (* Because of the way we use completion free callbacks to
