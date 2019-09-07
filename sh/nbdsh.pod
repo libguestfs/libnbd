@@ -71,8 +71,8 @@ Read standard input and execute it as a command.
 
 =item B<--connect> URI
 
-Connect to the given NBD URI.  This is equivalent to the
-S<C<h.connect_uri (URI)>> command in the shell.
+Connect to the given L<NBD URI|https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>.
+This is equivalent to the S<C<h.connect_uri (URI)>> command in the shell.
 
 =item B<-V>
 
