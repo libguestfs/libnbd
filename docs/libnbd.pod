@@ -79,7 +79,7 @@ L<poll(2)> or another main loop.
 You can freely mix the two APIs on the same handle.  You can also call
 APIs on a single handle from multiple threads.  Single API calls on
 the handle are atomic — they either take a lock on the handle while
-they run or are careful to access handle fields atomicly.
+they run or are careful to access handle fields atomically.
 
 Libnbd does B<not> create its own threads.
 
