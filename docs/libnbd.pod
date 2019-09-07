@@ -71,12 +71,17 @@ commands.
 There are two levels of API available.  A simple high level
 synchronous API lets you give the handle high level instructions like
 “connect to the server”, “read a block”, “write a block”, etc.  Each
-of these functions will run to completion before returning.  A more
-complicated low level non-blocking asynchronous API is also available
-where you can integrate with L<poll(2)> or another main loop.
+of these functions will run to completion, blocking the current thread
+before returning.  A more complicated low level non-blocking
+asynchronous API is also available where you can integrate with
+L<poll(2)> or another main loop.
 
 You can freely mix the two APIs on the same handle.  You can also call
-APIs on a single handle from multiple threads.
+APIs on a single handle from multiple threads.  Single API calls on
+the handle are atomic — they either take a lock on the handle while
+they run or are careful to access handle fields atomicly.
+
+Libnbd does B<not> create its own threads.
 
 =head1 USING THE SYNCHRONOUS (“HIGH LEVEL”) API
 
