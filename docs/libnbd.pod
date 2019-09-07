@@ -513,6 +513,34 @@ Some servers can prefetch data, making subsequent reads faster.  The
 L<nbd_cache(3)> call (available if L<nbd_can_cache(3)> returns true) is used
 to prefetch.
 
+=item block status
+
+Some servers are able to provide information about the various extents
+within the image, via the notion of one or more meta contexts.  The
+most common meta context is "base:allocation" (available in libnbd.h
+as C<LIBNBD_CONTEXT_BASE_ALLOCATION>), which can be used to learn
+which portions of a file are allocated or read as zero.  Other
+contexts may be available; for example, L<qemu-nbd(8)> can expose a
+meta context "qemu:dirty-bitmap:NAME" for tracking which portions of a
+file are tracked by a qcow2 dirty bitmap.
+
+In order to utilize block status, the client must call
+L<nbd_add_meta_context(3)> prior to connecting, for each meta context
+in which it is interested, then check L<nbd_can_meta_context(3)> after
+connection to see which contexts the server actually supports.  If a
+context is supported, the client can then use L<nbd_block_status(3)>
+with a callback function that will receive an array of 32-bit integer
+pairs describing consecutive extents within a context.  In each pair,
+the first integer is the length of the extent, the second is a bitmask
+description of that extent (for the "base:allocation" context, the
+bitmask may include C<LIBNBD_STATE_HOLE> for unallocated portions of
+the file, and/or C<LIBNBD_STATE_ZERO> for portions of the file known
+to read as zero).
+
+There is a full example of requesting meta context and using block
+status available at
+L<https://github.com/libguestfs/libnbd/blob/master/interop/dirty-bitmap.c>
+
 =back
 
 =head1 PERFORMANCE
