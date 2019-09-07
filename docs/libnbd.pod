@@ -791,6 +791,11 @@ L<certtool(1)>,
 L<nbdkit-tls(1)>,
 L<psktool(1)>.
 
+=head2 Standards
+
+L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/proto.md>,
+L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>.
+
 =head2 Other
 
 L<qemu(1)>.
