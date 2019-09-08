@@ -2356,20 +2356,44 @@ the library was modified with another name at compile time.";
     longdesc = "\
 Return the version of libnbd.  This is returned as a string
 in the form C<\"major.minor.release\"> where each of major, minor
-and release is a small positive integer.  For example C<\"1.0.3\">.
+and release is a small positive integer.  For example:
 
-The major number is C<0> for the early experimental versions of
-libnbd where we still had an unstable API, or C<1> for the versions
-of libnbd with a long-term stable API and ABI.
+     minor
+       ↓
+    \"1.0.3\"
+     ↑   ↑
+ major   release
 
-The minor number is even (C<0>, C<2>, etc) for stable releases,
-and odd (C<1>, C<3>, etc) for development versions.  Note that
+=over 4
+
+=item major = 0
+
+The major number was C<0> for the early experimental versions of
+libnbd where we still had an unstable API.
+
+=item major = 1
+
+The major number is C<1> for the versions of libnbd with a
+long-term stable API and ABI.  It is not anticipated that
+major will be any number other than C<1>.
+
+=item minor = 0, 2, ... (even)
+
+The minor number is even for stable releases.
+
+=item minor = 1, 3, ... (odd)
+
+The minor number is odd for development versions.  Note that
 new APIs added in a development version remain experimental
 and subject to change in that branch until they appear in a stable
 release.
 
+=item release
+
 The release number is incremented for each release along a particular
-branch.";
+branch.
+
+=back";
   };
 
   "kill_subprocess", {
