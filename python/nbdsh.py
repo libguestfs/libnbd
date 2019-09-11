@@ -57,8 +57,10 @@ help (nbd)                          # Display documentation
     if not args.command:
         code.interact (banner = banner, local = locals(), exitmsg = '')
     else:
+        # https://stackoverflow.com/a/11754346
+        d = dict (locals(), **globals())
         for c in args.command:
             if c != '-':
-                exec (c)
+                exec (c, d, d)
             else:
-                exec (sys.stdin.read ())
+                exec (sys.stdin.read (), d, d)
