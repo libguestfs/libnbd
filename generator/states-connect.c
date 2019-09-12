@@ -128,6 +128,8 @@ disable_nagle (int sock)
     h->result = NULL;
   }
 
+  h->connect_errno = 0;
+
   memset (&h->hints, 0, sizeof h->hints);
   h->hints.ai_family = AF_UNSPEC;
   h->hints.ai_socktype = SOCK_STREAM;
@@ -160,7 +162,8 @@ disable_nagle (int sock)
      * Save errno from most recent connect(2) call. XXX
      */
     SET_NEXT_STATE (%^START);
-    set_error (0, "connect: %s:%s: could not connect to remote host",
+    set_error (h->connect_errno,
+               "connect: %s:%s: could not connect to remote host",
                h->hostname, h->port);
     return -1;
   }
@@ -182,6 +185,8 @@ disable_nagle (int sock)
 
   if (connect (fd, h->rp->ai_addr, h->rp->ai_addrlen) == -1) {
     if (errno != EINPROGRESS) {
+      if (h->connect_errno == 0)
+        h->connect_errno = errno;
       SET_NEXT_STATE (%NEXT_ADDRESS);
       return 0;
     }
@@ -203,8 +208,11 @@ disable_nagle (int sock)
   /* This checks the status of the original connect call. */
   if (status == 0)
     SET_NEXT_STATE (%^MAGIC.START);
-  else
+  else {
+    if (h->connect_errno == 0)
+      h->connect_errno = status;
     SET_NEXT_STATE (%NEXT_ADDRESS);
+  }
   return 0;
 
  CONNECT_TCP.NEXT_ADDRESS:
