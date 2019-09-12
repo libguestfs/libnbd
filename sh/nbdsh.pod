@@ -56,6 +56,13 @@ __EXAMPLES_HEXDUMP__
 
 Display brief command line help and exit.
 
+=item B<--base-allocation>
+
+Request the use of the "base:allocation" meta context, which is the
+most common context used with L<nbd_block_status(3)>.  This is
+equivalent to calling S<C<h.set_meta_context
+(nbd.CONTEXT_BASE_ALLOCATION)>> in the shell prior to connecting.
+
 =item B<-c> 'COMMAND ...'
 
 =item B<--command> 'COMMAND ...'

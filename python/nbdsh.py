@@ -27,6 +27,8 @@ def shell():
     epilog = '''Please read the nbdsh(1) manual page for full usage.'''
     parser = argparse.ArgumentParser (prog='nbdsh', description=description,
                                       epilog=epilog)
+    parser.add_argument ('--base-allocation', action='store_true',
+                         help='request the "base:allocation" meta context')
     parser.add_argument ('--connect', metavar='URI',
                          help="connect to NBD URI")
     parser.add_argument ('-c', '--command', action='append',
@@ -52,6 +54,8 @@ exit() or Ctrl-D                    # Quit the shell
 help (nbd)                          # Display documentation
 '''
 
+    if args.base_allocation:
+        h.add_meta_context (nbd.CONTEXT_BASE_ALLOCATION)
     if args.connect is not None:
         h.connect_uri (args.connect)
     # If there are no -c or --command parameters, go interactive,

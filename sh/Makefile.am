@@ -21,6 +21,7 @@ EXTRA_DIST = \
 	nbdsh.pod \
 	examples/LICENSE-FOR-EXAMPLES \
 	examples/hexdump.sh \
+	test-context.sh \
 	test-help.sh \
 	test-pattern.sh \
 	test-version.sh \
@@ -43,7 +44,7 @@ nbdsh.1: nbdsh.pod $(top_builddir)/podwrapper.pl
 
 endif HAVE_POD
 
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 EXP_VERSION=$(VERSION)
+TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 NBDKIT_DEBUG=1 EXP_VERSION=$(VERSION)
 LOG_COMPILER = $(top_builddir)/run
 TESTS = \
 	test-help.sh \
@@ -53,6 +54,7 @@ TESTS = \
 if HAVE_NBDKIT
 
 TESTS += \
+	test-context.sh \
 	test-pattern.sh \
 	$(NULL)
 
