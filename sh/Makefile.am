@@ -22,6 +22,7 @@ EXTRA_DIST = \
 	examples/LICENSE-FOR-EXAMPLES \
 	examples/hexdump.sh \
 	test-help.sh \
+	test-pattern.sh \
 	test-version.sh \
 	$(NULL)
 
@@ -51,7 +52,9 @@ TESTS = \
 
 if HAVE_NBDKIT
 
-TESTS +=
+TESTS += \
+	test-pattern.sh \
+	$(NULL)
 
 endif HAVE_NBDKIT
 
