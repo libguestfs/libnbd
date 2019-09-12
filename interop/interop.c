@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <signal.h>
+#include <errno.h>
 #include <sys/types.h>
 
 #include <libnbd.h>
@@ -44,6 +45,7 @@ main (int argc, char *argv[])
   int port;
   char port_str[16];
   pid_t pid = -1;
+  int retry;
 #endif
   int64_t actual_size;
   char buf[512];
@@ -114,14 +116,19 @@ main (int argc, char *argv[])
   }
 
   /* Unfortunately there's no good way to wait for qemu-nbd to start
-   * serving, so ...
+   * serving, so we need to retry here.
    */
-  sleep (5);
-
-  if (nbd_connect_tcp (nbd, "localhost", port_str) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    goto out;
+  for (retry = 0; retry < 5; ++retry) {
+    sleep (1 << retry);
+    if (nbd_connect_tcp (nbd, "localhost", port_str) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      if (nbd_get_errno () != ECONNREFUSED)
+        goto out;
+    }
+    else break;
   }
+  if (retry == 5)
+    goto out;
 
 #else /* !SERVE_OVER_TCP */
 
