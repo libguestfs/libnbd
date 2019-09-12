@@ -29,8 +29,10 @@ def shell():
                                       epilog=epilog)
     parser.add_argument ('--base-allocation', action='store_true',
                          help='request the "base:allocation" meta context')
-    parser.add_argument ('--connect', metavar='URI',
+    parser.add_argument ('-u', '--uri',
                          help="connect to NBD URI")
+    # For back-compat, provide --connect as an undocumented synonym to --uri
+    parser.add_argument ('--connect', dest='uri', help=argparse.SUPPRESS)
     parser.add_argument ('-c', '--command', action='append',
                          help="run a command")
     parser.add_argument ('-V', '--version', action='version',
@@ -56,8 +58,8 @@ help (nbd)                          # Display documentation
 
     if args.base_allocation:
         h.add_meta_context (nbd.CONTEXT_BASE_ALLOCATION)
-    if args.connect is not None:
-        h.connect_uri (args.connect)
+    if args.uri is not None:
+        h.connect_uri (args.uri)
     # If there are no -c or --command parameters, go interactive,
     # otherwise we run the commands and exit.
     if not args.command:

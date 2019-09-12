@@ -32,11 +32,11 @@ For documentation about the libnbd API please open the shell and type:
 
 =head2 Print the size of an NBD export
 
-The I<--connect> option connects to an NBD URI.  The I<-c> option lets
+The I<-u> option connects to an NBD URI.  The I<-c> option lets
 you execute single Python statements from the command line.  Combining
 these two options lets you print the size in bytes of an NBD export:
 
- $ nbdsh --connect nbd://localhost -c 'print (h.get_size ())'
+ $ nbdsh -u nbd://localhost -c 'print (h.get_size ())'
  1073741824
 
 =head2 Hexdump the boot sector of an NBD export
@@ -75,6 +75,10 @@ can be specified multiple times in order to run multiple commands.
 =item B<--command ->
 
 Read standard input and execute it as a command.
+
+=item B<-u> URI
+
+=item B<-uri> URI
 
 =item B<--connect> URI
 

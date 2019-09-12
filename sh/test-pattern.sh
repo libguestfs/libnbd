@@ -36,7 +36,7 @@ if ! test -f "$pidfile"; then
     exit 1
 fi
 
-nbdsh --connect "nbd+unix://?socket=$sock" \
+nbdsh -u "nbd+unix://?socket=$sock" \
     -c '
 def size():
   return h.get_size()
