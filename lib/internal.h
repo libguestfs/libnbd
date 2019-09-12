@@ -187,6 +187,7 @@ struct nbd_handle {
   char *hostname, *port;
   struct addrinfo hints;
   struct addrinfo *result, *rp;
+  int connect_errno;
 
   /* When sending metadata contexts, this is used. */
   size_t querynum;
