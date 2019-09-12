@@ -24,8 +24,10 @@ def shell():
     import nbd
 
     description = '''Network Block Device (NBD) shell'''
-    parser = argparse.ArgumentParser (prog='nbdsh', description=description)
-    parser.add_argument ('--connect',
+    epilog = '''Please read the nbdsh(1) manual page for full usage.'''
+    parser = argparse.ArgumentParser (prog='nbdsh', description=description,
+                                      epilog=epilog)
+    parser.add_argument ('--connect', metavar='URI',
                          help="connect to NBD URI")
     parser.add_argument ('-c', '--command', action='append',
                          help="run a command")

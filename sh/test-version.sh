@@ -1,5 +1,6 @@
+#!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2013-2019 Red Hat Inc.
+# Copyright (C) 2019 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -15,44 +16,17 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-include $(top_srcdir)/subdir-rules.mk
+# Test that nbdsh --version looks sane.
 
-EXTRA_DIST = \
-	nbdsh.pod \
-	examples/LICENSE-FOR-EXAMPLES \
-	examples/hexdump.sh \
-	test-help.sh \
-	test-version.sh \
-	$(NULL)
-
-if HAVE_PYTHON
-
-bin_SCRIPTS = nbdsh
-
-if HAVE_POD
-
-man_MANS = nbdsh.1
-CLEANFILES += $(man_MANS)
-
-nbdsh.1: nbdsh.pod $(top_builddir)/podwrapper.pl
-	$(PODWRAPPER) --section=1 --man $@ \
-	    --html $(top_builddir)/html/$@.html \
-	    --verbatim $(srcdir)/examples/hexdump.sh:__EXAMPLES_HEXDUMP__ \
-	    $<
-
-endif HAVE_POD
-
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 EXP_VERSION=$(VERSION)
-LOG_COMPILER = $(top_builddir)/run
-TESTS = \
-	test-help.sh \
-	test-version.sh \
-	$(NULL)
-
-if HAVE_NBDKIT
-
-TESTS +=
-
-endif HAVE_NBDKIT
-
-endif HAVE_PYTHON
+fail=0
+output=$(nbdsh --version)
+if [ $? != 0 ]; then
+    echo "$0: unexpected exit status"
+    fail=1
+fi
+if [ "$output" != "libnbd $EXP_VERSION" ]; then
+    echo "$0: unexpected output"
+    fail=1
+fi
+echo "$output"
+exit $fail
