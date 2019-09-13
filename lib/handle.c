@@ -251,6 +251,7 @@ nbd_unlocked_set_request_structured_replies (struct nbd_handle *h,
   return 0;
 }
 
+/* NB: may_set_error = false. */
 int
 nbd_unlocked_get_request_structured_replies (struct nbd_handle *h)
 {

@@ -999,6 +999,7 @@ set in the environment in which case it defaults to true.";
   "get_debug", {
     default_call with
     args = []; ret = RBool;
+    may_set_error = false;
     shortdesc = "return the state of the debug flag";
     longdesc = "\
 Return the state of the debug flag on this handle.";
@@ -1131,6 +1132,7 @@ test whether this is the case with L<nbd_supports_tls(3)>.";
   "get_tls", {
     default_call with
     args = []; ret = RInt;
+    may_set_error = false;
     shortdesc = "get the current TLS setting";
     longdesc = "\
 Get the current TLS setting.";
@@ -1186,6 +1188,7 @@ is also used to request or require TLS.";
   "get_tls_verify_peer", {
     default_call with
     args = []; ret = RBool;
+    may_set_error = false;
     shortdesc = "get whether we verify the identity of the server";
     longdesc = "\
 Get the verify peer flag.";
@@ -1264,6 +1267,7 @@ request.";
   "get_request_structured_replies", {
     default_call with
     args = []; ret = RBool;
+    may_set_error = false;
     shortdesc = "see if structured replies are attempted";
     longdesc = "\
 Return the state of the request structured replies flag on this

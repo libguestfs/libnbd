@@ -50,6 +50,7 @@ nbd_unlocked_set_tls (struct nbd_handle *h, int tls)
 #endif
 }
 
+/* NB: may_set_error = false. */
 int
 nbd_unlocked_get_tls (struct nbd_handle *h)
 {
@@ -71,6 +72,7 @@ nbd_unlocked_set_tls_certificates (struct nbd_handle *h, const char *dir)
   return 0;
 }
 
+/* NB: may_set_error = false. */
 int
 nbd_unlocked_set_tls_verify_peer (struct nbd_handle *h, bool verify)
 {

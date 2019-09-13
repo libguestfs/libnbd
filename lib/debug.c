@@ -32,6 +32,7 @@ nbd_unlocked_set_debug (struct nbd_handle *h, bool fl)
   return 0;
 }
 
+/* NB: may_set_error = false. */
 int
 nbd_unlocked_get_debug (struct nbd_handle *h)
 {
