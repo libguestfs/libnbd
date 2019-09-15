@@ -87,6 +87,23 @@ main (int argc, char *argv[])
 
   progname = argv[0];
 
+  /* Initial sanity check that we can't require TLS */
+  nbd = nbd_create ();
+  if (nbd == NULL) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_set_tls (nbd, LIBNBD_TLS_REQUIRE) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_connect_command (nbd, args) != -1) {
+    fprintf (stderr, "%s\n", "expected failure");
+    exit (EXIT_FAILURE);
+  }
+  nbd_close (nbd);
+
+  /* Now for a working connection */
   nbd = nbd_create ();
   if (nbd == NULL) {
     fprintf (stderr, "%s\n", nbd_get_error ());
