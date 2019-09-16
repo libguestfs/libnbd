@@ -129,10 +129,10 @@ handle_reply_error (struct nbd_handle *h)
 
   h->gflags = be16toh (h->gflags);
   if ((h->gflags & NBD_FLAG_FIXED_NEWSTYLE) == 0 &&
-      h->tls == 2) {
+      h->tls == LIBNBD_TLS_REQUIRE) {
     SET_NEXT_STATE (%.DEAD);
     set_error (ENOTSUP, "handshake: server is not fixed newstyle, "
-               "but handle TLS setting is require (2)");
+               "but handle TLS setting is 'require' (2)");
     return 0;
   }
 

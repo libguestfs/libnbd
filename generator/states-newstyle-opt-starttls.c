@@ -21,7 +21,7 @@
 /* STATE MACHINE */ {
  NEWSTYLE.OPT_STARTTLS.START:
   /* If TLS was not requested we skip this option and go to the next one. */
-  if (!h->tls) {
+  if (h->tls == LIBNBD_TLS_DISABLE) {
     SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
     return 0;
   }
@@ -88,13 +88,13 @@
       return 0;
     }
 
-    /* Server refused to upgrade to TLS.  If h->tls is not require (2)
+    /* Server refused to upgrade to TLS.  If h->tls is not 'require' (2)
      * then we can continue unencrypted.
      */
-    if (h->tls == 2) {
+    if (h->tls == LIBNBD_TLS_REQUIRE) {
       SET_NEXT_STATE (%.DEAD);
       set_error (ENOTSUP, "handshake: server refused TLS, "
-                 "but handle TLS setting is require (2)");
+                 "but handle TLS setting is 'require' (2)");
       return 0;
     }
 
