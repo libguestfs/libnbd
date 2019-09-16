@@ -46,13 +46,13 @@
   gflags = be16toh (h->sbuf.old_handshake.gflags);
   eflags = be16toh (h->sbuf.old_handshake.eflags);
 
-  /* Server is unable to upgrade to TLS.  If h->tls is not require (2)
+  /* Server is unable to upgrade to TLS.  If h->tls is not 'require' (2)
    * then we can continue unencrypted.
    */
-  if (h->tls == 2) {
+  if (h->tls == LIBNBD_TLS_REQUIRE) {
     SET_NEXT_STATE (%.DEAD);
     set_error (ENOTSUP, "handshake: server is oldstyle, "
-               "but handle TLS setting is require (2)");
+               "but handle TLS setting is 'require' (2)");
     return 0;
   }
 
