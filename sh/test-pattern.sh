@@ -17,11 +17,13 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 # Test interaction with nbdkit, and for correct global handling over -c.
-nbdkit --exit-with-parent --version || exit 77
+
+. ../tests/functions.sh
+requires nbdkit --exit-with-parent --version
 
 sock=`mktemp -u /tmp/nbdsh.XXXXXX`
 pidfile=test-dump.pid
-trap 'status=$?; rm -f $sock $pidfile; exit $status' INT QUIT TERM EXIT ERR
+cleanup_fn rm -f $sock $pidfile
 nbdkit -v -P $pidfile --exit-with-parent -U $sock pattern size=1m &
 
 # Wait for the pidfile to appear.
