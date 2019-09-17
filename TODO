@@ -17,9 +17,6 @@ NBD_INFO_BLOCK_SIZE.
 
 TLS should properly shut down the session (calling gnutls_bye).
 
-LIBNBD_TLS_ALLOW is not tested.  Related to this,
-nbd_get_tls_negotiated is not tested.
-
 Implement nbd_connect + systemd socket activation.
 
 Improve function trace output so that:

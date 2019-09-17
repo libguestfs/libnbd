@@ -147,12 +147,30 @@ main (int argc, char *argv[])
 #endif
 
 #if TLS
-  if (TLS_MODE == LIBNBD_TLS_REQUIRE &&
-      nbd_get_tls_negotiated (nbd) != 1) {
-    fprintf (stderr,
-             "%s: TLS required, but not negotiated on the connection\n",
-             argv[0]);
-    goto out;
+  if (TLS_MODE == LIBNBD_TLS_REQUIRE) {
+    if (nbd_get_tls_negotiated (nbd) != 1) {
+      fprintf (stderr,
+               "%s: TLS required, but not negotiated on the connection\n",
+               argv[0]);
+      goto out;
+    }
+  }
+  else if (TLS_MODE == LIBNBD_TLS_ALLOW) {
+#if TLS_FALLBACK
+    if (nbd_get_tls_negotiated (nbd) != 0) {
+      fprintf (stderr,
+               "%s: TLS disabled, but connection didn't fall back to plaintext\n",
+               argv[0]);
+      goto out;
+    }
+#else // !TLS_FALLBACK
+    if (nbd_get_tls_negotiated (nbd) != 1) {
+      fprintf (stderr,
+               "%s: TLS allowed, but not negotiated on the connection\n",
+               argv[0]);
+      goto out;
+    }
+#endif
   }
 #endif
 

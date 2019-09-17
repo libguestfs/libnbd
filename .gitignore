@@ -62,7 +62,11 @@ Makefile.in
 /interop/dirty-bitmap
 /interop/interop-nbdkit
 /interop/interop-nbdkit-tls-certs
+/interop/interop-nbdkit-tls-certs-allow-enabled
+/interop/interop-nbdkit-tls-certs-allow-fallback
 /interop/interop-nbdkit-tls-psk
+/interop/interop-nbdkit-tls-psk-allow-enabled
+/interop/interop-nbdkit-tls-psk-allow-fallback
 /interop/interop-nbd-server
 /interop/interop-qemu-nbd
 /interop/interop-qemu-nbd-tls-certs

@@ -145,17 +145,25 @@ if HAVE_GNUTLS
 if HAVE_CERTTOOL
 check_PROGRAMS += \
 	interop-nbdkit-tls-certs \
+	interop-nbdkit-tls-certs-allow-enabled \
+	interop-nbdkit-tls-certs-allow-fallback \
 	$(NULL)
 TESTS += \
 	interop-nbdkit-tls-certs \
+	interop-nbdkit-tls-certs-allow-enabled \
+	interop-nbdkit-tls-certs-allow-fallback \
 	$(NULL)
 endif
 if HAVE_PSKTOOL
 check_PROGRAMS += \
 	interop-nbdkit-tls-psk \
+	interop-nbdkit-tls-psk-allow-enabled \
+	interop-nbdkit-tls-psk-allow-fallback \
 	$(NULL)
 TESTS += \
 	interop-nbdkit-tls-psk \
+	interop-nbdkit-tls-psk-allow-enabled \
+	interop-nbdkit-tls-psk-allow-fallback \
 	$(NULL)
 endif
 endif
@@ -180,6 +188,29 @@ interop_nbdkit_tls_certs_CPPFLAGS = \
 interop_nbdkit_tls_certs_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbdkit_tls_certs_LDADD = $(top_builddir)/lib/libnbd.la
 
+interop_nbdkit_tls_certs_allow_enabled_SOURCES = interop.c
+interop_nbdkit_tls_certs_allow_enabled_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER=\"$(NBDKIT)\" \
+	-DSERVER_PARAMS='"--tls=require", "--tls-certificates=../tests/pki", "-s", "--exit-with-parent", "file", tmpfile' \
+	-DCERTS=1 \
+	-DTLS_MODE=LIBNBD_TLS_ALLOW \
+	$(NULL)
+interop_nbdkit_tls_certs_allow_enabled_CFLAGS = $(WARNINGS_CFLAGS)
+interop_nbdkit_tls_certs_allow_enabled_LDADD = $(top_builddir)/lib/libnbd.la
+
+interop_nbdkit_tls_certs_allow_fallback_SOURCES = interop.c
+interop_nbdkit_tls_certs_allow_fallback_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER=\"$(NBDKIT)\" \
+	-DSERVER_PARAMS='"--tls=off", "-s", "--exit-with-parent", "file", tmpfile' \
+	-DCERTS=1 \
+	-DTLS_MODE=LIBNBD_TLS_ALLOW \
+	-DTLS_FALLBACK=1 \
+	$(NULL)
+interop_nbdkit_tls_certs_allow_fallback_CFLAGS = $(WARNINGS_CFLAGS)
+interop_nbdkit_tls_certs_allow_fallback_LDADD = $(top_builddir)/lib/libnbd.la
+
 interop_nbdkit_tls_psk_SOURCES = interop.c
 interop_nbdkit_tls_psk_CPPFLAGS = \
 	-I$(top_srcdir)/include \
@@ -190,6 +221,29 @@ interop_nbdkit_tls_psk_CPPFLAGS = \
 	$(NULL)
 interop_nbdkit_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbdkit_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
+
+interop_nbdkit_tls_psk_allow_enabled_SOURCES = interop.c
+interop_nbdkit_tls_psk_allow_enabled_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER=\"$(NBDKIT)\" \
+	-DSERVER_PARAMS='"--tls=require", "--tls-psk=../tests/keys.psk", "-s", "--exit-with-parent", "file", tmpfile' \
+	-DPSK=1 \
+	-DTLS_MODE=LIBNBD_TLS_ALLOW \
+	$(NULL)
+interop_nbdkit_tls_psk_allow_enabled_CFLAGS = $(WARNINGS_CFLAGS)
+interop_nbdkit_tls_psk_allow_enabled_LDADD = $(top_builddir)/lib/libnbd.la
+
+interop_nbdkit_tls_psk_allow_fallback_SOURCES = interop.c
+interop_nbdkit_tls_psk_allow_fallback_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER=\"$(NBDKIT)\" \
+	-DSERVER_PARAMS='"--tls=off", "-s", "--exit-with-parent", "file", tmpfile' \
+	-DPSK=1 \
+	-DTLS_MODE=LIBNBD_TLS_ALLOW \
+	-DTLS_FALLBACK=1 \
+	$(NULL)
+interop_nbdkit_tls_psk_allow_fallback_CFLAGS = $(WARNINGS_CFLAGS)
+interop_nbdkit_tls_psk_allow_fallback_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_NBDKIT
 
