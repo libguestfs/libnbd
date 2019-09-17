@@ -87,8 +87,8 @@ Optional, only needed to run the test suite:
  * nbdkit >= 1.12, the nbdkit basic plugins and the nbdkit basic
    filters are recommended as they are needed to run the test suite.
 
- * nbd-server and qemu-nbd if you want to do interoperability testing
-   against these servers.
+ * nbdkit, nbd-server and qemu-nbd if you want to do interoperability
+   testing against these servers.
 
  * A C++ compiler is needed if you want to test that the library works
    from C++.

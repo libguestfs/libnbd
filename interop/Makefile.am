@@ -129,5 +129,65 @@ structured_read_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_QEMU_NBD
 
+if HAVE_NBDKIT
+
+check_PROGRAMS += \
+	interop-nbdkit \
+	$(NULL)
+TESTS += \
+	interop-nbdkit \
+	$(NULL)
+
+# See above comment about files in ../tests/Makefile.am
+if HAVE_GNUTLS
+if HAVE_CERTTOOL
+check_PROGRAMS += \
+	interop-nbdkit-tls-certs \
+	$(NULL)
+TESTS += \
+	interop-nbdkit-tls-certs \
+	$(NULL)
+endif
+if HAVE_PSKTOOL
+check_PROGRAMS += \
+	interop-nbdkit-tls-psk \
+	$(NULL)
+TESTS += \
+	interop-nbdkit-tls-psk \
+	$(NULL)
+endif
+endif
+
+interop_nbdkit_SOURCES = interop.c
+interop_nbdkit_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER=\"$(NBDKIT)\" \
+	-DSERVER_PARAMS='"-s", "--exit-with-parent", "file", tmpfile' \
+	$(NULL)
+interop_nbdkit_CFLAGS = $(WARNINGS_CFLAGS)
+interop_nbdkit_LDADD = $(top_builddir)/lib/libnbd.la
+
+interop_nbdkit_tls_certs_SOURCES = interop.c
+interop_nbdkit_tls_certs_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER=\"$(NBDKIT)\" \
+	-DSERVER_PARAMS='"--tls=require", "--tls-certificates=../tests/pki", "-s", "--exit-with-parent", "file", tmpfile' \
+	-DCERTS=1 \
+	$(NULL)
+interop_nbdkit_tls_certs_CFLAGS = $(WARNINGS_CFLAGS)
+interop_nbdkit_tls_certs_LDADD = $(top_builddir)/lib/libnbd.la
+
+interop_nbdkit_tls_psk_SOURCES = interop.c
+interop_nbdkit_tls_psk_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER=\"$(NBDKIT)\" \
+	-DSERVER_PARAMS='"--tls=require", "--tls-psk=../tests/keys.psk", "-s", "--exit-with-parent", "file", tmpfile' \
+	-DPSK=1 \
+	$(NULL)
+interop_nbdkit_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
+interop_nbdkit_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
+
+endif HAVE_NBDKIT
+
 check-valgrind:
 	LIBNBD_VALGRIND=1 $(MAKE) check

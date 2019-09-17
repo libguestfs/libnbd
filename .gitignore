@@ -60,6 +60,9 @@ Makefile.in
 /html/*.?.html
 /include/libnbd.h
 /interop/dirty-bitmap
+/interop/interop-nbdkit
+/interop/interop-nbdkit-tls-certs
+/interop/interop-nbdkit-tls-psk
 /interop/interop-nbd-server
 /interop/interop-qemu-nbd
 /interop/interop-qemu-nbd-tls-certs
