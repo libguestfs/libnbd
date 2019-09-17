@@ -47,8 +47,6 @@ if HAVE_QEMU_NBD
 
 check_PROGRAMS += \
 	interop-qemu-nbd \
-	interop-qemu-nbd-tls-certs \
-	interop-qemu-nbd-tls-psk \
 	dirty-bitmap \
 	structured-read \
 	$(NULL)
@@ -64,11 +62,17 @@ TESTS += \
 if HAVE_NBDKIT
 if HAVE_GNUTLS
 if HAVE_CERTTOOL
+check_PROGRAMS += \
+	interop-qemu-nbd-tls-certs \
+	$(NULL)
 TESTS += \
 	interop-qemu-nbd-tls-certs \
 	$(NULL)
 endif
 if HAVE_PSKTOOL
+check_PROGRAMS += \
+	interop-qemu-nbd-tls-psk \
+	$(NULL)
 TESTS += \
 	interop-qemu-nbd-tls-psk \
 	$(NULL)
