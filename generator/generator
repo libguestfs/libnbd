@@ -1086,6 +1086,7 @@ The encoding of export names is always UTF-8.
 
 This call may be skipped if using L<nbd_connect_uri(3)> to connect
 to a URI that includes an export name.";
+  see_also = ["L<nbd_get_export_name(3)>"; "L<nbd_connect_uri(3)>"];
   };
 
   "get_export_name", {
@@ -1094,6 +1095,7 @@ to a URI that includes an export name.";
     shortdesc = "get the export name";
     longdesc = "\
 Get the export name associated with the handle.";
+  see_also = ["L<nbd_set_export_name(3)>"; "L<nbd_connect_uri(3)>"];
   };
 
   "set_tls", {
@@ -1334,6 +1336,10 @@ This call adds one metadata context to the list to be negotiated.
 You can call it as many times as needed.  The list is initially
 empty when the handle is created.
 
+The NBD protocol limits meta context names to 4096 bytes, but
+servers may not support the full length.  The encoding of meta
+context names is always UTF-8.
+
 Not all servers support all metadata contexts.  To learn if a context
 was actually negotiated, call L<nbd_can_meta_context(3)> after
 connecting.
@@ -1367,7 +1373,8 @@ This call will fail if libnbd was not compiled with libxml2; you can
 test whether this is the case with L<nbd_supports_uri(3)>.  Support for
 URIs that require TLS will fail if libnbd was not compiled with
 gnutls; you can test whether this is the case with L<nbd_supports_tls(3)>.";
-    see_also = ["L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>"]
+    see_also = ["L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>";
+                "L<nbd_get_export_name(3)>"];
   };
 
   "connect_unix", {
