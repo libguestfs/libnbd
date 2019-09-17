@@ -35,6 +35,13 @@
 
 #define SIZE (1024*1024)
 
+#if CERTS || PSK
+#define TLS 1
+#ifndef TLS_MODE
+#error "TLS_MODE must be defined when using CERTS || PSK"
+#endif
+#endif
+
 int
 main (int argc, char *argv[])
 {
@@ -73,15 +80,12 @@ main (int argc, char *argv[])
   }
 #endif
 
-#if CERTS || PSK
-  /* Require TLS on the handle and fail if not available or if the
-   * handshake fails.
-   */
+#if TLS
   if (nbd_supports_tls (nbd) != 1) {
     fprintf (stderr, "skip: compiled without TLS support\n");
     exit (77);
   }
-  if (nbd_set_tls (nbd, LIBNBD_TLS_REQUIRE) == -1) {
+  if (nbd_set_tls (nbd, TLS_MODE) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -142,6 +146,16 @@ main (int argc, char *argv[])
 
 #endif
 
+#if TLS
+  if (TLS_MODE == LIBNBD_TLS_REQUIRE &&
+      nbd_get_tls_negotiated (nbd) != 1) {
+    fprintf (stderr,
+             "%s: TLS required, but not negotiated on the connection\n",
+             argv[0]);
+    goto out;
+  }
+#endif
+
   actual_size = nbd_get_size (nbd);
   if (actual_size == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
@@ -160,7 +174,7 @@ main (int argc, char *argv[])
 
   /* XXX In future test more operations here. */
 
-#if !CERTS && !PSK
+#if !TLS
   /* XXX qemu doesn't shut down the connection nicely (using
    * gnutls_bye) and because of this the following call will fail
    * with:

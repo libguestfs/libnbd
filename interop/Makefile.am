@@ -100,6 +100,7 @@ interop_qemu_nbd_tls_certs_CPPFLAGS = \
 	-DSERVER_PARAMS='"--object", "tls-creds-x509,id=tls0,endpoint=server,dir=$(abs_top_builddir)/tests/pki", "--tls-creds", "tls0", "-f", "raw", "-x", "/", "-p", port_str, tmpfile' \
 	-DEXPORT_NAME='"/"' \
 	-DCERTS=1 \
+	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
 	$(NULL)
 interop_qemu_nbd_tls_certs_CFLAGS = $(WARNINGS_CFLAGS)
 interop_qemu_nbd_tls_certs_LDADD = $(top_builddir)/lib/libnbd.la
@@ -113,6 +114,7 @@ interop_qemu_nbd_tls_psk_CPPFLAGS = \
 	-DSERVER_PARAMS='"--object", "tls-creds-psk,id=tls0,endpoint=server,dir=$(abs_top_builddir)/tests", "--tls-creds", "tls0", "-f", "raw", "-x", "/", "-p", port_str, tmpfile' \
 	-DEXPORT_NAME='"/"' \
 	-DPSK=1 \
+	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
 	$(NULL)
 interop_qemu_nbd_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
 interop_qemu_nbd_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
@@ -173,6 +175,7 @@ interop_nbdkit_tls_certs_CPPFLAGS = \
 	-DSERVER=\"$(NBDKIT)\" \
 	-DSERVER_PARAMS='"--tls=require", "--tls-certificates=../tests/pki", "-s", "--exit-with-parent", "file", tmpfile' \
 	-DCERTS=1 \
+	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
 	$(NULL)
 interop_nbdkit_tls_certs_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbdkit_tls_certs_LDADD = $(top_builddir)/lib/libnbd.la
@@ -183,6 +186,7 @@ interop_nbdkit_tls_psk_CPPFLAGS = \
 	-DSERVER=\"$(NBDKIT)\" \
 	-DSERVER_PARAMS='"--tls=require", "--tls-psk=../tests/keys.psk", "-s", "--exit-with-parent", "file", tmpfile' \
 	-DPSK=1 \
+	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
 	$(NULL)
 interop_nbdkit_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbdkit_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
