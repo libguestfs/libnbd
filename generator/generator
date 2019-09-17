@@ -1066,10 +1066,16 @@ C<\"nbd2\">, etc.";
     longdesc = "\
 For servers which require an export name or can serve different
 content on different exports, set the C<export_name> to
-connect to.  This is only relevant for the newstyle protocol.
+connect to.  The default is the empty string C<\"\">.
+
+This is only relevant when connecting to servers using the
+newstyle protocol as the oldstyle protocol did not support
+export names.  The NBD protocol limits export names to
+4096 bytes, but servers may not support the full length.
+The encoding of export names is always UTF-8.
+
 This call may be skipped if using L<nbd_connect_uri(3)> to connect
-to a URI that includes an export name.  The default is to use
-the empty string.";
+to a URI that includes an export name.";
   };
 
   "get_export_name", {
