@@ -614,12 +614,16 @@ and servers.  Libnbd defaults to TLS I<disabled> for maximum
 interoperability.  To enable it on a handle you must call
 L<nbd_set_tls(3)> before connecting.
 
-To allow TLS, but fall back to unencrypted.  Avoid this mode if
-man-in-the-middle attacks are a concern:
+To allow TLS, but fall back to unencrypted:
 
  nbd_set_tls (nbd, LIBNBD_TLS_ALLOW);
 
-To require TLS, and fail otherwise:
+Use L<nbd_get_tls_negotiated(3)> to find out if TLS negotiation was
+successful.  Avoid C<LIBNBD_TLS_ALLOW> if man-in-the-middle attacks
+are a concern.
+
+The most secure mode is to require TLS and fail to connect if the
+server does not support it:
 
  nbd_set_tls (nbd, LIBNBD_TLS_REQUIRE);
 
