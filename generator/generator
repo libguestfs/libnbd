@@ -357,6 +357,16 @@ and newstyle_state_machine = [
   Group ("OPT_SET_META_CONTEXT", newstyle_opt_set_meta_context_state_machine);
   Group ("OPT_GO", newstyle_opt_go_state_machine);
   Group ("OPT_EXPORT_NAME", newstyle_opt_export_name_state_machine);
+
+  (* When option parsing has successfully finished negotiation
+   * it will jump to this state for final steps before moving to
+   * the %READY state.
+   *)
+  State {
+    default_state with
+    name = "FINISHED";
+    comment = "Finish off newstyle negotiation";
+  };
 ]
 
 (* Fixed newstyle NBD_OPT_STARTTLS option. *)
@@ -1574,6 +1584,21 @@ are free to pass in other contexts."
                 "L<nbd_block_status(3)>"; "L<nbd_aio_block_status(3)>"];
   };
 
+  "get_protocol", {
+    default_call with
+    args = []; ret = RStaticString;
+    permitted_states = [ Connected; Closed ];
+    shortdesc = "return the NBD protocol variant";
+    longdesc = "\
+Return the NBD protocol variant in use on the connection.  At
+the moment this returns one of the strings C<\"oldstyle\">,
+C<\"newstyle\"> or C<\"newstyle-fixed\">.  Other strings might
+be returned in the future.
+Most modern NBD servers use C<\"newstyle-fixed\">.
+"
+^ non_blocking_test_call_description
+  };
+
   "get_size", {
     default_call with
     args = []; ret = RInt64;
@@ -2553,6 +2578,7 @@ let first_version = [
   "set_request_structured_replies", (1, 2);
   "get_request_structured_replies", (1, 2);
   "get_tls_negotiated", (1, 2);
+  "get_protocol", (1, 2);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

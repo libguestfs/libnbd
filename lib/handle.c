@@ -315,3 +315,15 @@ nbd_unlocked_supports_uri (struct nbd_handle *h)
   return 0;
 #endif
 }
+
+const char *
+nbd_unlocked_get_protocol (struct nbd_handle *h)
+{
+  /* I believe that if we reach the Connected or Closed permitted
+   * states, then the state machine must have set h->protocol.  So if
+   * this assertion is hit then it indicates a bug in libnbd.
+   */
+  assert (h->protocol);
+
+  return h->protocol;
+}

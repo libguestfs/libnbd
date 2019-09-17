@@ -84,6 +84,7 @@ main (int argc, char *argv[])
   char *args[] = { "nbdkit", "-s", "-o", "--exit-with-parent", "-v",
                    "memory", "size=" STR(SIZE), NULL };
   int calls = 0;
+  const char *s;
 
   progname = argv[0];
 
@@ -111,6 +112,14 @@ main (int argc, char *argv[])
   }
   if (nbd_connect_command (nbd, args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  /* Protocol should be "oldstyle". */
+  s = nbd_get_protocol (nbd);
+  if (strcmp (s, "oldstyle") != 0) {
+    fprintf (stderr,
+             "incorrect protocol \"%s\", expected \"oldstyle\"\n", s);
     exit (EXIT_FAILURE);
   }
 

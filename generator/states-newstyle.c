@@ -155,4 +155,13 @@ handle_reply_error (struct nbd_handle *h)
   }
   return 0;
 
+ NEWSTYLE.FINISHED:
+  if ((h->gflags & NBD_FLAG_FIXED_NEWSTYLE) == 0)
+    h->protocol = "newstyle";
+  else
+    h->protocol = "newstyle-fixed";
+
+  SET_NEXT_STATE (%.READY);
+  return 0;
+
 } /* END STATE MACHINE */

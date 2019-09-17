@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <string.h>
 
 #include <libnbd.h>
 
@@ -38,8 +39,10 @@ main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
   int64_t r;
-  char *args[] = { "nbdkit", "-s", "--exit-with-parent", "-v",
+  /* -n forces newstyle even if someone is still using nbdkit < 1.3 */
+  char *args[] = { "nbdkit", "-s", "--exit-with-parent", "-n", "-v",
                    "null", "size=" STR(SIZE), NULL };
+  const char *s;
 
   nbd = nbd_create ();
   if (nbd == NULL) {
@@ -48,6 +51,14 @@ main (int argc, char *argv[])
   }
   if (nbd_connect_command (nbd, args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  /* Even ancient versions of nbdkit only supported newstyle-fixed. */
+  s = nbd_get_protocol (nbd);
+  if (strcmp (s, "newstyle-fixed") != 0) {
+    fprintf (stderr,
+             "incorrect protocol \"%s\", expected \"newstyle-fixed\"\n", s);
     exit (EXIT_FAILURE);
   }
 

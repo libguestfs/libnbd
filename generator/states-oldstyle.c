@@ -64,6 +64,8 @@
     return 0;
   }
 
+  h->protocol = "oldstyle";
+
   SET_NEXT_STATE (%.READY);
 
   return 0;

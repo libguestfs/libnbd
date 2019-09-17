@@ -68,7 +68,7 @@
     SET_NEXT_STATE (%.DEAD);
     return 0;
   }
-  SET_NEXT_STATE (%.READY);
+  SET_NEXT_STATE (%^FINISHED);
   return 0;
 
 } /* END STATE MACHINE */

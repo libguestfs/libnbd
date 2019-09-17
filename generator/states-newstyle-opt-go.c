@@ -108,7 +108,7 @@
 
   switch (reply) {
   case NBD_REP_ACK:
-    SET_NEXT_STATE (%.READY);
+    SET_NEXT_STATE (%^FINISHED);
     return 0;
   case NBD_REP_INFO:
     if (len > maxpayload /* see RECV_NEWSTYLE_OPT_GO_REPLY */)

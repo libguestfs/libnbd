@@ -87,7 +87,10 @@ struct nbd_handle {
   uint64_t exportsize;
   uint16_t eflags;
 
-  /* Flag set by the state machine to tell whether TLS was negotiated. */
+  /* Flags set by the state machine to tell what protocol and whether
+   * TLS was negotiated.
+   */
+  const char *protocol;
   bool tls_negotiated;
 
   int64_t unique;               /* Used for generating cookie numbers. */
