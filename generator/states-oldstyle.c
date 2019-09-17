@@ -58,6 +58,11 @@
 
   h->gflags = gflags;
   debug (h, "gflags: 0x%" PRIx16, gflags);
+  if (gflags) {
+    set_error (0, "handshake: oldstyle server should not set gflags");
+    SET_NEXT_STATE (%.DEAD);
+    return 0;
+  }
 
   if (nbd_internal_set_size_and_flags (h, exportsize, eflags) == -1) {
     SET_NEXT_STATE (%.DEAD);

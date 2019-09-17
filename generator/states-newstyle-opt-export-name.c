@@ -45,7 +45,7 @@
   case 0:
     h->rbuf = &h->sbuf;
     h->rlen = sizeof h->sbuf.export_name_reply;
-    if ((h->gflags & NBD_FLAG_NO_ZEROES) != 0)
+    if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_NO_ZEROES) != 0)
       h->rlen -= sizeof h->sbuf.export_name_reply.zeroes;
     SET_NEXT_STATE (%RECV_REPLY);
   }

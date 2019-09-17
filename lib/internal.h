@@ -163,6 +163,7 @@ struct nbd_handle {
         } __attribute__((packed)) error;
       } payload;
     }  __attribute__((packed)) sr;
+    uint16_t gflags;
     uint32_t cflags;
     uint32_t len;
     uint16_t nrinfos;

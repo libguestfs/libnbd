@@ -112,8 +112,8 @@ handle_reply_error (struct nbd_handle *h)
 
 /* STATE MACHINE */ {
  NEWSTYLE.START:
-  h->rbuf = &h->gflags;
-  h->rlen = 2;
+  h->rbuf = &h->sbuf;
+  h->rlen = sizeof h->sbuf.gflags;
   SET_NEXT_STATE (%RECV_GFLAGS);
   return 0;
 
@@ -127,16 +127,16 @@ handle_reply_error (struct nbd_handle *h)
  NEWSTYLE.CHECK_GFLAGS:
   uint32_t cflags;
 
-  h->gflags = be16toh (h->gflags);
-  if ((h->gflags & NBD_FLAG_FIXED_NEWSTYLE) == 0 &&
+  h->gflags &= be16toh (h->sbuf.gflags);
+  if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0 &&
       h->tls == LIBNBD_TLS_REQUIRE) {
     SET_NEXT_STATE (%.DEAD);
-    set_error (ENOTSUP, "handshake: server is not fixed newstyle, "
+    set_error (ENOTSUP, "handshake: server is not using fixed newstyle, "
                "but handle TLS setting is 'require' (2)");
     return 0;
   }
 
-  cflags = h->gflags & (NBD_FLAG_FIXED_NEWSTYLE|NBD_FLAG_NO_ZEROES);
+  cflags = h->gflags;
   h->sbuf.cflags = htobe32 (cflags);
   h->wbuf = &h->sbuf;
   h->wlen = 4;
@@ -148,7 +148,7 @@ handle_reply_error (struct nbd_handle *h)
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     /* Start sending options. */
-    if ((h->gflags & NBD_FLAG_FIXED_NEWSTYLE) == 0)
+    if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0)
       SET_NEXT_STATE (%OPT_EXPORT_NAME.START);
     else
       SET_NEXT_STATE (%OPT_STARTTLS.START);
@@ -156,7 +156,7 @@ handle_reply_error (struct nbd_handle *h)
   return 0;
 
  NEWSTYLE.FINISHED:
-  if ((h->gflags & NBD_FLAG_FIXED_NEWSTYLE) == 0)
+  if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0)
     h->protocol = "newstyle";
   else
     h->protocol = "newstyle-fixed";

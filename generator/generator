@@ -981,7 +981,14 @@ let cmd_flags = {
     "FAST_ZERO", 1 lsl 4;
   ]
 }
-let all_flags = [ cmd_flags ]
+let handshake_flags = {
+  flag_prefix = "HANDSHAKE_FLAG";
+  flags = [
+    "FIXED_NEWSTYLE", 1 lsl 0;
+    "NO_ZEROES",      1 lsl 1;
+    ]
+}
+let all_flags = [ cmd_flags; handshake_flags ]
 
 (* Calls.
  *
@@ -1304,6 +1311,7 @@ for integration testing, it can be useful to clear this flag
 rather than find a way to alter the server to fail the negotiation
 request.";
     see_also = ["L<nbd_get_request_structured_replies(3)>";
+                "L<nbd_set_handshake_flags(3)>";
                 "L<nbd_can_meta_context(3)>"; "L<nbd_can_df(3)>"];
   };
 
@@ -1318,6 +1326,67 @@ handle.  Note that this only reports whether the client attempts
 to negotiate structured replies, and not whether the server was
 able to honor that request";
     see_also = ["L<nbd_set_request_structured_replies(3)>"];
+  };
+
+  "set_handshake_flags", {
+    default_call with
+    args = [ Flags ("flags", handshake_flags) ]; ret = RErr;
+    permitted_states = [ Created ];
+    shortdesc = "control use of handshake flags";
+    longdesc = "\
+By default, libnbd tries to negotiate all possible handshake flags
+that are also supported by the server; since omitting a handshake
+flag can prevent the use of other functionality such as TLS encryption
+or structured replies.  However, for integration testing, it can be
+useful to reduce the set of flags supported by the client to test that
+a particular server can handle various clients that were compliant to
+older versions of the NBD specification.
+
+The C<flags> argument is a bitmask, including zero or more of the
+following handshake flags:
+
+=over 4
+
+=item C<LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE> = 1
+
+The server gracefully handles unknown option requests from the
+client, rather than disconnecting.  Without this flag, a client
+cannot safely request to use extensions such as TLS encryption or
+structured replies, as the request may cause an older server to
+drop the connection.
+
+=item C<LIBNBD_HANDSHAKE_FLAG_NO_ZEROES> = 2
+
+If the client is forced to use C<NBD_OPT_EXPORT_NAME> instead of
+the preferred C<NBD_OPT_GO>, this flag allows the server to send
+fewer all-zero padding bytes over the connection.
+
+=back
+
+Future NBD extensions may add further flags.
+";
+    see_also = ["L<nbd_get_handshake_flags(3)>";
+                "L<nbd_set_request_structured_replies(3)>"];
+  };
+
+  "get_handshake_flags", {
+    default_call with
+    args = []; ret = RUInt;
+    may_set_error = false;
+    shortdesc = "see which handshake flags are supported";
+    longdesc = "\
+Return the state of the handshake flags on this handle.  When the
+handle has not yet completed a connection (see C<nbd_aio_is_created>),
+this returns the flags that the client is willing to use, provided
+the server also advertises those flags.  After the connection is
+ready (see C<nbd_aio_is_ready>), this returns the flags that were
+actually agreed on between the server and client.  If the NBD
+protocol defines new handshake flags, then the return value from
+a newer library version may include bits that were undefined at
+the time of compilation.";
+    see_also = ["L<nbd_set_handshake_flags(3)>";
+                "L<nbd_get_protocol(3)>";
+                "L<nbd_aio_is_created(3)>"; "L<nbd_aio_is_ready(3)>"];
   };
 
   "add_meta_context", {
@@ -1603,7 +1672,8 @@ C<\"newstyle\"> or C<\"newstyle-fixed\">.  Other strings might
 be returned in the future.
 Most modern NBD servers use C<\"newstyle-fixed\">.
 "
-^ non_blocking_test_call_description
+^ non_blocking_test_call_description;
+    see_also = ["L<nbd_get_handshake_flags(3)>"];
   };
 
   "get_size", {
@@ -2586,6 +2656,8 @@ let first_version = [
   "get_request_structured_replies", (1, 2);
   "get_tls_negotiated", (1, 2);
   "get_protocol", (1, 2);
+  "set_handshake_flags", (1, 2);
+  "get_handshake_flags", (1, 2);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

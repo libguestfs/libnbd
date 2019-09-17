@@ -64,6 +64,8 @@ nbd_create (void)
   h->unique = 1;
   h->tls_verify_peer = true;
   h->request_sr = true;
+  h->gflags = (LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE |
+               LIBNBD_HANDSHAKE_FLAG_NO_ZEROES);
 
   s = getenv ("LIBNBD_DEBUG");
   h->debug = s && strcmp (s, "1") == 0;
@@ -256,6 +258,22 @@ int
 nbd_unlocked_get_request_structured_replies (struct nbd_handle *h)
 {
   return h->request_sr;
+}
+
+int
+nbd_unlocked_set_handshake_flags (struct nbd_handle *h,
+                                  uint32_t flags)
+{
+  /* The generator already ensured flags was in range. */
+  h->gflags = flags;
+  return 0;
+}
+
+/* NB: may_set_error = false. */
+uint32_t
+nbd_unlocked_get_handshake_flags (struct nbd_handle *h)
+{
+  return h->gflags;
 }
 
 const char *

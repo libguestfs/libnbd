@@ -93,9 +93,10 @@ struct nbd_fixed_new_option_reply {
 
 #define NBD_REP_MAGIC UINT64_C(0x3e889045565a9)
 
-/* Global flags. */
+/* Global flags. Exposed by the generator as LIBNBD_HANDSHAKE_FLAG_* instead
 #define NBD_FLAG_FIXED_NEWSTYLE 1
 #define NBD_FLAG_NO_ZEROES      2
+ */
 
 /* Per-export flags. */
 #define NBD_FLAG_HAS_FLAGS         (1 << 0)
@@ -238,10 +239,12 @@ struct nbd_structured_reply_error {
 #define NBD_CMD_WRITE_ZEROES      6
 #define NBD_CMD_BLOCK_STATUS      7
 
+/* Command flags. Exposed by the generator as LIBNBD_CMD_FLAG_* instead
 #define NBD_CMD_FLAG_FUA      (1<<0)
 #define NBD_CMD_FLAG_NO_HOLE  (1<<1)
 #define NBD_CMD_FLAG_DF       (1<<2)
 #define NBD_CMD_FLAG_REQ_ONE  (1<<3)
+*/
 
 /* NBD error codes. */
 #define NBD_SUCCESS     0
