@@ -116,6 +116,7 @@
   }
   if (r == 0) {
     /* Finished handshake. */
+    h->tls_negotiated = true;
     nbd_internal_crypto_debug_tls_enabled (h);
 
     /* Continue with option negotiation. */

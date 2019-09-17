@@ -1132,17 +1132,42 @@ TLS are not handled automatically.  Setting the level higher than
 zero will fail if libnbd was not compiled against gnutls; you can
 test whether this is the case with L<nbd_supports_tls(3)>.";
     example = Some "examples/encryption.c";
-    see_also = ["L<libnbd(3)/ENCRYPTION AND AUTHENTICATION>"];
+    see_also = ["L<libnbd(3)/ENCRYPTION AND AUTHENTICATION>";
+                "L<nbd_get_tls(3)>"; "L<nbd_get_tls_negotiated(3)>"];
   };
 
   "get_tls", {
     default_call with
     args = []; ret = RInt;
     may_set_error = false;
-    shortdesc = "get the current TLS setting";
+    shortdesc = "get the TLS request setting";
     longdesc = "\
-Get the current TLS setting.";
-    see_also = ["L<nbd_set_tls(3)>"];
+Get the TLS request setting.
+
+B<Note:> If you want to find out if TLS was actually negotiated
+on a particular connection use L<nbd_get_tls_negotiated(3)> instead.";
+    see_also = ["L<nbd_set_tls(3)>"; "L<nbd_get_tls_negotiated(3)>"];
+  };
+
+  "get_tls_negotiated", {
+    default_call with
+    args = []; ret = RBool;
+    permitted_states = [ Connected; Closed ];
+    shortdesc = "find out if TLS was negotiated on a connection";
+    longdesc = "\
+After connecting you may call this to find out if the
+connection is using TLS.
+
+This is only really useful if you set the TLS request mode
+to C<LIBNBD_TLS_ALLOW> (see L<nbd_set_tls(3)>), because in this
+mode we try to use TLS but fall back to unencrypted if it was
+not available.  This function will tell you if TLS was
+negotiated or not.
+
+In C<LIBNBD_TLS_REQUIRE> mode (the most secure) the connection
+would have failed if TLS could not be negotiated, and in
+C<LIBNBD_TLS_DISABLE> mode TLS is not tried.";
+    see_also = ["L<nbd_set_tls(3)>"; "L<nbd_get_tls(3)>"];
   };
 
   "set_tls_certificates", {
@@ -2527,6 +2552,7 @@ let first_version = [
   "can_fast_zero", (1, 2);
   "set_request_structured_replies", (1, 2);
   "get_request_structured_replies", (1, 2);
+  "get_tls_negotiated", (1, 2);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

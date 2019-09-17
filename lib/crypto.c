@@ -58,6 +58,12 @@ nbd_unlocked_get_tls (struct nbd_handle *h)
 }
 
 int
+nbd_unlocked_get_tls_negotiated (struct nbd_handle *h)
+{
+  return h->tls_negotiated;
+}
+
+int
 nbd_unlocked_set_tls_certificates (struct nbd_handle *h, const char *dir)
 {
   char *new_dir;
