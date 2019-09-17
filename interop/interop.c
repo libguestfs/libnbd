@@ -66,10 +66,12 @@ main (int argc, char *argv[])
     goto out;
   }
 
+#ifdef EXPORT_NAME
   if (nbd_set_export_name (nbd, EXPORT_NAME) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto out;
   }
+#endif
 
 #if CERTS || PSK
   /* Require TLS on the handle and fail if not available or if the
