@@ -115,11 +115,16 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* Protocol should be "oldstyle". */
+  /* Protocol should be "oldstyle", with no structured replies. */
   s = nbd_get_protocol (nbd);
   if (strcmp (s, "oldstyle") != 0) {
     fprintf (stderr,
              "incorrect protocol \"%s\", expected \"oldstyle\"\n", s);
+    exit (EXIT_FAILURE);
+  }
+  if ((r = nbd_get_structured_replies_negotiated (nbd)) != 0) {
+    fprintf (stderr,
+             "incorrect structured replies %" PRId64 ", expected 0\n", r);
     exit (EXIT_FAILURE);
   }
 

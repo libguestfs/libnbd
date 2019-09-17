@@ -41,6 +41,8 @@ main (int argc, char *argv[])
   struct nbd_handle *nbd;
   char plugin_path[256];
   int id;
+  int r;
+  const char *s;
 
   snprintf (plugin_path, sizeof plugin_path, "%s/meta-base-allocation.sh",
             getenv ("srcdir") ? : ".");
@@ -74,6 +76,19 @@ main (int argc, char *argv[])
 
   if (nbd_connect_command (nbd, args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  /* Protocol should be "newstyle-fixed", with structured replies. */
+  s = nbd_get_protocol (nbd);
+  if (strcmp (s, "newstyle-fixed") != 0) {
+    fprintf (stderr,
+             "incorrect protocol \"%s\", expected \"newstyle-fixed\"\n", s);
+    exit (EXIT_FAILURE);
+  }
+  if ((r = nbd_get_structured_replies_negotiated (nbd)) != 1) {
+    fprintf (stderr,
+             "incorrect structured replies %d, expected 1\n", r);
     exit (EXIT_FAILURE);
   }
 

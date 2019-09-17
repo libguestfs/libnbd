@@ -1312,6 +1312,7 @@ rather than find a way to alter the server to fail the negotiation
 request.";
     see_also = ["L<nbd_get_request_structured_replies(3)>";
                 "L<nbd_set_handshake_flags(3)>";
+                "L<nbd_get_structured_replies_negotiated(3)>";
                 "L<nbd_can_meta_context(3)>"; "L<nbd_can_df(3)>"];
   };
 
@@ -1322,10 +1323,26 @@ request.";
     shortdesc = "see if structured replies are attempted";
     longdesc = "\
 Return the state of the request structured replies flag on this
-handle.  Note that this only reports whether the client attempts
-to negotiate structured replies, and not whether the server was
-able to honor that request";
-    see_also = ["L<nbd_set_request_structured_replies(3)>"];
+handle.
+
+B<Note:> If you want to find out if structured replies were actually
+negotiated on a particular connection use
+C<nbd_get_structured_replies_negotiated> instead.";
+    see_also = ["L<nbd_set_request_structured_replies(3)>";
+                "L<nbd_get_structured_replies_negotiated(3)>"];
+  };
+
+  "get_structured_replies_negotiated", {
+    default_call with
+    args = []; ret = RBool;
+    permitted_states = [ Connected; Closed ];
+    shortdesc = "see if structured replies are in use";
+    longdesc = "\
+After connecting you may call this to find out if the connection is
+using structured replies.";
+    see_also = ["L<nbd_set_request_structured_replies(3)>";
+                "L<nbd_get_request_structured_replies(3)>";
+                "L<nbd_get_protocol(3)>"];
   };
 
   "set_handshake_flags", {
@@ -1673,7 +1690,9 @@ be returned in the future.
 Most modern NBD servers use C<\"newstyle-fixed\">.
 "
 ^ non_blocking_test_call_description;
-    see_also = ["L<nbd_get_handshake_flags(3)>"];
+    see_also = ["L<nbd_get_handshake_flags(3)>";
+                "L<nbd_get_structured_replies_negotiated(3)>";
+                "L<nbd_get_tls_negotiated(3)>"];
   };
 
   "get_size", {
@@ -2654,6 +2673,7 @@ let first_version = [
   "can_fast_zero", (1, 2);
   "set_request_structured_replies", (1, 2);
   "get_request_structured_replies", (1, 2);
+  "get_structured_replies_negotiated", (1, 2);
   "get_tls_negotiated", (1, 2);
   "get_protocol", (1, 2);
   "set_handshake_flags", (1, 2);

@@ -261,6 +261,12 @@ nbd_unlocked_get_request_structured_replies (struct nbd_handle *h)
 }
 
 int
+nbd_unlocked_get_structured_replies_negotiated (struct nbd_handle *h)
+{
+  return h->structured_replies;
+}
+
+int
 nbd_unlocked_set_handshake_flags (struct nbd_handle *h,
                                   uint32_t flags)
 {
