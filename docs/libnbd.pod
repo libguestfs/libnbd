@@ -439,11 +439,11 @@ It is possible for NBD servers to serve different content on different
 “exports”.  For this you must pass the right export name to the
 server.  Call this API before connecting:
 
- nbd_set_export_name (nbd, "/export");
+ nbd_set_export_name (nbd, "export");
 
-Note that some servers (like L<nbdkit(1)>) ignore this, and others
-(like L<qemu-nbd(8)>) require it to be set correctly but cannot serve
-different content.
+Note that there are some servers (like L<nbdkit(1)> E<le> 1.14) which
+ignore this, and other servers (like L<qemu-nbd(8)>) which require it
+to be set correctly but cannot serve different content.
 
 =head2 Flag calls
 
