@@ -100,7 +100,10 @@ endif
 
 TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 OCAMLRUNPARAM=b
 LOG_COMPILER = $(top_builddir)/run
-TESTS = $(tests_bc) $(tests_opt)
+TESTS = $(tests_bc)
+if HAVE_OCAMLOPT
+TESTS += $(tests_opt)
+endif
 
 endif HAVE_NBDKIT
 endif HAVE_OCAML
