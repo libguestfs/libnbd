@@ -30,20 +30,21 @@
  * SUCH DAMAGE.
  */
 
-/* This is derived from nbdkit's common/protocol/protocol.h.  In time
- * we expect that this library, nbdkit (and maybe others) should use
- * the exact same header.
- */
-
 #ifndef NBD_PROTOCOL_H
 #define NBD_PROTOCOL_H
 
 #include <stdint.h>
 
 /* Note that all NBD fields are sent on the wire in network byte
- * order, so we must use beXXtoh or htobeXX when reading or writing
+ * order, so you must use beXXtoh or htobeXX when reading or writing
  * these structures.
  */
+
+#if defined(__GNUC__) || defined(__clang__)
+#define NBD_ATTRIBUTE_PACKED __attribute__((__packed__))
+#else
+#define NBD_ATTRIBUTE_PACKED
+#endif
 
 #define NBD_MAX_STRING 4096 /* Maximum length of a string field */
 
@@ -55,7 +56,7 @@ struct nbd_old_handshake {
   uint16_t gflags;            /* global flags */
   uint16_t eflags;            /* per-export flags */
   char zeroes[124];           /* must be sent as zero bytes */
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 #define NBD_OLD_VERSION UINT64_C(0x420281861253)
 
@@ -64,7 +65,7 @@ struct nbd_new_handshake {
   char nbdmagic[8];           /* "NBDMAGIC" */
   uint64_t version;           /* NBD_NEW_VERSION */
   uint16_t gflags;            /* global flags */
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 #define NBD_NEW_VERSION UINT64_C(0x49484156454F5054)
 
@@ -74,14 +75,14 @@ struct nbd_new_option {
   uint32_t option;            /* NBD_OPT_* */
   uint32_t optlen;            /* option data length */
   /* option data follows */
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 /* Newstyle handshake OPT_EXPORT_NAME reply message. */
 struct nbd_export_name_option_reply {
   uint64_t exportsize;          /* size of export */
   uint16_t eflags;              /* per-export flags */
   char zeroes[124];             /* optional zeroes */
-} __attribute__((packed));;
+} NBD_ATTRIBUTE_PACKED;
 
 /* Fixed newstyle handshake reply message. */
 struct nbd_fixed_new_option_reply {
@@ -89,14 +90,13 @@ struct nbd_fixed_new_option_reply {
   uint32_t option;            /* option we are replying to */
   uint32_t reply;             /* NBD_REP_* */
   uint32_t replylen;
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 #define NBD_REP_MAGIC UINT64_C(0x3e889045565a9)
 
-/* Global flags. Exposed by the generator as LIBNBD_HANDSHAKE_FLAG_* instead
+/* Global flags. */
 #define NBD_FLAG_FIXED_NEWSTYLE 1
 #define NBD_FLAG_NO_ZEROES      2
- */
 
 /* Per-export flags. */
 #define NBD_FLAG_HAS_FLAGS         (1 << 0)
@@ -146,19 +146,19 @@ struct nbd_fixed_new_option_reply_info_export {
   uint16_t info;                /* NBD_INFO_EXPORT */
   uint64_t exportsize;          /* size of export */
   uint16_t eflags;              /* per-export flags */
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 /* NBD_REP_META_CONTEXT reply (follows fixed_new_option_reply). */
 struct nbd_fixed_new_option_reply_meta_context {
   uint32_t context_id;          /* metadata context ID */
   /* followed by a string */
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 /* NBD_REPLY_TYPE_BLOCK_STATUS block descriptor. */
 struct nbd_block_descriptor {
   uint32_t length;              /* length of block */
   uint32_t status_flags;        /* block type (hole etc) */
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 /* New-style handshake server reply when using NBD_OPT_EXPORT_NAME.
  * Modern clients use NBD_OPT_GO instead of this.
@@ -167,7 +167,7 @@ struct nbd_new_handshake_finish {
   uint64_t exportsize;
   uint16_t eflags;            /* per-export flags */
   char zeroes[124];           /* must be sent as zero bytes */
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 /* Request (client -> server). */
 struct nbd_request {
@@ -177,14 +177,14 @@ struct nbd_request {
   uint64_t handle;              /* Opaque handle. */
   uint64_t offset;              /* Request offset. */
   uint32_t count;               /* Request length. */
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 /* Simple reply (server -> client). */
 struct nbd_simple_reply {
   uint32_t magic;               /* NBD_SIMPLE_REPLY_MAGIC. */
   uint32_t error;               /* NBD_SUCCESS or one of NBD_E*. */
   uint64_t handle;              /* Opaque handle. */
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 /* Structured reply (server -> client). */
 struct nbd_structured_reply {
@@ -193,23 +193,23 @@ struct nbd_structured_reply {
   uint16_t type;                /* NBD_REPLY_TYPE_* */
   uint64_t handle;              /* Opaque handle. */
   uint32_t length;              /* Length of payload which follows. */
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 struct nbd_structured_reply_offset_data {
   uint64_t offset;              /* offset */
   /* Followed by data. */
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 struct nbd_structured_reply_offset_hole {
   uint64_t offset;
   uint32_t length;              /* Length of hole. */
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 struct nbd_structured_reply_error {
   uint32_t error;               /* NBD_E* error number */
   uint16_t len;                 /* Length of human readable error. */
   /* Followed by human readable error string, and possibly more structure. */
-} __attribute__((packed));
+} NBD_ATTRIBUTE_PACKED;
 
 #define NBD_REQUEST_MAGIC           0x25609513
 #define NBD_SIMPLE_REPLY_MAGIC      0x67446698
@@ -239,12 +239,11 @@ struct nbd_structured_reply_error {
 #define NBD_CMD_WRITE_ZEROES      6
 #define NBD_CMD_BLOCK_STATUS      7
 
-/* Command flags. Exposed by the generator as LIBNBD_CMD_FLAG_* instead
-#define NBD_CMD_FLAG_FUA      (1<<0)
-#define NBD_CMD_FLAG_NO_HOLE  (1<<1)
-#define NBD_CMD_FLAG_DF       (1<<2)
-#define NBD_CMD_FLAG_REQ_ONE  (1<<3)
-*/
+#define NBD_CMD_FLAG_FUA       (1<<0)
+#define NBD_CMD_FLAG_NO_HOLE   (1<<1)
+#define NBD_CMD_FLAG_DF        (1<<2)
+#define NBD_CMD_FLAG_REQ_ONE   (1<<3)
+#define NBD_CMD_FLAG_FAST_ZERO (1<<4)
 
 /* NBD error codes. */
 #define NBD_SUCCESS     0
