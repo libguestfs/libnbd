@@ -50,7 +50,7 @@
 
 /* Old-style handshake. */
 struct nbd_old_handshake {
-  char nbdmagic[8];           /* "NBDMAGIC" */
+  uint64_t nbdmagic;          /* NBD_MAGIC */
   uint64_t version;           /* NBD_OLD_VERSION */
   uint64_t exportsize;
   uint16_t gflags;            /* global flags */
@@ -58,30 +58,33 @@ struct nbd_old_handshake {
   char zeroes[124];           /* must be sent as zero bytes */
 } NBD_ATTRIBUTE_PACKED;
 
-#define NBD_OLD_VERSION UINT64_C(0x420281861253)
+#define NBD_MAGIC       UINT64_C(0x4e42444d41474943) /* ASCII "NBDMAGIC" */
+#define NBD_OLD_VERSION UINT64_C(0x0000420281861253)
 
 /* New-style handshake. */
 struct nbd_new_handshake {
-  char nbdmagic[8];           /* "NBDMAGIC" */
+  uint64_t nbdmagic;          /* NBD_MAGIC */
   uint64_t version;           /* NBD_NEW_VERSION */
   uint16_t gflags;            /* global flags */
 } NBD_ATTRIBUTE_PACKED;
 
-#define NBD_NEW_VERSION UINT64_C(0x49484156454F5054)
+#define NBD_NEW_VERSION UINT64_C(0x49484156454F5054) /* ASCII "IHAVEOPT" */
 
 /* New-style handshake option (sent by the client to us). */
 struct nbd_new_option {
-  uint64_t version;           /* NEW_VERSION */
+  uint64_t version;           /* NBD_NEW_VERSION */
   uint32_t option;            /* NBD_OPT_* */
   uint32_t optlen;            /* option data length */
   /* option data follows */
 } NBD_ATTRIBUTE_PACKED;
 
-/* Newstyle handshake OPT_EXPORT_NAME reply message. */
+/* Newstyle handshake OPT_EXPORT_NAME reply message.
+ * Modern clients use NBD_OPT_GO instead of this.
+ */
 struct nbd_export_name_option_reply {
-  uint64_t exportsize;          /* size of export */
-  uint16_t eflags;              /* per-export flags */
-  char zeroes[124];             /* optional zeroes */
+  uint64_t exportsize;        /* size of export */
+  uint16_t eflags;            /* per-export flags */
+  char zeroes[124];           /* optional zeroes, unless NBD_FLAG_NO_ZEROES */
 } NBD_ATTRIBUTE_PACKED;
 
 /* Fixed newstyle handshake reply message. */
@@ -95,8 +98,8 @@ struct nbd_fixed_new_option_reply {
 #define NBD_REP_MAGIC UINT64_C(0x3e889045565a9)
 
 /* Global flags. */
-#define NBD_FLAG_FIXED_NEWSTYLE 1
-#define NBD_FLAG_NO_ZEROES      2
+#define NBD_FLAG_FIXED_NEWSTYLE    (1 << 0)
+#define NBD_FLAG_NO_ZEROES         (1 << 1)
 
 /* Per-export flags. */
 #define NBD_FLAG_HAS_FLAGS         (1 << 0)
@@ -140,6 +143,9 @@ struct nbd_fixed_new_option_reply {
 #define NBD_REP_ERR_TOO_BIG          NBD_REP_ERR (9)
 
 #define NBD_INFO_EXPORT      0
+#define NBD_INFO_NAME        1
+#define NBD_INFO_DESCRIPTION 2
+#define NBD_INFO_BLOCK_SIZE  3
 
 /* NBD_INFO_EXPORT reply (follows fixed_new_option_reply). */
 struct nbd_fixed_new_option_reply_info_export {
@@ -158,15 +164,6 @@ struct nbd_fixed_new_option_reply_meta_context {
 struct nbd_block_descriptor {
   uint32_t length;              /* length of block */
   uint32_t status_flags;        /* block type (hole etc) */
-} NBD_ATTRIBUTE_PACKED;
-
-/* New-style handshake server reply when using NBD_OPT_EXPORT_NAME.
- * Modern clients use NBD_OPT_GO instead of this.
- */
-struct nbd_new_handshake_finish {
-  uint64_t exportsize;
-  uint16_t eflags;            /* per-export flags */
-  char zeroes[124];           /* must be sent as zero bytes */
 } NBD_ATTRIBUTE_PACKED;
 
 /* Request (client -> server). */

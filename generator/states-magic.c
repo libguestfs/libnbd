@@ -35,7 +35,7 @@
  MAGIC.CHECK_MAGIC:
   uint64_t version;
 
-  if (strncmp (h->sbuf.new_handshake.nbdmagic, "NBDMAGIC", 8) != 0) {
+  if (be64toh (h->sbuf.new_handshake.nbdmagic) != NBD_MAGIC) {
     SET_NEXT_STATE (%.DEAD);
     set_error (0, "handshake: server did not send expected NBD magic");
     return 0;
