@@ -27,6 +27,12 @@ requires qemu-io --version
 requires qemu-nbd --version
 requires qemu-kvm --version
 
+# This test uses the qemu-nbd -B option.
+if ! qemu-nbd --help | grep -sq -- -B; then
+    echo "$0: skipping because qemu-nbd does not support the -B option"
+    exit 77
+fi
+
 files="dirty-bitmap.sock dirty-bitmap.qcow2"
 rm -f $files
 cleanup_fn rm -f $files
