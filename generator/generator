@@ -95,6 +95,7 @@ type external_event =
   | CmdConnectUnix              (* [nbd_aio_connect_unix] *)
   | CmdConnectTCP               (* [nbd_aio_connect_tcp] *)
   | CmdConnectCommand           (* [nbd_aio_connect_command] *)
+  | CmdConnectSA                (* [nbd_aio_connect_socket_activation] *)
   | CmdIssue                    (* issuing an NBD command *)
 
 type location = string * int    (* source location: file, line number *)
@@ -168,13 +169,15 @@ let rec state_machine = [
                         CmdConnectSockAddr, "CONNECT.START";
                         CmdConnectUnix, "CONNECT_UNIX.START";
                         CmdConnectTCP, "CONNECT_TCP.START";
-                        CmdConnectCommand, "CONNECT_COMMAND.START" ];
+                        CmdConnectCommand, "CONNECT_COMMAND.START";
+                        CmdConnectSA, "CONNECT_SA.START" ];
   };
 
   Group ("CONNECT", connect_state_machine);
   Group ("CONNECT_UNIX", connect_unix_state_machine);
   Group ("CONNECT_TCP", connect_tcp_state_machine);
   Group ("CONNECT_COMMAND", connect_command_state_machine);
+  Group ("CONNECT_SA", connect_sa_state_machine);
 
   Group ("MAGIC", magic_state_machine);
   Group ("OLDSTYLE", oldstyle_state_machine);
@@ -268,6 +271,16 @@ and connect_command_state_machine = [
     default_state with
     name = "START";
     comment = "Connect to a subprocess";
+    external_events = [];
+  };
+]
+
+(* State machine implementing [nbd_aio_connect_socket_activation]. *)
+and connect_sa_state_machine = [
+  State {
+    default_state with
+    name = "START";
+    comment = "Connect to a subprocess with systemd socket activation";
     external_events = [];
   };
 ]
@@ -1501,6 +1514,18 @@ behave like inetd clients, such as C<nbdkit --single>.";
     example = Some "examples/connect-command.c";
   };
 
+  "connect_socket_activation", {
+    default_call with
+    args = [ StringList "argv" ]; ret = RErr;
+    permitted_states = [ Created ];
+    shortdesc = "connect using systemd socket activation";
+    longdesc = "\
+Run the command as a subprocess and connect to it using
+systemd socket activation.  This is for use with NBD servers
+such as C<nbdkit> which understand socket activation.";
+    see_also = ["L<nbd_kill_subprocess(3)>"];
+  };
+
   "is_read_only", {
     default_call with
     args = []; ret = RBool;
@@ -2099,6 +2124,22 @@ and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
   };
 
+  "aio_connect_socket_activation", {
+    default_call with
+    args = [ StringList "argv" ]; ret = RErr;
+    permitted_states = [ Created ];
+    shortdesc = "connect using systemd socket activation";
+    longdesc = "\
+Run the command as a subprocess and begin connecting to it using
+systemd socket activation.  Parameters behave as documented in
+L<nbd_connect_socket_activation(3)>.
+
+You can check if the connection is still connecting by calling
+L<nbd_aio_is_connecting(3)>, or if it has connected to the server
+and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
+on the connection.";
+  };
+
   "aio_pread", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset" ];
@@ -2678,6 +2719,8 @@ let first_version = [
   "get_protocol", (1, 2);
   "set_handshake_flags", (1, 2);
   "get_handshake_flags", (1, 2);
+  "connect_socket_activation", (1, 2);
+  "aio_connect_socket_activation", (1, 2);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.
@@ -3036,7 +3079,8 @@ end = struct
 let all_external_events =
   [NotifyRead; NotifyWrite;
    CmdCreate;
-   CmdConnectSockAddr; CmdConnectUnix; CmdConnectTCP; CmdConnectCommand;
+   CmdConnectSockAddr; CmdConnectUnix; CmdConnectTCP;
+   CmdConnectCommand; CmdConnectSA;
    CmdIssue]
 
 let string_of_external_event = function
@@ -3047,6 +3091,7 @@ let string_of_external_event = function
   | CmdConnectUnix -> "CmdConnectUnix"
   | CmdConnectTCP -> "CmdConnectTCP"
   | CmdConnectCommand -> "CmdConnectCommand"
+  | CmdConnectSA -> "CmdConnectSA"
   | CmdIssue -> "CmdIssue"
 
 let c_string_of_external_event = function
@@ -3057,6 +3102,7 @@ let c_string_of_external_event = function
   | CmdConnectUnix -> "cmd_connect_unix"
   | CmdConnectTCP -> "cmd_connect_tcp"
   | CmdConnectCommand -> "cmd_connect_command"
+  | CmdConnectSA -> "cmd_connect_sa"
   | CmdIssue -> "cmd_issue"
 
 (* Find a state in the state machine hierarchy by path.  The [path]
@@ -3504,7 +3550,8 @@ let generate_lib_states_run_c () =
           | NotifyWrite -> pr "    r |= LIBNBD_AIO_DIRECTION_WRITE;\n"
           | CmdCreate
           | CmdConnectSockAddr
-          | CmdConnectUnix | CmdConnectTCP | CmdConnectCommand
+          | CmdConnectUnix | CmdConnectTCP
+          | CmdConnectCommand | CmdConnectSA
           | CmdIssue -> ()
       ) events;
       pr "    break;\n";

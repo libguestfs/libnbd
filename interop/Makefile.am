@@ -48,11 +48,13 @@ if HAVE_QEMU_NBD
 check_PROGRAMS += \
 	interop-qemu-nbd \
 	dirty-bitmap \
+	socket-activation-qemu-nbd \
 	structured-read \
 	$(NULL)
 TESTS += \
 	interop-qemu-nbd \
 	dirty-bitmap.sh \
+	socket-activation-qemu-nbd \
 	structured-read.sh \
 	$(NULL)
 
@@ -124,6 +126,15 @@ dirty_bitmap_CPPFLAGS = -I$(top_srcdir)/include
 dirty_bitmap_CFLAGS = $(WARNINGS_CFLAGS)
 dirty_bitmap_LDADD = $(top_builddir)/lib/libnbd.la
 
+socket_activation_qemu_nbd_SOURCES = socket-activation.c
+socket_activation_qemu_nbd_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER=\"$(QEMU_NBD)\" \
+	-DSERVER_PARAMS='"-f", "raw", "-x", "", tmpfile' \
+	$(NULL)
+socket_activation_qemu_nbd_CFLAGS = $(WARNINGS_CFLAGS)
+socket_activation_qemu_nbd_LDADD = $(top_builddir)/lib/libnbd.la
+
 structured_read_SOURCES = structured-read.c
 structured_read_CPPFLAGS = -I$(top_srcdir)/include
 structured_read_CFLAGS = $(WARNINGS_CFLAGS)
@@ -135,9 +146,11 @@ if HAVE_NBDKIT
 
 check_PROGRAMS += \
 	interop-nbdkit \
+	socket-activation-nbdkit \
 	$(NULL)
 TESTS += \
 	interop-nbdkit \
+	socket-activation-nbdkit \
 	$(NULL)
 
 # See above comment about files in ../tests/Makefile.am
@@ -244,6 +257,15 @@ interop_nbdkit_tls_psk_allow_fallback_CPPFLAGS = \
 	$(NULL)
 interop_nbdkit_tls_psk_allow_fallback_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbdkit_tls_psk_allow_fallback_LDADD = $(top_builddir)/lib/libnbd.la
+
+socket_activation_nbdkit_SOURCES = socket-activation.c
+socket_activation_nbdkit_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER=\"$(NBDKIT)\" \
+	-DSERVER_PARAMS='"file", tmpfile' \
+	$(NULL)
+socket_activation_nbdkit_CFLAGS = $(WARNINGS_CFLAGS)
+socket_activation_nbdkit_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_NBDKIT
 

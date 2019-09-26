@@ -188,6 +188,12 @@ struct nbd_handle {
   char **argv;
   pid_t pid;
 
+  /* When using systemd socket activation, this directory and socket
+   * must be deleted, and the pid above must be killed.
+   */
+  char *sa_tmpdir;
+  char *sa_sockpath;
+
   /* When connecting to Unix domain socket. */
   char *unixsocket;
 

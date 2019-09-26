@@ -24,6 +24,7 @@ DISTCLEANFILES = stamp-generator
 states_code = \
 	states.c \
 	states-connect.c \
+	states-connect-socket-activation.c \
 	states-issue-command.c \
 	states-magic.c \
 	states-newstyle-opt-export-name.c \

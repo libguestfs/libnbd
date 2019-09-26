@@ -129,6 +129,16 @@ nbd_close (struct nbd_handle *h)
   free_cmd_list (h->cmds_in_flight);
   free_cmd_list (h->cmds_done);
   nbd_internal_free_string_list (h->argv);
+  if (h->sa_sockpath) {
+    if (h->pid > 0)
+      kill (h->pid, SIGTERM);
+    unlink (h->sa_sockpath);
+    free (h->sa_sockpath);
+  }
+  if (h->sa_tmpdir) {
+    rmdir (h->sa_tmpdir);
+    free (h->sa_tmpdir);
+  }
   free (h->unixsocket);
   free (h->hostname);
   free (h->port);
