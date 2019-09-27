@@ -384,5 +384,7 @@ extern void nbd_internal_hexdump (const void *data, size_t len, FILE *fp);
 extern size_t nbd_internal_string_list_length (char **argv);
 extern char **nbd_internal_copy_string_list (char **argv);
 extern void nbd_internal_free_string_list (char **argv);
+extern const char *nbd_internal_fork_safe_itoa (long v, char *buf, size_t len);
+extern void nbd_internal_fork_safe_perror (const char *s);
 
 #endif /* LIBNBD_INTERNAL_H */

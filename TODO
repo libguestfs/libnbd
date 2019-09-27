@@ -57,3 +57,4 @@ Suggested API improvements:
   - it should be possible to use nbd_close and never block, so
     maybe nbd_shutdown should wait for the subprocess or there
     should be another API to do this
+  - capture error message when nbd_connect_command fails

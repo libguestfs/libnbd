@@ -77,6 +77,16 @@ AC_CHECK_HEADERS([\
     stdatomic.h \
     sys/endian.h])
 
+dnl Check for sys_errlist (optional).
+AC_MSG_CHECKING([for sys_errlist])
+AC_TRY_LINK([], [extern int sys_errlist; char *p = &sys_errlist;], [
+    AC_DEFINE([HAVE_SYS_ERRLIST], [1],
+              [Define if libc has a sys_errlist variable.])
+    AC_MSG_RESULT([yes])
+], [
+    AC_MSG_RESULT([no])
+])
+
 dnl Check for GnuTLS (optional, for TLS support).
 AC_ARG_WITH([gnutls],
     [AS_HELP_STRING([--without-gnutls],

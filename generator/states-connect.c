@@ -259,8 +259,11 @@ STATE_MACHINE {
     signal (SIGPIPE, SIG_DFL);
 
     execvp (h->argv[0], h->argv);
-    perror (h->argv[0]);
-    _exit (EXIT_FAILURE);
+    nbd_internal_fork_safe_perror (h->argv[0]);
+    if (errno == ENOENT)
+      _exit (127);
+    else
+      _exit (126);
   }
 
   /* Parent. */

@@ -20,7 +20,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "internal.h"
 
@@ -95,4 +98,72 @@ nbd_internal_free_string_list (char **argv)
   for (i = 0; argv[i] != NULL; ++i)
     free (argv[i]);
   free (argv);
+}
+
+/* Like sprintf ("%ld", v), but safe to use between fork and exec.  Do
+ * not use this function in any other context.
+ *
+ * The caller must supply a scratch buffer which is at least 32 bytes
+ * long (else the function will call abort()).  Note that the returned
+ * string does not point to the start of this buffer.
+ */
+const char *
+nbd_internal_fork_safe_itoa (long v, char *buf, size_t bufsize)
+{
+  unsigned long uv = (unsigned long) v;
+  size_t i = bufsize - 1;
+  bool neg = false;
+
+  if (bufsize < 32) abort ();
+
+  buf[i--] = '\0';
+  if (v < 0) {
+    neg = true;
+    uv = -uv;
+  }
+  if (uv == 0)
+    buf[i--] = '0';
+  else {
+    while (uv) {
+      buf[i--] = '0' + (uv % 10);
+      uv /= 10;
+    }
+  }
+  if (neg)
+    buf[i--] = '-';
+
+  i++;
+  return &buf[i];
+}
+
+/* Fork-safe version of perror.  ONLY use this after fork and before
+ * exec, the rest of the time use set_error().
+ */
+void
+nbd_internal_fork_safe_perror (const char *s)
+{
+  const int err = errno;
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
+#endif
+  write (2, s, strlen (s));
+  write (2, ": ", 2);
+#if HAVE_SYS_ERRLIST
+  write (2, sys_errlist[errno], strlen (sys_errlist[errno]));
+#else
+  char buf[32];
+  const char *v = nbd_internal_fork_safe_itoa ((long) errno, buf, sizeof buf);
+  write (2, v, strlen (v));
+#endif
+  write (2, "\n", 1);
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+
+  /* Restore original errno in case it was disturbed by the system
+   * calls above.
+   */
+  errno = err;
 }
