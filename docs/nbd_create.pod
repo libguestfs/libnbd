@@ -53,7 +53,9 @@ B<nbd_close> closes the handle and frees any associated resources.
 The final status of any command that has not been retired (whether by
 L<nbd_aio_command_completed(3)> or by a low-level completion callback
 returning C<1>) is lost.  This function is not safe to call while any
-other thread is still using any C<nbd_*> API on the same handle.
+other thread is still using any C<nbd_*> API on the same handle.  This
+function can block in the case where we wait for a subprocess (eg. one
+created with L<nbd_connect_command(3)>).
 
 =head2 Getting the latest error message in the thread
 
