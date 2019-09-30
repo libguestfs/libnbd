@@ -18,7 +18,7 @@
 
 /* State machine for ending newstyle handshake with NBD_OPT_EXPORT_NAME. */
 
-/* STATE MACHINE */ {
+STATE_MACHINE {
  NEWSTYLE.OPT_EXPORT_NAME.START:
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (NBD_OPT_EXPORT_NAME);

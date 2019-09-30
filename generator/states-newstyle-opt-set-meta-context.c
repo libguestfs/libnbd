@@ -18,7 +18,7 @@
 
 /* State machine for negotiating NBD_OPT_SET_META_CONTEXT. */
 
-/* STATE MACHINE */ {
+STATE_MACHINE {
  NEWSTYLE.OPT_SET_META_CONTEXT.START:
   size_t i, nr_queries;
   uint32_t len;

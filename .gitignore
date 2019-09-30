@@ -76,6 +76,7 @@ Makefile.in
 /lib/libnbd.pc
 /lib/libnbd.syms
 /lib/states.c
+/lib/states-run.c
 /lib/states.h
 /lib/unlocked.h
 /install-sh

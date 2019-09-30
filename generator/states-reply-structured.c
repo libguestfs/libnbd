@@ -18,9 +18,7 @@
 
 /* State machine for parsing structured replies from the server. */
 
-/*----- End of prologue. -----*/
-
-/* STATE MACHINE */ {
+STATE_MACHINE {
  REPLY.STRUCTURED_REPLY.START:
   /* We've only read the simple_reply.  The structured_reply is longer,
    * so read the remaining part.

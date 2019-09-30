@@ -38,9 +38,7 @@ save_reply_state (struct nbd_handle *h)
   h->reply_cmd->state = get_next_state (h);
 }
 
-/*----- End of prologue. -----*/
-
-/* STATE MACHINE */ {
+STATE_MACHINE {
  REPLY.START:
   /* If rlen is non-zero, we are resuming an earlier reply cycle. */
   if (h->rlen > 0) {

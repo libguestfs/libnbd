@@ -18,7 +18,7 @@
 
 /* State machine for negotiating NBD_OPT_STRUCTURED_REPLY. */
 
-/* STATE MACHINE */ {
+STATE_MACHINE {
  NEWSTYLE.OPT_STRUCTURED_REPLY.START:
   if (!h->request_sr) {
     SET_NEXT_STATE (%^OPT_SET_META_CONTEXT.START);

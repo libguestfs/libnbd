@@ -18,7 +18,7 @@
 
 /* State machine for parsing the initial magic number from the server. */
 
-/* STATE MACHINE */ {
+STATE_MACHINE {
  MAGIC.START:
   h->rbuf = &h->sbuf;
   h->rlen = 16;

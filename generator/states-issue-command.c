@@ -18,7 +18,7 @@
 
 /* State machine for issuing commands (requests) to the server. */
 
-/* STATE MACHINE */ {
+STATE_MACHINE {
  ISSUE_COMMAND.START:
   struct command *cmd;
 

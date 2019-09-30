@@ -3030,6 +3030,7 @@ let pod2text longdesc =
 module StateMachine : sig
   val generate_lib_states_h : unit -> unit
   val generate_lib_states_c : unit -> unit
+  val generate_lib_states_run_c : unit -> unit
 end = struct
 
 let all_external_events =
@@ -3182,7 +3183,7 @@ let state_machine_prologue =
      *)
     let rec loop acc = function
       | [] -> failwithf "%s: could not find state machine" filename
-      | (_, "/* STATE MACHINE */ {") :: lines -> ((filename, 1), acc), lines
+      | (_, "STATE_MACHINE {") :: lines -> ((filename, 1), acc), lines
       | (_, line) :: lines -> loop (acc ^ line ^ "\n") lines
     in
     let prologue, lines = loop "" lines in
@@ -3353,7 +3354,13 @@ let generate_lib_states_h () =
        loop prefix rest
   in
   loop [] state_machine;
-  pr "};\n"
+  pr "};\n";
+  pr "\n";
+  pr "/* State transitions defined in states.c. */\n";
+  List.iter (
+    fun { parsed = { state_enum } } ->
+      pr "extern int nbd_internal_enter_%s (struct nbd_handle *h, bool *blocked);\n" state_enum;
+  ) states
 
 let generate_lib_states_c () =
   generate_header ~extra_sources:["generator/states*.c"] CStyle;
@@ -3362,14 +3369,14 @@ let generate_lib_states_c () =
   pr "\n";
   pr "#define SET_NEXT_STATE(s) (*blocked = false, *next_state = (s))\n";
   pr "#define SET_NEXT_STATE_AND_BLOCK(s) (*next_state = (s))\n";
-  pr "\n";
 
   (* The state machine C code fragments. *)
   List.iter (
-    fun ({ comment; parsed = { display_name; state_enum; loc; code } }) ->
+    fun { comment; parsed = { display_name; state_enum; loc; code } } ->
+      pr "\n";
       pr "/* %s: %s */\n" display_name comment;
       pr "static int\n";
-      pr "_enter_%s (struct nbd_handle *h,\n" state_enum;
+      pr "enter_%s (struct nbd_handle *h,\n" state_enum;
       pr "             enum state *next_state,\n";
       pr "             bool *blocked)\n";
       pr "{\n";
@@ -3381,13 +3388,14 @@ let generate_lib_states_c () =
         pr "  return 0;\n";
       pr "}\n";
       pr "\n";
-      pr "static int\n";
-      pr "enter_%s (struct nbd_handle *h, bool *blocked)\n" state_enum;
+      pr "int\n";
+      pr "nbd_internal_enter_%s (struct nbd_handle *h, bool *blocked)\n"
+        state_enum;
       pr "{\n";
       pr "  int r;\n";
       pr "  enum state next_state = %s;\n" state_enum;
       pr "\n";
-      pr "  r = _enter_%s (h, &next_state, blocked);\n" state_enum;
+      pr "  r = enter_%s (h, &next_state, blocked);\n" state_enum;
       pr "  if (get_next_state (h) != next_state) {\n";
       pr "    debug (h, \"transition: %%s -> %%s\",\n";
       pr "           \"%s\",\n" display_name;
@@ -3396,9 +3404,21 @@ let generate_lib_states_c () =
       pr "  }\n";
       pr "  return r;\n";
       pr "}\n";
-      pr "\n";
-  ) states;
+  ) states
 
+let generate_lib_states_run_c () =
+  generate_header ~extra_sources:["generator/states*.c"] CStyle;
+
+  pr "#include <config.h>\n";
+  pr "\n";
+  pr "#include <stdio.h>\n";
+  pr "#include <stdlib.h>\n";
+  pr "#include <errno.h>\n";
+  pr "#include <assert.h>\n";
+  pr "\n";
+  pr "#include \"libnbd.h\"\n";
+  pr "#include \"internal.h\"\n";
+  pr "\n";
   pr "/* Run the state machine based on an external event until it would block. */\n";
   pr "int\n";
   pr "nbd_internal_run (struct nbd_handle *h, enum external_event ev)\n";
@@ -3448,7 +3468,7 @@ let generate_lib_states_c () =
   List.iter (
     fun { parsed = { state_enum } } ->
       pr "    case %s:\n" state_enum;
-      pr "      r = enter_%s (h, &blocked);\n" state_enum;
+      pr "      r = nbd_internal_enter_%s (h, &blocked);\n" state_enum;
       pr "      break;\n"
   ) states;
   pr "    default:\n";
@@ -6010,6 +6030,7 @@ end
 let () =
   output_to "lib/states.h" StateMachine.generate_lib_states_h;
   output_to "lib/states.c" StateMachine.generate_lib_states_c;
+  output_to "lib/states-run.c" StateMachine.generate_lib_states_run_c;
   output_to "lib/libnbd.syms" C.generate_lib_libnbd_syms;
   output_to "include/libnbd.h" C.generate_include_libnbd_h;
   output_to "lib/unlocked.h" C.generate_lib_unlocked_h;

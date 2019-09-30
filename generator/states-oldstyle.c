@@ -18,7 +18,7 @@
 
 /* State machine for parsing the oldstyle handshake. */
 
-/* STATE MACHINE */ {
+STATE_MACHINE {
  OLDSTYLE.START:
   /* We've already read the first 16 bytes of the handshake, we must
    * now read the remainder.

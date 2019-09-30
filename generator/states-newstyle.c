@@ -110,7 +110,7 @@ handle_reply_error (struct nbd_handle *h)
 
 /* State machine for parsing the fixed newstyle handshake. */
 
-/* STATE MACHINE */ {
+STATE_MACHINE {
  NEWSTYLE.START:
   h->rbuf = &h->sbuf;
   h->rlen = sizeof h->sbuf.gflags;

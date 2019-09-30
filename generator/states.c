@@ -154,9 +154,7 @@ void abort_commands (struct nbd_handle *h,
   }
 }
 
-/*----- End of prologue. -----*/
-
-/* STATE MACHINE */ {
+STATE_MACHINE {
  READY:
   if (h->cmds_to_issue)
     SET_NEXT_STATE (%ISSUE_COMMAND.START);

@@ -18,7 +18,7 @@
 
 /* State machine for parsing simple replies from the server. */
 
-/* STATE MACHINE */ {
+STATE_MACHINE {
  REPLY.SIMPLE_REPLY.START:
   struct command *cmd = h->reply_cmd;
   uint32_t error;

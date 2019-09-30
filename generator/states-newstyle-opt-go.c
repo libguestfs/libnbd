@@ -18,7 +18,7 @@
 
 /* State machine for ending fixed newstyle handshake with NBD_OPT_GO. */
 
-/* STATE MACHINE */ {
+STATE_MACHINE {
  NEWSTYLE.OPT_GO.START:
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (NBD_OPT_GO);

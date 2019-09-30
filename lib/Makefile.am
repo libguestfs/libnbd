@@ -20,6 +20,7 @@ include $(top_srcdir)/subdir-rules.mk
 generator_built = \
 	api.c \
 	states.c \
+	states-run.c \
 	states.h \
 	unlocked.h \
 	$(NULL)
@@ -51,6 +52,7 @@ libnbd_la_SOURCES = \
 	rw.c \
 	socket.c \
 	states.c \
+	states-run.c \
 	states.h \
 	unlocked.h \
 	utils.c \

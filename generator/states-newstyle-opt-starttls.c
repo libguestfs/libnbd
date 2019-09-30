@@ -18,7 +18,7 @@
 
 /* State machine for sending NBD_OPT_STARTTLS. */
 
-/* STATE MACHINE */ {
+STATE_MACHINE {
  NEWSTYLE.OPT_STARTTLS.START:
   /* If TLS was not requested we skip this option and go to the next one. */
   if (h->tls == LIBNBD_TLS_DISABLE) {

@@ -46,7 +46,7 @@ disable_nagle (int sock)
   setsockopt (sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof flag);
 }
 
-/* STATE MACHINE */ {
+STATE_MACHINE {
  CONNECT.START:
   int fd;
 
