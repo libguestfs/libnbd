@@ -1509,7 +1509,21 @@ has been made.";
     longdesc = "\
 Run the command as a subprocess and connect to it over
 stdin/stdout.  This is for use with NBD servers which can
-behave like inetd clients, such as C<nbdkit --single>.";
+behave like inetd clients, such as C<nbdkit --single>.
+
+=head2 Subprocess
+
+Libnbd will fork the C<argv> command and pass the NBD socket
+to it using file descriptors 0 and 1 (stdin/stdout):
+
+ ┌─────────┬─────────┐    ┌────────────────┐
+ │ program │ libnbd  │    │   NBD server   │
+ │         │         │    │       (argv)   │
+ │         │ socket ╍╍╍╍╍╍╍╍▶ stdin/stdout │
+ └─────────┴─────────┘    └────────────────┘
+
+When the NBD handle is closed the server subprocess
+is killed.";
     see_also = ["L<nbd_kill_subprocess(3)>"];
     example = Some "examples/connect-command.c";
   };
@@ -1526,9 +1540,26 @@ systemd socket activation.
 This is especially useful for running L<qemu-nbd(1)> as
 a subprocess of libnbd, for example to use it to open
 qcow2 files.  To run nbdkit as a subprocess it is usually
-better to use L<nbd_connect_command(3)>.";
+better to use L<nbd_connect_command(3)>.
+
+=head2 Socket activation
+
+Libnbd will fork the C<argv> command and pass an NBD
+socket to it using special C<LISTEN_*> environment
+variables (as defined by the systemd socket activation
+protocol).
+
+ ┌─────────┬─────────┐    ┌───────────────┐
+ │ program │ libnbd  │    │  qemu-nbd or  │
+ │         │         │    │  other server │
+ │         │ socket ╍╍╍╍╍╍╍╍▶             │
+ └─────────┴─────────┘    └───────────────┘
+
+When the NBD handle is closed the server subprocess
+is killed.";
     see_also = ["L<nbd_connect_command(3)>"; "L<nbd_kill_subprocess(3)>";
-                "L<qemu-nbd(1)>"];
+                "L<qemu-nbd(1)>";
+                "L<http://0pointer.de/blog/projects/socket-activation.html>"];
     example = Some "examples/open-qcow2.c";
   };
 
