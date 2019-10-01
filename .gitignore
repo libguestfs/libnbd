@@ -51,6 +51,7 @@ Makefile.in
 /examples/fetch-first-sector
 /examples/get-size
 /examples/glib-main-loop
+/examples/open-qcow2
 /examples/reads-and-writes
 /examples/server-flags
 /examples/strict-structured-reads
