@@ -85,9 +85,9 @@ endif
 interop_qemu_nbd_SOURCES = interop.c
 interop_qemu_nbd_CPPFLAGS = \
 	-I$(top_srcdir)/include \
-	-DSERVE_OVER_TCP=1 \
+	-DSOCKET_ACTIVATION=1 \
 	-DSERVER=\"$(QEMU_NBD)\" \
-	-DSERVER_PARAMS='"-f", "raw", "-x", "/", "-p", port_str, tmpfile' \
+	-DSERVER_PARAMS='"-f", "raw", "-x", "/", tmpfile' \
 	-DEXPORT_NAME='"/"' \
 	$(NULL)
 interop_qemu_nbd_CFLAGS = $(WARNINGS_CFLAGS)
@@ -97,9 +97,9 @@ interop_qemu_nbd_LDADD = $(top_builddir)/lib/libnbd.la
 interop_qemu_nbd_tls_certs_SOURCES = interop.c
 interop_qemu_nbd_tls_certs_CPPFLAGS = \
 	-I$(top_srcdir)/include \
-	-DSERVE_OVER_TCP=1 \
+	-DSOCKET_ACTIVATION=1 \
 	-DSERVER=\"$(QEMU_NBD)\" \
-	-DSERVER_PARAMS='"--object", "tls-creds-x509,id=tls0,endpoint=server,dir=$(abs_top_builddir)/tests/pki", "--tls-creds", "tls0", "-f", "raw", "-x", "/", "-p", port_str, tmpfile' \
+	-DSERVER_PARAMS='"--object", "tls-creds-x509,id=tls0,endpoint=server,dir=$(abs_top_builddir)/tests/pki", "--tls-creds", "tls0", "-f", "raw", "-x", "/", tmpfile' \
 	-DEXPORT_NAME='"/"' \
 	-DCERTS=1 \
 	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
@@ -111,9 +111,9 @@ interop_qemu_nbd_tls_certs_LDADD = $(top_builddir)/lib/libnbd.la
 interop_qemu_nbd_tls_psk_SOURCES = interop.c
 interop_qemu_nbd_tls_psk_CPPFLAGS = \
 	-I$(top_srcdir)/include \
-	-DSERVE_OVER_TCP=1 \
+	-DSOCKET_ACTIVATION=1 \
 	-DSERVER=\"$(QEMU_NBD)\" \
-	-DSERVER_PARAMS='"--object", "tls-creds-psk,id=tls0,endpoint=server,dir=$(abs_top_builddir)/tests", "--tls-creds", "tls0", "-f", "raw", "-x", "/", "-p", port_str, tmpfile' \
+	-DSERVER_PARAMS='"--object", "tls-creds-psk,id=tls0,endpoint=server,dir=$(abs_top_builddir)/tests", "--tls-creds", "tls0", "-f", "raw", "-x", "/", tmpfile' \
 	-DEXPORT_NAME='"/"' \
 	-DPSK=1 \
 	-DTLS_MODE=LIBNBD_TLS_REQUIRE \

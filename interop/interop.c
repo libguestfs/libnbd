@@ -47,13 +47,8 @@ main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
   char tmpfile[] = "/tmp/nbdXXXXXX";
+  char *args[] = { SERVER, SERVER_PARAMS, NULL };
   int fd;
-#ifdef SERVE_OVER_TCP
-  int port;
-  char port_str[16];
-  pid_t pid = -1;
-  int retry;
-#endif
   int64_t actual_size;
   char buf[512];
   int r = -1;
@@ -103,48 +98,16 @@ main (int argc, char *argv[])
   }
 #endif
 
-#ifdef SERVE_OVER_TCP
-  /* Pick a port at random, hope it's free. */
-  srand (time (NULL) + getpid ());
-  port = 32768 + (rand () & 32767);
-
-  snprintf (port_str, sizeof port_str, "%d", port);
-
-  pid = fork ();
-  if (pid == -1) {
-    perror ("fork");
-    goto out;
-  }
-  if (pid == 0) {
-    execlp (SERVER, SERVER, SERVER_PARAMS, NULL);
-    perror (SERVER);
-    _exit (EXIT_FAILURE);
-  }
-
-  /* Unfortunately there's no good way to wait for qemu-nbd to start
-   * serving, so we need to retry here.
-   */
-  for (retry = 0; retry < 5; ++retry) {
-    sleep (1 << retry);
-    if (nbd_connect_tcp (nbd, "localhost", port_str) == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
-      if (nbd_get_errno () != ECONNREFUSED)
-        goto out;
-    }
-    else break;
-  }
-  if (retry == 5)
-    goto out;
-
-#else /* !SERVE_OVER_TCP */
-
-  char *args[] = { SERVER, SERVER_PARAMS, NULL };
-  if (nbd_connect_command (nbd, args) == -1) {
+  /* Start the server. */
+#if SOCKET_ACTIVATION
+#define NBD_CONNECT nbd_connect_socket_activation
+#else
+#define NBD_CONNECT nbd_connect_command
+#endif
+  if (NBD_CONNECT (nbd, args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto out;
   }
-
-#endif
 
 #if TLS
   if (TLS_MODE == LIBNBD_TLS_REQUIRE) {
@@ -210,10 +173,6 @@ main (int argc, char *argv[])
 
   r = 0;
  out:
-#ifdef SERVE_OVER_TCP
-  if (pid > 0)
-    kill (pid, SIGTERM);
-#endif
   unlink (tmpfile);
 
   exit (r == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
