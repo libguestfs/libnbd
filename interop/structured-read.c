@@ -30,8 +30,6 @@
 
 #include <libnbd.h>
 
-static const char *unixsocket;
-
 /* Depends on structured-read.sh setting things up so that qemu-nbd
  * exposes an image with a 512-byte hole at offset 2048 followed by a
  * 512-byte data section containing all '1' bytes at offset 2560
@@ -110,11 +108,10 @@ main (int argc, char *argv[])
   struct data data;
   char c;
 
-  if (argc != 2) {
-    fprintf (stderr, "%s unixsocket\n", argv[0]);
+  if (argc < 2) {
+    fprintf (stderr, "%s qemu-nbd [args ...]\n", argv[0]);
     exit (EXIT_FAILURE);
   }
-  unixsocket = argv[1];
 
   nbd = nbd_create ();
   if (nbd == NULL) {
@@ -122,7 +119,7 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  if (nbd_connect_unix (nbd, unixsocket) == -1) {
+  if (nbd_connect_socket_activation (nbd, &argv[1]) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

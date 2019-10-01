@@ -26,7 +26,7 @@ requires qemu-img --version
 requires qemu-io --version
 requires qemu-nbd --version
 
-files="structured-read.sock structured-read.qcow2"
+files="structured-read.qcow2"
 rm -f $files
 cleanup_fn rm -f $files
 
@@ -36,22 +36,5 @@ qemu-img create -f qcow2 -o cluster_size=512,compat=v3 structured-read.qcow2 3k
 qemu-io -d unmap -f qcow2 -c 'w -P 1 0 3k' -c 'w -zu 2k 512' \
 	structured-read.qcow2
 
-qemu-nbd -k $PWD/structured-read.sock -f qcow2 structured-read.qcow2 &
-qemu_pid=$!
-cleanup_fn kill $qemu_pid
-
-# qemu-nbd --pid not available before 4.1, so ...
-for ((i = 0; i < 300; i++)); do
-  if [ -r $PWD/structured-read.sock ]; then
-    break
-  fi
-  kill -s 0 $qemu_pid 2>/dev/null
-  if test $? != 0; then
-    echo "qemu-nbd unexpectedly quit" 2>&1
-    exit 1
-  fi
-  sleep 0.1
-done
-
 # Run the test.
-$VG ./structured-read structured-read.sock
+$VG ./structured-read qemu-nbd -f qcow2 structured-read.qcow2

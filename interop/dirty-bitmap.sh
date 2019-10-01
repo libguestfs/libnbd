@@ -33,7 +33,7 @@ if ! qemu-nbd --help | grep -sq -- -B; then
     exit 77
 fi
 
-files="dirty-bitmap.sock dirty-bitmap.qcow2"
+files="dirty-bitmap.qcow2"
 rm -f $files
 cleanup_fn rm -f $files
 
@@ -48,22 +48,6 @@ cat <<'EOF' | qemu-kvm -nodefaults -nographic -qmp stdio
 EOF
 qemu-io -f qcow2 -c 'w 64k 64k' -c 'w -z 512k 64k' dirty-bitmap.qcow2
 
-qemu-nbd -k $PWD/dirty-bitmap.sock -f qcow2 -B bitmap0 dirty-bitmap.qcow2 &
-qemu_pid=$!
-cleanup_fn kill $qemu_pid
-
-# No good way to wait for qemu-nbd to start server, so ...
-for ((i = 0; i < 300; i++)); do
-  if [ -r $PWD/dirty-bitmap.sock ]; then
-    break
-  fi
-  kill -s 0 $qemu_pid 2>/dev/null
-  if test $? != 0; then
-    echo "qemu-nbd unexpectedly quit" 2>&1
-    exit 1
-  fi
-  sleep 0.1
-done
-
 # Run the test.
-$VG ./dirty-bitmap dirty-bitmap.sock qemu:dirty-bitmap:bitmap0
+$VG ./dirty-bitmap qemu:dirty-bitmap:bitmap0 \
+    qemu-nbd -f qcow2 -B bitmap0 dirty-bitmap.qcow2

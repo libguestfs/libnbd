@@ -30,7 +30,6 @@
 
 #include <libnbd.h>
 
-static const char *unixsocket;
 static const char *bitmap;
 
 struct data {
@@ -109,12 +108,11 @@ main (int argc, char *argv[])
   struct data data;
   char c;
 
-  if (argc != 3) {
-    fprintf (stderr, "%s unixsocket bitmap\n", argv[0]);
+  if (argc < 3) {
+    fprintf (stderr, "%s bitmap qemu-nbd [args ...]\n", argv[0]);
     exit (EXIT_FAILURE);
   }
-  unixsocket = argv[1];
-  bitmap = argv[2];
+  bitmap = argv[1];
 
   nbd = nbd_create ();
   if (nbd == NULL) {
@@ -125,7 +123,7 @@ main (int argc, char *argv[])
   nbd_add_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION);
   nbd_add_meta_context (nbd, bitmap);
 
-  if (nbd_connect_unix (nbd, unixsocket) == -1) {
+  if (nbd_connect_socket_activation (nbd, &argv[2]) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
