@@ -1521,9 +1521,13 @@ behave like inetd clients, such as C<nbdkit --single>.";
     shortdesc = "connect using systemd socket activation";
     longdesc = "\
 Run the command as a subprocess and connect to it using
-systemd socket activation.  This is for use with NBD servers
-such as C<nbdkit> which understand socket activation.";
-    see_also = ["L<nbd_kill_subprocess(3)>"];
+systemd socket activation.  This can be used with NBD servers
+such as C<nbdkit> and C<qemu-nbd> which understand socket
+activation.
+
+For running nbdkit as a subprocess it is usually better
+to use L<nbd_connect_command(3)>.";
+    see_also = ["L<nbd_connect_command(3)>"; "L<nbd_kill_subprocess(3)>"];
   };
 
   "is_read_only", {
