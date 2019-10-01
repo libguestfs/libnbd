@@ -788,6 +788,7 @@ L<psktool(1)>.
 
 =head2 Other
 
+L<libnbd-security(3)>,
 L<qemu(1)>.
 
 =head1 AUTHORS

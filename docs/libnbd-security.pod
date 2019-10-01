@@ -1,0 +1,32 @@
+=head1 NAME
+
+libnbd-security - information about past security issues in libnbd
+
+=head1 DESCRIPTION
+
+This page details past security issues found in libnbd.
+
+For how to report new security issues, see the C<SECURITY> file in the
+top level source directory, also available online here:
+L<https://github.com/libguestfs/libnbd/blob/master/SECURITY>
+
+=head2 CVE-2019-14842
+protocol downgrade attack when using LIBNBD_TLS_REQUIRE
+
+See the full announcement and links to mitigation, tests and fixes
+here:
+https://www.redhat.com/archives/libguestfs/2019-September/msg00128.html
+
+=head1 SEE ALSO
+
+L<libnbd(1)>.
+
+=head1 AUTHORS
+
+Eric Blake
+
+Richard W.M. Jones
+
+=head1 COPYRIGHT
+
+Copyright (C) 2019 Red Hat Inc.

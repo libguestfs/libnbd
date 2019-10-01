@@ -38,6 +38,7 @@ generator_built = \
 EXTRA_DIST = \
 	$(generator_built) \
 	libnbd.pod \
+	libnbd-security.pod \
 	nbd_create.pod \
 	nbd_close.3 \
 	nbd_get_error.3 \
@@ -48,6 +49,7 @@ if HAVE_POD
 
 man_MANS = \
 	libnbd.3 \
+	libnbd-security.3 \
 	nbd_create.3 \
 	nbd_close.3 \
 	nbd_get_error.3 \
@@ -70,6 +72,11 @@ libnbd.3: libnbd.pod $(top_builddir)/podwrapper.pl \
 	$(PODWRAPPER) --section=3 --man $@ \
 	    --insert api-links.pod:__API_LINKS__ \
 	    --insert api-flag-links.pod:__API_FLAG_LINKS__ \
+	    --html $(top_builddir)/html/$@.html \
+	    $<
+
+libnbd-security.3: libnbd-security.pod
+	$(PODWRAPPER) --section=3 --man $@ \
 	    --html $(top_builddir)/html/$@.html \
 	    $<
 

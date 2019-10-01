@@ -85,6 +85,7 @@ Display the package name and version and exit.
 =head1 SEE ALSO
 
 L<libnbd(3)>,
+L<libnbd-security(3)>,
 L<qemu-img(1)>.
 
 =head1 AUTHORS
