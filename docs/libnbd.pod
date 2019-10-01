@@ -838,6 +838,7 @@ L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>.
 
 =head2 Other
 
+L<libnbd-security(3)>,
 L<qemu(1)>.
 
 =head1 AUTHORS

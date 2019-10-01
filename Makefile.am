@@ -24,6 +24,7 @@ EXTRA_DIST = \
 	.gitignore \
 	html/pod.css \
 	scripts/git.orderfile \
+	SECURITY \
 	$(NULL)
 
 SUBDIRS = \

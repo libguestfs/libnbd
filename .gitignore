@@ -41,6 +41,7 @@ Makefile.in
 /docs/*.pod
 /docs/Makefile.inc
 !/docs/libnbd.pod
+!/docs/libnbd-security.pod
 !/docs/nbd_close.3
 !/docs/nbd_create.pod
 !/docs/nbd_get_err??.3

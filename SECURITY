@@ -1,0 +1,14 @@
+If you think you've found a serious or potential security bug that you
+don't want to report on a public mailing list, then send email to both
+<rjones@redhat.com> and <eblake@redhat.com>.
+
+Make it clear in the email Subject line that it's a serious or
+security-related bug in libnbd.
+
+You can also sign and/or encrypt messages using our GPG public keys
+available on the usual keyservers.
+
+For information about past security issues, see
+docs/libnbd-security.pod, or the libnbd-security(1) man page if you
+have installed libnbd, also available online here:
+http://libguestfs.org/libnbd-security.3.html
