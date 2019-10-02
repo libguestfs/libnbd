@@ -437,6 +437,14 @@ When the handle is closed the nbdkit subprocess is killed, which in
 this case means the RAM disk is discarded, so this is useful for
 testing.
 
+=head2 Connecting to a subprocess using systemd socket activation
+
+Some NBD servers — notably L<nbdkit(1)> and L<qemu-nbd(1)> — support
+systemd socket activation allowing libnbd to pass a socket to the
+subprocess.  This works very similarly to L<nbd_connect_command(3)>
+described above, but you must use L<nbd_connect_socket_activation(3)>
+instead.
+
 =head1 EXPORTS AND FLAGS
 
 It is possible for NBD servers to serve different content on different
