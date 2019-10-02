@@ -186,17 +186,13 @@ specified a null completion callback.
 Each libnbd handle has an associated socket (once it has started
 connecting).  You can read the file descriptor of the socket using:
 
- int fd;
- 
- fd = nbd_aio_get_fd (nbd);
+ int fd = nbd_aio_get_fd (nbd);
 
 The socket is non-blocking.  Between calls into libnbd it is in the
 "would block" condition.  You can find out if libnbd is expecting to
 read or write from the socket next by calling:
 
- int dir;
- 
- dir = nbd_aio_get_direction (nbd);
+ int dir = nbd_aio_get_direction (nbd);
 
 which returns one of C<LIBNBD_AIO_DIRECTION_READ>,
 C<LIBNBD_AIO_DIRECTION_WRITE> or C<LIBNBD_AIO_DIRECTION_BOTH> (=
@@ -267,7 +263,7 @@ until the connection becomes ready:
    nbd_close (nbd);
    exit (EXIT_FAILURE);
  }
- while (!nbd_aio_is_ready (nbd)) {
+ while (! nbd_aio_is_ready (nbd)) {
    if (nbd_poll (nbd, -1) == -1) {
      fprintf (stderr, "%s\n", nbd_get_error ());
      nbd_close (nbd);
@@ -289,7 +285,7 @@ command has completed:
    nbd_close (nbd);
    exit (EXIT_FAILURE);
  }
- while (!nbd_aio_command_completed (nbd, cookie)) {
+ while (! nbd_aio_command_completed (nbd, cookie)) {
    if (nbd_poll (nbd, -1) == -1) {
      fprintf (stderr, "%s\n", nbd_get_error ());
      nbd_close (nbd);
