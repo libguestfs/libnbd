@@ -33,7 +33,7 @@ main (int argc, char *argv[])
    * systemd socket activation.
    */
   char *args[] = {
-    "qemu-nbd", "-f" "qcow2",
+    "qemu-nbd", "-f", "qcow2",
     (char *) filename,
     NULL
   };
