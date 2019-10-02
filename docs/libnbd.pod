@@ -398,18 +398,6 @@ For L<nbd_connect_tcp(3)> the third parameter is the port name or number,
 which can either be a name from F</etc/services> or the port number as
 a string (eg. C<"10809">).
 
-=head2 Connecting to a subprocess
-
-Some NBD servers — notably L<nbdkit(1)> with the C<-s> parameter — can
-also accept a single NBD connection on stdin/stdout.  You can run
-these servers as a subprocess of your main program.  This example
-creates a 1G writable RAM disk for testing which is discarded as soon
-as the libnbd handle is closed:
-
- char *argv[] = { "nbdkit", "-s", "--exit-with-parent",
-                            "memory", "1G", NULL };
- nbd_connect_command (nbd, argv);
-
 =head2 Connecting to an NBD URI
 
 libnbd supports the
@@ -432,6 +420,22 @@ L<nbd_aio_connect_uri(3)> calls will raise an error (with
 L<nbd_get_errno(3)> returning C<ENOTSUP>) if it was not built with
 this feature, and you can also test for it explicitly using
 L<nbd_supports_uri(3)>.
+
+=head2 Connecting to a subprocess
+
+Some NBD servers — notably L<nbdkit(1)> with the I<-s> parameter, and
+L<nbd-server(1)> with the port parameter set to 0 — can also accept a
+single NBD connection on stdin/stdout.  You can run these servers as a
+subprocess of your main program using L<nbd_connect_command(3)>.  This
+example creates a 1G writable RAM disk:
+
+ char *argv[] = { "nbdkit", "-s", "--exit-with-parent",
+                            "memory", "1G", NULL };
+ nbd_connect_command (nbd, argv);
+
+When the handle is closed the nbdkit subprocess is killed, which in
+this case means the RAM disk is discarded, so this is useful for
+testing.
 
 =head1 EXPORTS AND FLAGS
 
