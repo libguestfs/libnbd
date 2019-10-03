@@ -1,0 +1,34 @@
+Fuzzing libnbd using the American Fuzzy Lop (afl) fuzzer
+--------------------------------------------------------
+
+We can fuzz libnbd using the wrapper in this directory.
+
+You will need to recompile libnbd with afl instrumentation:
+
+  ./configure CC=/usr/bin/afl-gcc CXX=/usr/bin/afl-g++ \
+      --disable-shared --disable-ocaml --disable-python
+  make clean
+  make
+
+The fuzzing/testcase_dir directory contains some initial testcases
+that afl can use.
+
+Run multiple copies of afl-fuzz.  Usually you should run 1 master (-M)
+and as many slaves (-S) as you can.
+
+Master:
+
+  mkdir -p fuzzing/sync_dir
+  afl-fuzz -i fuzzing/testcase_dir -o fuzzing/sync_dir -M fuzz01 \
+      ./fuzzing/libnbd-fuzz-wrapper @@
+
+Slaves:
+
+  # replace fuzzNN with fuzz02, fuzz03, etc.
+  afl-fuzz -i fuzzing/testcase_dir -o fuzzing/sync_dir -S fuzzNN \
+      ./fuzzing/libnbd-fuzz-wrapper @@
+
+Notes
+-----
+
+To report security bugs, see ‘SECURITY’ in the top source directory.

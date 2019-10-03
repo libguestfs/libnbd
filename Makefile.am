@@ -43,6 +43,7 @@ SUBDIRS = \
 	ocaml/examples \
 	ocaml/tests \
 	interop \
+	fuzzing \
 	$(NULL)
 
 noinst_SCRIPTS = run

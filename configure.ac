@@ -353,6 +353,7 @@ AC_CONFIG_FILES([Makefile
                  common/include/Makefile
                  docs/Makefile
                  examples/Makefile
+                 fuzzing/Makefile
                  generator/Makefile
                  include/Makefile
                  interop/Makefile

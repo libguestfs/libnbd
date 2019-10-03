@@ -57,6 +57,8 @@ Makefile.in
 /examples/server-flags
 /examples/strict-structured-reads
 /examples/threaded-reads-and-writes
+/fuzzing/libnbd-fuzz-wrapper
+/fuzzing/sync_dir/
 /generator/generator-cache.v1
 /generator/stamp-generator
 /html/*.?.html
