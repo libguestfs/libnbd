@@ -70,8 +70,8 @@ nbd_%.3: nbd_%.pod $(top_builddir)/podwrapper.pl
 libnbd.3: libnbd.pod $(top_builddir)/podwrapper.pl \
 		api-links.pod api-flag-links.pod
 	$(PODWRAPPER) --section=3 --man $@ \
-	    --insert api-links.pod:__API_LINKS__ \
-	    --insert api-flag-links.pod:__API_FLAG_LINKS__ \
+	    --insert $(srcdir)/api-links.pod:__API_LINKS__ \
+	    --insert $(srcdir)/api-flag-links.pod:__API_FLAG_LINKS__ \
 	    --html $(top_builddir)/html/$@.html \
 	    $<
 
