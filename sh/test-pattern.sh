@@ -20,6 +20,7 @@
 
 . ../tests/functions.sh
 requires nbdkit --exit-with-parent --version
+requires nbdsh -c 'exit(not h.supports_uri())'
 
 sock=`mktemp -u /tmp/nbdsh.XXXXXX`
 pidfile=test-dump.pid

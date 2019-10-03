@@ -19,6 +19,9 @@
 # Test effects of nbdsh --base-allocation
 fail=0
 
+. ../tests/functions.sh
+requires nbdsh -c 'exit(not h.supports_uri())'
+
 # Without --base-allocation, no meta context is requested
 output=$(nbdkit -U - null --run 'nbdsh \
     -u "nbd+unix://?socket=$unixsocket" \
