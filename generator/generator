@@ -4487,7 +4487,8 @@ let generate_docs_nbd_pod name { args; optargs; ret;
                                  first_version = (major, minor) } () =
   pr "=head1 NAME\n";
   pr "\n";
-  pr "nbd_%s - %s\n" name shortdesc;
+  pr_wrap ' ' (fun () -> pr "nbd_%s - %s" name shortdesc);
+  pr "\n";
   pr "\n";
 
   pr "=head1 SYNOPSIS\n";
