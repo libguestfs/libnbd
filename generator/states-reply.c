@@ -89,6 +89,10 @@ STATE_MACHINE {
     SET_NEXT_STATE (%.CLOSED);
     return 0;
   }
+#ifdef DUMP_PACKETS
+  if (h->rbuf != NULL)
+    nbd_internal_hexdump (h->rbuf, r, stderr);
+#endif
 
   h->rbuf += r;
   h->rlen -= r;
