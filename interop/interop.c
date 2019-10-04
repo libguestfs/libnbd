@@ -100,7 +100,7 @@ main (int argc, char *argv[])
 
   /* Start the server. */
 #if SOCKET_ACTIVATION
-#define NBD_CONNECT nbd_connect_socket_activation
+#define NBD_CONNECT nbd_connect_systemd_socket_activation
 #else
 #define NBD_CONNECT nbd_connect_command
 #endif

@@ -123,7 +123,7 @@ main (int argc, char *argv[])
   nbd_add_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION);
   nbd_add_meta_context (nbd, bitmap);
 
-  if (nbd_connect_socket_activation (nbd, &argv[2]) == -1) {
+  if (nbd_connect_systemd_socket_activation (nbd, &argv[2]) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

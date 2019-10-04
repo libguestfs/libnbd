@@ -95,7 +95,7 @@ type external_event =
   | CmdConnectUnix              (* [nbd_aio_connect_unix] *)
   | CmdConnectTCP               (* [nbd_aio_connect_tcp] *)
   | CmdConnectCommand           (* [nbd_aio_connect_command] *)
-  | CmdConnectSA                (* [nbd_aio_connect_socket_activation] *)
+  | CmdConnectSA                (* [nbd_aio_connect_systemd_socket_activation]*)
   | CmdIssue                    (* issuing an NBD command *)
 
 type location = string * int    (* source location: file, line number *)
@@ -275,7 +275,7 @@ and connect_command_state_machine = [
   };
 ]
 
-(* State machine implementing [nbd_aio_connect_socket_activation]. *)
+(* State machine implementing [nbd_aio_connect_systemd_socket_activation]. *)
 and connect_sa_state_machine = [
   State {
     default_state with
@@ -1528,7 +1528,7 @@ is killed.";
     example = Some "examples/connect-command.c";
   };
 
-  "connect_socket_activation", {
+  "connect_systemd_socket_activation", {
     default_call with
     args = [ StringList "argv" ]; ret = RErr;
     permitted_states = [ Created ];
@@ -2161,7 +2161,7 @@ and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
   };
 
-  "aio_connect_socket_activation", {
+  "aio_connect_systemd_socket_activation", {
     default_call with
     args = [ StringList "argv" ]; ret = RErr;
     permitted_states = [ Created ];
@@ -2169,7 +2169,7 @@ on the connection.";
     longdesc = "\
 Run the command as a subprocess and begin connecting to it using
 systemd socket activation.  Parameters behave as documented in
-L<nbd_connect_socket_activation(3)>.
+L<nbd_connect_systemd_socket_activation(3)>.
 
 You can check if the connection is still connecting by calling
 L<nbd_aio_is_connecting(3)>, or if it has connected to the server
@@ -2756,8 +2756,8 @@ let first_version = [
   "get_protocol", (1, 2);
   "set_handshake_flags", (1, 2);
   "get_handshake_flags", (1, 2);
-  "connect_socket_activation", (1, 2);
-  "aio_connect_socket_activation", (1, 2);
+  "connect_systemd_socket_activation", (1, 2);
+  "aio_connect_systemd_socket_activation", (1, 2);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

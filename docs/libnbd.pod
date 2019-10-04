@@ -438,8 +438,8 @@ testing.
 Some NBD servers — notably L<nbdkit(1)> and L<qemu-nbd(1)> — support
 systemd socket activation allowing libnbd to pass a socket to the
 subprocess.  This works very similarly to L<nbd_connect_command(3)>
-described above, but you must use L<nbd_connect_socket_activation(3)>
-instead.
+described above, but you must use
+L<nbd_connect_systemd_socket_activation(3)> instead.
 
 =head1 EXPORTS AND FLAGS
 

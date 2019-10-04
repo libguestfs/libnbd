@@ -37,7 +37,8 @@ main (int argc, char *argv[])
     (char *) filename,
     NULL
   };
-  if (nbd_connect_socket_activation (nbd, args) == -1) {
+  if (nbd_connect_systemd_socket_activation (nbd,
+                                             args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

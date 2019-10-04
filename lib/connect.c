@@ -114,9 +114,10 @@ nbd_unlocked_connect_command (struct nbd_handle *h, char **argv)
 
 /* Connect to a local command, use systemd socket activation. */
 int
-nbd_unlocked_connect_socket_activation (struct nbd_handle *h, char **argv)
+nbd_unlocked_connect_systemd_socket_activation (struct nbd_handle *h,
+                                                char **argv)
 {
-  if (nbd_unlocked_aio_connect_socket_activation (h, argv) == -1)
+  if (nbd_unlocked_aio_connect_systemd_socket_activation (h, argv) == -1)
     return -1;
 
   return wait_until_connected (h);
@@ -417,7 +418,8 @@ nbd_unlocked_aio_connect_command (struct nbd_handle *h, char **argv)
 }
 
 int
-nbd_unlocked_aio_connect_socket_activation (struct nbd_handle *h, char **argv)
+nbd_unlocked_aio_connect_systemd_socket_activation (struct nbd_handle *h,
+                                                    char **argv)
 {
   char **copy;
 
