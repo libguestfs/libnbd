@@ -146,10 +146,13 @@ client (const char *sockpath)
   /* This tests the handshake phase. */
   nbd_connect_unix (nbd, sockpath);
 
-  /* XXX We should do some more complicated operations here,
-   * eg exercising structured reads.
-   */
   nbd_pread (nbd, buf, sizeof buf, 0, 0);
+  nbd_pwrite (nbd, buf, sizeof buf, 0, 0);
+  nbd_flush (nbd, 0);
+  nbd_trim (nbd, 512, 0, 0);
+  nbd_cache (nbd, 512, 0, 0);
+
+  /* XXX Test structured reads and block status. */
 
   nbd_shutdown (nbd, 0);
 }
