@@ -23,6 +23,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
@@ -97,6 +98,16 @@ nbd_unlocked_connect_tcp (struct nbd_handle *h,
                           const char *hostname, const char *port)
 {
   if (nbd_unlocked_aio_connect_tcp (h, hostname, port) == -1)
+    return -1;
+
+  return wait_until_connected (h);
+}
+
+/* Connect to a connected socket. */
+int
+nbd_unlocked_connect_socket (struct nbd_handle *h, int sock)
+{
+  if (nbd_unlocked_aio_connect_socket (h, sock) == -1)
     return -1;
 
   return wait_until_connected (h);
@@ -397,6 +408,42 @@ nbd_unlocked_aio_connect_tcp (struct nbd_handle *h,
   }
 
   return nbd_internal_run (h, cmd_connect_tcp);
+}
+
+int
+nbd_unlocked_aio_connect_socket (struct nbd_handle *h, int sock)
+{
+  int flags;
+
+  /* Set O_NONBLOCK on the file and FD_CLOEXEC on the file descriptor.
+   * We can't trust that the calling process did either of these.
+   */
+  flags = fcntl (sock, F_GETFL, 0);
+  if (flags == -1 ||
+      fcntl (sock, F_SETFL, flags|O_NONBLOCK) == -1) {
+    set_error (errno, "fcntl: set O_NONBLOCK");
+    close (sock);
+    return -1;
+  }
+
+  flags = fcntl (sock, F_GETFD, 0);
+  if (flags == -1 ||
+      fcntl (sock, F_SETFD, flags|FD_CLOEXEC) == -1) {
+    set_error (errno, "fcntl: set FD_CLOEXEC");
+    close (sock);
+    return -1;
+  }
+
+  h->sock = nbd_internal_socket_create (sock);
+  if (!h->sock) {
+    close (sock);
+    return -1;
+  }
+
+  /* This jumps straight to %MAGIC.START (to start the handshake)
+   * because the socket is already connected.
+   */
+  return nbd_internal_run (h, cmd_connect_socket);
 }
 
 int

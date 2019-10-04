@@ -96,6 +96,7 @@ type external_event =
   | CmdConnectTCP               (* [nbd_aio_connect_tcp] *)
   | CmdConnectCommand           (* [nbd_aio_connect_command] *)
   | CmdConnectSA                (* [nbd_aio_connect_systemd_socket_activation]*)
+  | CmdConnectSocket            (* [nbd_aio_connect_socket] *)
   | CmdIssue                    (* issuing an NBD command *)
 
 type location = string * int    (* source location: file, line number *)
@@ -170,7 +171,8 @@ let rec state_machine = [
                         CmdConnectUnix, "CONNECT_UNIX.START";
                         CmdConnectTCP, "CONNECT_TCP.START";
                         CmdConnectCommand, "CONNECT_COMMAND.START";
-                        CmdConnectSA, "CONNECT_SA.START" ];
+                        CmdConnectSA, "CONNECT_SA.START";
+                        CmdConnectSocket, "MAGIC.START" ];
   };
 
   Group ("CONNECT", connect_state_machine);
@@ -883,6 +885,7 @@ and arg =
 | BytesPersistOut of string * string
 | Closure of closure       (* function pointer + void *opaque *)
 | Enum of string * enum    (* enum/union type, int in C *)
+| Fd of string             (* file descriptor *)
 | Flags of string * flags  (* flags, uint32_t in C *)
 | Int of string            (* small int *)
 | Int64 of string          (* 64 bit signed int *)
@@ -1499,6 +1502,21 @@ C<hostname:port>.  The C<port> may be a port name such
 as C<\"nbd\">, or it may be a port number as a string
 such as C<\"10809\">.  This call returns when the connection
 has been made.";
+  };
+
+  "connect_socket", {
+    default_call with
+    args = [ Fd "sock" ]; ret = RErr;
+    permitted_states = [ Created ];
+    shortdesc = "connect directly to a connected socket";
+    longdesc = "\
+Pass a connected socket (file descriptor) which libnbd will
+talk to.  The program is responsible for connecting this
+somehow to an NBD server.  Once the socket is passed to
+libnbd it is the responsibility of libnbd.  Libnbd may
+read and write to it, set it to non-blocking, etc., and
+will finally close it when the handle is closed.  The
+program must no longer use the socket.";
   };
 
   "connect_command", {
@@ -2145,6 +2163,21 @@ and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
   };
 
+  "aio_connect_socket", {
+    default_call with
+    args = [ Fd "sock" ]; ret = RErr;
+    permitted_states = [ Created ];
+    shortdesc = "connect directly to a connected socket";
+    longdesc = "\
+Begin connecting to the connected socket C<fd>.
+Parameters behave as documented in L<nbd_connect_socket(3)>.
+
+You can check if the connection is still connecting by calling
+L<nbd_aio_is_connecting(3)>, or if it has connected to the server
+and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
+on the connection.";
+  };
+
   "aio_connect_command", {
     default_call with
     args = [ StringList "argv" ]; ret = RErr;
@@ -2758,6 +2791,8 @@ let first_version = [
   "get_handshake_flags", (1, 2);
   "connect_systemd_socket_activation", (1, 2);
   "aio_connect_systemd_socket_activation", (1, 2);
+  "connect_socket", (1, 2);
+  "aio_connect_socket", (1, 2);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.
@@ -3117,7 +3152,7 @@ let all_external_events =
   [NotifyRead; NotifyWrite;
    CmdCreate;
    CmdConnectSockAddr; CmdConnectUnix; CmdConnectTCP;
-   CmdConnectCommand; CmdConnectSA;
+   CmdConnectCommand; CmdConnectSA; CmdConnectSocket;
    CmdIssue]
 
 let string_of_external_event = function
@@ -3129,6 +3164,7 @@ let string_of_external_event = function
   | CmdConnectTCP -> "CmdConnectTCP"
   | CmdConnectCommand -> "CmdConnectCommand"
   | CmdConnectSA -> "CmdConnectSA"
+  | CmdConnectSocket -> "CmdConnectSocket"
   | CmdIssue -> "CmdIssue"
 
 let c_string_of_external_event = function
@@ -3140,6 +3176,7 @@ let c_string_of_external_event = function
   | CmdConnectTCP -> "cmd_connect_tcp"
   | CmdConnectCommand -> "cmd_connect_command"
   | CmdConnectSA -> "cmd_connect_sa"
+  | CmdConnectSocket -> "cmd_connect_socket"
   | CmdIssue -> "cmd_issue"
 
 (* Find a state in the state machine hierarchy by path.  The [path]
@@ -3588,7 +3625,7 @@ let generate_lib_states_run_c () =
           | CmdCreate
           | CmdConnectSockAddr
           | CmdConnectUnix | CmdConnectTCP
-          | CmdConnectCommand | CmdConnectSA
+          | CmdConnectCommand | CmdConnectSA | CmdConnectSocket
           | CmdIssue -> ()
       ) events;
       pr "    break;\n";
@@ -3870,6 +3907,7 @@ let rec name_of_arg = function
 | Closure { cbname } ->
    [ sprintf "%s_callback" cbname; sprintf "%s_user_data" cbname ]
 | Enum (n, _) -> [n]
+| Fd n -> [n]
 | Flags (n, _) -> [n]
 | Int n -> [n]
 | Int64 n -> [n]
@@ -3926,7 +3964,7 @@ and print_arg_list_no_parens ?(handle = false) ?(types = true) args optargs =
       | Flags (n, _) ->
          if types then pr "uint32_t ";
          pr "%s" n
-      | Int n ->
+      | Fd n | Int n ->
          if types then pr "int ";
          pr "%s" n
       | Int64 n ->
@@ -4350,7 +4388,7 @@ let generate_lib_api_c () =
       | Closure { cbname } -> pr " %s=<fun>" cbname
       | Enum (n, _) -> pr " %s=%%d" n
       | Flags (n, _) -> pr " %s=0x%%x" n
-      | Int n -> pr " %s=%%d" n
+      | Fd n | Int n -> pr " %s=%%d" n
       | Int64 n -> pr " %s=%%\" PRIi64 \"" n
       | SockAddrAndLen (n, len) -> pr " %s=<sockaddr> %s=%%d" n len
       | Path n
@@ -4376,7 +4414,7 @@ let generate_lib_api_c () =
       | Closure { cbname } -> ()
       | Enum (n, _) -> pr ", %s" n
       | Flags (n, _) -> pr ", %s" n
-      | Int n -> pr ", %s" n
+      | Fd n | Int n -> pr ", %s" n
       | Int64 n -> pr ", %s" n
       | SockAddrAndLen (_, len) -> pr ", (int) %s" len
       | Path n | String n -> pr ", %s ? %s : \"NULL\"" n n
@@ -4889,7 +4927,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Flags (n, _) ->
        pr "  uint32_t %s_u32;\n" n;
        pr "  unsigned int %s; /* really uint32_t */\n" n
-    | Int n -> pr "  int %s;\n" n
+    | Fd n | Int n -> pr "  int %s;\n" n
     | Int64 n ->
        pr "  int64_t %s_i64;\n" n;
        pr "  long long %s; /* really int64_t */\n" n
@@ -4940,7 +4978,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Closure _ -> pr " \"O\""
     | Enum _ -> pr " \"i\""
     | Flags _ -> pr " \"I\""
-    | Int n -> pr " \"i\""
+    | Fd n | Int n -> pr " \"i\""
     | Int64 n -> pr " \"L\""
     | Path n -> pr " \"O&\""
     | SockAddrAndLen (n, _) -> pr " \"O\""
@@ -4967,7 +5005,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Closure { cbname } -> pr ", &%s_user_data->fn" cbname
     | Enum (n, _) -> pr ", &%s" n
     | Flags (n, _) -> pr ", &%s" n
-    | Int n -> pr ", &%s" n
+    | Fd n | Int n -> pr ", &%s" n
     | Int64 n -> pr ", &%s" n
     | Path n -> pr ", PyUnicode_FSConverter, &py_%s" n
     | SockAddrAndLen (n, _) -> pr ", &%s" n
@@ -5004,7 +5042,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  }\n"
     | Enum _ -> ()
     | Flags (n, _) -> pr "  %s_u32 = %s;\n" n n
-    | Int _ -> ()
+    | Fd _ | Int _ -> ()
     | Int64 n -> pr "  %s_i64 = %s;\n" n n
     | Path n ->
        pr "  %s = PyBytes_AS_STRING (py_%s);\n" n n;
@@ -5062,7 +5100,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Closure { cbname } -> pr ", %s" cbname
     | Enum (n, _) -> pr ", %s" n
     | Flags (n, _) -> pr ", %s_u32" n
-    | Int n -> pr ", %s" n
+    | Fd n | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
     | Path n -> pr ", %s" n
     | SockAddrAndLen (n, _) -> pr ", /* XXX */ (void *) %s, 0" n
@@ -5100,7 +5138,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Closure _
     | Enum _
     | Flags _
-    | Int _
+    | Fd _ | Int _
     | Int64 _
     | Path _
     | SockAddrAndLen _
@@ -5142,7 +5180,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Closure _ -> ()
     | Enum _ -> ()
     | Flags _ -> ()
-    | Int _ -> ()
+    | Fd _ | Int _ -> ()
     | Int64 _ -> ()
     | Path n ->
        pr "  Py_XDECREF (py_%s);\n" n
@@ -5351,7 +5389,7 @@ class NBD (object):
           | Closure { cbname } -> cbname, None, None
           | Enum (n, _) -> n, None, None
           | Flags (n, _) -> n, None, None
-          | Int n -> n, None, None
+          | Fd n | Int n -> n, None, None
           | Int64 n -> n, None, None
           | Path n -> n, None, None
           | SockAddrAndLen (n, _) -> n, None, None
@@ -5431,6 +5469,7 @@ and ocaml_arg_to_string = function
   | Closure { cbargs } ->
      sprintf "(%s)" (ocaml_closuredecl_to_string cbargs)
   | Enum (_, { enum_prefix }) -> sprintf "%s.t" enum_prefix
+  | Fd _ -> "Unix.file_descr"
   | Flags (_, { flag_prefix }) -> sprintf "%s.t" flag_prefix
   | Int _ -> "int"
   | Int64 _ -> "int64"
@@ -5482,6 +5521,7 @@ let ocaml_name_of_arg = function
   | BytesPersistOut (n, len) -> n
   | Closure { cbname } -> cbname
   | Enum (n, _) -> n
+  | Fd n -> n
   | Flags (n, _) -> n
   | Int n -> n
   | Int64 n -> n
@@ -5945,6 +5985,9 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
        pr "  %s_callback.free = free_user_data;\n" cbname
     | Enum (n, { enum_prefix }) ->
        pr "  int %s = %s_val (%sv);\n" n enum_prefix n
+    | Fd n ->
+       pr "  /* OCaml Unix.file_descr is just an int, at least on Unix. */\n";
+       pr "  int %s = Int_val (%sv);\n" n n
     | Flags (n, { flag_prefix }) ->
        pr "  uint32_t %s = %s_val (%sv);\n" n flag_prefix n
     | Int n ->
@@ -6018,6 +6061,7 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
     | BytesPersistOut _
     | Closure _
     | Enum _
+    | Fd _
     | Flags _
     | Int _
     | Int64 _

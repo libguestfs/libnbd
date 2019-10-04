@@ -60,6 +60,3 @@ Suggested API improvements:
 Fuzzing:
 
  - Work on minimizing the test cases.
- - The wrapper would be simpler if we could pass an opened
-   server socket to libnbd, and that could be a useful API
-   enhancement in general.
