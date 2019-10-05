@@ -18,6 +18,31 @@
 
 /* State machine for parsing structured replies from the server. */
 
+#include <stdbool.h>
+#include <stdint.h>
+#include <inttypes.h>
+
+/* Structured reply must be completely inside the bounds of the
+ * requesting command.
+ */
+static bool
+structured_reply_in_bounds (uint64_t offset, uint32_t length,
+                            const struct command *cmd)
+{
+  if (offset < cmd->offset ||
+      offset >= cmd->offset + cmd->count ||
+      offset + length > cmd->offset + cmd->count) {
+    set_error (0, "range of structured reply is out of bounds, "
+               "offset=%" PRIu64 ", cmd->offset=%" PRIu64 ", "
+               "length=%" PRIu32 ", cmd->count=%" PRIu32 ": "
+               "this is likely to be a bug in the NBD server",
+               offset, cmd->offset, length, cmd->count);
+    return false;
+  }
+
+  return true;
+}
+
 STATE_MACHINE {
  REPLY.STRUCTURED_REPLY.START:
   /* We've only read the simple_reply.  The structured_reply is longer,
@@ -282,13 +307,8 @@ STATE_MACHINE {
      */
     if (type == NBD_REPLY_TYPE_ERROR_OFFSET) {
       offset = be64toh (h->sbuf.sr.payload.error.offset);
-      if (offset < cmd->offset || offset >= cmd->offset + cmd->count) {
+      if (! structured_reply_in_bounds (offset, 0, cmd)) {
         SET_NEXT_STATE (%.DEAD);
-        set_error (0, "offset of error reply is out of bounds, "
-                   "offset=%" PRIu64 ", cmd->offset=%" PRIu64 ", "
-                   "cmd->count=%" PRIu32 ", "
-                   "this is likely to be a bug in the server",
-                   offset, cmd->offset, cmd->count);
         return 0;
       }
       if (cmd->type == NBD_CMD_READ &&
@@ -340,26 +360,12 @@ STATE_MACHINE {
     length -= 8;
 
     /* Is the data within bounds? */
-    if (offset < cmd->offset) {
+    if (! structured_reply_in_bounds (offset, length, cmd)) {
       SET_NEXT_STATE (%.DEAD);
-      set_error (0, "offset of reply is out of bounds, "
-                 "offset=%" PRIu64 ", cmd->offset=%" PRIu64 ", "
-                 "this is likely to be a bug in the server",
-                 offset, cmd->offset);
       return 0;
     }
     /* Now this is the byte offset in the read buffer. */
     offset -= cmd->offset;
-
-    if (offset + length > cmd->count) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "offset/length of reply is out of bounds, "
-                 "offset=%" PRIu64 ", length=%" PRIu32 ", "
-                 "cmd->count=%" PRIu32 ", "
-                 "this is likely to be a bug in the server",
-                 offset, length, cmd->count);
-      return 0;
-    }
 
     /* Set up to receive the data directly to the user buffer. */
     h->rbuf = cmd->data + offset;
@@ -419,26 +425,12 @@ STATE_MACHINE {
     cmd->data_seen = true;
 
     /* Is the data within bounds? */
-    if (offset < cmd->offset) {
+    if (! structured_reply_in_bounds (offset, length, cmd)) {
       SET_NEXT_STATE (%.DEAD);
-      set_error (0, "offset of reply is out of bounds, "
-                 "offset=%" PRIu64 ", cmd->offset=%" PRIu64 ", "
-                 "this is likely to be a bug in the server",
-                 offset, cmd->offset);
       return 0;
     }
     /* Now this is the byte offset in the read buffer. */
     offset -= cmd->offset;
-
-    if (offset + length > cmd->count) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "offset/length of reply is out of bounds, "
-                 "offset=%" PRIu64 ", length=%" PRIu32 ", "
-                 "cmd->count=%" PRIu32 ", "
-                 "this is likely to be a bug in the server",
-                 offset, length, cmd->count);
-      return 0;
-    }
 
     /* The spec states that 0-length requests are unspecified, but
      * 0-length replies are broken. Still, it's easy enough to support
