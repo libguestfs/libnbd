@@ -20,6 +20,7 @@ include $(top_srcdir)/subdir-rules.mk
 EXTRA_DIST = \
 	README \
 	testcase_dir/newstyle \
+	testcase_dir/newstyle-commands \
 	testcase_dir/oldstyle \
 	$(NULL)
 
