@@ -17,6 +17,11 @@ See the full announcement and links to mitigation, tests and fixes
 here:
 https://www.redhat.com/archives/libguestfs/2019-September/msg00128.html
 
+=head2 remote code execution vulnerability
+
+See the full announcement here:
+https://www.redhat.com/archives/libguestfs/2019-October/msg00060.html
+
 =head1 SEE ALSO
 
 L<libnbd(1)>.
