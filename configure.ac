@@ -200,6 +200,23 @@ PKG_CHECK_MODULES([GLIB], [glib-2.0], [
 ])
 AM_CONDITIONAL([HAVE_GLIB], [test "x$GLIB_LIBS" != "x"])
 
+dnl FUSE is optional to build the FUSE module.
+AC_ARG_ENABLE([fuse],
+    AS_HELP_STRING([--disable-fuse], [disable FUSE (guestmount) support]),
+    [],
+    [enable_fuse=yes])
+AS_IF([test "x$enable_fuse" != "xno"],[
+    PKG_CHECK_MODULES([FUSE],[fuse],[
+        AC_SUBST([FUSE_CFLAGS])
+        AC_SUBST([FUSE_LIBS])
+        AC_DEFINE([HAVE_FUSE],[1],[Define to 1 if you have FUSE.])
+    ],[
+        enable_fuse=no
+        AC_MSG_WARN([FUSE library and headers are missing, so optional FUSE module won't be built])
+    ])
+])
+AM_CONDITIONAL([HAVE_FUSE],[test "x$enable_fuse" != "xno"])
+
 dnl Check we have enough to run podwrapper.
 AC_CHECK_PROG([PERL],[perl],[perl],[no])
 AS_IF([test "x$PERL" != "xno"],[
@@ -353,6 +370,7 @@ AC_CONFIG_FILES([Makefile
                  common/include/Makefile
                  docs/Makefile
                  examples/Makefile
+                 fuse/Makefile
                  fuzzing/Makefile
                  generator/Makefile
                  include/Makefile
@@ -393,6 +411,8 @@ feature "TLS support ............................ " \
         test "x$HAVE_GNUTLS_TRUE" = "x"
 feature "NBD URI support ........................ " \
         test "x$LIBXML2_LIBS" != "x"
+feature "FUSE support ........................... " \
+        test "x$HAVE_FUSE_TRUE" = "x"
 feature "Manual pages ........................... " \
         test "x$HAVE_POD_TRUE" = "x"
 

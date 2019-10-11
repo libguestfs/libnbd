@@ -1,0 +1,305 @@
+=head1 NAME
+
+nbdfuse - present a network block device in a FUSE filesystem
+
+=head1 SYNOPSIS
+
+ nbdfuse [-o FUSE-OPTION] [-P PIDFILE] [-r]
+         MOUNTPOINT[/FILENAME] URI
+
+Other modes:
+
+ nbdfuse MOUNTPOINT[/FILENAME] --command CMD [ARGS ...]
+
+ nbdfuse MOUNTPOINT[/FILENAME] --socket-activation CMD [ARGS ...]
+
+ nbdfuse MOUNTPOINT[/FILENAME] --fd N
+
+ nbdfuse MOUNTPOINT[/FILENAME] --tcp HOST PORT
+
+ nbdfuse MOUNTPOINT[/FILENAME] --unix SOCKET
+
+=head1 DESCRIPTION
+
+nbdfuse presents a Network Block Device as a local file inside a FUSE
+filesystem.
+
+The FUSE filesystem is mounted at F<MOUNTPOINT> and contains a single
+virtual file called F<FILENAME> (defaulting to F<nbd>).  Reads and
+writes to the virtual file or device are turned into reads and writes
+to the NBD device.
+
+The NBD server itself can be local or remote.  The server can be
+specified as an NBD URI (like C<nbd://localhost>) or in various other
+ways (see L</MODES>).
+
+Use C<fusermount -u MOUNTPOINT> to unmount the filesystem after you
+have used it.
+
+=head1 EXAMPLES
+
+=head2 Present a remote NBD server as a local file
+
+If there is a remote NBD server running on C<example.com> at the
+default NBD port number (10809) then you can turn it into a local file
+by doing:
+
+ $ mkdir dir
+ $ nbdfuse dir nbd://example.com &
+ $ ls -l dir/
+ total 0
+ -rw-rw-rw-. 1 nbd nbd 1073741824 Jan  1 10:10 nbd
+
+The file is called F<dir/nbd> and you can read and write to it as if
+it is a normal file.  Note that writes to the file will write to the
+remote NBD server.  After using it, unmount it:
+
+ $ fusermount -u dir
+ $ rmdir dir
+
+=head2 Use nbdkit to create a file backed by a temporary RAM disk
+
+L<nbdkit(1)> has an I<-s> option allowing it to serve over
+stdin/stdout.  You can combine this with nbdfuse as follows:
+
+ $ mkdir dir
+ $ nbdfuse dir/ramdisk --command nbdkit -s memory 1G &
+ $ ls -l dir/
+ total 0
+ -rw-rw-rw-. 1 nbd nbd 1073741824 Jan  1 10:10 ramdisk
+ $ dd if=/dev/urandom bs=1M count=100 of=mp/ramdisk conv=notrunc,nocreat
+ 100+0 records in
+ 100+0 records out
+ 104857600 bytes (105 MB, 100 MiB) copied, 2.08319 s, 50.3 MB/s
+
+When you have finished with the RAM disk, you can unmount it as below
+which will cause nbdkit to exit and the RAM disk contents to be
+discarded:
+
+ $ fusermount -u dir
+ $ rmdir dir
+
+=head2 Use qemu-nbd to read and modify a qcow2 file
+
+L<qemu-nbd(8)> cannot serve over stdin/stdout, but it can use systemd
+socket activation.  You can combine this with nbdfuse and use it to
+open any file format which qemu understands:
+
+ $ mkdir dir
+ $ nbdfuse dir/file.raw \
+           --socket-activation qemu-nbd -f qcow2 file.qcow2 &
+ $ ls -l dir/
+ total 0
+ -rw-rw-rw-. 1 nbd nbd 1073741824 Jan  1 10:10 file.raw
+
+File F<dir/file.raw> is in raw format, backed by F<file.qcow2>.  Any
+changes made to F<dir/file.raw> are reflected into the qcow2 file.  To
+unmount the file do:
+
+ $ fusermount -u dir
+ $ rmdir dir
+
+=head2 Use nbdkit to create a local file from a file on a web server
+
+L<nbdkit(1)> is able to both access and transparently uncompress
+remote disk images on web servers, so you can convert them into
+virtual files:
+
+ $ mkdir dir
+ $ nbdfuse dir/disk.iso \
+       --command nbdkit -s curl --filter=xz \
+                        http://builder.libguestfs.org/fedora-30.xz &
+ $ ls -l dir/
+ total 0
+ -rw-rw-rw-. 1 nbd nbd 6442450944 Jan  1 10:10 disk.iso
+ $ file dir/disk.iso 
+ dir/disk.iso: DOS/MBR boot sector
+ $ qemu-system-x86_64 -m 4G \
+       -drive file=dir/disk.iso,format=raw,if=virtio,snapshot=on
+ $ fusermount -u dir
+
+In this example we have used the virtual file to boot qemu, but qemu
+can much more efficiently access NBD servers directly so in the real
+world that would be the preferred method.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<--help>
+
+Display brief command line help and exit.
+
+=item B<--fuse-help>
+
+Display FUSE options and exit.  See I<-o> below.
+
+=item B<-o> FUSE-OPTION
+
+Pass extra options to FUSE.  To get a list of all the extra options
+supported by FUSE, use I<--fuse-help>.
+
+Some potentially useful FUSE options:
+
+=over 4
+
+=item B<-o> B<allow_other>
+
+Allow other users to see the filesystem.  This option has no effect
+unless you enable it globally in F</etc/fuse.conf>.
+
+=item B<-o> B<kernel_cache>
+
+Allow the kernel to cache files (reduces the number of reads that have
+to go through the L<libnbd(3)> API).  This is generally a good idea if
+you can afford the extra memory usage.
+
+=item B<-o> B<uid=>N
+
+=item B<-o> B<gid=>N
+
+Use these options to map UIDs and GIDs.
+
+=back
+
+=item B<-P> PIDFILE
+
+=item B<--pidfile> PIDFILE
+
+When nbdfuse is ready to serve, write the nbdfuse process ID (PID) to
+F<PIDFILE>.  This can be used in scripts to wait until nbdfuse is
+ready.  Note you mustn't try to kill nbdfuse.  Use C<fusermount -u> to
+unmount the mountpoint which will cause nbdfuse to exit cleanly.
+
+=item B<-r>
+
+=item B<--readonly>
+
+Access the network block device read-only.  The virtual file will have
+read-only permissions, and any writes will return errors.
+
+=item B<-V>
+
+=item B<--version>
+
+Display the package name and version and exit.
+
+=back
+
+=head1 MODES
+
+Modes are used to select the NBD server.  The default mode uses an NBD
+URI (see L<nbd_connect_uri(3)> and
+L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>).
+For example this specifies a TLS-encrypted connection to
+C<example.com> port C<10809>, with export name C<disk>:
+
+ nbdfuse dir nbds://example.com/disk
+
+Other modes are:
+
+=over 4
+
+=item B<--command> CMD [ARGS ...]
+
+Select command mode.  In this mode an NBD server can be run directly
+from the command line with nbdfuse communicating with the server over
+the server’s stdin/stdout.  Normally you would use this with
+C<nbdkit -s>.  See L</EXAMPLES> above and L<nbd_connect_command(3)>.
+
+=item B<--fd> N
+
+Select file descriptor mode.  In this mode a connected socket is
+passed to nbdfuse.  nbdfuse connects to the socket on the numbered
+file descriptor.  See also L<nbd_connect_socket(3)>.
+
+=item B<--socket-activation> CMD [ARGS ...]
+
+Select systemd socket activation mode.  This is similar to
+I<--command>, but is used for servers like L<qemu-nbd(8)> which
+support systemd socket activation.  See L</EXAMPLES> above and
+L<nbd_connect_systemd_socket_activation(3)>.
+
+=item B<--tcp> HOST PORT
+
+Select TCP mode.  Connect to an NBD server on a host and port over an
+unencrypted TCP socket.  See also L<nbd_connect_tcp(3)>.
+
+=item B<--unix> SOCKET
+
+Select Unix mode.  Connect to an NBD server on a Unix domain socket.
+See also L<nbd_connect_unix(3)>.
+
+=back
+
+=head1 NOTES
+
+=head2 Loop mounting
+
+It is tempting (and possible) to loop mount the file.  However this
+will be very slow and may sometimes deadlock.  Better alternatives are
+to use either L<nbd-client(8)>, or more securely L<libguestfs(3)>,
+L<guestfish(1)> or L<guestmount(1)> which can all access NBD servers.
+
+=head2 As a way to access NBD servers
+
+You can use this to access NBD servers, but it is usually better (and
+definitely much faster) to use L<libnbd(3)> directly instead.  To
+access NBD servers from the command line, look at L<nbdsh(1)>.
+
+=head2 Compared to C<nbd-client>
+
+This program is similar in concept to L<nbd-client(8)> (which turns
+NBD into F</dev/nbdX> device nodes), except:
+
+=over 4
+
+=item *
+
+nbd-client is faster because it uses a special kernel module
+
+=item *
+
+nbd-client requires root, but nbdfuse can be used by any user
+
+=item *
+
+nbdfuse virtual files can be mounted anywhere in the filesystem
+
+=item *
+
+nbdfuse uses libnbd to talk to the NBD server
+
+=item *
+
+nbdfuse requires FUSE support in the kernel
+
+=back
+
+=head1 SEE ALSO
+
+L<libnbd(3)>,
+L<nbdsh(1)>,
+L<fusermount(1)>,
+L<mount.fuse(8)>,
+L<nbd_connect_uri(3)>,
+L<nbd_connect_command(3)>,
+L<nbd_connect_socket(3)>,
+L<nbd_connect_systemd_socket_activation(3)>,
+L<nbd_connect_tcp(3)>,
+L<nbd_connect_unix(3)>,
+L<libguestfs(3)>,
+L<guestfish(1)>,
+L<guestmount(1)>,
+L<nbdkit(1)>,
+L<nbdkit-loop(1)>,
+L<qemu-nbd(8)>,
+L<nbd-client(8)>.
+
+=head1 AUTHORS
+
+Richard W.M. Jones
+
+=head1 COPYRIGHT
+
+Copyright (C) 2019 Red Hat Inc.

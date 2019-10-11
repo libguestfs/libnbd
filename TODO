@@ -27,6 +27,13 @@ Should we ship a "nbdcp" copying tool?
  - Could upload, download or copy between servers.
  - Duplicates functionality already available in qemu-img convert.
 
+nbdfuse:
+ - If you write beyond the end of the virtual file, it returns EIO.
+ - Implement trim/discard.
+ - Implement write_zeroes.
+ - Implement block_status.
+ - Could be made multithreaded for improved performance.
+
 Suggested API improvements:
   general:
   - synchronous APIs that have a timeout or can be cancelled

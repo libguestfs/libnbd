@@ -82,6 +82,8 @@ Optional:
 
  * Python >= 3.3 to build the Python 3 bindings and NBD shell (nbdsh).
 
+ * FUSE to build the nbdfuse program.
+
 Optional, only needed to run the test suite:
 
  * nbdkit >= 1.12, the nbdkit basic plugins and the nbdkit basic

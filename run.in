@@ -51,6 +51,7 @@ s="$(cd @abs_srcdir@ && pwd)"
 b="$(cd @abs_builddir@ && pwd)"
 
 # Set the PATH to contain all libnbd binaries.
+prepend PATH "$b/fuse"
 prepend PATH "$b/sh"
 export PATH
 
