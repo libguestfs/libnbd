@@ -238,8 +238,9 @@ See also L<nbd_connect_unix(3)>.
 
 It is tempting (and possible) to loop mount the file.  However this
 will be very slow and may sometimes deadlock.  Better alternatives are
-to use either L<nbd-client(8)>, or more securely L<libguestfs(3)>,
-L<guestfish(1)> or L<guestmount(1)> which can all access NBD servers.
+to use L<nbd-client(8)> or L<qemu-nbd(8)>, or more securely
+L<libguestfs(3)>, L<guestfish(1)> or L<guestmount(1)> which can all
+access NBD servers.
 
 =head2 As a way to access NBD servers
 
@@ -275,6 +276,11 @@ nbdfuse uses libnbd to talk to the NBD server
 nbdfuse requires FUSE support in the kernel
 
 =back
+
+=head2 Compared to C<qemu-nbd>
+
+L<qemu-nbd(8)> can also attach itself to F</dev/nbdX> device nodes.
+The differences from nbdfuse are similar to the list above.
 
 =head1 SEE ALSO
 

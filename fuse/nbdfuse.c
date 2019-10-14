@@ -42,10 +42,10 @@
 
 #include <libnbd.h>
 
-#define MAX_REQUEST_SIZE (64 * 1024 * 1024)
+#define MAX_REQUEST_SIZE (32 * 1024 * 1024)
 
 static struct nbd_handle *nbd;
-static bool readonly = false;
+static bool readonly;
 static char *mountpoint, *filename;
 static const char *pidfile;
 static char *fuse_options;
@@ -84,12 +84,14 @@ usage (FILE *fp, int exitcode)
 {
   fprintf (fp,
 "\n"
-"Mount NBD URI as a file:\n"
+"Mount NBD server as a virtual file:\n"
 "\n"
+#ifdef HAVE_LIBXML2
 "    nbdfuse [-o FUSE-OPTION] [-P PIDFILE] [-r] MOUNTPOINT[/FILENAME] URI\n"
 "\n"
 "Other modes:\n"
 "\n"
+#endif
 "    nbdfuse MOUNTPOINT[/FILENAME] --command CMD [ARGS ...]\n"
 "    nbdfuse MOUNTPOINT[/FILENAME] --socket-activation CMD [ARGS ...]\n"
 "    nbdfuse MOUNTPOINT[/FILENAME] --fd N\n"
@@ -270,6 +272,14 @@ main (int argc, char *argv[])
     usage (stderr, EXIT_FAILURE);
   }
 
+#ifndef HAVE_LIBXML2
+  if (mode == MODE_URI) {
+    fprintf (stderr, "%s: URIs are not supported in this build of libnbd\n",
+             argv[0]);
+    exit (EXIT_FAILURE);
+  }
+#endif
+
   /* Check there are enough parameters following given the mode. */
   switch (mode) {
   case MODE_URI:
@@ -441,9 +451,9 @@ main (int argc, char *argv[])
   exit (r == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
-/* Wraps calls to libnbd functions and automatically checks for a
- * returns errors in the format required by FUSE.  It also prints out
- * the full error message on stderr, so that we don't lose it.
+/* Wraps calls to libnbd functions and automatically checks for error,
+ * returning errors in the format required by FUSE.  It also prints
+ * out the full error message on stderr, so that we don't lose it.
  */
 #define CHECK_NBD_ERROR(CALL)                                   \
   do { if ((CALL) == -1) return check_nbd_error (); } while (0)
@@ -468,7 +478,8 @@ nbdfuse_getattr (const char *path, struct stat *statbuf)
   memset (statbuf, 0, sizeof (struct stat));
 
   /* We're probably making some Linux-specific assumptions here, but
-   * this file is not compiled on non-Linux systems.
+   * this file is not usually compiled on non-Linux systems (perhaps
+   * on OpenBSD?).  XXX
    */
   statbuf->st_atim = start_t;
   statbuf->st_mtim = start_t;
