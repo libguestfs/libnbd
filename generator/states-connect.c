@@ -51,7 +51,8 @@ STATE_MACHINE {
   int fd;
 
   assert (!h->sock);
-  fd = socket (AF_UNIX, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
+  fd = socket (h->connaddr.ss_family,
+               SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
   if (fd == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "socket");
