@@ -32,6 +32,10 @@
 #include <sys/un.h>
 #include <assert.h>
 
+#ifdef HAVE_LINUX_VM_SOCKETS_H
+#include <linux/vm_sockets.h>
+#endif
+
 #ifdef HAVE_LIBXML2
 #include <libxml/uri.h>
 #endif
@@ -88,6 +92,16 @@ int
 nbd_unlocked_connect_unix (struct nbd_handle *h, const char *unixsocket)
 {
   if (nbd_unlocked_aio_connect_unix (h, unixsocket) == -1)
+    return -1;
+
+  return wait_until_connected (h);
+}
+
+/* Connect to a vsock. */
+int
+nbd_unlocked_connect_vsock (struct nbd_handle *h, uint32_t cid, uint32_t port)
+{
+  if (nbd_unlocked_aio_connect_vsock (h, cid, port) == -1)
     return -1;
 
   return wait_until_connected (h);
@@ -394,6 +408,28 @@ nbd_unlocked_aio_connect_unix (struct nbd_handle *h, const char *unixsocket)
   h->connaddrlen = len;
 
   return nbd_internal_run (h, cmd_connect_sockaddr);
+}
+
+int
+nbd_unlocked_aio_connect_vsock (struct nbd_handle *h,
+                                uint32_t cid, uint32_t port)
+{
+#ifdef AF_VSOCK
+  struct sockaddr_vm svm = {
+    .svm_family = AF_VSOCK,
+    .svm_cid = cid,
+    .svm_port = port,
+  };
+  const socklen_t len = sizeof svm;
+
+  memcpy (&h->connaddr, &svm, len);
+  h->connaddrlen = len;
+
+  return nbd_internal_run (h, cmd_connect_sockaddr);
+#else
+  set_error (ENOTSUP, "AF_VSOCK protocol is not supported");
+  return -1;
+#endif
 }
 
 int

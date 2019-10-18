@@ -19,6 +19,8 @@ Other modes:
 
  nbdfuse MOUNTPOINT[/FILENAME] --unix SOCKET
 
+ nbdfuse MOUNTPOINT[/FILENAME] --vsock CID PORT
+
 =head1 DESCRIPTION
 
 nbdfuse presents a Network Block Device as a local file inside a FUSE
@@ -230,6 +232,11 @@ unencrypted TCP socket.  See also L<nbd_connect_tcp(3)>.
 Select Unix mode.  Connect to an NBD server on a Unix domain socket.
 See also L<nbd_connect_unix(3)>.
 
+=item B<--vsock> CID PORT
+
+Select vsock mode.  Connect to an NBD server on a C<AF_VSOCK> socket.
+See also L<nbd_connect_vsock(3)>.
+
 =back
 
 =head1 NOTES
@@ -294,6 +301,7 @@ L<nbd_connect_socket(3)>,
 L<nbd_connect_systemd_socket_activation(3)>,
 L<nbd_connect_tcp(3)>,
 L<nbd_connect_unix(3)>,
+L<nbd_connect_vsock(3)>,
 L<libguestfs(3)>,
 L<guestfish(1)>,
 L<guestmount(1)>,

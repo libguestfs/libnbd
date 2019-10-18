@@ -1478,6 +1478,20 @@ when the connection has been made.";
     example = Some "examples/fetch-first-sector.c";
   };
 
+  "connect_vsock", {
+    default_call with
+    args = [ UInt32 "cid"; UInt32 "port" ]; ret = RErr;
+    permitted_states = [ Created ];
+    shortdesc = "connect to NBD server over AF_VSOCK protocol";
+    longdesc = "\
+Connect (synchronously) over the C<AF_VSOCK> protocol from a
+virtual machine to an NBD server, usually running on the host.  The
+C<cid> and C<port> parameters specify the server address.  Usually
+C<cid> should be C<2> (to connect to the host), and C<port> might be
+C<10809> or another port number assigned to you by the host
+administrator.  This call returns when the connection has been made.";
+  };
+
   "connect_tcp", {
     default_call with
     args = [ String "hostname"; String "port" ]; ret = RErr;
@@ -2135,6 +2149,22 @@ on the connection.";
     example = Some "examples/aio-connect-read.c";
   };
 
+  "aio_connect_vsock", {
+    default_call with
+    args = [ UInt32 "cid"; UInt32 "port" ]; ret = RErr;
+    permitted_states = [ Created ];
+    shortdesc = "connect to the NBD server over AF_VSOCK socket";
+    longdesc = "\
+Begin connecting to the NBD server over the C<AF_VSOCK>
+protocol to the server C<cid:port>.  Parameters behave as documented in
+L<nbd_connect_vsock(3)>.
+
+You can check if the connection is still connecting by calling
+L<nbd_aio_is_connecting(3)>, or if it has connected to the server
+and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
+on the connection.";
+  };
+
   "aio_connect_tcp", {
     default_call with
     args = [ String "hostname"; String "port" ]; ret = RErr;
@@ -2780,6 +2810,8 @@ let first_version = [
   "aio_connect_systemd_socket_activation", (1, 2);
   "connect_socket", (1, 2);
   "aio_connect_socket", (1, 2);
+  "connect_vsock", (1, 2);
+  "aio_connect_vsock", (1, 2);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

@@ -77,6 +77,8 @@ AC_CHECK_HEADERS([\
     stdatomic.h \
     sys/endian.h])
 
+AC_CHECK_HEADERS([linux/vm_sockets.h], [], [], [#include <sys/socket.h>])
+
 dnl Check for functions, all optional.
 AC_CHECK_FUNCS([\
     execvpe])

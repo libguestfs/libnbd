@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <getopt.h>
 #include <limits.h>
@@ -97,6 +98,7 @@ usage (FILE *fp, int exitcode)
 "    nbdfuse MOUNTPOINT[/FILENAME] --fd N\n"
 "    nbdfuse MOUNTPOINT[/FILENAME] --tcp HOST PORT\n"
 "    nbdfuse MOUNTPOINT[/FILENAME] --unix SOCKET\n"
+"    nbdfuse MOUNTPOINT[/FILENAME] --vsock CID PORT\n"
 "\n"
 "Please read the nbdfuse(1) manual page for full usage.\n"
 "\n"
@@ -139,6 +141,7 @@ main (int argc, char *argv[])
     MODE_SOCKET_ACTIVATION,
     MODE_TCP,
     MODE_UNIX,
+    MODE_VSOCK,
   } mode = MODE_URI;
   enum {
     HELP_OPTION = CHAR_MAX + 1,
@@ -161,6 +164,7 @@ main (int argc, char *argv[])
     { NULL }
   };
   int c, fd, r;
+  uint32_t cid, port;
   int64_t ssize;
   const char *s;
   struct fuse_args fuse_args = FUSE_ARGS_INIT (0, NULL);
@@ -262,6 +266,10 @@ main (int argc, char *argv[])
     mode = MODE_UNIX;
     optind++;
   }
+  else if (strcmp (argv[optind], "--vsock") == 0) {
+    mode = MODE_VSOCK;
+    optind++;
+  }
   /* This is undocumented, but allow either URI or --uri URI. */
   else if (strcmp (argv[optind], "--uri") == 0) {
     mode = MODE_URI;
@@ -289,6 +297,7 @@ main (int argc, char *argv[])
       usage (stderr, EXIT_FAILURE);
     break;
   case MODE_TCP:
+  case MODE_VSOCK:
     if (argc - optind != 2)
       usage (stderr, EXIT_FAILURE);
     break;
@@ -353,6 +362,23 @@ main (int argc, char *argv[])
 
   case MODE_UNIX:
     if (nbd_connect_unix (nbd, argv[optind]) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    break;
+
+  case MODE_VSOCK:
+    if (sscanf (argv[optind], "%" SCNu32, &cid) != 1) {
+      fprintf (stderr, "%s: could not parse vsock cid: %s\n\n",
+               argv[0], argv[optind]);
+      exit (EXIT_FAILURE);
+    }
+    if (sscanf (argv[optind+1], "%" SCNu32, &port) != 1) {
+      fprintf (stderr, "%s: could not parse vsock port: %s\n\n",
+               argv[0], argv[optind]);
+      exit (EXIT_FAILURE);
+    }
+    if (nbd_connect_vsock (nbd, cid, port) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
