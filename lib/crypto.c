@@ -363,6 +363,12 @@ load_certificates (const char *path, gnutls_certificate_credentials_t *ret)
     set_error (errno, "asprintf");
     goto error;
   }
+  /* Only ca-cert.pem must be present. */
+  if (access (cacert, R_OK) == -1) {
+    free (cacert);
+    return 0;
+  }
+
   if (asprintf (&clientcert, "%s/client-cert.pem", path) == -1) {
     set_error (errno, "asprintf");
     goto error;
@@ -375,10 +381,6 @@ load_certificates (const char *path, gnutls_certificate_credentials_t *ret)
     set_error (errno, "asprintf");
     goto error;
   }
-
-  /* Only ca-cert.pem must be present. */
-  if (access (cacert, R_OK) == -1)
-    return 0;
 
   err = gnutls_certificate_allocate_credentials (ret);
   if (err < 0) {
