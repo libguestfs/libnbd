@@ -150,7 +150,7 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
 {
   xmlURIPtr uri = NULL;
   enum { tcp, unix_sock, vsock } transport;
-  bool tls;
+  bool tls, socket_required;
   struct uri_query *queries = NULL;
   int nqueries = -1;
   int i, r;
@@ -175,26 +175,32 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
     if (strcmp (uri->scheme, "nbd") == 0) {
       transport = tcp;
       tls = false;
+      socket_required = false;
     }
     else if (strcmp (uri->scheme, "nbds") == 0) {
       transport = tcp;
       tls = true;
+      socket_required = false;
     }
     else if (strcmp (uri->scheme, "nbd+unix") == 0) {
       transport = unix_sock;
       tls = false;
+      socket_required = true;
     }
     else if (strcmp (uri->scheme, "nbds+unix") == 0) {
       transport = unix_sock;
       tls = true;
+      socket_required = true;
     }
     else if (strcmp (uri->scheme, "nbd+vsock") == 0) {
       transport = vsock;
       tls = false;
+      socket_required = false;
     }
     else if (strcmp (uri->scheme, "nbds+vsock") == 0) {
       transport = vsock;
       tls = true;
+      socket_required = false;
     }
     else goto unknown_scheme;
   }
@@ -219,6 +225,21 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
              queries[i].name, queries[i].value);
   }
 
+  if (socket_required) {
+    if (!unixsocket) {
+      set_error (EINVAL, "cannot parse socket parameter from NBD URI: %s",
+                 uri->query_raw ? : "NULL");
+      goto cleanup;
+    }
+  }
+  else /* !socket_required */ {
+    if (unixsocket) {
+      set_error (EINVAL, "socket=%s URI query is incompatible with %s",
+                 unixsocket, uri->scheme);
+      goto cleanup;
+    }
+  }
+
   /* TLS */
   if (tls && nbd_unlocked_set_tls (h, LIBNBD_TLS_REQUIRE) == -1)
     goto cleanup;
@@ -239,11 +260,6 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
 
   switch (transport) {
   case tcp:                     /* TCP */
-    if (unixsocket) {
-      set_error (EINVAL, "socket=%s URI query is incompatible with TCP scheme",
-                 unixsocket);
-      goto cleanup;
-    }
     snprintf (port_str, sizeof port_str,
               "%d", uri->port > 0 ? uri->port : 10809);
     if (nbd_unlocked_aio_connect_tcp (h, uri->server ? : "localhost",
@@ -253,24 +269,12 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
     break;
 
   case unix_sock:               /* Unix domain socket */
-    if (!unixsocket) {
-      set_error (EINVAL, "cannot parse socket parameter from NBD URI: %s",
-                 uri->query_raw ? : "NULL");
-      goto cleanup;
-    }
-
     if (nbd_unlocked_aio_connect_unix (h, unixsocket) == -1)
       goto cleanup;
 
     break;
 
   case vsock:                   /* AF_VSOCK */
-    if (unixsocket) {
-      set_error (EINVAL, "socket=%s URI query is incompatible with TCP scheme",
-                 unixsocket);
-      goto cleanup;
-    }
-
     /* Server, if present, must be the numeric CID.  Else we
      * assume the host (2).
      */
