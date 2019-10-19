@@ -216,6 +216,7 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
     goto cleanup;
   }
 
+  /* Parse the socket parameter. */
   for (i = 0; i < nqueries; i++) {
     if (strcmp (queries[i].name, "socket") == 0)
       unixsocket = queries[i].value;
@@ -225,19 +226,15 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
              queries[i].name, queries[i].value);
   }
 
-  if (socket_required) {
-    if (!unixsocket) {
-      set_error (EINVAL, "cannot parse socket parameter from NBD URI: %s",
-                 uri->query_raw ? : "NULL");
-      goto cleanup;
-    }
+  if (socket_required && !unixsocket) {
+    set_error (EINVAL, "cannot parse socket parameter from NBD URI: %s",
+               uri->query_raw ? : "NULL");
+    goto cleanup;
   }
-  else /* !socket_required */ {
-    if (unixsocket) {
-      set_error (EINVAL, "socket=%s URI query is incompatible with %s",
-                 unixsocket, uri->scheme);
-      goto cleanup;
-    }
+  else if (!socket_required && unixsocket) {
+    set_error (EINVAL, "socket=%s URI query is incompatible with %s",
+               unixsocket, uri->scheme);
+    goto cleanup;
   }
 
   /* TLS */
