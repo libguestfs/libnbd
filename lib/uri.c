@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <inttypes.h>
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
@@ -148,12 +149,15 @@ int
 nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
 {
   xmlURIPtr uri = NULL;
-  bool tcp, tls;
+  enum { tcp, unix_sock, vsock } transport;
+  bool tls;
   struct uri_query *queries = NULL;
   int nqueries = -1;
   int i, r;
   int ret = -1;
   const char *unixsocket = NULL;
+  char port_str[32];
+  uint32_t cid, svm_port;
 
   uri = xmlParseURI (raw_uri);
   if (!uri) {
@@ -169,19 +173,27 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   /* Scheme. */
   if (uri->scheme) {
     if (strcmp (uri->scheme, "nbd") == 0) {
-      tcp = true;
+      transport = tcp;
       tls = false;
     }
     else if (strcmp (uri->scheme, "nbds") == 0) {
-      tcp = true;
+      transport = tcp;
       tls = true;
     }
     else if (strcmp (uri->scheme, "nbd+unix") == 0) {
-      tcp = false;
+      transport = unix_sock;
       tls = false;
     }
     else if (strcmp (uri->scheme, "nbds+unix") == 0) {
-      tcp = false;
+      transport = unix_sock;
+      tls = true;
+    }
+    else if (strcmp (uri->scheme, "nbd+vsock") == 0) {
+      transport = vsock;
+      tls = false;
+    }
+    else if (strcmp (uri->scheme, "nbds+vsock") == 0) {
+      transport = vsock;
       tls = true;
     }
     else goto unknown_scheme;
@@ -225,9 +237,8 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   if (r == -1)
     goto cleanup;
 
-  if (tcp) {
-    char port_str[32];
-
+  switch (transport) {
+  case tcp:                     /* TCP */
     if (unixsocket) {
       set_error (EINVAL, "socket=%s URI query is incompatible with TCP scheme",
                  unixsocket);
@@ -238,8 +249,10 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
     if (nbd_unlocked_aio_connect_tcp (h, uri->server ? : "localhost",
                                       port_str) == -1)
       goto cleanup;
-  }
-  else /* Unix domain socket */ {
+
+    break;
+
+  case unix_sock:               /* Unix domain socket */
     if (!unixsocket) {
       set_error (EINVAL, "cannot parse socket parameter from NBD URI: %s",
                  uri->query_raw ? : "NULL");
@@ -248,6 +261,42 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
 
     if (nbd_unlocked_aio_connect_unix (h, unixsocket) == -1)
       goto cleanup;
+
+    break;
+
+  case vsock:                   /* AF_VSOCK */
+    if (unixsocket) {
+      set_error (EINVAL, "socket=%s URI query is incompatible with TCP scheme",
+                 unixsocket);
+      goto cleanup;
+    }
+
+    /* Server, if present, must be the numeric CID.  Else we
+     * assume the host (2).
+     */
+    if (uri->server && strcmp (uri->server, "") != 0) {
+      /* This doesn't deal with overflow, but that seems unlikely to
+       * matter because you'll end up with a CID one way or another.
+       */
+      if (sscanf (uri->server, "%" SCNu32, &cid) != 1) {
+        set_error (EINVAL, "cannot parse vsock CID from NBD URI: %s",
+                   uri->server);
+        goto cleanup;
+      }
+    }
+    else
+      cid = 2;
+
+    /* For unknown reasons libxml2 sets uri->port = -1 if the
+     * authority field is not present at all.  So we must check that
+     * uri->port > 0.  This prevents us from using certain very large
+     * port numbers, but that's not an issue that matters in practice.
+     */
+    svm_port = uri->port > 0 ? (uint32_t) uri->port : 10809;
+    if (nbd_unlocked_aio_connect_vsock (h, cid, svm_port) == -1)
+      goto cleanup;
+
+    break;
   }
 
   ret = 0;
