@@ -1539,8 +1539,7 @@ test whether this is the case with L<nbd_supports_uri(3)>.
 Support for URIs that require TLS will fail if libnbd was not
 compiled with gnutls; you can test whether this is the case
 with L<nbd_supports_tls(3)>.";
-    see_also = ["L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>";
-                "L<nbd_get_export_name(3)>"];
+    see_also = ["L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>"];
   };
 
   "connect_unix", {
