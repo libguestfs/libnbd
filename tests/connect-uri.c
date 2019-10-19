@@ -47,7 +47,7 @@ main (int argc, char *argv[])
   }
   if (pid == 0) {
     execlp ("nbdkit",
-            "nbdkit", "-f", "--exit-with-parent", "-P", PIDFILE,
+            "nbdkit", "-f", "-v", "--exit-with-parent", "-P", PIDFILE,
             SERVER_PARAMS,
             "null", NULL);
     perror ("nbdkit");
