@@ -139,7 +139,6 @@ nbd_close (struct nbd_handle *h)
     rmdir (h->sa_tmpdir);
     free (h->sa_tmpdir);
   }
-  free (h->unixsocket);
   free (h->hostname);
   free (h->port);
   if (h->result)

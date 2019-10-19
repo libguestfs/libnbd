@@ -35,7 +35,6 @@
 #include <netinet/tcp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/un.h>
 
 /* Disable Nagle's algorithm on the socket, but don't fail. */
 static void
@@ -96,27 +95,6 @@ STATE_MACHINE {
     set_error (status, "connect");
     return 0;
   }
-
- CONNECT_UNIX.START:
-  struct sockaddr_un sun = { .sun_family = AF_UNIX };
-  socklen_t len;
-  size_t namelen;
-
-  assert (h->unixsocket != NULL);
-
-  namelen = strlen (h->unixsocket);
-  if (namelen > sizeof sun.sun_path) {
-    set_error (ENAMETOOLONG, "socket name too long: %s", h->unixsocket);
-    SET_NEXT_STATE (%.DEAD);
-    return 0;
-  }
-  memcpy (sun.sun_path, h->unixsocket, namelen);
-  len = sizeof sun;
-
-  memcpy (&h->connaddr, &sun, len);
-  h->connaddrlen = len;
-  SET_NEXT_STATE (%^CONNECT.START);
-  return 0;
 
  CONNECT_TCP.START:
   int r;

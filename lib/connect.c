@@ -29,6 +29,7 @@
 #include <netinet/tcp.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <assert.h>
 
 #ifdef HAVE_LIBXML2
@@ -377,15 +378,22 @@ cleanup:
 int
 nbd_unlocked_aio_connect_unix (struct nbd_handle *h, const char *unixsocket)
 {
-  if (h->unixsocket)
-    free (h->unixsocket);
-  h->unixsocket = strdup (unixsocket);
-  if (!h->unixsocket) {
-    set_error (errno, "strdup");
+  struct sockaddr_un sun = { .sun_family = AF_UNIX };
+  socklen_t len;
+  size_t namelen;
+
+  namelen = strlen (unixsocket);
+  if (namelen > sizeof sun.sun_path) {
+    set_error (ENAMETOOLONG, "socket name too long: %s", unixsocket);
     return -1;
   }
+  memcpy (sun.sun_path, unixsocket, namelen);
+  len = sizeof sun;
 
-  return nbd_internal_run (h, cmd_connect_unix);
+  memcpy (&h->connaddr, &sun, len);
+  h->connaddrlen = len;
+
+  return nbd_internal_run (h, cmd_connect_sockaddr);
 }
 
 int

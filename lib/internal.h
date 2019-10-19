@@ -194,9 +194,6 @@ struct nbd_handle {
   char *sa_tmpdir;
   char *sa_sockpath;
 
-  /* When connecting to Unix domain socket. */
-  char *unixsocket;
-
   /* When connecting to TCP ports, these fields are used. */
   char *hostname, *port;
   struct addrinfo hints;

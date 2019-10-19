@@ -92,7 +92,6 @@ type external_event =
   | NotifyWrite                 (* fd becomes ready to write *)
   | CmdCreate                   (* [nbd_create] function called *)
   | CmdConnectSockAddr          (* [nbd_aio_connect] function called *)
-  | CmdConnectUnix              (* [nbd_aio_connect_unix] *)
   | CmdConnectTCP               (* [nbd_aio_connect_tcp] *)
   | CmdConnectCommand           (* [nbd_aio_connect_command] *)
   | CmdConnectSA                (* [nbd_aio_connect_systemd_socket_activation]*)
@@ -168,7 +167,6 @@ let rec state_machine = [
     comment = "Handle after being initially created";
     external_events = [ CmdCreate, "";
                         CmdConnectSockAddr, "CONNECT.START";
-                        CmdConnectUnix, "CONNECT_UNIX.START";
                         CmdConnectTCP, "CONNECT_TCP.START";
                         CmdConnectCommand, "CONNECT_COMMAND.START";
                         CmdConnectSA, "CONNECT_SA.START";
@@ -176,7 +174,6 @@ let rec state_machine = [
   };
 
   Group ("CONNECT", connect_state_machine);
-  Group ("CONNECT_UNIX", connect_unix_state_machine);
   Group ("CONNECT_TCP", connect_tcp_state_machine);
   Group ("CONNECT_COMMAND", connect_command_state_machine);
   Group ("CONNECT_SA", connect_sa_state_machine);
@@ -223,16 +220,6 @@ and connect_state_machine = [
     name = "CONNECTING";
     comment = "Connecting to the remote server";
     external_events = [ NotifyWrite, "" ];
-  };
-]
-
-(* State machine implementing [nbd_aio_connect_unix]. *)
-and connect_unix_state_machine = [
-  State {
-    default_state with
-    name = "START";
-    comment = "Connect to a Unix domain socket";
-    external_events = [];
   };
 ]
 
@@ -3151,7 +3138,7 @@ end = struct
 let all_external_events =
   [NotifyRead; NotifyWrite;
    CmdCreate;
-   CmdConnectSockAddr; CmdConnectUnix; CmdConnectTCP;
+   CmdConnectSockAddr; CmdConnectTCP;
    CmdConnectCommand; CmdConnectSA; CmdConnectSocket;
    CmdIssue]
 
@@ -3160,7 +3147,6 @@ let string_of_external_event = function
   | NotifyWrite -> "NotifyWrite"
   | CmdCreate -> "CmdCreate"
   | CmdConnectSockAddr -> "CmdConnectSockAddr"
-  | CmdConnectUnix -> "CmdConnectUnix"
   | CmdConnectTCP -> "CmdConnectTCP"
   | CmdConnectCommand -> "CmdConnectCommand"
   | CmdConnectSA -> "CmdConnectSA"
@@ -3172,7 +3158,6 @@ let c_string_of_external_event = function
   | NotifyWrite -> "notify_write"
   | CmdCreate -> "cmd_create"
   | CmdConnectSockAddr -> "cmd_connect_sockaddr"
-  | CmdConnectUnix -> "cmd_connect_unix"
   | CmdConnectTCP -> "cmd_connect_tcp"
   | CmdConnectCommand -> "cmd_connect_command"
   | CmdConnectSA -> "cmd_connect_sa"
@@ -3624,7 +3609,7 @@ let generate_lib_states_run_c () =
           | NotifyWrite -> pr "    r |= LIBNBD_AIO_DIRECTION_WRITE;\n"
           | CmdCreate
           | CmdConnectSockAddr
-          | CmdConnectUnix | CmdConnectTCP
+          | CmdConnectTCP
           | CmdConnectCommand | CmdConnectSA | CmdConnectSocket
           | CmdIssue -> ()
       ) events;
