@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
@@ -75,6 +76,15 @@ main (int argc, char *argv[])
   if (nbd_connect_uri (nbd, URI) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
+  }
+
+  /* Check we negotiated the right kind of connection. */
+  if (strncmp (URI, "nbds", 4) == 0) {
+    if (! nbd_get_tls_negotiated (nbd)) {
+      fprintf (stderr, "%s: failed to negotiate a TLS connection\n",
+               argv[0]);
+      exit (EXIT_FAILURE);
+    }
   }
 
   if (nbd_shutdown (nbd, 0) == -1) {

@@ -24,6 +24,9 @@ CLEANFILES += \
 	connect-uri-nbd.pid \
 	connect-uri-nbd-unix.pid \
 	connect-uri-nbd-unix.sock \
+	connect-uri-nbds.pid \
+	connect-uri-nbds-unix.pid \
+	connect-uri-nbds-unix.sock \
 	$(NULL)
 
 EXTRA_DIST = \
@@ -158,6 +161,8 @@ check_PROGRAMS += \
 	connect-tcp \
 	connect-uri-nbd \
 	connect-uri-nbd-unix \
+	connect-uri-nbds \
+	connect-uri-nbds-unix \
 	aio-parallel \
 	aio-parallel-load \
 	synch-parallel \
@@ -194,6 +199,8 @@ TESTS += \
 	connect-tcp \
 	connect-uri-nbd \
 	connect-uri-nbd-unix \
+	connect-uri-nbds \
+	connect-uri-nbds-unix \
 	aio-parallel.sh \
 	aio-parallel-load.sh \
 	synch-parallel.sh \
@@ -391,6 +398,32 @@ connect_uri_nbd_unix_CPPFLAGS = \
 	-DURI='"nbd+unix:///?socket=" SOCKET'
 connect_uri_nbd_unix_CFLAGS = $(WARNINGS_CFLAGS)
 connect_uri_nbd_unix_LDADD = $(top_builddir)/lib/libnbd.la
+
+if HAVE_GNUTLS
+if HAVE_CERTTOOL
+
+RANDOM2 := $(shell bash -c "echo $$(( 32768 + (RANDOM & 16383) ))")
+connect_uri_nbds_SOURCES = connect-uri.c
+connect_uri_nbds_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER_PARAMS='"-p", "$(RANDOM2)", "--tls=require", "--tls-certificates=pki"' \
+	-DPIDFILE='"connect-uri-nbds.pid"' \
+	-DURI='"nbds://localhost:$(RANDOM2)/"'
+connect_uri_nbds_CFLAGS = $(WARNINGS_CFLAGS)
+connect_uri_nbds_LDADD = $(top_builddir)/lib/libnbd.la
+
+connect_uri_nbds_unix_SOURCES = connect-uri.c
+connect_uri_nbds_unix_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER_PARAMS='"-U", SOCKET, "--tls=require", "--tls-certificates=pki"' \
+	-DSOCKET='"connect-uri-nbds-unix.sock"' \
+	-DPIDFILE='"connect-uri-nbds-unix.pid"' \
+	-DURI='"nbds+unix:///?socket=" SOCKET'
+connect_uri_nbds_unix_CFLAGS = $(WARNINGS_CFLAGS)
+connect_uri_nbds_unix_LDADD = $(top_builddir)/lib/libnbd.la
+
+endif HAVE_CERTTOOL
+endif HAVE_GNUTLS
 
 aio_parallel_SOURCES = aio-parallel.c
 aio_parallel_CPPFLAGS = \

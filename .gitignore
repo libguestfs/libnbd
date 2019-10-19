@@ -137,6 +137,8 @@ Makefile.in
 /tests/connect-unix
 /tests/connect-uri-nbd
 /tests/connect-uri-nbd-unix
+/tests/connect-uri-nbds
+/tests/connect-uri-nbds-unix
 /tests/debug
 /tests/debug-environment
 /tests/errors
