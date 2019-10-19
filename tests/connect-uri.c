@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* Test connecting over an NBD URI specifying a TCP port. */
+/* Test connecting over an NBD URI. */
 
 #include <config.h>
 
@@ -28,24 +28,17 @@
 
 #include <libnbd.h>
 
-#define PIDFILE "connect-uri-tcp.pid"
-
 int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
-  int port;
-  char port_str[16], uri[32];
   pid_t pid;
   size_t i;
 
+#ifdef SOCKET
+  unlink (SOCKET);
+#endif
   unlink (PIDFILE);
-
-  /* Pick a port at random, hope it's free. */
-  srand (time (NULL) + getpid ());
-  port = 32768 + (rand () & 32767);
-
-  snprintf (port_str, sizeof port_str, "%d", port);
 
   pid = fork ();
   if (pid == -1) {
@@ -54,8 +47,9 @@ main (int argc, char *argv[])
   }
   if (pid == 0) {
     execlp ("nbdkit",
-            "nbdkit", "-f", "-p", port_str, "-P", PIDFILE,
-            "--exit-with-parent", "null", NULL);
+            "nbdkit", "-f", "--exit-with-parent", "-P", PIDFILE,
+            SERVER_PARAMS,
+            "null", NULL);
     perror ("nbdkit");
     _exit (EXIT_FAILURE);
   }
@@ -78,9 +72,7 @@ main (int argc, char *argv[])
     exit (77);
   }
 
-  snprintf (uri, sizeof uri, "nbd://localhost:%d", port);
-
-  if (nbd_connect_uri (nbd, uri) == -1) {
+  if (nbd_connect_uri (nbd, URI) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -91,5 +83,8 @@ main (int argc, char *argv[])
   }
 
   nbd_close (nbd);
+#ifdef SOCKET
+  unlink (SOCKET);
+#endif
   exit (EXIT_SUCCESS);
 }

@@ -135,8 +135,8 @@ Makefile.in
 /tests/connect-tls-certs
 /tests/connect-tls-psk
 /tests/connect-unix
-/tests/connect-uri-tcp
-/tests/connect-uri-unix
+/tests/connect-uri-nbd
+/tests/connect-uri-nbd-unix
 /tests/debug
 /tests/debug-environment
 /tests/errors

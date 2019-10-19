@@ -21,9 +21,9 @@ CLEANFILES += \
 	connect-tcp.pid \
 	connect-unix.pid \
 	connect-unix.sock \
-	connect-uri-tcp.pid \
-	connect-uri-unix.pid \
-	connect-uri-unix.sock \
+	connect-uri-nbd.pid \
+	connect-uri-nbd-unix.pid \
+	connect-uri-nbd-unix.sock \
 	$(NULL)
 
 EXTRA_DIST = \
@@ -156,8 +156,8 @@ check_PROGRAMS += \
 	oldstyle \
 	connect-unix \
 	connect-tcp \
-	connect-uri-unix \
-	connect-uri-tcp \
+	connect-uri-nbd \
+	connect-uri-nbd-unix \
 	aio-parallel \
 	aio-parallel-load \
 	synch-parallel \
@@ -192,8 +192,8 @@ TESTS += \
 	oldstyle \
 	connect-unix \
 	connect-tcp \
-	connect-uri-unix \
-	connect-uri-tcp \
+	connect-uri-nbd \
+	connect-uri-nbd-unix \
 	aio-parallel.sh \
 	aio-parallel-load.sh \
 	synch-parallel.sh \
@@ -372,15 +372,25 @@ connect_tcp_CPPFLAGS = -I$(top_srcdir)/include
 connect_tcp_CFLAGS = $(WARNINGS_CFLAGS)
 connect_tcp_LDADD = $(top_builddir)/lib/libnbd.la
 
-connect_uri_unix_SOURCES = connect-uri-unix.c
-connect_uri_unix_CPPFLAGS = -I$(top_srcdir)/include
-connect_uri_unix_CFLAGS = $(WARNINGS_CFLAGS)
-connect_uri_unix_LDADD = $(top_builddir)/lib/libnbd.la
+RANDOM1 := $(shell bash -c "echo $$(( 32768 + (RANDOM & 16383) ))")
+connect_uri_nbd_SOURCES = connect-uri.c
+connect_uri_nbd_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER_PARAMS='"-p", "$(RANDOM1)"' \
+	-DPIDFILE='"connect-uri-nbd.pid"' \
+	-DURI='"nbd://localhost:$(RANDOM1)/"'
+connect_uri_nbd_CFLAGS = $(WARNINGS_CFLAGS)
+connect_uri_nbd_LDADD = $(top_builddir)/lib/libnbd.la
 
-connect_uri_tcp_SOURCES = connect-uri-tcp.c
-connect_uri_tcp_CPPFLAGS = -I$(top_srcdir)/include
-connect_uri_tcp_CFLAGS = $(WARNINGS_CFLAGS)
-connect_uri_tcp_LDADD = $(top_builddir)/lib/libnbd.la
+connect_uri_nbd_unix_SOURCES = connect-uri.c
+connect_uri_nbd_unix_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER_PARAMS='"-U", SOCKET' \
+	-DSOCKET='"connect-uri-nbd-unix.sock"' \
+	-DPIDFILE='"connect-uri-nbd-unix.pid"' \
+	-DURI='"nbd+unix:///?socket=" SOCKET'
+connect_uri_nbd_unix_CFLAGS = $(WARNINGS_CFLAGS)
+connect_uri_nbd_unix_LDADD = $(top_builddir)/lib/libnbd.la
 
 aio_parallel_SOURCES = aio-parallel.c
 aio_parallel_CPPFLAGS = \
