@@ -27,6 +27,7 @@ CLEANFILES += \
 	connect-uri-nbds.pid \
 	connect-uri-nbds-unix.pid \
 	connect-uri-nbds-unix.sock \
+	connect-uri-nbds-psk.pid \
 	$(NULL)
 
 EXTRA_DIST = \
@@ -163,6 +164,7 @@ check_PROGRAMS += \
 	connect-uri-nbd-unix \
 	connect-uri-nbds \
 	connect-uri-nbds-unix \
+	connect-uri-nbds-psk \
 	aio-parallel \
 	aio-parallel-load \
 	synch-parallel \
@@ -201,6 +203,7 @@ TESTS += \
 	connect-uri-nbd-unix \
 	connect-uri-nbds \
 	connect-uri-nbds-unix \
+	connect-uri-nbds-psk \
 	aio-parallel.sh \
 	aio-parallel-load.sh \
 	synch-parallel.sh \
@@ -423,6 +426,21 @@ connect_uri_nbds_unix_CFLAGS = $(WARNINGS_CFLAGS)
 connect_uri_nbds_unix_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_CERTTOOL
+
+if HAVE_PSKTOOL
+
+RANDOM3 := $(shell bash -c "echo $$(( 32768 + (RANDOM & 16383) ))")
+connect_uri_nbds_psk_SOURCES = connect-uri.c
+connect_uri_nbds_psk_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER_PARAMS='"-p", "$(RANDOM3)", "--tls=require", "--tls-psk=keys.psk"' \
+	-DPIDFILE='"connect-uri-nbds-psk.pid"' \
+	-DURI='"nbds://alice@localhost:$(RANDOM3)/?tls_psk_file=keys.psk"'
+connect_uri_nbds_psk_CFLAGS = $(WARNINGS_CFLAGS)
+connect_uri_nbds_psk_LDADD = $(top_builddir)/lib/libnbd.la
+
+endif HAVE_PSKTOOL
+
 endif HAVE_GNUTLS
 
 aio_parallel_SOURCES = aio-parallel.c
