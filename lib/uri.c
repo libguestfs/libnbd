@@ -244,6 +244,10 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
    * nbd_unlocked_set_tls_* to match...
    */
 
+  /* Username. */
+  if (uri->user && nbd_unlocked_set_tls_username (h, uri->user) == -1)
+    goto cleanup;
+
   /* Export name. */
   if (uri->path) {
     /* Since we require scheme://authority above, any path is absolute */

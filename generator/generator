@@ -1521,7 +1521,8 @@ is parsed depending on the transport.  For TCP it specifies the
 server to connect to and optional port number.  For C<+unix>
 it should not be present.  For C<+vsock> the server name is the
 numeric CID (eg. C<2> to connect to the host), and the optional
-port number may be present.  Currently the username is ignored.
+port number may be present.  If the C<username> is present it
+is used for TLS authentication.
 
 For all transports, an export name may be present, parsed in
 accordance with the NBD URI specification.
