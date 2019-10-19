@@ -220,10 +220,6 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   for (i = 0; i < nqueries; i++) {
     if (strcmp (queries[i].name, "socket") == 0)
       unixsocket = queries[i].value;
-    else
-      /* XXX Parse tls_ queries. */
-      debug (h, "ignoring query parameter %s=%s",
-             queries[i].name, queries[i].value);
   }
 
   if (socket_required && !unixsocket) {
@@ -240,9 +236,13 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   /* TLS */
   if (tls && nbd_unlocked_set_tls (h, LIBNBD_TLS_REQUIRE) == -1)
     goto cleanup;
-  /* XXX If uri->query_raw includes TLS parameters, we should call
-   * nbd_unlocked_set_tls_* to match...
-   */
+
+  /* Look for some tls_* parameters.  XXX More to come. */
+  for (i = 0; i < nqueries; i++) {
+    if (strcmp (queries[i].name, "tls_psk_file") == 0 &&
+        nbd_unlocked_set_tls_psk_file (h, queries[i].value) == -1)
+      goto cleanup;
+  }
 
   /* Username. */
   if (uri->user && nbd_unlocked_set_tls_username (h, uri->user) == -1)
