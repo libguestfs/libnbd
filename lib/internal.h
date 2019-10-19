@@ -311,6 +311,9 @@ struct command {
 /* aio.c */
 extern void nbd_internal_retire_and_free_command (struct command *);
 
+/* connect.c */
+extern int nbd_internal_wait_until_connected (struct nbd_handle *h);
+
 /* crypto.c */
 extern struct socket *nbd_internal_crypto_create_session (struct nbd_handle *, struct socket *oldsock);
 extern bool nbd_internal_crypto_is_reading (struct nbd_handle *);

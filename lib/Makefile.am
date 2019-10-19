@@ -55,6 +55,7 @@ libnbd_la_SOURCES = \
 	states-run.c \
 	states.h \
 	unlocked.h \
+	uri.c \
 	utils.c \
 	$(NULL)
 libnbd_la_CPPFLAGS = \
