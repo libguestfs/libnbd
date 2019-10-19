@@ -482,7 +482,7 @@ synch_parallel_tls_LDADD = $(top_builddir)/lib/libnbd.la $(PTHREAD_LIBS)
 
 keys.psk:
 	rm -f $@ $@-t
-	$(PSKTOOL) -u $(LOGNAME) -p $@-t
+	$(PSKTOOL) -u alice -p $@-t
 	mv $@-t $@
 
 endif HAVE_PSKTOOL

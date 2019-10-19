@@ -225,6 +225,11 @@ start_thread (void *arg)
     exit (EXIT_FAILURE);
   }
 
+  if (nbd_set_tls_username (nbd, "alice") == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
   if (nbd_set_tls_psk_file (nbd, "keys.psk") == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
