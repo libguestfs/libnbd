@@ -237,9 +237,9 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   if (tls && nbd_unlocked_set_tls (h, LIBNBD_TLS_REQUIRE) == -1)
     goto cleanup;
 
-  /* Look for some tls_* parameters.  XXX More to come. */
+  /* Look for some tls-* parameters.  XXX More to come. */
   for (i = 0; i < nqueries; i++) {
-    if (strcmp (queries[i].name, "tls_psk_file") == 0 &&
+    if (strcmp (queries[i].name, "tls-psk-file") == 0 &&
         nbd_unlocked_set_tls_psk_file (h, queries[i].value) == -1)
       goto cleanup;
   }

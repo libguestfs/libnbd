@@ -1527,10 +1527,21 @@ is used for TLS authentication.
 For all transports, an export name may be present, parsed in
 accordance with the NBD URI specification.
 
-Finally the only query parameter which libnbd currently
-parses is the C<socket>, which must be present for the
-C<+unix> transport and must not be present for the other
-transports.
+Finally the query part of the URI can contain:
+
+=over 4
+
+=item B<socket=>F<SOCKET>
+
+Specifies the Unix domain socket to connect on.
+Must be present for the C<+unix> transport and must not
+be present for the other transports.
+
+=item B<tls-psk-file=>F<PSKFILE>
+
+Set the PSK file.  See L<nbd_set_tls_psk_file(3)>.
+
+=back
 
 =head2 Optional features
 

@@ -560,7 +560,7 @@ connect_uri_nbds_psk_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-DSERVER_PARAMS='"-p", "$(RANDOM3)", "--tls=require", "--tls-psk=keys.psk"' \
 	-DPIDFILE='"connect-uri-nbds-psk.pid"' \
-	-DURI='"nbds://alice@localhost:$(RANDOM3)/?tls_psk_file=keys.psk"'
+	-DURI='"nbds://alice@localhost:$(RANDOM3)/?tls-psk-file=keys.psk"'
 connect_uri_nbds_psk_CFLAGS = $(WARNINGS_CFLAGS)
 connect_uri_nbds_psk_LDADD = $(top_builddir)/lib/libnbd.la
 
