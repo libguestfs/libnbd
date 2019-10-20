@@ -94,13 +94,15 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if (nbd_set_tls (nbd, LIBNBD_TLS_REQUIRE) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-  if (nbd_connect_command (nbd, args) != -1) {
-    fprintf (stderr, "%s\n", "expected failure");
-    exit (EXIT_FAILURE);
+  if (nbd_supports_tls (nbd)) {
+    if (nbd_set_tls (nbd, LIBNBD_TLS_REQUIRE) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    if (nbd_connect_command (nbd, args) != -1) {
+      fprintf (stderr, "%s\n", "expected failure");
+      exit (EXIT_FAILURE);
+    }
   }
   nbd_close (nbd);
 
