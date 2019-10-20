@@ -76,6 +76,11 @@ struct nbd_handle {
   bool request_sr;
   char **request_meta_contexts;
 
+  /* Allowed in URIs, see lib/uri.c. */
+  uint32_t uri_allow_transports;
+  int uri_allow_tls;
+  bool uri_allow_local_file;
+
   /* Global flags from the server. */
   uint16_t gflags;
 

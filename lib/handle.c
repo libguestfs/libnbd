@@ -64,6 +64,11 @@ nbd_create (void)
   h->unique = 1;
   h->tls_verify_peer = true;
   h->request_sr = true;
+
+  h->uri_allow_transports = (uint32_t) -1;
+  h->uri_allow_tls = LIBNBD_TLS_ALLOW;
+  h->uri_allow_local_file = false;
+
   h->gflags = (LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE |
                LIBNBD_HANDSHAKE_FLAG_NO_ZEROES);
 
@@ -359,4 +364,25 @@ nbd_unlocked_get_protocol (struct nbd_handle *h)
   assert (h->protocol);
 
   return h->protocol;
+}
+
+int
+nbd_unlocked_set_uri_allow_transports (struct nbd_handle *h, uint32_t mask)
+{
+  h->uri_allow_transports = mask;
+  return 0;
+}
+
+int
+nbd_unlocked_set_uri_allow_tls (struct nbd_handle *h, int tls)
+{
+  h->uri_allow_tls = tls;
+  return 0;
+}
+
+int
+nbd_unlocked_set_uri_allow_local_file (struct nbd_handle *h, bool allow)
+{
+  h->uri_allow_local_file = allow;
+  return 0;
 }

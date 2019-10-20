@@ -73,6 +73,8 @@ main (int argc, char *argv[])
     exit (77);
   }
 
+  nbd_set_uri_allow_local_file (nbd, true);
+
   if (nbd_connect_uri (nbd, URI) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);

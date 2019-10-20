@@ -216,6 +216,24 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
     goto cleanup;
   }
 
+  /* Check the transport is allowed. */
+  if ((transport == tcp &&
+       (h->uri_allow_transports & LIBNBD_ALLOW_TRANSPORT_TCP) == 0) ||
+      (transport == unix_sock &&
+       (h->uri_allow_transports & LIBNBD_ALLOW_TRANSPORT_UNIX) == 0) ||
+      (transport == vsock &&
+       (h->uri_allow_transports & LIBNBD_ALLOW_TRANSPORT_VSOCK) == 0)) {
+    set_error (EPERM, "URI transport %s is not permitted", uri->scheme);
+    goto cleanup;
+  }
+
+  /* Check TLS is allowed. */
+  if ((tls && h->uri_allow_tls == LIBNBD_TLS_DISABLE) ||
+      (!tls && h->uri_allow_tls == LIBNBD_TLS_REQUIRE)) {
+    set_error (EPERM, "URI TLS setting %s is not permitted", uri->scheme);
+    goto cleanup;
+  }
+
   /* Parse the socket parameter. */
   for (i = 0; i < nqueries; i++) {
     if (strcmp (queries[i].name, "socket") == 0)
@@ -239,9 +257,16 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
 
   /* Look for some tls-* parameters.  XXX More to come. */
   for (i = 0; i < nqueries; i++) {
-    if (strcmp (queries[i].name, "tls-psk-file") == 0 &&
-        nbd_unlocked_set_tls_psk_file (h, queries[i].value) == -1)
-      goto cleanup;
+    if (strcmp (queries[i].name, "tls-psk-file") == 0) {
+      if (! h->uri_allow_local_file) {
+        set_error (EPERM,
+                   "local file access (tls-psk-file) is not allowed, "
+                   "call nbd_set_uri_allow_local_file to enable this");
+        goto cleanup;
+      }
+      if (nbd_unlocked_set_tls_psk_file (h, queries[i].value) == -1)
+        goto cleanup;
+    }
   }
 
   /* Username. */

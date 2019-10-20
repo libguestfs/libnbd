@@ -991,7 +991,15 @@ let handshake_flags = {
     "NO_ZEROES",      1 lsl 1;
     ]
 }
-let all_flags = [ cmd_flags; handshake_flags ]
+let allow_transport_flags = {
+  flag_prefix = "ALLOW_TRANSPORT";
+  flags = [
+    "TCP",   1 lsl 0;
+    "UNIX",  1 lsl 1;
+    "VSOCK", 1 lsl 2;
+  ]
+}
+let all_flags = [ cmd_flags; handshake_flags; allow_transport_flags ]
 
 (* Calls.
  *
@@ -1445,6 +1453,75 @@ C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
     see_also = ["L<nbd_block_status(3)>"];
   };
 
+  "set_uri_allow_transports", {
+    default_call with
+    args = [ Flags ("mask", allow_transport_flags) ]; ret = RErr;
+    permitted_states = [ Created ];
+    shortdesc = "set the allowed transports in NBD URIs";
+    longdesc = "\
+Set which transports are allowed to appear in NBD URIs.  The
+default is to allow any transports.
+
+The C<mask> parameter may contain any of the following flags
+ORed together:
+
+=over 4
+
+=item C<LIBNBD_ALLOW_TRANSPORT_TCP>
+
+=item C<LIBNBD_ALLOW_TRANSPORT_UNIX>
+
+=item C<LIBNBD_ALLOW_TRANSPORT_VSOCK>
+
+=back";
+    see_also = ["L<nbd_connect_uri(3)>"; "L<nbd_set_uri_allow_tls(3)>"];
+  };
+
+  "set_uri_allow_tls", {
+    default_call with
+    args = [ Enum ("tls", tls_enum) ]; ret = RErr;
+    permitted_states = [ Created ];
+    shortdesc = "set the allowed TLS settings in NBD URIs";
+    longdesc = "\
+Set which TLS settings are allowed to appear in NBD URIs.  The
+default is to allow either non-TLS or TLS URIs.
+
+The C<tls> parameter can be:
+
+=over 4
+
+=item C<LIBNBD_TLS_DISABLE>
+
+TLS URIs are not permitted, ie. a URI such as C<nbds://...>
+will be rejected.
+
+=item C<LIBNBD_TLS_ALLOW>
+
+This is the default.  TLS may be used or not, depending on
+whether the URI uses C<nbds> or C<nbd>.
+
+=item C<LIBNBD_TLS_REQUIRE>
+
+TLS URIs are required.  All URIs must use C<nbs>.
+
+=back";
+    see_also = ["L<nbd_connect_uri(3)>"; "L<nbd_set_uri_allow_transports(3)>"];
+  };
+
+  "set_uri_allow_local_file", {
+    default_call with
+    args = [ Bool "allow" ]; ret = RErr;
+    permitted_states = [ Created ];
+    shortdesc = "set the allowed transports in NBD URIs";
+    longdesc = "\
+Allow NBD URIs to reference local files.  This is I<disabled>
+by default.
+
+Currently this setting only controls whether the C<tls-psk-file>
+parameter in NBD URIs is allowed.";
+    see_also = ["L<nbd_connect_uri(3)>"];
+  };
+
   "connect_uri", {
     default_call with
     args = [ String "uri" ]; ret = RErr;
@@ -1539,7 +1616,50 @@ be present for the other transports.
 
 =item B<tls-psk-file=>F<PSKFILE>
 
-Set the PSK file.  See L<nbd_set_tls_psk_file(3)>.
+Set the PSK file.  See L<nbd_set_tls_psk_file(3)>.  Note
+this is not allowed by default - see next section.
+
+=back
+
+=head2 Disable URI features
+
+For security reasons you might want to disable certain URI
+features.  Pre-filtering URIs is error-prone and should not
+be attempted.  Instead use the libnbd APIs below to control
+what can appear in URIs.  Note you must call these functions
+on the same handle before calling C<nbd_connect_uri> or
+L<nbd_aio_connect_uri(3)>.
+
+=over 4
+
+=item TCP, Unix domain socket or C<AF_VSOCK> transports
+
+Default: all allowed
+
+To select which transports are allowed call
+L<nbd_set_uri_allow_transports(3)>.
+
+=item TLS
+
+Default: both non-TLS and TLS connections allowed
+
+To force TLS off or on in URIs call
+L<nbd_set_uri_allow_tls(3)>.
+
+=item Connect to Unix domain socket in the local filesystem
+
+Default: allowed
+
+To prevent this you must disable the C<+unix> transport
+using L<nbd_set_uri_allow_transports(3)>.
+
+=item Read from local files
+
+Default: denied
+
+To allow URIs to contain references to local files
+(eg. for parameters like C<tls-psk-file>) call
+L<nbd_set_uri_allow_local_file(3)>.
 
 =back
 
@@ -2900,6 +3020,9 @@ let first_version = [
   "aio_connect_socket", (1, 2);
   "connect_vsock", (1, 2);
   "aio_connect_vsock", (1, 2);
+  "set_uri_allow_transports", (1, 2);
+  "set_uri_allow_tls", (1, 2);
+  "set_uri_allow_local_file", (1, 2);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.
