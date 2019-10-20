@@ -318,20 +318,20 @@ cleanup:
 
 #else /* !HAVE_LIBXML2 */
 
-static const char *error_message =
-  "libnbd was compiled without libxml2 support, so we do not support NBD URI";
+#define NOT_SUPPORTED_ERROR \
+  "libnbd was compiled without libxml2 support, so we do not support NBD URI"
 
 int
 nbd_unlocked_connect_uri (struct nbd_handle *h, const char *uri)
 {
-  set_error (ENOTSUP, error_message);
+  set_error (ENOTSUP, NOT_SUPPORTED_ERROR);
   return -1;
 }
 
 int
 nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
 {
-  set_error (ENOTSUP, error_message);
+  set_error (ENOTSUP, NOT_SUPPORTED_ERROR);
   return -1;
 }
 
