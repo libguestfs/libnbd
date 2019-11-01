@@ -676,7 +676,7 @@ nbd_internal_crypto_handshake (struct nbd_handle *h)
 void
 nbd_internal_crypto_debug_tls_enabled (struct nbd_handle *h)
 {
-  if (h->debug) {
+  if_debug (h) {
     const gnutls_session_t session = h->sock->u.tls.session;
     const gnutls_cipher_algorithm_t cipher = gnutls_cipher_get (session);
     const gnutls_kx_algorithm_t kx = gnutls_kx_get (session);

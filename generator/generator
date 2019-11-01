@@ -4512,7 +4512,7 @@ let generate_lib_api_c () =
       let value = match errcode with
         | Some value -> value
         | None -> assert false in
-      pr "  if (!%s_in_permitted_state (h)) {\n" name;
+      pr "  if (unlikely (!%s_in_permitted_state (h))) {\n" name;
       pr "    ret = %s;\n" value;
       pr "    goto out;\n";
       pr "  }\n";
@@ -4525,7 +4525,7 @@ let generate_lib_api_c () =
         | Some value -> value
         | None -> assert false in
       let mask = List.fold_left (lor) 0 (List.map snd flags) in
-      pr "  if ((%s & ~%d) != 0) {\n" n mask;
+      pr "  if (unlikely ((%s & ~%d) != 0)) {\n" n mask;
       pr "    set_error (EINVAL, \"%%s: invalid value for flag: %%d\",\n";
       pr "               \"%s\", %s);\n" n n;
       pr "    ret = %s;\n" value;
@@ -4658,7 +4658,7 @@ let generate_lib_api_c () =
     pr ");\n"
   (* Print the trace when we leave a call with debugging enabled. *)
   and print_trace_leave ret =
-    pr "  if (h->debug) {\n";
+    pr "  if_debug (h) {\n";
     let errcode = errcode_of_ret ret in
     (match errcode with
      | Some r -> 

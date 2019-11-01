@@ -40,6 +40,18 @@
 #include "states.h"
 #include "unlocked.h"
 
+/* Define unlikely macro, but only for GCC.  These are used to move
+ * debug and error handling code out of hot paths, making the hot path
+ * into common functions use less instruction cache.
+ */
+#if defined(__GNUC__)
+#define unlikely(x) __builtin_expect (!!(x), 0)
+#define if_debug(h) if (unlikely ((h)->debug))
+#else
+#define unlikely(x) (x)
+#define if_debug(h) if ((h)->debug)
+#endif
+
 /* MSG_MORE is an optimization.  If not present, ignore it. */
 #ifndef MSG_MORE
 #define MSG_MORE 0
@@ -329,7 +341,7 @@ extern void nbd_internal_crypto_debug_tls_enabled (struct nbd_handle *);
 extern void nbd_internal_debug (struct nbd_handle *h, const char *fs, ...);
 #define debug(h, fs, ...)                               \
   do {                                                  \
-    if ((h)->debug)                                     \
+    if_debug ((h))                                      \
       nbd_internal_debug ((h), (fs), ##__VA_ARGS__);    \
   } while (0)
 
