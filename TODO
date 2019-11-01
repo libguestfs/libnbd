@@ -17,6 +17,14 @@ NBD_INFO_BLOCK_SIZE.
 
 TLS should properly shut down the session (calling gnutls_bye).
 
+Performance: Chart it over various buffer sizes and threads, as that
+  should make it easier to identify systematic issues.
+
+Examine other fuzzers: oss-fuzz, libfuzzer, fuzzit, and whatever it is
+  that syzkaller uses.
+
+Analyze code with Coverity.
+
 Improve function trace output so that:
  - Long strings are truncated.
  - Strings with non-printable characters are escaped.
