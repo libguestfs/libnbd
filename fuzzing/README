@@ -76,6 +76,9 @@ because ./configure attempts to test that the compiler works, but this
 test fails when -fsanitize=fuzzer is used as that option adds an extra
 main() definition.)
 
+",address" enables the Clang Address Sanitizer, and can be omitted for
+faster fuzzing.
+
 You can then run the fuzzer program directly on the input corpus:
 
   ./fuzzing/libnbd-libfuzzer-test fuzzing/testcase_dir
