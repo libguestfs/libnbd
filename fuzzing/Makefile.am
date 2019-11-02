@@ -24,9 +24,14 @@ EXTRA_DIST = \
 	testcase_dir/oldstyle \
 	$(NULL)
 
-noinst_PROGRAMS = libnbd-fuzz-wrapper
+noinst_PROGRAMS = libnbd-fuzz-wrapper libnbd-libfuzzer-test
 
 libnbd_fuzz_wrapper_SOURCES = libnbd-fuzz-wrapper.c
 libnbd_fuzz_wrapper_CPPFLAGS = -I$(top_srcdir)/include
 libnbd_fuzz_wrapper_CFLAGS = $(WARNINGS_CFLAGS)
 libnbd_fuzz_wrapper_LDADD = $(top_builddir)/lib/libnbd.la
+
+libnbd_libfuzzer_test_SOURCES = libnbd-libfuzzer-test.c
+libnbd_libfuzzer_test_CPPFLAGS = -I$(top_srcdir)/include
+libnbd_libfuzzer_test_CFLAGS = $(WARNINGS_CFLAGS)
+libnbd_libfuzzer_test_LDADD = $(top_builddir)/lib/libnbd.la

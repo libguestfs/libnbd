@@ -20,8 +20,7 @@ TLS should properly shut down the session (calling gnutls_bye).
 Performance: Chart it over various buffer sizes and threads, as that
   should make it easier to identify systematic issues.
 
-Examine other fuzzers: oss-fuzz, libfuzzer, fuzzit, and whatever it is
-  that syzkaller uses.
+Examine other fuzzers: https://gitlab.com/akihe/radamsa
 
 Analyze code with Coverity.
 

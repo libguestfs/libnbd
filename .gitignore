@@ -60,7 +60,9 @@ Makefile.in
 /fuse/nbdfuse
 /fuse/nbdfuse.1
 /fuzzing/libnbd-fuzz-wrapper
+/fuzzing/libnbd-libfuzzer-test
 /fuzzing/sync_dir/
+/fuzzing/testcase_dir/[0-f]*
 /generator/generator-cache.v1
 /generator/stamp-generator
 /html/*.?.html

@@ -1,5 +1,7 @@
+To report security bugs, see ‘SECURITY’ in the top source directory.
+
 Fuzzing libnbd using the American Fuzzy Lop (afl) fuzzer
---------------------------------------------------------
+========================================================
 
 We can fuzz libnbd using the wrapper in this directory.
 
@@ -54,7 +56,35 @@ command below.  You can run this even while afl-fuzz is running.
 This will create an HTML test coverage report in
 ../libnbd-afl/fuzzing/sync_dir/cov/web/
 
-Notes
------
+Fuzzing libnbd using Clang + libFuzzer
+======================================
 
-To report security bugs, see ‘SECURITY’ in the top source directory.
+Recompile libnbd with libFuzzer enabled and build the libFuzzer test
+binary:
+
+  ./configure \
+      CC=clang \
+      CFLAGS="-g -O1" \
+      --disable-shared --disable-ocaml --disable-python
+  make clean
+  make CFLAGS="-g -O1 -fsanitize=fuzzer,address" -C lib
+  make CFLAGS="-g -O1 -fsanitize=fuzzer,address" \
+    -C fuzzing libnbd-libfuzzer-test
+
+(The awkward additional CFLAGS on the make command line are necessary
+because ./configure attempts to test that the compiler works, but this
+test fails when -fsanitize=fuzzer is used as that option adds an extra
+main() definition.)
+
+You can then run the fuzzer program directly on the input corpus:
+
+  ./fuzzing/libnbd-libfuzzer-test fuzzing/testcase_dir
+
+New test inputs are written to fuzzing/testcase_dir and will be used
+on subsequent runs.  If this is undesirable then delete
+fuzzing/testcase_dir/[0-f]* before the run.
+
+There are various extra command line options supported by libFuzzer.
+For more details see:
+
+  https://llvm.org/docs/LibFuzzer.html
