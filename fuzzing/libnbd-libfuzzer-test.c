@@ -71,8 +71,11 @@ LLVMFuzzerTestOneInput (const uint8_t *data, size_t size)
 
     close (sv[0]);
 
+  again:
     r = wait (&status);
     if (r == -1) {
+      if (errno == EINTR)
+        goto again;
       perror ("wait");
       exit (EXIT_FAILURE);
     }
