@@ -1460,7 +1460,7 @@ C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
     shortdesc = "set the allowed transports in NBD URIs";
     longdesc = "\
 Set which transports are allowed to appear in NBD URIs.  The
-default is to allow any transports.
+default is to allow any transport.
 
 The C<mask> parameter may contain any of the following flags
 ORed together:
@@ -1502,7 +1502,7 @@ whether the URI uses C<nbds> or C<nbd>.
 
 =item C<LIBNBD_TLS_REQUIRE>
 
-TLS URIs are required.  All URIs must use C<nbs>.
+TLS URIs are required.  All URIs must use C<nbds>.
 
 =back";
     see_also = ["L<nbd_connect_uri(3)>"; "L<nbd_set_uri_allow_transports(3)>"];
