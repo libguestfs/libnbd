@@ -65,6 +65,7 @@ binary:
   ./configure \
       CC=clang \
       CFLAGS="-g -O1" \
+      --enable-libfuzzer \
       --disable-shared --disable-ocaml --disable-python
   make clean
   make CFLAGS="-g -O1 -fsanitize=fuzzer,address" -C lib

@@ -237,6 +237,14 @@ dnl Define the path to the podwrapper program.
 PODWRAPPER="$PERL $(pwd)/podwrapper.pl"
 AC_SUBST([PODWRAPPER])
 
+dnl Build the libFuzzer test.  See fuzzing/README.
+AC_ARG_ENABLE([libfuzzer],
+    [AS_HELP_STRING([--enable-libfuzzer],
+                    [build the libFuzzer test (developers only)])],
+    [enable_libfuzzer=yes],
+    [enable_libfuzzer=no])
+AM_CONDITIONAL([ENABLE_LIBFUZZER],[test "x$enable_libfuzzer" = "xyes"])
+
 dnl OCaml, required for running the generator when building from git,
 dnl optional the rest of the time unless you want to build the OCaml
 dnl bindings.
