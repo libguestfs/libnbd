@@ -60,6 +60,7 @@ check_PROGRAMS += \
 	compile-header-only \
 	compile-c \
 	compile-ansi-c \
+	close-null \
 	debug \
 	debug-environment \
 	version \
@@ -70,6 +71,7 @@ TESTS += \
 	compile-header-only \
 	compile-c \
 	compile-ansi-c \
+	close-null \
 	debug \
 	debug-environment \
 	version \
@@ -95,6 +97,11 @@ compile_ansi_c_CPPFLAGS = \
 	-std=c90 -pedantic
 compile_ansi_c_CFLAGS = $(WARNINGS_CFLAGS)
 compile_ansi_c_LDADD = $(top_builddir)/lib/libnbd.la
+
+close_null_SOURCES = close-null.c
+close_null_CPPFLAGS = -I$(top_srcdir)/include
+close_null_CFLAGS = $(WARNINGS_CFLAGS)
+close_null_LDADD = $(top_builddir)/lib/libnbd.la
 
 debug_SOURCES = debug.c
 debug_CPPFLAGS = -I$(top_srcdir)/include

@@ -116,10 +116,10 @@ nbd_close (struct nbd_handle *h)
 
   nbd_internal_set_error_context ("nbd_close");
 
-  debug (h, "closing handle");
-
   if (h == NULL)
     return;
+
+  debug (h, "closing handle");
 
   /* Free user callbacks first. */
   nbd_unlocked_clear_debug_callback (h);
