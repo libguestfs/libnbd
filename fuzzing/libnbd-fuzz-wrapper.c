@@ -145,7 +145,7 @@ server (int fd, int sock)
   for (;;) {
     pfds[0].fd = sock;
     pfds[0].events = POLLIN;
-    if (wsize >= 0 || fd >= 0) pfds[0].events |= POLLOUT;
+    if (wsize > 0 || fd >= 0) pfds[0].events |= POLLOUT;
     pfds[0].revents = 0;
 
     if (poll (pfds, 1, -1) == -1) {
