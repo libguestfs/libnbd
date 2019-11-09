@@ -11,16 +11,16 @@ top level source directory, also available online here:
 L<https://github.com/libguestfs/libnbd/blob/master/SECURITY>
 
 =head2 CVE-2019-14842
-protocol downgrade attack when using LIBNBD_TLS_REQUIRE
+protocol downgrade attack when using C<LIBNBD_TLS_REQUIRE>
 
 See the full announcement and links to mitigation, tests and fixes
 here:
-https://www.redhat.com/archives/libguestfs/2019-September/msg00128.html
+L<https://www.redhat.com/archives/libguestfs/2019-September/msg00128.html>
 
 =head2 remote code execution vulnerability
 
 See the full announcement here:
-https://www.redhat.com/archives/libguestfs/2019-October/msg00060.html
+L<https://www.redhat.com/archives/libguestfs/2019-October/msg00060.html>
 
 =head1 SEE ALSO
 
