@@ -37,10 +37,12 @@ Makefile.in
 /config.sub
 /configure
 /depcomp
+/docs/*.1
 /docs/*.3
 /docs/*.pod
 /docs/Makefile.inc
 !/docs/libnbd.pod
+!/docs/libnbd-release-notes-*.pod
 !/docs/libnbd-security.pod
 !/docs/nbd_close.3
 !/docs/nbd_create.pod

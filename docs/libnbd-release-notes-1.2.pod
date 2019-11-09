@@ -1,0 +1,27 @@
+=head1 NAME
+
+libnbd-release-notes-1.2 - release notes for libnbd 1.2
+
+=head1 DESCRIPTION
+
+These are the release notes for libnbd stable release 1.2.
+This describes the major changes since 1.0.
+
+libnbd 1.2.0 was released on C<XXX DATE TBD>.
+
+I<libnbd 1.2 has not been released yet.  These notes will be filled in
+before the release.  This page is just a placeholder.>
+
+=head1 SEE ALSO
+
+L<libnbd(1)>.
+
+=head1 AUTHORS
+
+Eric Blake
+
+Richard W.M. Jones
+
+=head1 COPYRIGHT
+
+Copyright (C) 2019 Red Hat Inc.
