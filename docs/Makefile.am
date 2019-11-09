@@ -58,6 +58,7 @@ man_MANS = \
 	$(NULL)
 CLEANFILES += \
 	libnbd.3 \
+	libnbd-security.3 \
 	nbd_create.3 \
 	$(api_built:%=%.3) \
 	$(NULL)
