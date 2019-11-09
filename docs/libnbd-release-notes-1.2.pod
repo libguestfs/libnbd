@@ -7,10 +7,170 @@ libnbd-release-notes-1.2 - release notes for libnbd 1.2
 These are the release notes for libnbd stable release 1.2.
 This describes the major changes since 1.0.
 
-libnbd 1.2.0 was released on C<XXX DATE TBD>.
+libnbd 1.2.0 was released on B<XXX DATE TBD XXX>.
 
-I<libnbd 1.2 has not been released yet.  These notes will be filled in
-before the release.  This page is just a placeholder.>
+=head2 Security
+
+Two security problems were found during development of libnbd 1.2.
+Both were backported to the 1.0 stable branch.  Upgrading is highly
+advisable.
+
+=head3 CVE-2019-14842
+protocol downgrade attack when using C<LIBNBD_TLS_REQUIRE>
+
+See the full announcement and links to mitigation, tests and fixes
+here:
+L<https://www.redhat.com/archives/libguestfs/2019-September/msg00128.html>
+
+=head3 remote code execution vulnerability
+
+See the full announcement here:
+L<https://www.redhat.com/archives/libguestfs/2019-October/msg00060.html>
+
+=head2 New APIs
+
+=over 4
+
+=item L<nbd_can_fast_zero(3)>
+
+Test support by the server for fast zeroing (Eric Blake).
+
+=item L<nbd_connect_socket(3)>
+
+=item L<nbd_aio_connect_socket(3)>
+
+Connect to a local connected socket which you create in your main
+program using your own chosen method.
+
+=item L<nbd_connect_systemd_socket_activation(3)>
+
+=item L<nbd_aio_connect_systemd_socket_activation(3)>
+
+Connect to local processes that support systemd socket
+activation.
+
+=item L<nbd_connect_vsock(3)>
+
+=item L<nbd_aio_connect_vsock(3)>
+
+Used to connect to servers over C<AF_VSOCK>.
+
+=item L<nbd_get_handshake_flags(3)>
+
+=item L<nbd_set_handshake_flags(3)>
+
+=item L<nbd_get_request_structured_replies(3)>
+
+=item L<nbd_set_request_structured_replies(3)>
+
+=item L<nbd_get_structured_replies_negotiated(3)>
+
+Can be used when testing NBD servers to avoid various NBD features
+(Eric Blake).
+
+=item L<nbd_get_protocol(3)>
+
+Get the NBD protocol variant that the server supports.
+
+=item L<nbd_get_tls_negotiated(3)>
+
+Did we actually negotiate a TLS connection?
+
+=item L<nbd_set_uri_allow_local_file(3)>
+
+=item L<nbd_set_uri_allow_tls(3)>
+
+=item L<nbd_set_uri_allow_transports(3)>
+
+These can be used to filter NBD URIs before calling
+L<nbd_connect_uri(3)>.
+
+=back
+
+=head2 New features
+
+New tool L<nbdfuse(1)> lets you create a loop-mounted file backed by
+an NBD server without needing root.
+
+C<AF_VSOCK> is now a supported protocol (thanks Stefan Hajnoczi and
+Stefano Garzarella).
+
+Support for the C<FAST_ZERO> flag (Eric Blake).
+
+Allow disabling certain protocol features, to make it easier to test
+servers (Eric Blake).
+
+Stack-allocated Variable Length Arrays (VLAs) are now banned
+throughout the library, making the library easier to consume from
+threads and other small stack situations.
+
+Reproducible builds (Chris Lamb).
+
+Support for filtering potentially dangerous or undesirable NBD URI
+features.
+
+=head2 Documentation
+
+Many improvements to the generated manual pages, including:
+
+=over 4
+
+=item *
+
+Separate C<RETURN VALUE> and C<ERRORS> sections for each
+API function.
+
+=item *
+
+Example code.
+
+=item *
+
+Relevant links can be added to the C<SEE ALSO> section.
+
+=item *
+
+Link to NBD URI specification where relevant, and improve
+documentation around what URIs libnbd supports.
+
+=item *
+
+Document libnbd version number scheme.
+
+=item *
+
+Document limits on export name length, encoding etc.
+
+=back
+
+New L<libnbd-security(3)> man page listing past security issues and
+remediations (Eric Blake).
+
+=head2 Tools
+
+L<nbdsh(1)> has a new I<--base-allocation> option which can be used to
+request C<base:allocation> metadata context.
+
+New L<nbdsh(1)> I<--uri> (I<-u>) option to connect to URIs.
+
+=head2 Tests
+
+You can now fuzz libnbd using either American Fuzzy Lop or clang’s
+libFuzzer.
+
+Add unit tests for L<nbdsh(1)> (Eric Blake).
+
+Improved interop testing with various NBD servers and features.
+
+=head2 Other improvements and bug fixes
+
+L<nbd_connect_tcp(3)> now tries to return the correct L<errno(3)> from
+the underlying L<connect(2)> call when that fails.
+
+The F<nbd-protocol.h> header file is now shared between libnbd and
+nbdkit.
+
+Better fork-safety in C<nbd_connect_*> APIs.
 
 =head1 SEE ALSO
 
