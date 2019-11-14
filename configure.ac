@@ -212,6 +212,14 @@ AS_IF([test "x$enable_fuse" != "xno"],[
         AC_SUBST([FUSE_CFLAGS])
         AC_SUBST([FUSE_LIBS])
         AC_DEFINE([HAVE_FUSE],[1],[Define to 1 if you have FUSE.])
+
+        dnl OpenBSD doesn't have this header, but can still compile
+        dnl FUSE modules anyhow.  The symbol we need is fuse_chan_fd
+        dnl which OpenBSD defines in regular fuse.h.
+        old_CFLAGS="$CFLAGS"
+        CFLAGS="$CFLAGS $FUSE_CFLAGS"
+        AC_CHECK_HEADERS([fuse_lowlevel.h])
+        CFLAGS="$old_CFLAGS"
     ],[
         enable_fuse=no
         AC_MSG_WARN([FUSE library and headers are missing, so optional FUSE module won't be built])
