@@ -45,6 +45,7 @@
 static char **
 prepare_socket_activation_environment (void)
 {
+  extern char **environ;
   char **env = NULL;
   char *p0 = NULL, *p1 = NULL;
   size_t i, len;
