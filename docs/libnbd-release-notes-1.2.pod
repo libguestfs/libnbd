@@ -172,6 +172,9 @@ nbdkit.
 
 Better fork-safety in C<nbd_connect_*> APIs.
 
+The code was analyzed with Coverity and various problems identified
+and fixed.
+
 =head1 SEE ALSO
 
 L<libnbd(1)>.
