@@ -41,7 +41,7 @@ cleanup_fn rm -f $pidfile $data
 
 mkdir -p $mp
 $VG nbdfuse -P $pidfile $mp \
-        --command nbdkit -s --exit-with-parent memory 10M &
+        --command nbdkit -s --exit-with-parent memory size=10M &
 
 # Wait for the pidfile to appear.
 for i in {1..60}; do
