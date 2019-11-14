@@ -111,6 +111,7 @@ char *
 nbd_unlocked_get_tls_username (struct nbd_handle *h)
 {
   char *s, *ret;
+  size_t len;
 
   if (h->tls_username) {
     ret = strdup (h->tls_username);
@@ -136,16 +137,30 @@ nbd_unlocked_get_tls_username (struct nbd_handle *h)
     return ret;
   }
 
-  ret = malloc (L_cuserid);
-  if (ret == NULL) {
-    set_error (errno, "malloc");
-    return NULL;
+  len = 16;
+  ret = NULL;
+  while (ret == NULL) {
+    char *oldret = ret;
+
+    ret = realloc (oldret, len);
+    if (ret == NULL) {
+      set_error (errno, "realloc");
+      free (oldret);
+      return NULL;
+    }
+
+    if (getlogin_r (ret, len) != 0) {
+      if (errno == ERANGE) {
+        /* Try again with a larger buffer. */
+        len *= 2;
+        continue;
+      }
+      set_error (errno, "getlogin_r");
+      free (ret);
+      return NULL;
+    }
   }
-  if (getlogin_r (ret, L_cuserid) != 0) {
-    set_error (errno, "getlogin");
-    free (ret);
-    return NULL;
-  }
+
   return ret;
 }
 
