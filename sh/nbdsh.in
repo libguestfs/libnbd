@@ -17,4 +17,10 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-exec -a nbdsh @PYTHON@ -mnbd "$@"
+# Test if /bin/sh supports exec -a option (only supported in bash 4.2
+# and above, and not part of POSIX).
+if /bin/sh -c 'exec -a test true' 2>/dev/null; then
+    exec -a nbdsh @PYTHON@ -mnbd "$@"
+else
+    exec          @PYTHON@ -mnbd "$@"
+fi
