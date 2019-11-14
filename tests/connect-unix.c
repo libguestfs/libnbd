@@ -27,17 +27,22 @@
 
 #include <libnbd.h>
 
-#define SOCKET "connect-unix.sock"
 #define PIDFILE "connect-unix.pid"
 
 int
 main (int argc, char *argv[])
 {
+  char socket[] = "/tmp/connect-unix-sock-XXXXXX";
   struct nbd_handle *nbd;
   pid_t pid;
   size_t i;
 
-  unlink (SOCKET);
+  if (mkstemp (socket) == -1) {
+    perror (socket);
+    exit (EXIT_FAILURE);
+  }
+
+  unlink (socket);
   unlink (PIDFILE);
 
   pid = fork ();
@@ -47,7 +52,7 @@ main (int argc, char *argv[])
   }
   if (pid == 0) {
     execlp ("nbdkit",
-            "nbdkit", "-f", "-U", SOCKET, "-P", PIDFILE,
+            "nbdkit", "-f", "-U", socket, "-P", PIDFILE,
             "--exit-with-parent", "null", NULL);
     perror ("nbdkit");
     _exit (EXIT_FAILURE);
@@ -67,7 +72,7 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  if (nbd_connect_unix (nbd, SOCKET) == -1) {
+  if (nbd_connect_unix (nbd, socket) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -78,6 +83,6 @@ main (int argc, char *argv[])
   }
 
   nbd_close (nbd);
-  unlink (SOCKET);
+  unlink (socket);
   exit (EXIT_SUCCESS);
 }

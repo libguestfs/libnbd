@@ -20,13 +20,10 @@ include $(top_srcdir)/subdir-rules.mk
 CLEANFILES += \
 	connect-tcp.pid \
 	connect-unix.pid \
-	connect-unix.sock \
 	connect-uri-nbd.pid \
 	connect-uri-nbd-unix.pid \
-	connect-uri-nbd-unix.sock \
 	connect-uri-nbds.pid \
 	connect-uri-nbds-unix.pid \
-	connect-uri-nbds-unix.sock \
 	connect-uri-nbds-psk.pid \
 	$(NULL)
 
@@ -508,11 +505,13 @@ connect_uri_nbd_CPPFLAGS = \
 connect_uri_nbd_CFLAGS = $(WARNINGS_CFLAGS)
 connect_uri_nbd_LDADD = $(top_builddir)/lib/libnbd.la
 
+CONNECT_URI_NBD_UNIX_SOCKET := \
+	$(shell mktemp /tmp/connect-uri-nbd-unix-socket-XXXXXX)
 connect_uri_nbd_unix_SOURCES = connect-uri.c
 connect_uri_nbd_unix_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-DSERVER_PARAMS='"-U", SOCKET' \
-	-DSOCKET='"connect-uri-nbd-unix.sock"' \
+	-DSOCKET='"$(CONNECT_URI_NBD_UNIX_SOCKET)"' \
 	-DPIDFILE='"connect-uri-nbd-unix.pid"' \
 	-DURI='"nbd+unix:///?socket=" SOCKET'
 connect_uri_nbd_unix_CFLAGS = $(WARNINGS_CFLAGS)
@@ -540,11 +539,13 @@ connect_uri_nbds_CPPFLAGS = \
 connect_uri_nbds_CFLAGS = $(WARNINGS_CFLAGS)
 connect_uri_nbds_LDADD = $(top_builddir)/lib/libnbd.la
 
+CONNECT_URI_NBDS_UNIX_SOCKET := \
+	$(shell mktemp /tmp/connect-uri-nbds-unix-socket-XXXXXX)
 connect_uri_nbds_unix_SOURCES = connect-uri.c
 connect_uri_nbds_unix_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-DSERVER_PARAMS='"-U", SOCKET, "--tls=require", "--tls-certificates=pki"' \
-	-DSOCKET='"connect-uri-nbds-unix.sock"' \
+	-DSOCKET='"$(CONNECT_URI_NBDS_UNIX_SOCKET)"' \
 	-DPIDFILE='"connect-uri-nbds-unix.pid"' \
 	-DURI='"nbds+unix:///?socket=" SOCKET'
 connect_uri_nbds_unix_CFLAGS = $(WARNINGS_CFLAGS)
