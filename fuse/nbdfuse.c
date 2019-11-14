@@ -39,7 +39,9 @@
 #define FUSE_USE_VERSION 26
 
 #include <fuse.h>
+#ifdef HAVE_FUSE_LOWLEVEL_H
 #include <fuse_lowlevel.h>
+#endif
 
 #include <libnbd.h>
 
