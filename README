@@ -55,6 +55,9 @@ To run the tests under valgrind:
 
 Requirements:
 
+ * Linux, FreeBSD or OpenBSD.  Other OSes may also work but we have
+   only tested these three.
+
  * GCC or Clang
 
  * GNU make
