@@ -219,7 +219,7 @@ STATE_MACHINE {
   return 0;
 
 #else /* !HAVE_EXECVPE */
-  SET_NEXT_STATE (%.DEAD)
+  SET_NEXT_STATE (%.DEAD);
   set_error (ENOTSUP, "platform does not support socket activation");
   return 0;
 #endif
