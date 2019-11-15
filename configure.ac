@@ -79,10 +79,6 @@ AC_CHECK_HEADERS([\
 
 AC_CHECK_HEADERS([linux/vm_sockets.h], [], [], [#include <sys/socket.h>])
 
-dnl Check for functions, all optional.
-AC_CHECK_FUNCS([\
-    execvpe])
-
 dnl Check for sys_errlist (optional).
 AC_MSG_CHECKING([for sys_errlist])
 AC_TRY_LINK([], [extern int sys_errlist; char *p = &sys_errlist;], [
