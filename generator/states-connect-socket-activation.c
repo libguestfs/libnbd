@@ -36,7 +36,9 @@
 /* == strlen ("LISTEN_PID=") | strlen ("LISTEN_FDS=") */
 #define PREFIX_LENGTH 11
 
-/* Prepare environment for calling execvpe when doing systemd socket
+extern char **environ;
+
+/* Prepare environment for calling execvp when doing systemd socket
  * activation.  Takes the current environment and copies it.  Removes
  * any existing LISTEN_PID or LISTEN_FDS and replaces them with new
  * variables.  env[0] is "LISTEN_PID=..." which is filled in by
@@ -45,7 +47,6 @@
 static char **
 prepare_socket_activation_environment (void)
 {
-  extern char **environ;
   char **env = NULL;
   char *p0 = NULL, *p1 = NULL;
   size_t i, len;
@@ -97,7 +98,6 @@ prepare_socket_activation_environment (void)
 
 STATE_MACHINE {
  CONNECT_SA.START:
-#ifdef HAVE_EXECVPE
   int s;
   struct sockaddr_un addr;
   char **env;
@@ -200,7 +200,8 @@ STATE_MACHINE {
     /* Restore SIGPIPE back to SIG_DFL. */
     signal (SIGPIPE, SIG_DFL);
 
-    execvpe (h->argv[0], h->argv, env);
+    environ = env;
+    execvp (h->argv[0], h->argv);
     nbd_internal_fork_safe_perror (h->argv[0]);
     if (errno == ENOENT)
       _exit (127);
@@ -217,11 +218,4 @@ STATE_MACHINE {
   memcpy (&h->connaddr, &addr, h->connaddrlen);
   SET_NEXT_STATE (%^CONNECT.START);
   return 0;
-
-#else /* !HAVE_EXECVPE */
-  SET_NEXT_STATE (%.DEAD);
-  set_error (ENOTSUP, "platform does not support socket activation");
-  return 0;
-#endif
-
 } /* END STATE MACHINE */
