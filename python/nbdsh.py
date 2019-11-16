@@ -40,6 +40,7 @@ def shell():
     args = parser.parse_args ()
 
     h = nbd.NBD ()
+    h.set_handle_name ("nbdsh")
     sys.ps1 = "nbd> "
 
     banner = '''
