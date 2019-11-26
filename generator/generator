@@ -4766,7 +4766,7 @@ let generate_docs_nbd_pod name { args; optargs; ret;
   pr "\n";
 
   pr " ";
-  print_call ~wrap:true name args optargs ret;
+  print_call ~wrap:true ~maxcol:60 name args optargs ret;
   pr ";\n";
   pr "\n";
 
