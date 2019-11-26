@@ -3182,7 +3182,7 @@ let pr fs =
       | Buffer b -> Buffer.add_string b str
   ) fs
 
-let pr_wrap c code =
+let pr_wrap ?(maxcol = 76) c code =
   (* Save the current output channel and replace it with a
    * temporary buffer while running ‘code’.  Then we wrap the
    * buffer and write it to the restored channel.
@@ -3202,7 +3202,7 @@ let pr_wrap c code =
   | line :: rest ->
      let fields = nsplit (String.make 1 c) line in
      let maybe_wrap field =
-       if !col > wrapping_col && !col + String.length field >= 76 then (
+       if !col > wrapping_col && !col + String.length field >= maxcol then (
          pr "\n";
          for i = 0 to wrapping_col-1 do pr " " done;
          match span field " \t" with
@@ -3966,9 +3966,11 @@ module C : sig
   val generate_docs_api_links_pod : unit -> unit
   val generate_docs_api_flag_links_pod : unit -> unit
   val generate_docs_nbd_pod : string -> call -> unit -> unit
-  val print_arg_list : ?wrap:bool -> ?handle:bool -> ?types:bool ->
+  val print_arg_list : ?wrap:bool -> ?maxcol:int ->
+                       ?handle:bool -> ?types:bool ->
                        arg list -> optarg list -> unit
-  val print_cbarg_list : ?wrap:bool -> ?types:bool -> cbarg list -> unit
+  val print_cbarg_list : ?wrap:bool -> ?maxcol:int -> ?types:bool ->
+                         cbarg list -> unit
   val errcode_of_ret : ret -> string option
   val type_of_ret : ret -> string
 end = struct
@@ -4147,10 +4149,10 @@ let rec name_of_arg = function
 | UInt32 n -> [n]
 | UInt64 n -> [n]
 
-let rec print_arg_list ?(wrap = false) ?handle ?types args optargs =
+let rec print_arg_list ?(wrap = false) ?maxcol ?handle ?types args optargs =
   pr "(";
   if wrap then
-    pr_wrap ','
+    pr_wrap ?maxcol ','
       (fun () -> print_arg_list_no_parens ?handle ?types args optargs)
   else
     print_arg_list_no_parens ?handle ?types args optargs;
@@ -4233,19 +4235,20 @@ and print_arg_list_no_parens ?(handle = false) ?(types = true) args optargs =
          pr "%s" n
   ) optargs
 
-let print_call ?wrap name args optargs ret =
+let print_call ?wrap ?maxcol name args optargs ret =
   pr "%s nbd_%s " (type_of_ret ret) name;
-  print_arg_list ~handle:true ?wrap args optargs
+  print_arg_list ~handle:true ?wrap ?maxcol args optargs
 
 let print_extern ?wrap name args optargs ret =
   pr "extern ";
   print_call ?wrap name args optargs ret;
   pr ";\n"
 
-let rec print_cbarg_list ?(wrap = false) ?types cbargs =
+let rec print_cbarg_list ?(wrap = false) ?maxcol ?types cbargs =
   pr "(";
   if wrap then
-    pr_wrap ',' (fun () -> print_cbarg_list_no_parens ?types cbargs)
+    pr_wrap ?maxcol ','
+      (fun () -> print_cbarg_list_no_parens ?types cbargs)
   else
     print_cbarg_list_no_parens ?types cbargs;
   pr ")"
