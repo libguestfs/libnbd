@@ -4750,6 +4750,15 @@ let generate_docs_api_flag_links_pod () =
   ) pages;
   pr ".\n"
 
+let print_docs_closure { cbname; cbargs } =
+  pr " typedef struct {\n";
+  pr "   int (*callback) ";
+  print_cbarg_list ~wrap:true ~maxcol:60 cbargs;
+  pr ";\n";
+  pr "   void *user_data;\n";
+  pr "   void (*free) (void *user_data);\n";
+  pr " } nbd_%s_callback;\n" cbname
+
 let generate_docs_nbd_pod name { args; optargs; ret;
                                  shortdesc; longdesc; example; see_also;
                                  permitted_states; may_set_error;
@@ -4764,6 +4773,17 @@ let generate_docs_nbd_pod name { args; optargs; ret;
   pr "\n";
   pr " #include <libnbd.h>\n";
   pr "\n";
+
+  List.iter (
+    function
+    | Closure cb -> print_docs_closure cb; pr "\n"
+    | _ -> ()
+  ) args;
+  List.iter (
+    function
+    | OClosure cb -> print_docs_closure cb; pr "\n"
+    | _ -> ()
+  ) optargs;
 
   pr " ";
   print_call ~wrap:true ~maxcol:60 name args optargs ret;
