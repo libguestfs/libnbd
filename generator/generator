@@ -4762,8 +4762,10 @@ let generate_docs_nbd_pod name { args; optargs; ret;
 
   pr "=head1 SYNOPSIS\n";
   pr "\n";
-  pr "#include <libnbd.h>\n";
+  pr " #include <libnbd.h>\n";
   pr "\n";
+
+  pr " ";
   print_call ~wrap:true name args optargs ret;
   pr ";\n";
   pr "\n";
