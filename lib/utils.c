@@ -167,3 +167,109 @@ nbd_internal_fork_safe_perror (const char *s)
    */
   errno = err;
 }
+
+/* nbd_internal_printable_* functions are used by the API code to
+ * print debug messages when we trace calls in and out of libnbd.  The
+ * calls should attempt to convert the parameter into something
+ * printable.
+ *
+ * They cannot fail, but it's OK if they return NULL.
+ *
+ * Caller frees the result.
+ */
+
+char *
+nbd_internal_printable_buffer (const void *buf, size_t count)
+{
+  char *s = NULL;
+  size_t len = 0, truncated;
+  FILE *fp;
+
+  fp = open_memstream (&s, &len);
+  if (fp == NULL)
+    return NULL;
+
+  /* If the buffer is very long, truncate it to 1 sector. */
+  if (count > 512) {
+    truncated = count - 512;
+    count = 512;
+  }
+  else
+    truncated = 0;
+
+  fprintf (fp, "\n");
+  nbd_internal_hexdump (buf, count, fp);
+
+  if (truncated)
+    fprintf (fp, "[... %zu more bytes truncated ...]\n", truncated);
+  fclose (fp);
+
+  return s;
+}
+
+static void
+printable_string (const char *str, FILE *fp)
+{
+  size_t i, n, truncated;
+
+  n = strlen (str);
+  if (n > 512) {
+    truncated = n - 512;
+    n = 512;
+  }
+  else
+    truncated = 0;
+
+  fprintf (fp, "\"");
+  for (i = 0; i < n; ++i) {
+    if (isprint (str[i]))
+      fputc (str[i], fp);
+    else
+      fprintf (fp, "\\x%02x", str[i]);
+  }
+
+  if (truncated)
+    fprintf (fp, "[... %zu more bytes truncated ...]", truncated);
+  fprintf (fp, "\"");
+}
+
+char *
+nbd_internal_printable_string (const char *str)
+{
+  char *s = NULL;
+  size_t len = 0;
+  FILE *fp;
+
+  fp = open_memstream (&s, &len);
+  if (fp == NULL)
+    return NULL;
+
+  printable_string (str, fp);
+  fclose (fp);
+
+  return s;
+}
+
+char *
+nbd_internal_printable_string_list (char **list)
+{
+  char *s = NULL;
+  size_t len = 0, i;
+  FILE *fp;
+
+  fp = open_memstream (&s, &len);
+  if (fp == NULL)
+    return NULL;
+
+  fprintf (fp, "[");
+  for (i = 0; list[i] != NULL; ++i) {
+    if (i > 0)
+      fprintf (fp, ", ");
+    printable_string (list[i], fp);
+  }
+  fprintf (fp, "]");
+  fclose (fp);
+
+  return s;
+
+}

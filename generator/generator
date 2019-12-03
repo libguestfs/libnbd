@@ -4608,14 +4608,33 @@ let generate_lib_api_c () =
 
   (* Print the trace when we enter a call with debugging enabled. *)
   and print_trace_enter args optargs =
-    pr "  debug (h, \"enter:";
+    pr "  if_debug (h) {\n";
+    List.iter (
+      function
+      | BytesIn (n, count)
+      | BytesPersistIn (n, count) ->
+         pr "    char *%s_printable =\n" n;
+         pr "        nbd_internal_printable_buffer (%s, %s);\n" n count
+      | Path n
+      | String n ->
+         pr "    char *%s_printable =\n" n;
+         pr "        nbd_internal_printable_string (%s);\n" n
+      | StringList n ->
+         pr "    char *%s_printable =\n" n;
+         pr "        nbd_internal_printable_string_list (%s);\n" n
+      | BytesOut _ | BytesPersistOut _
+      | Bool _ | Closure _ | Enum _ | Flags _ | Fd _ | Int _
+      | Int64 _ | SockAddrAndLen _ | UInt _ | UInt32 _ | UInt64 _ -> ()
+    ) args;
+    pr "    debug (h, \"enter:";
     List.iter (
       function
       | Bool n -> pr " %s=%%s" n
-      | BytesIn (n, count)
-      | BytesPersistIn (n, count)
       | BytesOut (n, count)
       | BytesPersistOut (n, count) -> pr " %s=<buf> %s=%%zu" n count
+      | BytesIn (n, count)
+      | BytesPersistIn (n, count) ->
+         pr " %s=\\\"%%s\\\" %s=%%zu" n count
       | Closure { cbname } -> pr " %s=<fun>" cbname
       | Enum (n, _) -> pr " %s=%%d" n
       | Flags (n, _) -> pr " %s=0x%%x" n
@@ -4623,8 +4642,8 @@ let generate_lib_api_c () =
       | Int64 n -> pr " %s=%%\" PRIi64 \"" n
       | SockAddrAndLen (n, len) -> pr " %s=<sockaddr> %s=%%d" n len
       | Path n
-      | String n -> pr " %s=\\\"%%s\\\"" n
-      | StringList n -> pr " %s=<list>" n
+      | String n -> pr " %s=%%s" n
+      | StringList n -> pr " %s=%%s" n
       | UInt n -> pr " %s=%%u" n
       | UInt32 n -> pr " %s=%%\" PRIu32 \"" n
       | UInt64 n -> pr " %s=%%\" PRIu64 \"" n
@@ -4638,18 +4657,21 @@ let generate_lib_api_c () =
     List.iter (
       function
       | Bool n -> pr ", %s ? \"true\" : \"false\"" n
-      | BytesIn (_, count)
-      | BytesPersistIn (_, count)
-      | BytesOut (_, count)
-      | BytesPersistOut (_, count) -> pr ", %s" count
+      | BytesOut (n, count)
+      | BytesPersistOut (n, count) -> pr ", %s" count
+      | BytesIn (n, count)
+      | BytesPersistIn (n, count) ->
+         pr ", %s_printable ? %s_printable : \"\", %s" n n count
       | Closure { cbname } -> ()
       | Enum (n, _) -> pr ", %s" n
       | Flags (n, _) -> pr ", %s" n
       | Fd n | Int n -> pr ", %s" n
       | Int64 n -> pr ", %s" n
       | SockAddrAndLen (_, len) -> pr ", (int) %s" len
-      | Path n | String n -> pr ", %s ? %s : \"NULL\"" n n
-      | StringList n -> ()
+      | Path n | String n ->
+         pr ", %s ? %s_printable ? %s_printable : \"\" : \"NULL\"" n n n
+      | StringList n ->
+         pr ", %s_printable ? %s_printable : \"\"" n n
       | UInt n | UInt32 n | UInt64 n -> pr ", %s" n
     ) args;
     List.iter (
@@ -4658,7 +4680,20 @@ let generate_lib_api_c () =
          pr ", CALLBACK_IS_NULL (%s_callback) ? \"<fun>\" : \"NULL\"" cbname
       | OFlags (n, _) -> pr ", %s" n
     ) optargs;
-    pr ");\n"
+    pr ");\n";
+    List.iter (
+      function
+      | BytesIn (n, _)
+      | BytesPersistIn (n, _)
+      | Path n
+      | String n
+      | StringList n ->
+         pr "    free (%s_printable);\n" n
+      | BytesOut _ | BytesPersistOut _
+      | Bool _ | Closure _ | Enum _ | Flags _ | Fd _ | Int _
+      | Int64 _ | SockAddrAndLen _ | UInt _ | UInt32 _ | UInt64 _ -> ()
+    ) args;
+    pr "  }\n"
   (* Print the trace when we leave a call with debugging enabled. *)
   and print_trace_leave ret =
     pr "  if_debug (h) {\n";
@@ -4670,15 +4705,31 @@ let generate_lib_api_c () =
         pr "    if (0)\n";
     );
     pr "      debug (h, \"leave: error=\\\"%%s\\\"\", nbd_get_error ());\n";
-    pr "    else\n";
-    pr "      debug (h, \"leave: ret=";
+    pr "    else {\n";
     (match ret with
-     | RBool | RErr | RFd | RInt -> pr "%%d"
-     | RInt64 | RCookie -> pr "%%\" PRIi64 \""
-     | RStaticString | RString -> pr "\\\"%%s\\\""
-     | RUInt -> pr "%%u"
+     | RStaticString | RString ->
+        pr "      char *ret_printable =\n";
+        pr "          nbd_internal_printable_string (ret);\n"
+     | RBool | RErr | RFd | RInt
+     | RInt64 | RCookie
+     | RUInt -> ()
     );
-    pr "\", ret);\n";
+    pr "      debug (h, \"leave: ret=\" ";
+    (match ret with
+     | RBool | RErr | RFd | RInt -> pr "\"%%d\", ret"
+     | RInt64 | RCookie -> pr "\"%%\" PRIi64 \"\", ret"
+     | RStaticString | RString ->
+        pr "\"\\\"%%s\\\"\", ret_printable ? ret_printable : \"\""
+     | RUInt -> pr "\"%%u\", ret"
+    );
+    pr ");\n";
+    (match ret with
+     | RStaticString | RString -> pr "      free (ret_printable);\n"
+     | RBool | RErr | RFd | RInt
+     | RInt64 | RCookie
+     | RUInt -> ()
+    );
+    pr "    }\n";
     pr "  }\n"
   in
 

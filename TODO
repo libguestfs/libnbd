@@ -22,12 +22,6 @@ Performance: Chart it over various buffer sizes and threads, as that
 
 Examine other fuzzers: https://gitlab.com/akihe/radamsa
 
-Improve function trace output so that:
- - Long strings are truncated.
- - Strings with non-printable characters are escaped.
- - Buffers are partially printed.
- - Lists of strings are printed.
-
 Should we ship a "nbdcp" copying tool?
  - Could upload, download or copy between servers.
  - Duplicates functionality already available in qemu-img convert.

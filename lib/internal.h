@@ -409,5 +409,8 @@ extern char **nbd_internal_copy_string_list (char **argv);
 extern void nbd_internal_free_string_list (char **argv);
 extern const char *nbd_internal_fork_safe_itoa (long v, char *buf, size_t len);
 extern void nbd_internal_fork_safe_perror (const char *s);
+extern char *nbd_internal_printable_buffer (const void *buf, size_t count);
+extern char *nbd_internal_printable_string (const char *str);
+extern char *nbd_internal_printable_string_list (char **list);
 
 #endif /* LIBNBD_INTERNAL_H */
