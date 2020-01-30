@@ -6304,7 +6304,7 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
        pr "  socklen_t %s;\n" len;
        pr "  abort ();\n" (* XXX *)
     | StringList n ->
-       pr "  char **%s = nbd_internal_ocaml_string_list (%sv);\n" n n
+       pr "  char **%s = (char **) nbd_internal_ocaml_string_list (%sv);\n" n n
     | UInt n ->
        pr "  unsigned %s = Int_val (%sv);\n" n n
     | UInt32 n ->
