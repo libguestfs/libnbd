@@ -73,19 +73,19 @@ nbd_internal_ocaml_raise_closed (const char *func)
 /* The caller should free the array, but NOT the strings, since the
  * strings point to OCaml strings.
  */
-char **
+const char **
 nbd_internal_ocaml_string_list (value ssv)
 {
   CAMLparam1 (ssv);
   CAMLlocal1 (sv);
   size_t i, len;
-  char **r;
+  const char **r;
 
   sv = ssv;
   for (len = 0; sv != Val_emptylist; sv = Field (sv, 1))
     len++;
 
-  r = malloc (sizeof (char *) * (len+1));
+  r = malloc (sizeof (const char *) * (len+1));
   if (r == NULL) caml_raise_out_of_memory ();
 
   sv = ssv;
@@ -93,7 +93,7 @@ nbd_internal_ocaml_string_list (value ssv)
     r[i] = String_val (Field (sv, 0));
 
   r[len] = NULL;
-  CAMLreturnT (char **, r);
+  CAMLreturnT (const char **, r);
 }
 
 value
@@ -122,7 +122,8 @@ nbd_internal_ocaml_exception_in_wrapper (const char *cbname, value rv)
 {
   CAMLparam1 (rv);
   CAMLlocal1 (exn);
-  char *exn_name, *s;
+  const char *exn_name;
+  char *s;
 
   exn = Extract_exception (rv);
 
