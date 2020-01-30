@@ -50,7 +50,8 @@ libnbdmod_la_SOURCES = \
 	utils.c
 libnbdmod_la_CPPFLAGS = \
 	$(PYTHON_CFLAGS) \
-	-I$(top_srcdir)/include
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/common/include
 libnbdmod_la_CFLAGS = \
 	$(WARNINGS_CFLAGS)
 libnbdmod_la_LIBADD = \

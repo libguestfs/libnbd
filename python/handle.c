@@ -35,6 +35,8 @@
 
 #include <libnbd.h>
 
+#include "iszero.h"
+
 #include "methods.h"
 
 static inline PyObject *
@@ -212,4 +214,49 @@ nbd_internal_py_aio_buffer_size (PyObject *self, PyObject *args)
     return NULL;
 
   return PyLong_FromSsize_t (buf->len);
+}
+
+PyObject *
+nbd_internal_py_aio_buffer_is_zero (PyObject *self, PyObject *args)
+{
+  PyObject *obj;
+  struct py_aio_buffer *buf;
+  Py_ssize_t offset, size;
+
+  if (!PyArg_ParseTuple (args,
+                         (char *) "Onn:nbd_internal_py_aio_buffer_is_zero",
+                         &obj, &offset, &size))
+    return NULL;
+
+  if (size == 0)
+    Py_RETURN_TRUE;
+
+  buf = nbd_internal_py_get_aio_buffer (obj);
+  if (buf == NULL)
+    return NULL;
+
+  /* Check the bounds of the offset. */
+  if (offset < 0 || offset > buf->len) {
+    PyErr_SetString (PyExc_IndexError, "offset out of range");
+    return NULL;
+  }
+
+  /* Compute or check the length. */
+  if (size == -1)
+    size = buf->len - offset;
+  else if (size < 0) {
+    PyErr_SetString (PyExc_IndexError,
+                     "size cannot be negative, "
+                     "except -1 to mean to the end of the buffer");
+    return NULL;
+  }
+  else if ((size_t) offset + size > buf->len) {
+    PyErr_SetString (PyExc_IndexError, "size out of range");
+    return NULL;
+  }
+
+  if (is_zero (buf->data + offset, size))
+    Py_RETURN_TRUE;
+  else
+    Py_RETURN_FALSE;
 }

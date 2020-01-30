@@ -5014,7 +5014,8 @@ raise_exception ()
        "alloc_aio_buffer";
        "aio_buffer_from_bytearray";
        "aio_buffer_to_bytearray";
-       "aio_buffer_size" ] @ List.map fst handle_calls);
+       "aio_buffer_size";
+       "aio_buffer_is_zero" ] @ List.map fst handle_calls);
 
   pr "\n";
   pr "#endif /* LIBNBD_METHODS_H */\n"
@@ -5044,7 +5045,8 @@ let generate_python_libnbdmod_c () =
        "alloc_aio_buffer";
        "aio_buffer_from_bytearray";
        "aio_buffer_to_bytearray";
-       "aio_buffer_size" ] @ List.map fst handle_calls);
+       "aio_buffer_size";
+       "aio_buffer_is_zero" ] @ List.map fst handle_calls);
   pr "  { NULL, NULL, 0, NULL }\n";
   pr "};\n";
   pr "\n";
@@ -5666,6 +5668,20 @@ class Buffer (object):
     def size (self):
         '''return the size of an AIO buffer'''
         return libnbdmod.aio_buffer_size (self._o)
+
+    def is_zero (self, offset=0, size=-1):
+        '''
+        Returns true if and only if all bytes in the buffer are zeroes.
+        Note that a freshly allocated buffer is uninitialized, not zero.
+
+        By default this tests the whole buffer, but you can restrict
+        the test to a sub-range of the buffer using the optional
+        offset and size parameters.  If size = -1 then we check from
+        offset to the end of the buffer.  If size = 0, the function
+        always returns true.  If size > 0, we check the interval
+        [offset..offset+size-1].
+        '''
+        return libnbdmod.aio_buffer_is_zero (self._o, offset, size)
 
 class NBD (object):
     '''NBD handle'''

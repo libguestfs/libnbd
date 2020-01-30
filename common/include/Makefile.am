@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2019 Red Hat Inc.
+# Copyright (C) 2013-2020 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -18,4 +18,5 @@
 include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
-	byte-swapping.h
+	byte-swapping.h \
+	iszero.h
