@@ -6076,8 +6076,7 @@ let print_ocaml_closure_wrapper { cbname; cbargs } =
        pr "  %sv = nbd_internal_ocaml_alloc_int32_array (%s, %s);\n"
          n n count;
     | CBBytesIn (n, len) ->
-       pr "  %sv = caml_alloc_string (%s);\n" n len;
-       pr "  memcpy (String_val (%sv), %s, %s);\n" n n len
+       pr "  %sv = caml_alloc_initialized_string (%s, %s);\n" n len n
     | CBInt n | CBUInt n ->
        pr "  %sv = Val_int (%s);\n" n n
     | CBInt64 n ->

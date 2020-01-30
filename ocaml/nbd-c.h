@@ -22,7 +22,9 @@
 #define LIBNBD_NBD_C_H
 
 #include <stdint.h>
+#include <string.h>
 
+#include <caml/alloc.h>
 #include <caml/custom.h>
 #include <caml/memory.h>
 #include <caml/mlvalues.h>
@@ -36,6 +38,19 @@
 #ifndef HAVE_CAML_ALLOC_CUSTOM_MEM
 #define caml_alloc_custom_mem(ops, obj, size) \
   caml_alloc_custom ((ops), (obj), 0, 1)
+#endif
+
+/* Replacement if caml_alloc_initialized_string is missing, added
+ * to OCaml runtime in 2017.
+ */
+#ifndef HAVE_CAML_ALLOC_INITIALIZED_STRING
+static inline value
+caml_alloc_initialized_string (mlsize_t len, const char *p)
+{
+  value sv = caml_alloc_string (len);
+  memcpy ((char *) String_val (sv), p, len);
+  return sv;
+}
 #endif
 
 extern void nbd_internal_ocaml_handle_finalize (value);
