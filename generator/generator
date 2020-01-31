@@ -1,7 +1,7 @@
 #!/usr/bin/env ocaml
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* nbd client library in userspace: generator
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -1921,7 +1921,7 @@ false if the server does not.
 
 It is not safe to open multiple handles connecting to the
 same server if you will write to the server and the
-server does not advertize multi-conn support.  The safe
+server does not advertise multi-conn support.  The safe
 way to check for this is to open one connection, check
 this flag is true, then open further connections as
 required."
