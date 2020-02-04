@@ -841,7 +841,7 @@ type call = {
   shortdesc : string;      (* short description *)
   longdesc : string;       (* long description *)
   example : string option; (* path to example code (under top_srcdir) *)
-  see_also : string list;  (* "SEE ALSO" section in man page *)
+  see_also : link list;    (* "SEE ALSO" section in man page *)
   (* List of permitted states for making this call.  [[]] = Any state. *)
   permitted_states : permitted_state list;
   (* Most functions must take a lock.  The only known exceptions are:
@@ -925,6 +925,11 @@ and permitted_state =
 | Connected                (* when connected and READY or processing, but
                               not including CLOSED or DEAD *)
 | Closed | Dead            (* can be called when the handle is CLOSED or DEAD *)
+and link =
+| Link of string           (* link to L<nbd_PAGE(3)> *)
+| SectionLink of string    (* link to L<libnbd(3)/SECTION> *)
+| ExternalLink of string * int (* link to L<EXTERNAL(SECTION)> *)
+| URLLink of string        (* link to L<URL> *)
 
 let default_call = { args = []; optargs = []; ret = RErr;
                      shortdesc = ""; longdesc = ""; example = None;
@@ -1021,7 +1026,7 @@ unless a debugging callback has been defined too
 sent to that function.  This flag defaults to false on
 newly created handles, except if C<LIBNBD_DEBUG=1> is
 set in the environment in which case it defaults to true.";
-    see_also = ["L<nbd_set_handle_name(3)>"; "L<nbd_set_debug_callback(3)>"];
+    see_also = [Link "set_handle_name"; Link "set_debug_callback"];
   };
 
   "get_debug", {
@@ -1104,7 +1109,7 @@ The encoding of export names is always UTF-8.
 
 This call may be skipped if using L<nbd_connect_uri(3)> to connect
 to a URI that includes an export name.";
-  see_also = ["L<nbd_get_export_name(3)>"; "L<nbd_connect_uri(3)>"];
+  see_also = [Link "get_export_name"; Link "connect_uri"];
   };
 
   "get_export_name", {
@@ -1113,7 +1118,7 @@ to a URI that includes an export name.";
     shortdesc = "get the export name";
     longdesc = "\
 Get the export name associated with the handle.";
-  see_also = ["L<nbd_set_export_name(3)>"; "L<nbd_connect_uri(3)>"];
+  see_also = [Link "set_export_name"; Link "connect_uri"];
   };
 
   "set_tls", {
@@ -1162,8 +1167,8 @@ TLS are not handled automatically.  Setting the level higher than
 zero will fail if libnbd was not compiled against gnutls; you can
 test whether this is the case with L<nbd_supports_tls(3)>.";
     example = Some "examples/encryption.c";
-    see_also = ["L<libnbd(3)/ENCRYPTION AND AUTHENTICATION>";
-                "L<nbd_get_tls(3)>"; "L<nbd_get_tls_negotiated(3)>"];
+    see_also = [SectionLink "ENCRYPTION AND AUTHENTICATION";
+                Link "get_tls"; Link "get_tls_negotiated"];
   };
 
   "get_tls", {
@@ -1176,7 +1181,7 @@ Get the TLS request setting.
 
 B<Note:> If you want to find out if TLS was actually negotiated
 on a particular connection use L<nbd_get_tls_negotiated(3)> instead.";
-    see_also = ["L<nbd_set_tls(3)>"; "L<nbd_get_tls_negotiated(3)>"];
+    see_also = [Link "set_tls"; Link "get_tls_negotiated"];
   };
 
   "get_tls_negotiated", {
@@ -1197,7 +1202,7 @@ negotiated or not.
 In C<LIBNBD_TLS_REQUIRE> mode (the most secure) the connection
 would have failed if TLS could not be negotiated, and in
 C<LIBNBD_TLS_DISABLE> mode TLS is not tried.";
-    see_also = ["L<nbd_set_tls(3)>"; "L<nbd_get_tls(3)>"];
+    see_also = [Link "set_tls"; Link "get_tls"];
   };
 
   "set_tls_certificates", {
@@ -1226,7 +1231,7 @@ is also used to request or require TLS.";
     shortdesc = "get the current TLS certificates directory";
     longdesc = "\
 Get the current TLS directory.";
-    see_also = ["L<nbd_set_tls_certificates(3)>"];
+    see_also = [Link "set_tls_certificates"];
   };
 *)
 
@@ -1277,7 +1282,7 @@ is also used to request or require TLS.";
     shortdesc = "get the current TLS username";
     longdesc = "\
 Get the current TLS username.";
-    see_also = ["L<nbd_set_tls_username(3)>"];
+    see_also = [Link "set_tls_username"];
   };
 
   "set_tls_psk_file", {
@@ -1305,7 +1310,7 @@ is also used to request or require TLS.";
     shortdesc = "get the current TLS PSK filename";
     longdesc = "\
 Get the current TLS PSK filename.";
-    see_also = ["L<nbd_set_tls_psk_file(3)>"];
+    see_also = [Link "set_tls_psk_file"];
   };
 *)
 
@@ -1321,10 +1326,10 @@ C<nbd_can_meta_context> or C<nbd_can_df> can return true.  However,
 for integration testing, it can be useful to clear this flag
 rather than find a way to alter the server to fail the negotiation
 request.";
-    see_also = ["L<nbd_get_request_structured_replies(3)>";
-                "L<nbd_set_handshake_flags(3)>";
-                "L<nbd_get_structured_replies_negotiated(3)>";
-                "L<nbd_can_meta_context(3)>"; "L<nbd_can_df(3)>"];
+    see_also = [Link "get_request_structured_replies";
+                Link "set_handshake_flags";
+                Link "get_structured_replies_negotiated";
+                Link "can_meta_context"; Link "can_df"];
   };
 
   "get_request_structured_replies", {
@@ -1339,8 +1344,8 @@ handle.
 B<Note:> If you want to find out if structured replies were actually
 negotiated on a particular connection use
 C<nbd_get_structured_replies_negotiated> instead.";
-    see_also = ["L<nbd_set_request_structured_replies(3)>";
-                "L<nbd_get_structured_replies_negotiated(3)>"];
+    see_also = [Link "set_request_structured_replies";
+                Link "get_structured_replies_negotiated"];
   };
 
   "get_structured_replies_negotiated", {
@@ -1351,9 +1356,9 @@ C<nbd_get_structured_replies_negotiated> instead.";
     longdesc = "\
 After connecting you may call this to find out if the connection is
 using structured replies.";
-    see_also = ["L<nbd_set_request_structured_replies(3)>";
-                "L<nbd_get_request_structured_replies(3)>";
-                "L<nbd_get_protocol(3)>"];
+    see_also = [Link "set_request_structured_replies";
+                Link "get_request_structured_replies";
+                Link "get_protocol"];
   };
 
   "set_handshake_flags", {
@@ -1393,8 +1398,8 @@ fewer all-zero padding bytes over the connection.
 
 Future NBD extensions may add further flags.
 ";
-    see_also = ["L<nbd_get_handshake_flags(3)>";
-                "L<nbd_set_request_structured_replies(3)>"];
+    see_also = [Link "get_handshake_flags";
+                Link "set_request_structured_replies"];
   };
 
   "get_handshake_flags", {
@@ -1412,9 +1417,9 @@ actually agreed on between the server and client.  If the NBD
 protocol defines new handshake flags, then the return value from
 a newer library version may include bits that were undefined at
 the time of compilation.";
-    see_also = ["L<nbd_set_handshake_flags(3)>";
-                "L<nbd_get_protocol(3)>";
-                "L<nbd_aio_is_created(3)>"; "L<nbd_aio_is_ready(3)>"];
+    see_also = [Link "set_handshake_flags";
+                Link "get_protocol";
+                Link "aio_is_created"; Link "aio_is_ready"];
   };
 
   "add_meta_context", {
@@ -1450,7 +1455,7 @@ to pass in other contexts.
 Other metadata contexts are server-specific, but include
 C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
 (see qemu-nbd I<-B> option).";
-    see_also = ["L<nbd_block_status(3)>"];
+    see_also = [Link "block_status"];
   };
 
   "set_uri_allow_transports", {
@@ -1474,7 +1479,7 @@ ORed together:
 =item C<LIBNBD_ALLOW_TRANSPORT_VSOCK>
 
 =back";
-    see_also = ["L<nbd_connect_uri(3)>"; "L<nbd_set_uri_allow_tls(3)>"];
+    see_also = [Link "connect_uri"; Link "set_uri_allow_tls"];
   };
 
   "set_uri_allow_tls", {
@@ -1505,7 +1510,7 @@ whether the URI uses C<nbds> or C<nbd>.
 TLS URIs are required.  All URIs must use C<nbds>.
 
 =back";
-    see_also = ["L<nbd_connect_uri(3)>"; "L<nbd_set_uri_allow_transports(3)>"];
+    see_also = [Link "connect_uri"; Link "set_uri_allow_transports"];
   };
 
   "set_uri_allow_local_file", {
@@ -1519,7 +1524,7 @@ by default.
 
 Currently this setting only controls whether the C<tls-psk-file>
 parameter in NBD URIs is allowed.";
-    see_also = ["L<nbd_connect_uri(3)>"];
+    see_also = [Link "connect_uri"];
   };
 
   "connect_uri", {
@@ -1671,7 +1676,7 @@ test whether this is the case with L<nbd_supports_uri(3)>.
 Support for URIs that require TLS will fail if libnbd was not
 compiled with gnutls; you can test whether this is the case
 with L<nbd_supports_tls(3)>.";
-    see_also = ["L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>"];
+    see_also = [URLLink "https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md"];
   };
 
   "connect_unix", {
@@ -1751,7 +1756,7 @@ to it using file descriptors 0 and 1 (stdin/stdout):
 
 When the NBD handle is closed the server subprocess
 is killed.";
-    see_also = ["L<nbd_kill_subprocess(3)>"];
+    see_also = [Link "kill_subprocess"];
     example = Some "examples/connect-command.c";
   };
 
@@ -1784,9 +1789,9 @@ protocol).
 
 When the NBD handle is closed the server subprocess
 is killed.";
-    see_also = ["L<nbd_connect_command(3)>"; "L<nbd_kill_subprocess(3)>";
-                "L<qemu-nbd(1)>";
-                "L<http://0pointer.de/blog/projects/socket-activation.html>"];
+    see_also = [Link "connect_command"; Link "kill_subprocess";
+                ExternalLink ("qemu-nbd", 1);
+                URLLink "http://0pointer.de/blog/projects/socket-activation.html"];
     example = Some "examples/open-qcow2.c";
   };
 
@@ -1799,7 +1804,7 @@ is killed.";
 Returns true if the NBD export is read-only; writes and
 write-like operations will fail."
 ^ non_blocking_test_call_description;
-    see_also = ["L<libnbd(3)/Flag calls>"];
+    see_also = [SectionLink "Flag calls"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1813,8 +1818,8 @@ Returns true if the server supports the flush command
 (see L<nbd_flush(3)>, L<nbd_aio_flush(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
-    see_also = ["L<libnbd(3)/Flag calls>";
-                "L<nbd_flush(3)>"; "L<nbd_aio_flush(3)>"];
+    see_also = [SectionLink "Flag calls";
+                Link "flush"; Link "aio_flush"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1827,8 +1832,8 @@ the server does not."
 Returns true if the server supports the FUA flag on
 certain commands (see L<nbd_pwrite(3)>)."
 ^ non_blocking_test_call_description;
-    see_also = ["L<libnbd(3)/Flag calls>"; "L<nbd_pwrite(3)>";
-                "L<nbd_zero(3)>"; "L<nbd_trim(3)>"];
+    see_also = [SectionLink "Flag calls"; Link "pwrite";
+                Link "zero"; Link "trim"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1843,7 +1848,7 @@ Returns true if the disk exposed over NBD is rotational
 the disk has no penalty for random access (like an SSD or
 RAM disk)."
 ^ non_blocking_test_call_description;
-    see_also = ["L<libnbd(3)/Flag calls>"];
+    see_also = [SectionLink "Flag calls"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1857,8 +1862,8 @@ Returns true if the server supports the trim command
 (see L<nbd_trim(3)>, L<nbd_aio_trim(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
-    see_also = ["L<libnbd(3)/Flag calls>";
-                "L<nbd_trim(3)>"; "L<nbd_aio_trim(3)>"];
+    see_also = [SectionLink "Flag calls";
+                Link "trim"; Link "aio_trim"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1872,9 +1877,9 @@ Returns true if the server supports the zero command
 (see L<nbd_zero(3)>, L<nbd_aio_zero(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
-    see_also = ["L<libnbd(3)/Flag calls>";
-                "L<nbd_zero(3)>"; "L<nbd_aio_zero(3)>";
-                "L<nbd_can_fast_zero(3)>"];
+    see_also = [SectionLink "Flag calls";
+                Link "zero"; Link "aio_zero";
+                Link "can_fast_zero"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1889,8 +1894,8 @@ C<LIBNBD_CMD_FLAG_FAST_ZERO> flag to the zero command
 (see C<nbd_zero>, C<nbd_aio_zero>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
-    see_also = ["L<libnbd(3)/Flag calls>";
-                "L<nbd_zero(3)>"; "L<nbd_aio_zero(3)>"; "L<nbd_can_zero(3)>"];
+    see_also = [SectionLink "Flag calls";
+                Link "zero"; Link "aio_zero"; Link "can_zero"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1904,9 +1909,9 @@ ability to request a non-fragmented read (see L<nbd_pread_structured(3)>,
 L<nbd_aio_pread_structured(3)>).  Returns false if the server either lacks
 structured reads or if it does not support a non-fragmented read request."
 ^ non_blocking_test_call_description;
-    see_also = ["L<libnbd(3)/Flag calls>";
-                "L<nbd_pread_structured(3)>";
-                "L<nbd_aio_pread_structured(3)>"];
+    see_also = [SectionLink "Flag calls";
+                Link "pread_structured";
+                Link "aio_pread_structured"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1926,7 +1931,7 @@ way to check for this is to open one connection, check
 this flag is true, then open further connections as
 required."
 ^ non_blocking_test_call_description;
-    see_also = ["L<libnbd(3)/Multi-conn>"];
+    see_also = [SectionLink "Multi-conn"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1940,8 +1945,8 @@ Returns true if the server supports the cache command
 (see L<nbd_cache(3)>, L<nbd_aio_cache(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
-    see_also = ["L<libnbd(3)/Flag calls>";
-                "L<nbd_cache(3)>"; "L<nbd_aio_cache(3)>"];
+    see_also = [SectionLink "Flag calls";
+                Link "cache"; Link "aio_cache"];
     example = Some "examples/server-flags.c";
   };
 
@@ -1961,9 +1966,9 @@ B<E<lt>libnbd.hE<gt>> includes defined constants for well-known
 namespace contexts beginning with C<LIBNBD_CONTEXT_>, but you
 are free to pass in other contexts."
 ^ non_blocking_test_call_description;
-    see_also = ["L<libnbd(3)/Flag calls>";
-                "L<nbd_add_meta_context(3)>";
-                "L<nbd_block_status(3)>"; "L<nbd_aio_block_status(3)>"];
+    see_also = [SectionLink "Flag calls";
+                Link "add_meta_context";
+                Link "block_status"; Link "aio_block_status"];
   };
 
   "get_protocol", {
@@ -1979,9 +1984,9 @@ be returned in the future.
 Most modern NBD servers use C<\"newstyle-fixed\">.
 "
 ^ non_blocking_test_call_description;
-    see_also = ["L<nbd_get_handshake_flags(3)>";
-                "L<nbd_get_structured_replies_negotiated(3)>";
-                "L<nbd_get_tls_negotiated(3)>"];
+    see_also = [Link "get_handshake_flags";
+                Link "get_structured_replies_negotiated";
+                Link "get_tls_negotiated"];
   };
 
   "get_size", {
@@ -1992,7 +1997,7 @@ Most modern NBD servers use C<\"newstyle-fixed\">.
     longdesc = "\
 Returns the size in bytes of the NBD export."
 ^ non_blocking_test_call_description;
-    see_also = ["L<libnbd(3)/Size of the export>"];
+    see_also = [SectionLink "Size of the export"];
     example = Some "examples/get-size.c";
   };
 
@@ -2014,7 +2019,7 @@ C<LIBNBD_CMD_FLAG_DF>.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
-    see_also = ["L<nbd_aio_pread(3)>"; "L<nbd_pread_structured(3)>"];
+    see_also = [Link "aio_pread"; Link "pread_structured"];
     example = Some "examples/fetch-first-sector.c";
   };
 
@@ -2091,8 +2096,8 @@ C<LIBNBD_CMD_FLAG_DF> meaning that the server should not reply with
 more than one fragment (if that is supported - some servers cannot do
 this, see L<nbd_can_df(3)>). Libnbd does not validate that the server
 actually obeys the flag.";
-    see_also = ["L<nbd_can_df(3)>"; "L<nbd_pread(3)>";
-                "L<nbd_aio_pread_structured(3)>"];
+    see_also = [Link "can_df"; Link "pread";
+                Link "aio_pread_structured"];
   };
 
   "pwrite", {
@@ -2114,8 +2119,8 @@ C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
 L<nbd_can_fua(3)>).";
-    see_also = ["L<nbd_can_fua(3)>"; "L<nbd_can_write(3)>";
-                "L<nbd_aio_pwrite(3)>"];
+    see_also = [Link "can_fua"; Link "can_write";
+                Link "aio_pwrite"];
     example = Some "examples/reads-and-writes.c";
   };
 
@@ -2137,7 +2142,7 @@ L<nbd_aio_disconnect(3)>.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
-    see_also = ["L<nbd_close(3)>"; "L<nbd_aio_disconnect(3)>"];
+    see_also = [Link "close"; Link "aio_disconnect"];
     example = Some "examples/reads-and-writes.c";
   };
 
@@ -2154,7 +2159,7 @@ return an error if L<nbd_can_flush(3)> is false.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
-    see_also = ["L<nbd_can_flush(3)>"; "L<nbd_aio_flush(3)>"];
+    see_also = [Link "can_flush"; Link "aio_flush"];
   };
 
   "trim", {
@@ -2176,8 +2181,8 @@ C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
 L<nbd_can_fua(3)>).";
-    see_also = ["L<nbd_can_fua(3)>"; "L<nbd_can_trim(3)>";
-                "L<nbd_aio_trim(3)>"];
+    see_also = [Link "can_fua"; Link "can_trim";
+                Link "aio_trim"];
   };
 
   "cache", {
@@ -2197,7 +2202,7 @@ L<nbd_can_cache(3)> is false.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
-    see_also = ["L<nbd_can_cache(3)>"; "L<nbd_aio_cache(3)>"];
+    see_also = [Link "can_cache"; Link "aio_cache"];
   };
 
   "zero", {
@@ -2224,8 +2229,8 @@ punching a hole, and/or C<LIBNBD_CMD_FLAG_FAST_ZERO> meaning
 that the server must fail quickly if writing zeroes is no
 faster than a normal write (if that is supported - some servers
 cannot do this, see L<nbd_can_fast_zero(3)>).";
-    see_also = ["L<nbd_can_fua(3)>"; "L<nbd_can_zero(3)>";
-                "L<nbd_can_fast_zero(3)>"; "L<nbd_aio_zero(3)>"];
+    see_also = [Link "can_fua"; Link "can_zero";
+                Link "can_fast_zero"; Link "aio_zero"];
   };
 
   "block_status", {
@@ -2285,8 +2290,8 @@ C<LIBNBD_CMD_FLAG_REQ_ONE> meaning that the server should
 return only one extent per metadata context where that extent
 does not exceed C<count> bytes; however, libnbd does not
 validate that the server obeyed the flag.";
-    see_also = ["L<nbd_add_meta_context(3)>"; "L<nbd_can_meta_context(3)>";
-                "L<nbd_aio_block_status(3)>"];
+    see_also = [Link "add_meta_context"; Link "can_meta_context";
+                Link "aio_block_status"];
   };
 
   "poll", {
@@ -2337,7 +2342,7 @@ You can check if the connection is still connecting by calling
 L<nbd_aio_is_connecting(3)>, or if it has connected to the server
 and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
-    see_also = ["L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>"]
+    see_also = [URLLink "https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md"]
   };
 
   "aio_connect_unix", {
@@ -2452,8 +2457,8 @@ as described in L<libnbd(3)/Completion callbacks>.
 Note that you must ensure C<buf> is valid until the command has
 completed.  Other parameters behave as documented in L<nbd_pread(3)>.";
     example = Some "examples/aio-connect-read.c";
-    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
-                "L<nbd_aio_pread_structured(3)>"; "L<nbd_pread(3)>"];
+    see_also = [SectionLink "Issuing asynchronous commands";
+                Link "aio_pread_structured"; Link "pread"];
   };
 
   "aio_pread_structured", {
@@ -2472,8 +2477,8 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Other parameters behave as documented in L<nbd_pread_structured(3)>.";
-    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
-                "L<nbd_aio_pread(3)>"; "L<nbd_pread_structured(3)>"];
+    see_also = [SectionLink "Issuing asynchronous commands";
+                Link "aio_pread"; Link "pread_structured"];
   };
 
   "aio_pwrite", {
@@ -2492,8 +2497,8 @@ as described in L<libnbd(3)/Completion callbacks>.
 
 Note that you must ensure C<buf> is valid until the command has
 completed.  Other parameters behave as documented in L<nbd_pwrite(3)>.";
-    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
-                "L<nbd_can_write(3)>"; "L<nbd_pwrite(3)>"];
+    see_also = [SectionLink "Issuing asynchronous commands";
+                Link "can_write"; Link "pwrite"];
   };
 
   "aio_disconnect", {
@@ -2517,7 +2522,7 @@ clean shutdown.
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).  There is no direct synchronous counterpart;
 however, L<nbd_shutdown(3)> will call this function if appropriate.";
-    see_also = ["L<nbd_aio_in_flight(3)>"];
+    see_also = [Link "aio_in_flight"];
   };
 
   "aio_flush", {
@@ -2535,8 +2540,8 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Other parameters behave as documented in L<nbd_flush(3)>.";
-    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
-                "L<nbd_can_flush(3)>"; "L<nbd_flush(3)>"];
+    see_also = [SectionLink "Issuing asynchronous commands";
+                Link "can_flush"; Link "flush"];
   };
 
   "aio_trim", {
@@ -2554,8 +2559,8 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Other parameters behave as documented in L<nbd_trim(3)>.";
-    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
-                "L<nbd_can_trim(3)>"; "L<nbd_trim(3)>"];
+    see_also = [SectionLink "Issuing asynchronous commands";
+                Link "can_trim"; Link "trim"];
   };
 
   "aio_cache", {
@@ -2573,8 +2578,8 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Other parameters behave as documented in L<nbd_cache(3)>.";
-    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
-                "L<nbd_can_cache(3)>"; "L<nbd_cache(3)>"];
+    see_also = [SectionLink "Issuing asynchronous commands";
+                Link "can_cache"; Link "cache"];
   };
 
   "aio_zero", {
@@ -2592,9 +2597,9 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Other parameters behave as documented in L<nbd_zero(3)>.";
-    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
-                "L<nbd_can_zero(3)>"; "L<nbd_can_fast_zero(3)>";
-                "L<nbd_zero(3)>"];
+    see_also = [SectionLink "Issuing asynchronous commands";
+                Link "can_zero"; Link "can_fast_zero";
+                Link "zero"];
   };
 
   "aio_block_status", {
@@ -2612,8 +2617,8 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Other parameters behave as documented in L<nbd_block_status(3)>.";
-    see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
-                "L<nbd_can_meta_context(3)>"; "L<nbd_block_status(3)>"];
+    see_also = [SectionLink "Issuing asynchronous commands";
+                Link "can_meta_context"; Link "block_status"];
   };
 
   "aio_get_fd", {
@@ -2626,7 +2631,7 @@ connection.  You can use this to check if the file descriptor
 is ready for reading or writing and call L<nbd_aio_notify_read(3)>
 or L<nbd_aio_notify_write(3)>.  See also L<nbd_aio_get_direction(3)>.
 Do not do anything else with the file descriptor.";
-    see_also = ["L<nbd_aio_get_direction(3)>"];
+    see_also = [Link "aio_get_direction"];
   };
 
   "aio_get_direction", {
@@ -2681,7 +2686,7 @@ processing the server's reply may change the state of the connection
 and invalidate the need to write more commands.
 
 =back";
-    see_also = ["L<nbd_aio_in_flight(3)>"];
+    see_also = [Link "aio_in_flight"];
   };
 
   "aio_notify_read", {
@@ -2726,7 +2731,7 @@ Return true if this connection is connecting to the server
 or in the process of handshaking and negotiating options
 which happens before the handle becomes ready to
 issue commands (see L<nbd_aio_is_ready(3)>).";
-    see_also = ["L<nbd_aio_is_ready(3)>"];
+    see_also = [Link "aio_is_ready"];
   };
 
   "aio_is_ready", {
@@ -2818,7 +2823,7 @@ wait for those commands to complete gracefully; if the server strands
 commands while shutting down, L<nbd_aio_command_completed(3)> will report
 those commands as failed with a status of C<ENOTCONN>.";
     example = Some "examples/aio-connect-read.c";
-    see_also = ["L<nbd_aio_disconnect(3)>"];
+    see_also = [Link "aio_disconnect"];
   };
 
   "connection_state", {
@@ -2839,7 +2844,7 @@ versions.";
     longdesc = "\
 Returns the name of the library, always C<\"libnbd\"> unless
 the library was modified with another name at compile time.";
-    see_also = ["L<nbd_get_version(3)>"];
+    see_also = [Link "get_version"];
   };
 
   "get_version", {
@@ -2887,7 +2892,7 @@ The release number is incremented for each release along a particular
 branch.
 
 =back";
-    see_also = ["L<nbd_get_package_name(3)>"];
+    see_also = [Link "get_package_name"];
   };
 
   "kill_subprocess", {
@@ -2902,7 +2907,7 @@ does not exit when the socket is closed.
 
 The C<signum> parameter is the optional signal number to send
 (see L<signal(7)>).  If C<signum> is C<0> then C<SIGTERM> is sent.";
-    see_also = ["L<signal(7)>"; "L<nbd_connect_command(3)>"];
+    see_also = [ExternalLink ("signal", 7); Link "connect_command"];
   };
 
   "supports_tls", {
@@ -2912,7 +2917,7 @@ The C<signum> parameter is the optional signal number to send
     longdesc = "\
 Returns true if libnbd was compiled with gnutls which is required
 to support TLS encryption, or false if not.";
-    see_also = ["L<nbd_set_tls(3)>"];
+    see_also = [Link "set_tls"];
   };
 
   "supports_uri", {
@@ -2922,7 +2927,7 @@ to support TLS encryption, or false if not.";
     longdesc = "\
 Returns true if libnbd was compiled with libxml2 which is required
 to support NBD URIs, or false if not.";
-    see_also = ["L<nbd_connect_uri(3)>"; "L<nbd_aio_connect_uri(3)>"];
+    see_also = [Link "connect_uri"; Link "aio_connect_uri"];
   };
 ]
 
@@ -3299,6 +3304,12 @@ let output_to filename k =
 let string_of_location (file, lineno) = sprintf "%s:%d" file lineno
 let line_directive_of_location (file, lineno) =
   sprintf "#line %d \"%s\"" lineno file
+
+let pod_of_link = function
+  | Link page -> sprintf "L<nbd_%s(3)>" page
+  | SectionLink anchor -> sprintf "L<libnbd(3)/%s>" anchor
+  | ExternalLink (page, section) -> sprintf "L<%s(%d)>" page section
+  | URLLink url -> sprintf "L<%s>" url
 
 (*----------------------------------------------------------------------*)
 
@@ -4936,7 +4947,7 @@ let generate_docs_nbd_pod name { args; optargs; ret;
 
   pr "=head1 SEE ALSO\n";
   pr "\n";
-  List.iter (pr "%s,\n") see_also;
+  List.iter (pr "%s,\n") (List.map pod_of_link see_also);
   pr "L<nbd_create(3)>,\n";
   pr "L<libnbd(3)>.\n";
   pr "\n";
