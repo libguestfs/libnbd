@@ -2839,6 +2839,7 @@ versions.";
     longdesc = "\
 Returns the name of the library, always C<\"libnbd\"> unless
 the library was modified with another name at compile time.";
+    see_also = ["L<nbd_get_version(3)>"];
   };
 
   "get_version", {
@@ -2886,6 +2887,7 @@ The release number is incremented for each release along a particular
 branch.
 
 =back";
+    see_also = ["L<nbd_get_package_name(3)>"];
   };
 
   "kill_subprocess", {
