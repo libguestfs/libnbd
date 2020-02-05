@@ -3324,6 +3324,32 @@ let sort_uniq_links links =
   let cmp link1 link2 = compare (score link1) (score link2) in
   sort_uniq ~cmp links
 
+(* Extract links from POD text. *)
+let extract_links =
+  let link_rex = Str.regexp "L<\\([a-z0-9_]+\\)(\\([0-9]\\))>" in
+  fun pod ->
+    let rec loop acc i =
+      let i = try Some (Str.search_forward link_rex pod i)
+              with Not_found -> None in
+      match i with
+      | None -> acc
+      | Some i ->
+         let page = Str.matched_group 1 pod in
+         let section = int_of_string (Str.matched_group 2 pod) in
+         let link =
+           if is_prefix page "nbd_" then (
+             let n = String.length page in
+             Link (String.sub page 4 (n-4))
+           )
+           else if page = "libnbd" && section = 3 then
+             MainPageLink
+           else
+             ExternalLink (page, section) in
+         let acc = link :: acc in
+         loop acc (i+1)
+    in
+    loop [] 0
+
 (*----------------------------------------------------------------------*)
 
 (* Convert POD fragments into plain text.
@@ -4961,15 +4987,17 @@ let generate_docs_nbd_pod name { args; optargs; ret;
   let () =
     pr "=head1 SEE ALSO\n";
     pr "\n";
-    let see_also = MainPageLink :: Link "create" :: see_also in
-    let see_also = sort_uniq_links see_also in
-    let see_also = List.map pod_of_link see_also in
+    let other_links = extract_links longdesc in
+    let std_links = [MainPageLink; Link "create"] in
+    let links = see_also @ other_links @ std_links in
+    let links = sort_uniq_links links in
+    let links = List.map pod_of_link links in
     let comma = ref false in
     List.iter (
       fun pod ->
         if !comma then pr ",\n"; comma := true;
         pr "%s" pod
-    ) see_also;
+    ) links;
     pr ".\n\n" in
 
   pr "\
