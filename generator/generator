@@ -928,6 +928,7 @@ and permitted_state =
 and link =
 | Link of string           (* link to L<nbd_PAGE(3)> *)
 | SectionLink of string    (* link to L<libnbd(3)/SECTION> *)
+| MainPageLink             (* link to L<libnbd(3)> *)
 | ExternalLink of string * int (* link to L<EXTERNAL(SECTION)> *)
 | URLLink of string        (* link to L<URL> *)
 
@@ -3308,8 +3309,20 @@ let line_directive_of_location (file, lineno) =
 let pod_of_link = function
   | Link page -> sprintf "L<nbd_%s(3)>" page
   | SectionLink anchor -> sprintf "L<libnbd(3)/%s>" anchor
+  | MainPageLink -> "L<libnbd(3)>"
   | ExternalLink (page, section) -> sprintf "L<%s(%d)>" page section
   | URLLink url -> sprintf "L<%s>" url
+
+let sort_uniq_links links =
+  let score = function
+    | Link page -> 0, page
+    | SectionLink anchor -> 1, anchor
+    | MainPageLink -> 2, ""
+    | ExternalLink (page, section) -> 3, sprintf "%s(%d)" page section
+    | URLLink url -> 4, url
+  in
+  let cmp link1 link2 = compare (score link1) (score link2) in
+  sort_uniq ~cmp links
 
 (*----------------------------------------------------------------------*)
 
@@ -4945,12 +4958,19 @@ let generate_docs_nbd_pod name { args; optargs; ret;
       pr "\n"
   );
 
-  pr "=head1 SEE ALSO\n";
-  pr "\n";
-  List.iter (pr "%s,\n") (List.map pod_of_link see_also);
-  pr "L<nbd_create(3)>,\n";
-  pr "L<libnbd(3)>.\n";
-  pr "\n";
+  let () =
+    pr "=head1 SEE ALSO\n";
+    pr "\n";
+    let see_also = MainPageLink :: Link "create" :: see_also in
+    let see_also = sort_uniq_links see_also in
+    let see_also = List.map pod_of_link see_also in
+    let comma = ref false in
+    List.iter (
+      fun pod ->
+        if !comma then pr ",\n"; comma := true;
+        pr "%s" pod
+    ) see_also;
+    pr ".\n\n" in
 
   pr "\
 =head1 AUTHORS
