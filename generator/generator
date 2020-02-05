@@ -2114,7 +2114,7 @@ C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
 L<nbd_can_fua(3)>).";
-    see_also = ["L<nbd_can_fua(3)>"; "L<nbd_can_write(3)>";
+    see_also = ["L<nbd_can_fua(3)>"; "L<nbd_is_read_only(3)>";
                 "L<nbd_aio_pwrite(3)>"];
     example = Some "examples/reads-and-writes.c";
   };
@@ -2315,8 +2315,8 @@ intended as something you would use.";
     permitted_states = [ Created ];
     shortdesc = "connect to the NBD server";
     longdesc = "\
-Begin connecting to the NBD server.  Parameters behave as documented
-in L<nbd_connect(3)>.
+Begin connecting to the NBD server.  The C<addr> and C<addrlen>
+parameters specify the address of the socket to connect to.
 
 You can check if the connection is still connecting by calling
 L<nbd_aio_is_connecting(3)>, or if it has connected to the server
@@ -2493,7 +2493,7 @@ as described in L<libnbd(3)/Completion callbacks>.
 Note that you must ensure C<buf> is valid until the command has
 completed.  Other parameters behave as documented in L<nbd_pwrite(3)>.";
     see_also = ["L<libnbd(3)/Issuing asynchronous commands>";
-                "L<nbd_can_write(3)>"; "L<nbd_pwrite(3)>"];
+                "L<nbd_is_read_only(3)>"; "L<nbd_pwrite(3)>"];
   };
 
   "aio_disconnect", {
