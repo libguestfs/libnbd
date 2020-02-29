@@ -177,11 +177,8 @@ let default_call = { args = []; optargs = []; ret = RErr;
 (* Calls.
  *
  * The first parameter [struct nbd_handle *nbd] is implicit.
- *
- * Disable:
- * Warning 23: all the fields are explicitly listed in this record:
  *)
-let [@warning "-23"] handle_calls = [
+let handle_calls = [
   "set_debug", {
     default_call with
     args = [ Bool "debug" ]; ret = RErr;
