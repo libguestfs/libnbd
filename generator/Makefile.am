@@ -17,6 +17,8 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
+CLEANFILES += *.cmi *.cmo generator
+
 DISTCLEANFILES = stamp-generator
 
 # Note: These are not source files.  They are parsed by the generator
@@ -39,26 +41,49 @@ states_code = \
 	states-reply.c \
 	$(NULL)
 
-EXTRA_DIST = \
-	generator \
-	$(states_code) \
+# Source code for the generator.
+sources = \
+	utils.mli \
+	utils.ml \
+	state_machine.mli \
+	state_machine.ml \
+	API.mli \
+	API.ml \
+	state_machine_generator.mli \
+	state_machine_generator.ml \
+	C.mli \
+	C.ml \
+	Python.mli \
+	Python.ml \
+	OCaml.mli \
+	OCaml.ml \
+	generator.ml \
 	$(NULL)
 
-if HAVE_OCAML_TOPLEVEL
+EXTRA_DIST = \
+	$(states_code) \
+	$(sources) \
+	$(NULL)
+
+if HAVE_OCAML
 
 stamp-generator: generator $(states_code)
+	rm -f $@
 #	We must run this from the source directory since these
 #	files are distributed in the tarball.
-	rm -f $@
 	cd $(top_srcdir) && OCAMLRUNPARAM=b generator/generator
 	touch $@
+
+generator: $(sources)
+	$(OCAMLC) $(OCAML_FLAGS) $(OCAML_WARN_ERROR) \
+	  str.cma unix.cma $^ -o $@
 
 else
 
 stamp-generator:
 	@rm -f $@
 	@if [ -f $(top_srcdir)/lib/states.c ]; then            \
-	    echo "No ocaml toplevel, skipping the generator."; \
+	    echo "No ocamlc (OCaml bytecode compiler), skipping the generator."; \
 	    touch $@;                                          \
 	else                                                   \
 	    echo;                                              \
@@ -66,7 +91,7 @@ stamp-generator:
 	    echo;                                              \
 	    echo "Source files are missing from your build.";  \
 	    echo;                                              \
-	    echo "Install the OCaml toplevel (the program called ‘ocaml’)"; \
+	    echo "Install the OCaml bytecode compiler (the program called ‘ocamlc’)"; \
 	    echo "and rerun ./configure && make";              \
 	    echo;                                              \
 	    echo "        *** *** ***";                        \

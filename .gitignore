@@ -65,6 +65,7 @@ Makefile.in
 /fuzzing/libnbd-libfuzzer-test
 /fuzzing/sync_dir/
 /fuzzing/testcase_dir/[0-f]*
+/generator/generator
 /generator/generator-cache.v1
 /generator/stamp-generator
 /html/*.?.html

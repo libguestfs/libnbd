@@ -66,9 +66,11 @@ Requirements:
 
 Required for building from git, optional for tarballs:
 
- * OCaml is required to run the generator, which is needed for
-   building from git.  However it is not needed if building from
-   tarballs.
+ * OCaml (ocamlc, the bytecode compiler) is required to run the
+   generator, which is needed for building from git.  However it is
+   _not_ needed if building from the official tarballs from
+   http://download.libguestfs.org/libnbd/ because those contain the
+   generated files.
 
 Optional:
 

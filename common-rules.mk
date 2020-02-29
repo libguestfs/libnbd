@@ -26,6 +26,7 @@ CLEANFILES = *~
 $(generator_built): $(top_builddir)/generator/stamp-generator
 
 $(top_builddir)/generator/stamp-generator: \
-	  $(top_srcdir)/generator/generator \
+	  $(wildcard $(top_srcdir)/generator/*.ml) \
+	  $(wildcard $(top_srcdir)/generator/*.mli) \
 	  $(wildcard $(top_srcdir)/generator/states*.c)
 	$(MAKE) -C $(top_builddir)/generator stamp-generator

@@ -254,7 +254,6 @@ dnl optional the rest of the time unless you want to build the OCaml
 dnl bindings.
 AC_PROG_OCAML
 AC_PROG_FINDLIB
-AM_CONDITIONAL([HAVE_OCAML_TOPLEVEL],[test "x$OCAML" != "xno"])
 
 dnl Flags we want to pass to every OCaml compiler call.
 OCAML_WARN_ERROR="-warn-error CDEFLMPSUVYZX+52-3"
