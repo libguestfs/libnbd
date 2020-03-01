@@ -17,7 +17,7 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
-CLEANFILES += *.cmi *.cmo generator
+CLEANFILES += *.annot *.cmi *.cmo generator
 
 DISTCLEANFILES = stamp-generator
 
