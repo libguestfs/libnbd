@@ -1,0 +1,82 @@
+=head1 NAME
+
+libnbd-release-notes-1.4 - release notes for libnbd 1.4
+
+=head1 DESCRIPTION
+
+These are the release notes for libnbd stable release 1.4.
+This describes the major changes since 1.2.
+
+libnbd 1.4.0 was released on XXX DATE TBD XXX 2020.
+
+=head2 Security
+
+
+
+=head2 New APIs
+
+
+
+=head2 New features
+
+FreeBSD and OpenBSD are now fully supported platforms.
+
+Trace messages have been improved: long strings are truncated, strings
+with non-printable characters are escaped, and lists of strings are
+printed.
+
+
+
+=head2 Documentation
+
+Verbatim text in man pages that wrapped over several lines is now
+typeset correctly.
+
+Links within the documentation have been enhanced, and are now checked
+for correctness.
+
+
+
+=head2 Tools
+
+
+
+
+=head2 Tests
+
+Test sockets are created in F</tmp> (instead of the local directory).
+This stops the test suite from failing if the local directory path is
+longer than the Unix domain socket maximum path length.
+
+
+
+=head2 Other improvements and bug fixes
+
+The generator was split from a large single script into several small
+files.  To builds from git the OCaml bytecode compiler (L<ocamlc(1)>)
+is now required instead of the interpreter (L<ocaml(1)>).
+
+Long login names are supported in L<nbd_get_tls_username(3)>.
+
+The handle name in L<nbdsh(1)> is now set to C<nbdsh> (instead of a
+randomly generated name).
+
+Compatibility with OCaml 4.10.0.
+
+Python AIO buffer adds a new C<is_zero> method allowing Python clients
+to do sparsification when copying.
+
+
+=head1 SEE ALSO
+
+L<libnbd(1)>.
+
+=head1 AUTHORS
+
+Eric Blake
+
+Richard W.M. Jones
+
+=head1 COPYRIGHT
+
+Copyright (C) 2019-2020 Red Hat Inc.
