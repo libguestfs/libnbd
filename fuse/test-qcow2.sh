@@ -45,6 +45,7 @@ cleanup_fn rm -f $pidfile $data $qcow2
 dd if=/dev/urandom of=$data bs=1M count=1
 qemu-img convert -f raw $data -O qcow2 $qcow2
 
+rm -rf $mp
 mkdir -p $mp
 $VG nbdfuse -r -P $pidfile $mp \
         --socket-activation qemu-nbd -f qcow2 $qcow2 &
