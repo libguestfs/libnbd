@@ -71,11 +71,12 @@ stamp-generator: generator $(states_code)
 	rm -f $@
 #	We must run this from the source directory since these
 #	files are distributed in the tarball.
-	cd $(top_srcdir) && OCAMLRUNPARAM=b generator/generator
+	cd $(top_srcdir) && \
+	    OCAMLRUNPARAM=b $(abs_top_builddir)/generator/generator
 	touch $@
 
 generator: $(sources)
-	$(OCAMLC) $(OCAML_FLAGS) $(OCAML_WARN_ERROR) \
+	$(OCAMLC) $(OCAML_FLAGS) $(OCAML_WARN_ERROR) -I $(srcdir) -I . \
 	  str.cma unix.cma $^ -o $@
 
 else
