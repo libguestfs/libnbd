@@ -1,0 +1,57 @@
+# nbd client library in userspace
+# Copyright (C) 2013-2020 Red Hat Inc.
+#
+# This library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+# This is the handler function which completes nbd* commands.
+_libnbd_command ()
+{
+    local prog="$1"
+    local cur prev words cword split
+    local shortopts longopts
+
+    _init_completion -s || return
+
+    case "$cur" in
+        --*)
+            # long options
+            longopts="$($prog --long-options)"
+            COMPREPLY=( $(compgen -W "$longopts" -- "$cur") )
+            return ;;
+        -*)
+            # -o and --options
+            shortopts="$($prog --short-options)"
+            longopts="$($prog --long-options)"
+            COMPREPLY=( $(compgen -W "$shortopts $longopts" -- "$cur") )
+            return ;;
+        *)
+            COMPREPLY=( $(compgen "$cur") )
+            return ;;
+    esac
+}
+
+_nbdsh ()
+{
+    _libnbd_command nbdsh
+}
+
+_nbdfuse ()
+{
+    _libnbd_command nbdfuse
+}
+
+# Install the handler function.
+complete -o default -F _nbdsh nbdsh
+complete -o default -F _nbdfuse nbdfuse

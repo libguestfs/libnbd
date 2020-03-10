@@ -249,6 +249,24 @@ AC_ARG_ENABLE([libfuzzer],
     [enable_libfuzzer=no])
 AM_CONDITIONAL([ENABLE_LIBFUZZER],[test "x$enable_libfuzzer" = "xyes"])
 
+dnl Bash completion.
+PKG_CHECK_MODULES([BASH_COMPLETION], [bash-completion >= 2.0], [
+    bash_completion=yes
+    AC_MSG_CHECKING([for bash-completions directory])
+    m4_ifdef([PKG_CHECK_VAR],[
+        PKG_CHECK_VAR(bashcompdir, [bash-completion], [completionsdir])
+    ])
+    AS_IF([test -z "$bashcompdir"], [
+        bashcompdir="${sysconfdir}/bash_completion.d"
+    ])
+    AC_MSG_RESULT([$bashcompdir])
+    AC_SUBST([bashcompdir])
+],[
+    bash_completion=no
+    AC_MSG_WARN([bash-completion not installed])
+])
+AM_CONDITIONAL([HAVE_BASH_COMPLETION],[test "x$bash_completion" = "xyes"])
+
 dnl OCaml, required for running the generator when building from git,
 dnl optional the rest of the time unless you want to build the OCaml
 dnl bindings.
@@ -398,6 +416,7 @@ AC_CONFIG_FILES([sh/nbdsh],
                 [chmod +x,-w sh/nbdsh])
 
 AC_CONFIG_FILES([Makefile
+                 bash/Makefile
                  common/include/Makefile
                  docs/Makefile
                  examples/Makefile
@@ -446,6 +465,8 @@ feature "FUSE support ........................... " \
         test "x$HAVE_FUSE_TRUE" = "x"
 feature "Manual pages ........................... " \
         test "x$HAVE_POD_TRUE" = "x"
+feature "Bash tab completion .................... " \
+        test "x$HAVE_BASH_COMPLETION_TRUE" = "x"
 
 echo
 echo "Language bindings:"

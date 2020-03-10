@@ -27,6 +27,7 @@ Makefile.in
 
 /aclocal.m4
 /autom4te.cache
+/bash/nbdfuse
 /compile
 /config.cache
 /config.guess

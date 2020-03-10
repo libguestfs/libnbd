@@ -45,6 +45,7 @@ SUBDIRS = \
 	ocaml/tests \
 	interop \
 	fuzzing \
+	bash \
 	$(NULL)
 
 noinst_SCRIPTS = run

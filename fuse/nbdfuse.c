@@ -148,6 +148,8 @@ main (int argc, char *argv[])
   enum {
     HELP_OPTION = CHAR_MAX + 1,
     FUSE_HELP_OPTION,
+    LONG_OPTIONS,
+    SHORT_OPTIONS,
   };
   /* Note the "+" means we stop processing as soon as we get to the
    * first non-option argument (the mountpoint) and then we parse the
@@ -157,15 +159,18 @@ main (int argc, char *argv[])
   const struct option long_options[] = {
     { "fuse-help",          no_argument,       NULL, FUSE_HELP_OPTION },
     { "help",               no_argument,       NULL, HELP_OPTION },
+    { "long-options",       no_argument,       NULL, LONG_OPTIONS },
     { "pidfile",            required_argument, NULL, 'P' },
     { "pid-file",           required_argument, NULL, 'P' },
     { "readonly",           no_argument,       NULL, 'r' },
     { "read-only",          no_argument,       NULL, 'r' },
+    { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
     { "version",            no_argument,       NULL, 'V' },
 
     { NULL }
   };
   int c, fd, r;
+  size_t i;
   uint32_t cid, port;
   int64_t ssize;
   const char *s;
@@ -184,6 +189,21 @@ main (int argc, char *argv[])
 
     case FUSE_HELP_OPTION:
       fuse_help (argv[0]);
+      exit (EXIT_SUCCESS);
+
+    case LONG_OPTIONS:
+      for (i = 0; long_options[i].name != NULL; ++i) {
+        if (strcmp (long_options[i].name, "long-options") != 0 &&
+            strcmp (long_options[i].name, "short-options") != 0)
+          printf ("--%s\n", long_options[i].name);
+      }
+      exit (EXIT_SUCCESS);
+
+    case SHORT_OPTIONS:
+      for (i = 0; short_options[i]; ++i) {
+        if (short_options[i] != ':' && short_options[i] != '+')
+          printf ("-%c\n", short_options[i]);
+      }
       exit (EXIT_SUCCESS);
 
     case 'o':

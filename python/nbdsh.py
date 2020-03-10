@@ -27,17 +27,44 @@ def shell():
     epilog = '''Please read the nbdsh(1) manual page for full usage.'''
     parser = argparse.ArgumentParser (prog='nbdsh', description=description,
                                       epilog=epilog)
+    short_options = []
+    long_options = []
+
     parser.add_argument ('--base-allocation', action='store_true',
                          help='request the "base:allocation" meta context')
+    long_options.append ("--base-allocation")
+
     parser.add_argument ('-u', '--uri',
                          help="connect to NBD URI")
+    short_options.append ("-u")
+    long_options.append ("--uri")
     # For back-compat, provide --connect as an undocumented synonym to --uri
     parser.add_argument ('--connect', dest='uri', help=argparse.SUPPRESS)
+
     parser.add_argument ('-c', '--command', action='append',
                          help="run a command")
+    short_options.append ("-c")
+    long_options.append ("--command")
+
     parser.add_argument ('-V', '--version', action='version',
                          version=nbd.package_name + ' ' + nbd.__version__)
+    short_options.append ("-V")
+    long_options.append ("--version")
+
+    # These hidden options are used by bash tab completion.
+    parser.add_argument ("--short-options", action='store_true')
+    parser.add_argument ("--long-options", action='store_true')
+
     args = parser.parse_args ()
+
+    if args.short_options:
+        short_options.sort()
+        print ("\n".join (short_options))
+        exit (0)
+    if args.long_options:
+        long_options.sort()
+        print ("\n".join (long_options))
+        exit (0)
 
     h = nbd.NBD ()
     h.set_handle_name ("nbdsh")
