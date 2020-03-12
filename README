@@ -89,6 +89,8 @@ Optional:
 
  * FUSE to build the nbdfuse program.
 
+ * bash-completion >= 1.99 for tab completion.
+
 Optional, only needed to run the test suite:
 
  * nbdkit >= 1.12, the nbdkit basic plugins and the nbdkit basic
@@ -107,8 +109,6 @@ Optional, only needed to run the test suite:
  * psktool and certtool (part of GnuTLS) for testing TLS support.
 
  * valgrind if you want to run the tests under valgrind.
-
- * bash-completion >= 1.99 for tab completion.
 
 
 DOWNLOAD TARBALLS
