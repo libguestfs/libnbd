@@ -22,8 +22,6 @@
 #error "this test should be compiled with a C++ compiler"
 #endif
 
-#include <config.h>
-
 #include <iostream>
 #include <cstdlib>
 

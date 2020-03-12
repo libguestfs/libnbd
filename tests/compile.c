@@ -18,8 +18,6 @@
 
 /* Compile, open and close a handle. */
 
-#include <config.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 
