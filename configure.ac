@@ -427,6 +427,7 @@ AC_CONFIG_FILES([Makefile
                  interop/Makefile
                  lib/Makefile
                  lib/libnbd.pc
+                 lib/local/libnbd.pc
                  ocaml/Makefile
                  ocaml/META
                  ocaml/examples/Makefile

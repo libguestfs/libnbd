@@ -829,6 +829,9 @@ For CMake projects use:
  target_include_directories(prog PUBLIC ${LIBNBD_INCLUDE_DIRS})
  target_compile_options(prog PUBLIC ${LIBNBD_CFLAGS_OTHER})
 
+To compile an external project against a built copy of the libnbd
+source tree which hasn't been installed, see the F<./run> script.
+
 =head1 ENVIRONMENT VARIABLES
 
 =over 4

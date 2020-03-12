@@ -90,6 +90,7 @@ Makefile.in
 /lib/api.c
 /lib/libnbd.pc
 /lib/libnbd.syms
+/lib/local/libnbd.pc
 /lib/states-run.c
 /lib/states.c
 /lib/states.h

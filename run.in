@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # libnbd 'run' programs locally script
-# Copyright (C) 2011-2019 Red Hat Inc.
+# Copyright (C) 2011-2020 Red Hat Inc.
 #
 # @configure_input@
 #
@@ -35,6 +35,12 @@
 #   >>> import nbd    # locally-compiled nbd module
 #
 # This works for any C program and most non-C bindings.
+#
+# You can also compile other projects against this uninstalled libnbd
+# tree if those projects are using pkgconf/pkg-config:
+#
+#   ../libnbd/run ./configure
+#   make
 
 #----------------------------------------------------------------------
 
@@ -77,6 +83,10 @@ export CAML_LD_LIBRARY_PATH
 export MALLOC_CHECK_=1
 random_val="$(@AWK@ 'BEGIN{srand(); print 1+int(255*rand())}' < /dev/null)"
 export MALLOC_PERTURB_=$random_val
+
+# Allow dependent packages to be compiled against local libnbd.
+prepend PKG_CONFIG_PATH "$b/lib/local"
+export PKG_CONFIG_PATH
 
 # Do we have libtool?  If we have it then we can use it to make
 # running valgrind simpler.  However don't depend on it.
