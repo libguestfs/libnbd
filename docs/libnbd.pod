@@ -795,6 +795,40 @@ to change the resulting error of the overall command.  Assignments
 into C<error> are ignored for any other return value; similarly,
 assigning C<0> into C<error> does not have an effect.
 
+=head1 COMPILING YOUR PROGRAM
+
+On most systems, C programs that use libnbd can be compiled like this:
+
+ cc prog.c -o prog -lnbd
+
+To detect if the libnbd library and header file is installed, the
+preferred method is to use L<pkg-config(1)> or L<pkgconf(1)>:
+
+ pkg-config libnbd --exists || fail libnbd is required
+
+In case the library or header file are not installed in the usual
+system locations, you can compile your program like this, using
+pkg-config to detect the proper location of libnbd:
+
+ cc prog.c -o prog `pkg-config libnbd --cflags --libs`
+
+External projects which use autoconf and need to check if libnbd is
+installed should use the C<PKG_CHECK_MODULES> macro in F<configure.ac>
+like this:
+
+ PKG_CHECK_MODULES([LIBNBD], [libnbd])
+
+This will define C<@LIBNBD_CFLAGS@> and C<@LIBNBD_LIBS@> which you
+will need to add to your F<Makefile.am>.
+
+For CMake projects use:
+
+ find_package(PkgConfig REQUIRED)
+ pkg_check_modules(LIBNBD REQUIRED libnbd)
+ target_link_libraries(prog ${LIBNBD_LIBRARIES})
+ target_include_directories(prog PUBLIC ${LIBNBD_INCLUDE_DIRS})
+ target_compile_options(prog PUBLIC ${LIBNBD_CFLAGS_OTHER})
+
 =head1 ENVIRONMENT VARIABLES
 
 =over 4
@@ -854,4 +888,4 @@ Richard W.M. Jones
 
 =head1 COPYRIGHT
 
-Copyright (C) 2019 Red Hat Inc.
+Copyright (C) 2019-2020 Red Hat Inc.
