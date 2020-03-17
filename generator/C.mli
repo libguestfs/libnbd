@@ -26,9 +26,10 @@ val generate_docs_api_links_pod : unit -> unit
 val generate_docs_api_flag_links_pod : unit -> unit
 val generate_docs_nbd_pod : string -> API.call -> unit -> unit
 val print_arg_list : ?wrap:bool -> ?maxcol:int ->
-                     ?handle:bool -> ?types:bool ->
+                     ?handle:bool -> ?types:bool -> ?parens:bool ->
                      API.arg list -> API.optarg list -> unit
-val print_cbarg_list : ?wrap:bool -> ?maxcol:int -> ?types:bool ->
+val print_cbarg_list : ?wrap:bool -> ?maxcol:int ->
+                       ?types:bool -> ?parens:bool ->
                        API.cbarg list -> unit
 val errcode_of_ret : API.ret -> string option
 val type_of_ret : API.ret -> string

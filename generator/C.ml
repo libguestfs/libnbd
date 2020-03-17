@@ -97,16 +97,17 @@ let rec name_of_arg = function
 | UInt32 n -> [n]
 | UInt64 n -> [n]
 
-let rec print_arg_list ?(wrap = false) ?maxcol ?handle ?types args optargs =
-  pr "(";
+let rec print_arg_list ?(wrap = false) ?maxcol ?handle ?types ?(parens = true)
+          args optargs =
+  if parens then pr "(";
   if wrap then
     pr_wrap ?maxcol ','
-      (fun () -> print_arg_list_no_parens ?handle ?types args optargs)
+      (fun () -> print_arg_list' ?handle ?types args optargs)
   else
-    print_arg_list_no_parens ?handle ?types args optargs;
-  pr ")"
+    print_arg_list' ?handle ?types args optargs;
+  if parens then pr ")"
 
-and print_arg_list_no_parens ?(handle = false) ?(types = true) args optargs =
+and print_arg_list' ?(handle = false) ?(types = true) args optargs =
   let comma = ref false in
   if handle then (
     comma := true;
@@ -192,16 +193,17 @@ let print_extern ?wrap name args optargs ret =
   print_call ?wrap name args optargs ret;
   pr ";\n"
 
-let rec print_cbarg_list ?(wrap = false) ?maxcol ?types cbargs =
-  pr "(";
+let rec print_cbarg_list ?(wrap = false) ?maxcol ?types ?(parens = true)
+          cbargs =
+  if parens then pr "(";
   if wrap then
     pr_wrap ?maxcol ','
-      (fun () -> print_cbarg_list_no_parens ?types cbargs)
+      (fun () -> print_cbarg_list' ?types cbargs)
   else
-    print_cbarg_list_no_parens ?types cbargs;
-  pr ")"
+    print_cbarg_list' ?types cbargs;
+  if parens then pr ")"
 
-and print_cbarg_list_no_parens ?(types = true) cbargs =
+and print_cbarg_list' ?(types = true) cbargs =
   if types then pr "void *";
   pr "user_data";
 
