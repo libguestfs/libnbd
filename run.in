@@ -78,6 +78,25 @@ export PYTHONPATH
 prepend CAML_LD_LIBRARY_PATH "$b/ocaml"
 export CAML_LD_LIBRARY_PATH
 
+# For golang.
+export GOLANG="@GOLANG@"
+prepend GOPATH "$b/golang"
+export GOPATH
+if [ -z "$CGO_CFLAGS" ]; then
+    CGO_CFLAGS="-I$s/include -I$b"
+else
+    CGO_CFLAGS="$CGO_CFLAGS -I$s/include -I$b"
+fi
+export CGO_CFLAGS
+if [ -z "$CGO_LDFLAGS" ]; then
+    CGO_LDFLAGS="-L$b/lib/.libs"
+else
+    CGO_LDFLAGS="$CGO_LDFLAGS -L$b/lib/.libs"
+fi
+export CGO_LDFLAGS
+# This implements complete pointer checking in cgo.
+export GODEBUG=cgocheck=2
+
 # This is a cheap way to find some use-after-free and uninitialized
 # read problems when using glibc.
 export MALLOC_CHECK_=1

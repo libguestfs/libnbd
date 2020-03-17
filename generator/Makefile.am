@@ -57,6 +57,8 @@ sources = \
 	Python.ml \
 	OCaml.mli \
 	OCaml.ml \
+	GoLang.mli \
+	GoLang.ml \
 	generator.ml \
 	$(NULL)
 

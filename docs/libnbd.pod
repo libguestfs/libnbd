@@ -45,6 +45,10 @@ is a full list in section L</C API> below.
 
 Using the API from OCaml.
 
+=item L<libnbd-golang(3)>
+
+Using the API from Go.
+
 =item L<nbdsh(1)>
 
 Using the NBD shell (nbdsh) for command line and scripting.

@@ -43,6 +43,8 @@ SUBDIRS = \
 	ocaml \
 	ocaml/examples \
 	ocaml/tests \
+	golang \
+	golang/examples \
 	interop \
 	fuzzing \
 	bash \

@@ -1,0 +1,61 @@
+=head1 NAME
+
+libnbd-golang - how to use libnbd from Go
+
+=head1 SYNOPSIS
+
+ import "libguestfs.org/libnbd"
+
+ h, err := libnbd.Create()
+ if err != nil {
+     panic(err)
+ }
+ defer h.Close()
+ uri := "nbd://localhost"
+ err = h.ConnectUri(uri)
+ if err != nil {
+     panic(err)
+ }
+ size, err := h.GetSize()
+ if err != nil {
+     panic(err)
+ }
+ fmt.Printf("size of %s = %d\n", uri, size)
+
+=head1 DESCRIPTION
+
+This manual page documents how to use libnbd to access Network Block
+Device (NBD) servers from the Go programming language.  The Go
+bindings work very similarly to the C bindings so you should start by
+reading L<libnbd(3)>.
+
+=head1 HANDLES
+
+Create a libnbd handle of type C<Libnbd> by calling C<Create()>.
+
+You can either close the handle explicitly by a deferred call to
+C<h.Close()> or it will be closed automatically when it is garbage
+collected.
+
+=head1 ERRORS
+
+Most calls return either a single C<LibnbdError> or a pair
+C<(ret, LibnbdError)>.
+
+=head1 EXAMPLES
+
+This directory contains examples written in Go:
+
+L<https://github.com/libguestfs/libnbd/tree/master/golang/examples>
+
+=head1 SEE ALSO
+
+L<libnbd(3)>.
+
+=head1 AUTHORS
+
+Richard W.M. Jones
+
+=head1 COPYRIGHT
+
+Copyright (C) 2020 Red Hat Inc.
