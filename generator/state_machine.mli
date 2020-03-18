@@ -1,3 +1,4 @@
+(* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* nbd client library in userspace: state machine definition
  * Copyright (C) 2013-2020 Red Hat Inc.
  *
