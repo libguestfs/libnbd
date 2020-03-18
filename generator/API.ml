@@ -140,7 +140,7 @@ let tls_enum = {
 }
 let all_enums = [ tls_enum ]
 
-(* Flags. *)
+(* Flags. See also Constants below. *)
 let cmd_flags = {
   flag_prefix = "CMD_FLAG";
   flags = [
@@ -2204,7 +2204,7 @@ let first_version = [
    *)
 ]
 
-(* Constants, etc. *)
+(* Constants, etc. See also Enums and Flags above. *)
 let constants = [
   "AIO_DIRECTION_READ",  1;
   "AIO_DIRECTION_WRITE", 2;
