@@ -65,7 +65,7 @@ nbd_unlocked_aio_notify_write (struct nbd_handle *h)
 
 int
 nbd_unlocked_aio_command_completed (struct nbd_handle *h,
-                                    int64_t cookie)
+                                    uint64_t cookie)
 {
   struct command *prev_cmd, *cmd;
   uint16_t type;

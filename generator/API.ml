@@ -1947,7 +1947,7 @@ whole handle.";
 
   "aio_command_completed", {
     default_call with
-    args = [Int64 "cookie"]; ret = RBool;
+    args = [UInt64 "cookie"]; ret = RBool;
     shortdesc = "check if the command completed";
     longdesc = "\
 Return true if the command completed.  If this function returns
