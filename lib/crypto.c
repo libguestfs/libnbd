@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -230,9 +230,21 @@ tls_get_fd (struct socket *sock)
   return sock->u.tls.oldsock->ops->get_fd (sock->u.tls.oldsock);
 }
 
-/* XXX Calling gnutls_bye is possible, but it may send and receive
- * data over the wire which would require modifications to the state
- * machine.  So instead we abruptly drop the TLS session.
+static bool
+tls_shut_writes (struct nbd_handle *h, struct socket *sock)
+{
+  int r = gnutls_bye (sock->u.tls.session, GNUTLS_SHUT_WR);
+
+  if (r == GNUTLS_E_AGAIN || r == GNUTLS_E_INTERRUPTED)
+    return false;
+  if (r != 0)
+    debug (h, "ignoring gnutls_bye failure: %s", gnutls_strerror (r));
+  return sock->u.tls.oldsock->ops->shut_writes (h, sock->u.tls.oldsock);
+}
+
+/* XXX Calling gnutls_bye(GNUTLS_SHUT_RDWR) is possible, but it may send
+ * and receive data over the wire which would require further modifications
+ * to the state machine.  So instead we abruptly drop the TLS session.
  */
 static int
 tls_close (struct socket *sock)
@@ -254,6 +266,7 @@ static struct socket_ops crypto_ops = {
   .send = tls_send,
   .pending = tls_pending,
   .get_fd = tls_get_fd,
+  .shut_writes = tls_shut_writes,
   .close = tls_close,
 };
 

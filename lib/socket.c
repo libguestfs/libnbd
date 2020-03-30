@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -63,6 +63,15 @@ socket_get_fd (struct socket *sock)
   return sock->u.fd;
 }
 
+static bool
+socket_shut_writes (struct nbd_handle *h, struct socket *sock)
+{
+  if (shutdown (sock->u.fd, SHUT_WR) == -1)
+    debug (h, "ignoring shutdown failure: %s", strerror (errno));
+  /* Regardless of any errors, we don't need to retry. */
+  return true;
+}
+
 static int
 socket_close (struct socket *sock)
 {
@@ -76,6 +85,7 @@ static struct socket_ops socket_ops = {
   .recv = socket_recv,
   .send = socket_send,
   .get_fd = socket_get_fd,
+  .shut_writes = socket_shut_writes,
   .close = socket_close,
 };
 

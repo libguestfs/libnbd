@@ -1,5 +1,5 @@
 /* nbd client library in userspace: internal definitions
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -267,6 +267,7 @@ struct socket_ops {
                    struct socket *sock, const void *buf, size_t len, int flags);
   bool (*pending) (struct socket *sock);
   int (*get_fd) (struct socket *sock);
+  bool (*shut_writes) (struct nbd_handle *h, struct socket *sock);
   int (*close) (struct socket *sock);
 };
 
