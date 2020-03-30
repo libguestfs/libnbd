@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,7 +31,9 @@ STATE_MACHINE {
    * writes yet; we want to advance back to the correct state but
    * without trying a send_from_wbuf that will likely return 1.
    */
-  if (h->wlen) {
+  if (h->in_write_shutdown)
+    SET_NEXT_STATE_AND_BLOCK (%SEND_WRITE_SHUTDOWN);
+  else if (h->wlen) {
     if (h->in_write_payload)
       SET_NEXT_STATE_AND_BLOCK (%SEND_WRITE_PAYLOAD);
     else
@@ -79,6 +81,10 @@ STATE_MACHINE {
       h->wflags = MSG_MORE;
     SET_NEXT_STATE (%SEND_WRITE_PAYLOAD);
   }
+  else if (cmd->type == NBD_CMD_DISC) {
+    h->in_write_shutdown = true;
+    SET_NEXT_STATE (%SEND_WRITE_SHUTDOWN);
+  }
   else
     SET_NEXT_STATE (%FINISH);
   return 0;
@@ -94,6 +100,16 @@ STATE_MACHINE {
   assert (h->wlen);
   assert (h->cmds_to_issue != NULL);
   h->in_write_payload = true;
+  SET_NEXT_STATE (%^REPLY.START);
+  return 0;
+
+ ISSUE_COMMAND.SEND_WRITE_SHUTDOWN:
+  if (h->sock->ops->shut_writes (h, h->sock))
+    SET_NEXT_STATE (%FINISH);
+  return 0;
+
+ ISSUE_COMMAND.PAUSE_WRITE_SHUTDOWN:
+  assert (h->in_write_shutdown);
   SET_NEXT_STATE (%^REPLY.START);
   return 0;
 

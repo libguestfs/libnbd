@@ -602,14 +602,29 @@ and issue_command_state_machine = [
                         NotifyRead, "PAUSE_WRITE_PAYLOAD" ];
   };
 
-State {
+  State {
     default_state with
     name = "PAUSE_WRITE_PAYLOAD";
     comment = "Interrupt write payload to receive an earlier command's reply";
     external_events = [];
   };
 
-State {
+  State {
+    default_state with
+    name = "SEND_WRITE_SHUTDOWN";
+    comment = "Sending write shutdown notification to the remote server";
+    external_events = [ NotifyWrite, "";
+                        NotifyRead, "PAUSE_WRITE_SHUTDOWN" ];
+  };
+
+  State {
+    default_state with
+    name = "PAUSE_WRITE_SHUTDOWN";
+    comment = "Interrupt write shutdown to receive an earlier command's reply";
+    external_events = [];
+  };
+
+  State {
     default_state with
     name = "FINISH";
     comment = "Finish issuing a command";

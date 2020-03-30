@@ -192,6 +192,7 @@ struct nbd_handle {
    */
   struct nbd_request request;
   bool in_write_payload;
+  bool in_write_shutdown;
 
   /* When connecting, this stores the socket address. */
   struct sockaddr_storage connaddr;
