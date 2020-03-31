@@ -14,7 +14,7 @@ libnbd-ocaml - how to use libnbd from OCaml
 This manual page documents how to use libnbd to access Network Block
 Device (NBD) servers from the OCaml programming language.  The OCaml
 bindings work very similarly to the C bindings so you should start by
-reading L<libnbd(3)>..
+reading L<libnbd(3)>.
 
 =head1 HANDLES
 
