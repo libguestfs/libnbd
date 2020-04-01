@@ -20,8 +20,7 @@ package libnbd
 
 /*
 #cgo pkg-config: libnbd
-
-#include <config.h>
+#cgo CFLAGS: -D_GNU_SOURCE=1
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -16,7 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *)
 
-(* Go language bindings. *)
+(* Go language bindings.
+ *
+ * These are designed so they can be shipped separately and should
+ * interwork with older or newer versions of libnbd (to some extent).
+ * This means we cannot use <config.h> and must be careful to use
+ * #ifdef LIBNBD_HAVE_* from <libnbd.h>
+ *)
 
 open Printf
 
@@ -123,12 +129,14 @@ let go_ret_c_errcode = function
  *)
 let print_wrapper (name, { args; optargs; ret }) =
   let ret_c_type = C.type_of_ret ret and errcode = C.errcode_of_ret ret in
+  let ucname = String.uppercase_ascii name in
   pr "%s\n" ret_c_type;
   pr "_nbd_%s_wrapper (struct error *err,\n" name;
   pr "        ";
   C.print_arg_list ~wrap:true ~handle:true ~parens:false args optargs;
   pr ")\n";
   pr "{\n";
+  pr "#ifdef LIBNBD_HAVE_NBD_%s\n" ucname;
   pr "  %s ret;\n" ret_c_type;
   pr "\n";
   pr "  ret = nbd_%s " name;
@@ -141,6 +149,13 @@ let print_wrapper (name, { args; optargs; ret }) =
       pr "    save_error (err);\n";
   );
   pr "  return ret;\n";
+  pr "#else // !LIBNBD_HAVE_NBD_%s\n" ucname;
+  pr "  missing_function (err, \"%s\");\n" name;
+  (match errcode with
+   | None -> ()
+   | Some errcode -> pr "  return %s;\n" errcode
+  );
+  pr "#endif\n";
   pr "}\n";
   pr "\n"
 
@@ -383,8 +398,7 @@ package libnbd
 
 /*
 #cgo pkg-config: libnbd
-
-#include <config.h>
+#cgo CFLAGS: -D_GNU_SOURCE=1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -464,8 +478,7 @@ package libnbd
 
 /*
 #cgo pkg-config: libnbd
-
-#include <config.h>
+#cgo CFLAGS: -D_GNU_SOURCE=1
 
 #include <stdlib.h>
 
@@ -605,8 +618,7 @@ package libnbd
 
 /*
 #cgo pkg-config: libnbd
-
-#include <config.h>
+#cgo CFLAGS: -D_GNU_SOURCE=1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -637,7 +649,9 @@ let generate_golang_wrappers_h () =
 #ifndef LIBNBD_GOLANG_WRAPPERS_H
 #define LIBNBD_GOLANG_WRAPPERS_H
 
+#include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 #include \"libnbd.h\"
 
@@ -647,6 +661,10 @@ let generate_golang_wrappers_h () =
  */
 static inline void *long_to_vp (long i) { return (void *)(intptr_t)i; }
 
+/* save_error is called from the same thread to make a copy
+ * of the error which can later be retrieve from golang code
+ * possibly running in a different thread.
+ */
 struct error {
   char *error;
   int errnum;
@@ -663,6 +681,18 @@ static inline void
 free_error (struct error *err)
 {
   free (err->error);
+}
+
+/* If you mix old C library and new bindings then some C
+ * functions may not be defined.  They return ENOTSUP.
+ */
+static inline void
+missing_function (struct error *err, const char *fn)
+{
+  asprintf (&err->error, \"%%s: \"
+            \"function missing because golang bindings were compiled \"
+            \"against an old version of the C library\", fn);
+  err->errnum = ENOTSUP;
 }
 
 ";
