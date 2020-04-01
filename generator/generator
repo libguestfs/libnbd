@@ -4307,7 +4307,9 @@ let print_closure_structs () =
       pr "  void *user_data;\n";
       pr "  void (*free) (void *user_data);\n";
       pr "} nbd_%s_callback;\n" cbname;
-      pr "\n";
+      pr "#define LIBNBD_HAVE_NBD_%s_CALLBACK 1\n"
+        (String.uppercase_ascii cbname);
+      pr "\n"
   ) all_closures;
 
   pr "/* Note NBD_NULL_* are only generated for callbacks which are\n";
