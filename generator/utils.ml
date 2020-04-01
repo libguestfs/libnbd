@@ -208,7 +208,7 @@ let generate_header ?(extra_sources = []) comment_style =
   pr "%s %s\n" c (String.concat " " inputs);
   pr "%s ANY CHANGES YOU MAKE TO THIS FILE WILL BE LOST.\n" c;
   pr "%s\n" c;
-  pr "%s Copyright (C) 2013-2019 Red Hat Inc.\n" c;
+  pr "%s Copyright (C) 2013-2020 Red Hat Inc.\n" c;
   pr "%s\n" c;
   pr "%s This library is free software; you can redistribute it and/or\n" c;
   pr "%s modify it under the terms of the GNU Lesser General Public\n" c;
