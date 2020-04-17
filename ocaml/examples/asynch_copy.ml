@@ -41,7 +41,8 @@ let asynch_copy src dst =
   (* The main loop which runs until we have finished reading and
    * there are no more commands in flight.
    *)
-  while !soff < size || NBD.aio_in_flight dst > 0 do
+  while !soff < size || NBD.aio_in_flight src > 0 || NBD.aio_in_flight dst > 0
+  do
     (* If we're able to submit more reads from the source then do so now. *)
     if !soff < size && NBD.aio_in_flight src < max_reads_in_flight then (
       let bs = min bs (size -^ !soff) in
