@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -420,14 +420,14 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* Set F_CLOEXEC on the channel.  Some versions of libfuse don't do
+  /* Set FD_CLOEXEC on the channel.  Some versions of libfuse don't do
    * this.
    */
   fd = fuse_chan_fd (ch);
   if (fd >= 0) {
     int flags = fcntl (fd, F_GETFD, 0);
     if (flags >= 0)
-      fcntl (fd, F_SETFD, flags & ~FD_CLOEXEC);
+      fcntl (fd, F_SETFD, flags | FD_CLOEXEC);
   }
 
   /* Create the FUSE handle. */
