@@ -1,5 +1,6 @@
 To report security bugs, see ‘SECURITY’ in the top source directory.
 
+
 Fuzzing libnbd using the American Fuzzy Lop (afl) fuzzer
 ========================================================
 
@@ -57,6 +58,27 @@ command below.  You can run this even while afl-fuzz is running.
 
 This will create an HTML test coverage report in
 ../libnbd-afl/fuzzing/sync_dir/cov/web/
+
+
+Fuzzing libnbd using honggfuzz
+==============================
+
+Recompile libnbd with honggfuzz instrumentation:
+
+  ./configure \
+      CC=/path/to/hfuzz-clang CXX=/path/to/hfuzz-clang++ \
+      --disable-shared \
+      --disable-golang --disable-ocaml --disable-python
+  make clean
+  make
+
+Run honggfuzz using test cases:
+
+  honggfuzz -i fuzzing/testcase_dir -z -- \
+      ./fuzzing/libnbd-fuzz-wrapper ___FILE___
+
+(Note 3 underscore characters on each side.)
+
 
 Fuzzing libnbd using Clang + libFuzzer
 ======================================
