@@ -8,7 +8,8 @@ We can fuzz libnbd using the wrapper in this directory.
 You will need to recompile libnbd with afl instrumentation:
 
   ./configure CC=/usr/bin/afl-gcc CXX=/usr/bin/afl-g++ \
-      --disable-shared --disable-ocaml --disable-python
+      --disable-shared \
+      --disable-golang --disable-ocaml --disable-python
   make clean
   make
 
@@ -41,7 +42,8 @@ consult the README of that project, but in brief:
 profiling:
 
   ./configure CFLAGS="-O2 -g -pg -fprofile-arcs -ftest-coverage" \
-      --disable-shared --disable-ocaml --disable-python
+      --disable-shared \
+      --disable-golang --disable-ocaml --disable-python
   make clean
   make
 
@@ -66,7 +68,8 @@ binary:
       CC=clang \
       CFLAGS="-g -O1" \
       --enable-libfuzzer \
-      --disable-shared --disable-ocaml --disable-python
+      --disable-shared \
+      --disable-golang --disable-ocaml --disable-python
   make clean
   make CFLAGS="-g -O1 -fsanitize=fuzzer,address" -C lib
   make CFLAGS="-g -O1 -fsanitize=fuzzer,address" \
