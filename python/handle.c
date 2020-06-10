@@ -151,8 +151,10 @@ nbd_internal_py_aio_buffer_from_bytearray (PyObject *self, PyObject *args)
     return NULL;
 
   data = PyByteArray_AsString (obj);
-  if (!data)
+  if (!data) {
+    PyErr_SetString (PyExc_RuntimeError, "parameter is not a bytearray");
     return NULL;
+  }
   len = PyByteArray_Size (obj);
 
   buf = malloc (sizeof *buf);
