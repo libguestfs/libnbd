@@ -884,6 +884,7 @@ L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>.
 L<libnbd-release-notes-1.4(1)>,
 L<libnbd-release-notes-1.2(1)>,
 L<libnbd-security(3)>,
+L<nbdcopy(1)>,
 L<nbdfuse(1)>,
 L<nbdsh(1)>,
 L<qemu(1)>.

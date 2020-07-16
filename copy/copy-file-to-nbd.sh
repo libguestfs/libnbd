@@ -1,5 +1,6 @@
+#!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2013-2020 Red Hat Inc.
+# Copyright (C) 2020 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -15,25 +16,31 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-include $(top_srcdir)/subdir-rules.mk
+. ../tests/functions.sh
 
-EXTRA_DIST = \
-	README \
-	nbdsh \
-	$(NULL)
+set -e
+set -x
 
-if HAVE_BASH_COMPLETION
+requires nbdkit --exit-with-parent --version
+requires truncate --version
 
-dist_bashcomp_DATA = nbdcopy nbdfuse nbdsh
+file=copy-file-to-nbd.file
+pidfile=copy-file-to-nbd.pid
+sock=`mktemp -u`
+cleanup_fn rm -f $file $pidfile $sock
 
-nbdcopy: nbdsh
-	rm -f $@
-	$(LN_S) nbdsh $@
+nbdkit --exit-with-parent -f -v -P $pidfile -U $sock memory 10M &
+# Wait for the pidfile to appear.
+for i in {1..60}; do
+    if test -f $pidfile; then
+        break
+    fi
+    sleep 1
+done
+if ! test -f $pidfile; then
+    echo "$0: nbdkit did not start up"
+    exit 1
+fi
 
-nbdfuse: nbdsh
-	rm -f $@
-	$(LN_S) nbdsh $@
-
-CLEANFILES += nbdcopy nbdfuse
-
-endif
+truncate -s 5M $file
+$VG nbdcopy $file "nbd+unix:///?socket=$sock"

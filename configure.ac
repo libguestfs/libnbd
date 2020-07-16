@@ -148,6 +148,7 @@ AS_IF([test "$with_libxml2" != "no"],[
         AC_MSG_WARN([libxml2 not found, NBD URI support will be disabled.])
     ])
 ])
+AM_CONDITIONAL([HAVE_LIBXML2], [test "x$LIBXML2_LIBS" != "x"])
 
 dnl nbdkit, basic plugins and nbdkit-sh-plugin are only needed to run
 dnl the test suite.
@@ -446,6 +447,7 @@ AC_CONFIG_FILES([sh/nbdsh],
 AC_CONFIG_FILES([Makefile
                  bash/Makefile
                  common/include/Makefile
+                 copy/Makefile
                  docs/Makefile
                  examples/Makefile
                  fuse/Makefile

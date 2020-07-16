@@ -42,9 +42,9 @@ _libnbd_command ()
     esac
 }
 
-_nbdsh ()
+_nbdcopy ()
 {
-    _libnbd_command nbdsh
+    _libnbd_command nbdcopy
 }
 
 _nbdfuse ()
@@ -52,6 +52,12 @@ _nbdfuse ()
     _libnbd_command nbdfuse
 }
 
+_nbdsh ()
+{
+    _libnbd_command nbdsh
+}
+
 # Install the handler function.
-complete -o default -F _nbdsh nbdsh
+complete -o default -F _nbdcopy nbdcopy
 complete -o default -F _nbdfuse nbdfuse
+complete -o default -F _nbdsh nbdsh

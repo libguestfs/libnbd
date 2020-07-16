@@ -27,6 +27,7 @@ Makefile.in
 
 /aclocal.m4
 /autom4te.cache
+/bash/nbdcopy
 /bash/nbdfuse
 /compile
 /config.cache
@@ -37,6 +38,8 @@ Makefile.in
 /config.status
 /config.sub
 /configure
+/copy/nbdcopy
+/copy/nbdcopy.1
 /depcomp
 /docs/*.1
 /docs/*.3

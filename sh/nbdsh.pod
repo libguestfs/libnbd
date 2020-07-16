@@ -97,6 +97,7 @@ Display the package name and version and exit.
 
 L<libnbd(3)>,
 L<libnbd-security(3)>,
+L<nbdcopy(1)>,
 L<nbdfuse(1)>,
 L<qemu-img(1)>.
 

@@ -53,6 +53,11 @@ To run the tests under valgrind:
 
   make check-valgrind
 
+Some tests require root permissions (and are therefore risky).  If you
+want to run these tests, do:
+
+  sudo make check-root
+
 Requirements:
 
  * Linux, FreeBSD or OpenBSD.  Other OSes may also work but we have
@@ -113,6 +118,8 @@ Optional, only needed to run the test suite:
  * psktool and certtool (part of GnuTLS) for testing TLS support.
 
  * valgrind if you want to run the tests under valgrind.
+
+ * nbd-client and Linux nbd.ko for testing nbdcopy to/from devices.
 
 
 DOWNLOAD TARBALLS

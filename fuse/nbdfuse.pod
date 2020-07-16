@@ -292,6 +292,7 @@ The differences from nbdfuse are similar to the list above.
 =head1 SEE ALSO
 
 L<libnbd(3)>,
+L<nbdcopy(1)>,
 L<nbdsh(1)>,
 L<fusermount(1)>,
 L<mount.fuse(8)>,

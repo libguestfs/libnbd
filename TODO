@@ -22,9 +22,14 @@ Performance: Chart it over various buffer sizes and threads, as that
 
 Examine other fuzzers: https://gitlab.com/akihe/radamsa
 
-Should we ship a "nbdcp" copying tool?
- - Could upload, download or copy between servers.
- - Duplicates functionality already available in qemu-img convert.
+nbdcopy:
+ - Use parallel AIO operations if the input or output is a regular
+   file or block device.
+ - Consider using more threads.
+ - Create sparseness in output.
+ - Handle extents efficiently.
+ - Write zeroes efficiently.
+ - Allow copy between NBD servers.
 
 nbdfuse:
  - If you write beyond the end of the virtual file, it returns EIO.
