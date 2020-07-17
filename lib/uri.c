@@ -246,8 +246,9 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
     goto cleanup;
   }
   else if (!socket_required && unixsocket) {
-    set_error (EINVAL, "socket=%s URI query is incompatible with %s",
-               unixsocket, uri->scheme);
+    set_error (EINVAL, "socket=%s URI query is incompatible with \"%s:\" "
+               "(did you mean to use \"%s\" ?)",
+               unixsocket, uri->scheme, !tls ? "nbd+unix:" : "nbds+unix:");
     goto cleanup;
   }
 
