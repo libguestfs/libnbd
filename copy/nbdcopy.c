@@ -252,6 +252,8 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+  nbd_set_uri_allow_local_file (nbd, true); /* Allow ?tls-psk-file. */
+
   if (nbd_connect_uri (nbd, src_is_uri ? src : dst) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
