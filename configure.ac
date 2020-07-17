@@ -85,14 +85,7 @@ dnl https://lists.fedoraproject.org/archives/list/glibc@lists.fedoraproject.org/
 AC_CHECK_FUNCS([strerrordesc_np])
 
 dnl Check for sys_errlist (optional).
-AC_MSG_CHECKING([for sys_errlist])
-AC_TRY_LINK([], [extern int sys_errlist; char *p = &sys_errlist;], [
-    AC_DEFINE([HAVE_SYS_ERRLIST], [1],
-              [Define if libc has a sys_errlist variable.])
-    AC_MSG_RESULT([yes])
-], [
-    AC_MSG_RESULT([no])
-])
+AC_CHECK_DECLS([sys_errlist])
 
 dnl Check for GnuTLS (optional, for TLS support).
 AC_ARG_WITH([gnutls],
