@@ -156,7 +156,7 @@ nbd_internal_fork_safe_perror (const char *s)
 #ifdef HAVE_STRERRORDESC_NP
   m = strerrordesc_np (errno);
 #else
-#ifdef HAVE_SYS_ERRLIST
+#if HAVE_SYS_ERRLIST /* NB Don't use #ifdef */
   m = errno >= 0 && errno < sys_nerr ? sys_errlist[errno] : NULL;
 #endif
 #endif
