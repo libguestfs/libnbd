@@ -79,6 +79,11 @@ AC_CHECK_HEADERS([\
 
 AC_CHECK_HEADERS([linux/vm_sockets.h], [], [], [#include <sys/socket.h>])
 
+dnl Check for strerrordesc_np (optional, glibc only).
+dnl Prefer this over sys_errlist.
+dnl https://lists.fedoraproject.org/archives/list/glibc@lists.fedoraproject.org/thread/WJHGG2OO7ABNAYICGA5WQZ2Q34Q2FEHU/
+AC_CHECK_FUNCS([strerrordesc_np])
+
 dnl Check for sys_errlist (optional).
 AC_MSG_CHECKING([for sys_errlist])
 AC_TRY_LINK([], [extern int sys_errlist; char *p = &sys_errlist;], [
