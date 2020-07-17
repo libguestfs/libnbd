@@ -104,6 +104,8 @@ Optional, only needed to run the test suite:
  * A C++ compiler is needed if you want to test that the library works
    from C++.
 
+ * coreutils or standard Unix tools such as cmp, dd, stat, truncate.
+
  * qemu, qemu-io, qemu-img for interoperability testing.
 
  * glib2 for examples that interoperate with the glib main loop.
