@@ -136,6 +136,11 @@ nbd_internal_fork_safe_itoa (long v, char *buf, size_t bufsize)
   return &buf[i];
 }
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
+#endif
+
 /* Fork-safe version of perror.  ONLY use this after fork and before
  * exec, the rest of the time use set_error().
  */
@@ -143,30 +148,32 @@ void
 nbd_internal_fork_safe_perror (const char *s)
 {
   const int err = errno;
+  const char *m = NULL;
+  char buf[32];
 
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-result"
-#endif
   write (2, s, strlen (s));
   write (2, ": ", 2);
-#if HAVE_SYS_ERRLIST
-  write (2, sys_errlist[errno], strlen (sys_errlist[errno]));
+#ifdef HAVE_STRERRORDESC_NP
+  m = strerrordesc_np (errno);
 #else
-  char buf[32];
-  const char *v = nbd_internal_fork_safe_itoa ((long) errno, buf, sizeof buf);
-  write (2, v, strlen (v));
+#ifdef HAVE_SYS_ERRLIST
+  m = errno >= 0 && errno < sys_nerr ? sys_errlist[errno] : NULL;
 #endif
+#endif
+  if (!m)
+    m = nbd_internal_fork_safe_itoa ((long) errno, buf, sizeof buf);
+  write (2, m, strlen (m));
   write (2, "\n", 1);
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
 
   /* Restore original errno in case it was disturbed by the system
    * calls above.
    */
   errno = err;
 }
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 /* nbd_internal_printable_* functions are used by the API code to
  * print debug messages when we trace calls in and out of libnbd.  The
