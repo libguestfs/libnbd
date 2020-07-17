@@ -212,13 +212,9 @@ let print_python_closure_wrapper { cbname; cbargs } =
   pr ");\n";
   pr "  Py_INCREF (py_args);\n";
   pr "\n";
-  pr "  if (PyEval_ThreadsInitialized ())\n";
-  pr "    py_save = PyGILState_Ensure ();\n";
-  pr "\n";
+  pr "  py_save = PyGILState_Ensure ();\n";
   pr "  py_ret = PyObject_CallObject (data->fn, py_args);\n";
-  pr "\n";
-  pr "  if (PyEval_ThreadsInitialized ())\n";
-  pr "    PyGILState_Release (py_save);\n";
+  pr "  PyGILState_Release (py_save);\n";
   pr "\n";
   pr "  Py_DECREF (py_args);\n";
   pr "\n";
