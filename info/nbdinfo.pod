@@ -6,6 +6,8 @@ nbdinfo - display information and metadata about NBD servers and exports
 
  nbdinfo [--json] [--size] NBD-URI
 
+ nbdinfo -L|--list NBD-URI
+
  nbdinfo --help
 
  nbdinfo --version
@@ -19,6 +21,8 @@ nbdinfo - display information and metadata about NBD servers and exports
  nbdinfo --size nbd://example.com
 
  nbdinfo --json nbd://example.com
+
+ nbdinfo --list nbd://example.com
 
 =head1 DESCRIPTION
 
@@ -74,10 +78,15 @@ the I<--json> parameter:
    ]
  }
 
+To list all the exports available on an NBD server use the I<--list>
+(I<-L>) option.
+
 =head2 Alternative tools
 
-You could use C<qemu-img info> (see L<qemu-img(1)>).  L<nbdsh(1)> or
-the L<libnbd(3)> API can be used for more complex queries.
+You could use S<C<qemu-img info>> (see L<qemu-img(1)>) to query a
+single export from an NBD server.  S<C<qemu-nbd -L>> (see
+L<qemu-nbd(8)>) can list NBD exports.  L<nbdsh(1)> or the L<libnbd(3)>
+API can be used for more complex queries.
 
 =head1 OPTIONS
 
@@ -87,17 +96,32 @@ the L<libnbd(3)> API can be used for more complex queries.
 
 Display brief command line help and exit.
 
-=item B<--json>
-
-The output is displayed in JSON format.
+=item B<--content>
 
 =item B<--no-content>
 
 Mostly the information displayed comes from the metadata sent by the
-NBD server during the handshake.  However by default nbdinfo also
-downloads a small amount of data from the beginning of the export to
-try to probe the content with L<file(1)>.  To prevent this use this
-option.
+NBD server during the handshake.  However nbdinfo also downloads a
+small amount of data from the beginning of the export to try to probe
+the content with L<file(1)>.
+
+When I<not> using I<--list>, the default is I<--content>, ie.  probing
+the content.  To prevent content probing, use I<--no-content>.
+
+When using I<--list>, the default is I<--no-content> (since
+downloading from each export is expensive).  To enable content probing
+use I<--list --content>.
+
+=item B<--json>
+
+The output is displayed in JSON format.
+
+=item B<-L>
+
+=item B<--list>
+
+List all the exports on an NBD server.  The export name in the NBD URI
+is ignored.
 
 =item B<--size>
 
@@ -119,7 +143,8 @@ L<nbdfuse(1)>,
 L<nbdsh(1)>,
 L<file(1)>,
 L<jq(1)>,
-L<qemu-img(1)>.
+L<qemu-img(1)>,
+L<qemu-nbd(8)>.
 
 =head1 AUTHORS
 

@@ -38,6 +38,10 @@ nbdfuse:
  - Implement block_status.
  - Could be made multithreaded for improved performance.
 
+nbdinfo:
+ - info-list.sh and info-list-json.sh tests should use nbdkit + --run
+   when nbdkit supports listing exports.
+
 Suggested API improvements:
   general:
   - synchronous APIs that have a timeout or can be cancelled
@@ -67,3 +71,12 @@ Suggested API improvements:
     maybe nbd_shutdown should wait for the subprocess or there
     should be another API to do this
   - capture error message when nbd_connect_command fails
+
+  list exports
+  - It should be possible to get details from each export without
+    needing to reconnect.  This would make nbdinfo --list much more
+    efficient.  This involves issuing an NBD_OPT_INFO request per
+    export (but only in list mode).  See how qemu-nbd -L is
+    implemented.  The main difficulty is how to express this through
+    the API since we can no longer user nbd_can_* and nbd_is_* to
+    unpack the flags.

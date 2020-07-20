@@ -27,13 +27,18 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <limits.h>
+#include <errno.h>
 
+#include <libxml/uri.h>
 #include <libnbd.h>
 
-static bool probe_content = true;
+static bool list_all = false;
+static bool probe_content, content_flag, no_content_flag;
 static bool json_output = false;
 static bool size_only = false;
 
+static void list_one_export (struct nbd_handle *nbd);
+static void list_all_exports (struct nbd_handle *nbd1, const char *uri);
 static void print_json_string (const char *);
 static char *get_content (struct nbd_handle *, int64_t size);
 
@@ -48,6 +53,7 @@ usage (FILE *fp, int exitcode)
 "    nbdinfo \"nbd+unix:///?socket=/tmp/unixsock\"\n"
 "    nbdinfo --size nbd://example.com\n"
 "    nbdinfo --json nbd://example.com\n"
+"    nbdinfo --list nbd://example.com\n"
 "\n"
 "Please read the nbdinfo(1) manual page for full usage.\n"
 "\n"
@@ -68,16 +74,19 @@ main (int argc, char *argv[])
     HELP_OPTION = CHAR_MAX + 1,
     LONG_OPTIONS,
     SHORT_OPTIONS,
+    CONTENT_OPTION,
     NO_CONTENT_OPTION,
     JSON_OPTION,
     SIZE_OPTION,
   };
-  const char *short_options = "V";
+  const char *short_options = "LV";
   const struct option long_options[] = {
     { "help",               no_argument,       NULL, HELP_OPTION },
-    { "long-options",       no_argument,       NULL, LONG_OPTIONS },
-    { "json",               no_argument,       NULL, JSON_OPTION },
+    { "content",            no_argument,       NULL, CONTENT_OPTION },
     { "no-content",         no_argument,       NULL, NO_CONTENT_OPTION },
+    { "json",               no_argument,       NULL, JSON_OPTION },
+    { "list",               no_argument,       NULL, 'L' },
+    { "long-options",       no_argument,       NULL, LONG_OPTIONS },
     { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
     { "size",               no_argument,       NULL, SIZE_OPTION },
     { "version",            no_argument,       NULL, 'V' },
@@ -89,11 +98,6 @@ main (int argc, char *argv[])
   int64_t size;
   const char *protocol;
   int tls_negotiated;
-  char *export_name = NULL;
-  char *content = NULL;
-  int is_rotational, is_read_only;
-  int can_cache, can_df, can_fast_zero, can_flush, can_fua,
-    can_multi_conn, can_trim, can_zero;
 
   for (;;) {
     c = getopt_long (argc, argv, short_options, long_options, NULL);
@@ -123,12 +127,20 @@ main (int argc, char *argv[])
       json_output = true;
       break;
 
+    case CONTENT_OPTION:
+      content_flag = true;
+      break;
+
     case NO_CONTENT_OPTION:
-      probe_content = false;
+      no_content_flag = true;
       break;
 
     case SIZE_OPTION:
       size_only = true;
+      break;
+
+    case 'L':
+      list_all = true;
       break;
 
     case 'V':
@@ -146,10 +158,27 @@ main (int argc, char *argv[])
 
   /* You can combine certain options. */
   if (json_output && size_only) {
-    fprintf (stderr, "%s: you cannot use --json and --size together.\n",
-             argv[0]);
+    fprintf (stderr, "%s: you cannot use %s and %s together.\n",
+             argv[0], "--json", "--size");
     exit (EXIT_FAILURE);
   }
+  if (list_all && size_only) {
+    fprintf (stderr, "%s: you cannot use %s and %s together.\n",
+             argv[0], "--list", "--size");
+    exit (EXIT_FAILURE);
+  }
+  if (content_flag && no_content_flag) {
+    fprintf (stderr, "%s: you cannot use %s and %s together.\n",
+             argv[0], "--content", "--no-content");
+    exit (EXIT_FAILURE);
+  }
+
+  /* Work out if we should probe content. */
+  probe_content = !list_all;
+  if (content_flag)
+    probe_content = true;
+  if (no_content_flag)
+    probe_content = false;
 
   /* Open the NBD side. */
   nbd = nbd_create ();
@@ -159,25 +188,90 @@ main (int argc, char *argv[])
   }
   nbd_set_uri_allow_local_file (nbd, true); /* Allow ?tls-psk-file. */
 
+  /* If using --list then we set the list_exports mode flag in the
+   * handle.  In this case it can be OK for the connection to fail.
+   * In particular it can fail because the export in the URI is not
+   * recognized.
+   */
+  if (list_all)
+    nbd_set_list_exports (nbd, true);
+
   if (nbd_connect_uri (nbd, argv[optind]) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
+    if (!list_all || nbd_get_errno () == ENOTSUP) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
   }
 
+  if (size_only) {
+    size = nbd_get_size (nbd);
+    if (size == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+
+    printf ("%" PRIi64 "\n", size);
+  }
+  else {
+    /* Print per-connection fields.
+     *
+     * XXX Not always displayed when using --list mode.  This is
+     * because if the connection fails above (as we expect) then the
+     * handle state is dead and we cannot query these.
+     */
+    protocol = nbd_get_protocol (nbd);
+    tls_negotiated = nbd_get_tls_negotiated (nbd);
+
+    if (!json_output) {
+      if (protocol) {
+        printf ("protocol: %s", protocol);
+        if (tls_negotiated >= 0)
+          printf (" %s TLS", tls_negotiated ? "with" : "without");
+        printf ("\n");
+      }
+    }
+    else {
+      printf ("{\n");
+      if (protocol) {
+        printf ("\"protocol\": ");
+        print_json_string (protocol);
+        printf (",\n");
+      }
+
+      if (tls_negotiated >= 0)
+        printf ("\"TLS\": %s,\n", tls_negotiated ? "true" : "false");
+    }
+
+    if (!list_all)
+      list_one_export (nbd);
+    else
+      list_all_exports (nbd, argv[optind]);
+
+    if (json_output)
+      printf ("}\n");
+  }
+
+  nbd_close (nbd);
+  exit (EXIT_SUCCESS);
+}
+
+static void
+list_one_export (struct nbd_handle *nbd)
+{
+  int64_t size;
+  char *export_name = NULL;
+  char *content = NULL;
+  int is_rotational, is_read_only;
+  int can_cache, can_df, can_fast_zero, can_flush, can_fua,
+    can_multi_conn, can_trim, can_zero;
+
+  /* Collect the metadata we are going to display. */
   size = nbd_get_size (nbd);
   if (size == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
-  if (size_only) {
-    printf ("%" PRIi64 "\n", size);
-    goto out;
-  }
-
-  /* Collect the rest of the information we are going to display. */
-  protocol = nbd_get_protocol (nbd);
-  tls_negotiated = nbd_get_tls_negotiated (nbd);
   export_name = nbd_get_export_name (nbd);
   if (nbd == NULL) {
     fprintf (stderr, "%s\n", nbd_get_error ());
@@ -196,11 +290,6 @@ main (int argc, char *argv[])
   can_zero = nbd_can_zero (nbd);
 
   if (!json_output) {
-    if (protocol)
-      printf ("protocol: %s", protocol);
-    if (tls_negotiated >= 0)
-      printf (" %s TLS", tls_negotiated ? "with" : "without");
-    printf ("\n");
     printf ("export=");
     /* Might as well use the JSON function to get an escaped string here ... */
     print_json_string (export_name);
@@ -230,16 +319,6 @@ main (int argc, char *argv[])
       printf ("\t%s: %s\n", "can_zero", can_zero ? "true" : "false");
   }
   else {
-    printf ("{\n");
-    if (protocol) {
-      printf ("\"protocol\": ");
-      print_json_string (protocol);
-      printf (",\n");
-    }
-
-    if (tls_negotiated >= 0)
-      printf ("\"TLS\": %s,\n", tls_negotiated ? "true" : "false");
-
     printf ("\"exports\": [\n");
     printf ("\t{\n");
 
@@ -289,14 +368,65 @@ main (int argc, char *argv[])
 
     printf ("\t}\n");
     printf ("]\n");
-    printf ("}\n");
   }
 
- out:
-  nbd_close (nbd);
   free (content);
   free (export_name);
-  exit (EXIT_SUCCESS);
+}
+
+/* XXX Inefficient and hacky.  See TODO for a suggestion on how to
+ * improve this.
+ */
+static void
+list_all_exports (struct nbd_handle *nbd1, const char *uri)
+{
+  int i;
+  xmlURIPtr xmluri = NULL;
+
+  for (i = 0; i < nbd_get_nr_list_exports (nbd1); ++i) {
+    char *name, *new_path, *new_uri;
+    struct nbd_handle *nbd2;
+
+    name = nbd_get_list_export_name (nbd1, i);
+    if (name) {
+      /* We have to modify the original URI to change the export name.
+       * In the URI spec, paths always start with '/' (which is ignored).
+       */
+      xmluri = xmlParseURI (uri);
+      if (!xmluri) {
+        fprintf (stderr, "unable to parse original URI: %s\n", uri);
+        exit (EXIT_FAILURE);
+      }
+      if (asprintf (&new_path, "/%s", name) == -1) {
+        perror ("asprintf");
+        exit (EXIT_FAILURE);
+      }
+      free (xmluri->path);
+      xmluri->path = new_path;
+      new_uri = (char *) xmlSaveUri (xmluri);
+
+      /* Connect to the new URI. */
+      nbd2 = nbd_create ();
+      if (nbd2 == NULL) {
+        fprintf (stderr, "%s\n", nbd_get_error ());
+        exit (EXIT_FAILURE);
+      }
+      nbd_set_uri_allow_local_file (nbd2, true); /* Allow ?tls-psk-file. */
+
+      if (nbd_connect_uri (nbd2, new_uri) == -1) {
+        fprintf (stderr, "%s\n", nbd_get_error ());
+        exit (EXIT_FAILURE);
+      }
+
+      /* List the metadata of this export. */
+      list_one_export (nbd2);
+
+      nbd_close (nbd2);
+      free (new_uri);
+      xmlFreeURI (xmluri); /* this also frees xmluri->path == new_path */
+    }
+    free (name);
+  }
 }
 
 static void
