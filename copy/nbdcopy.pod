@@ -63,6 +63,7 @@ Display the package name and version and exit.
 
 L<libnbd(3)>,
 L<nbdfuse(1)>,
+L<nbdinfo(1)>,
 L<nbdsh(1)>,
 L<qemu-img(1)>.
 

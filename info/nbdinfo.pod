@@ -1,0 +1,130 @@
+=head1 NAME
+
+nbdinfo - display information and metadata about NBD servers and exports
+
+=head1 SYNOPSIS
+
+ nbdinfo [--json] [--size] NBD-URI
+
+ nbdinfo --help
+
+ nbdinfo --version
+
+=head1 EXAMPLES
+
+ nbdinfo nbd://localhost
+
+ nbdinfo "nbd+unix:///?socket=/tmp/unixsock"
+
+ nbdinfo --size nbd://example.com
+
+ nbdinfo --json nbd://example.com
+
+=head1 DESCRIPTION
+
+nbdinfo displays information and metadata about an NBD server.  The
+only required parameter is the NBD URI of the server (see
+L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>):
+
+ $ nbdinfo nbd://localhost
+ protocol: newstyle-fixed without TLS
+ export="":
+         export-size: 1048576
+         content: data
+         is_rotational: false
+         is_read_only: false
+         can_cache: true
+         can_df: true
+         can_fast_zero: true
+         can_flush: true
+         can_fua: true
+         can_multi_conn: true
+         can_trim: true
+         can_zero: true
+
+To display only the size in bytes of the NBD export (useful for
+scripting) use the I<--size> parameter:
+
+ $ nbdinfo --size nbd://localhost
+ 1048576
+
+To display the output as JSON (eg. for scripting with L<jq(1)>) add
+the I<--json> parameter:
+
+ $ nbdinfo --json nbd://localhost | jq
+ {
+   "protocol": "newstyle-fixed",
+   "TLS": false,
+   "exports": [
+     {
+       "export-name": "",
+       "content": "DOS/MBR boot sector; partition 1 : ID=0xc, start-CHS (0x3ff,254,63), end-CHS (0x3ff,254,63), startsector 2048, 4148704 sectors",
+       "is_rotational": false,
+       "is_read_only": true,
+       "can_cache": true,
+       "can_df": true,
+       "can_fast_zero": false,
+       "can_flush": false,
+       "can_fua": false,
+       "can_multi_conn": true,
+       "can_trim": false,
+       "can_zero": false,
+       "export-size": 2125119488
+     }
+   ]
+ }
+
+=head2 Alternative tools
+
+You could use C<qemu-img info> (see L<qemu-img(1)>).  L<nbdsh(1)> or
+the L<libnbd(3)> API can be used for more complex queries.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<--help>
+
+Display brief command line help and exit.
+
+=item B<--json>
+
+The output is displayed in JSON format.
+
+=item B<--no-content>
+
+Mostly the information displayed comes from the metadata sent by the
+NBD server during the handshake.  However by default nbdinfo also
+downloads a small amount of data from the beginning of the export to
+try to probe the content with L<file(1)>.  To prevent this use this
+option.
+
+=item B<--size>
+
+Display only the size in bytes of the export.
+
+=item B<-V>
+
+=item B<--version>
+
+Display the package name and version and exit.
+
+=back
+
+=head1 SEE ALSO
+
+L<libnbd(3)>,
+L<nbdcopy(1)>,
+L<nbdfuse(1)>,
+L<nbdsh(1)>,
+L<file(1)>,
+L<jq(1)>,
+L<qemu-img(1)>.
+
+=head1 AUTHORS
+
+Richard W.M. Jones
+
+=head1 COPYRIGHT
+
+Copyright (C) 2020 Red Hat Inc.

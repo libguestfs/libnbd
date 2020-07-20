@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2020 Red Hat Inc.
+# Copyright (C) 2020 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -18,26 +18,47 @@
 include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
-	README \
-	nbdsh \
+	info-json.sh \
+	info-oldstyle.sh \
+	info-size.sh \
+	info-text.sh \
+	nbdinfo.pod \
 	$(NULL)
 
-if HAVE_BASH_COMPLETION
+if HAVE_LIBXML2
 
-dist_bashcomp_DATA = nbdcopy nbdfuse nbdinfo nbdsh
+TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
+LOG_COMPILER = $(top_builddir)/run
+TESTS =
 
-nbdcopy: nbdsh
-	rm -f $@
-	$(LN_S) nbdsh $@
+bin_PROGRAMS = nbdinfo
 
-nbdfuse: nbdsh
-	rm -f $@
-	$(LN_S) nbdsh $@
+nbdinfo_SOURCES = nbdinfo.c
+nbdinfo_CPPFLAGS = -I$(top_srcdir)/include
+nbdinfo_CFLAGS = $(WARNINGS_CFLAGS)
+nbdinfo_LDADD = $(top_builddir)/lib/libnbd.la
 
-nbdinfo: nbdsh
-	rm -f $@
-	$(LN_S) nbdsh $@
+if HAVE_POD
 
-CLEANFILES += nbdcopy nbdfuse nbdinfo
+man_MANS = \
+	nbdinfo.1 \
+	$(NULL)
 
-endif
+nbdinfo.1: nbdinfo.pod $(top_builddir)/podwrapper.pl
+	$(PODWRAPPER) --section=1 --man $@ \
+	    --html $(top_builddir)/html/$@.html \
+	    $<
+
+endif HAVE_POD
+
+TESTS += \
+	info-json.sh \
+	info-oldstyle.sh \
+	info-size.sh \
+	info-text.sh \
+	$(NULL)
+
+check-valgrind:
+	LIBNBD_VALGRIND=1 $(MAKE) check
+
+endif HAVE_LIBXML2

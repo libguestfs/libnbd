@@ -293,6 +293,7 @@ The differences from nbdfuse are similar to the list above.
 
 L<libnbd(3)>,
 L<nbdcopy(1)>,
+L<nbdinfo(1)>,
 L<nbdsh(1)>,
 L<fusermount(1)>,
 L<mount.fuse(8)>,

@@ -39,6 +39,7 @@ SUBDIRS = \
 	tests \
 	python \
 	sh \
+	info \
 	copy \
 	fuse \
 	ocaml \
@@ -69,7 +70,7 @@ maintainer-check-extra-dist:
 	@echo PASS: EXTRA_DIST tests
 
 check-valgrind: all
-	@for d in tests copy fuse ocaml/tests interop; do \
+	@for d in tests info copy fuse ocaml/tests interop; do \
 	    $(MAKE) -C $$d check-valgrind || exit 1; \
 	done
 

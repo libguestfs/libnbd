@@ -1,5 +1,6 @@
+#!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2013-2020 Red Hat Inc.
+# Copyright (C) 2020 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -15,29 +16,20 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-include $(top_srcdir)/subdir-rules.mk
+. ../tests/functions.sh
 
-EXTRA_DIST = \
-	README \
-	nbdsh \
-	$(NULL)
+set -e
+set -x
 
-if HAVE_BASH_COMPLETION
+requires nbdkit --version
+requires nbdkit floppy --version
+requires jq --version
 
-dist_bashcomp_DATA = nbdcopy nbdfuse nbdinfo nbdsh
+out=info-json.out
+cleanup_fn rm -f $out
 
-nbdcopy: nbdsh
-	rm -f $@
-	$(LN_S) nbdsh $@
-
-nbdfuse: nbdsh
-	rm -f $@
-	$(LN_S) nbdsh $@
-
-nbdinfo: nbdsh
-	rm -f $@
-	$(LN_S) nbdsh $@
-
-CLEANFILES += nbdcopy nbdfuse nbdinfo
-
-endif
+nbdkit -U - floppy . --run "$VG nbdinfo --json \$uri" > $out
+cat $out
+test $( jq -r '.protocol' < $out ) != "newstyle"
+test $( jq -r '.exports[0]."export-size"' < $out ) != "null"
+test $( jq -r '.exports[0].is_read_only' < $out ) = "true"

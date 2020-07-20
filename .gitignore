@@ -29,6 +29,7 @@ Makefile.in
 /autom4te.cache
 /bash/nbdcopy
 /bash/nbdfuse
+/bash/nbdinfo
 /compile
 /config.cache
 /config.guess
@@ -77,6 +78,8 @@ Makefile.in
 /golang/libnbd-golang.3
 /html/*.?.html
 /include/libnbd.h
+/info/nbdinfo
+/info/nbdinfo.1
 /install-sh
 /interop/dirty-bitmap
 /interop/interop-nbd-server

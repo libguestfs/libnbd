@@ -454,6 +454,7 @@ AC_CONFIG_FILES([Makefile
                  golang/Makefile
                  golang/examples/Makefile
                  include/Makefile
+                 info/Makefile
                  interop/Makefile
                  lib/Makefile
                  lib/libnbd.pc
