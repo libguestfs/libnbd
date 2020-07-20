@@ -19,6 +19,7 @@ include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
 	dirty-bitmap.sh \
+	list-exports-nbd-config \
 	structured-read.sh \
 	$(NULL)
 
@@ -48,12 +49,16 @@ if HAVE_QEMU_NBD
 check_PROGRAMS += \
 	interop-qemu-nbd \
 	dirty-bitmap \
+	list-exports-nbd-server \
+	list-exports-qemu-nbd \
 	socket-activation-qemu-nbd \
 	structured-read \
 	$(NULL)
 TESTS += \
 	interop-qemu-nbd \
 	dirty-bitmap.sh \
+	list-exports-nbd-server \
+	list-exports-qemu-nbd \
 	socket-activation-qemu-nbd \
 	structured-read.sh \
 	$(NULL)
@@ -125,6 +130,27 @@ dirty_bitmap_SOURCES = dirty-bitmap.c
 dirty_bitmap_CPPFLAGS = -I$(top_srcdir)/include
 dirty_bitmap_CFLAGS = $(WARNINGS_CFLAGS)
 dirty_bitmap_LDADD = $(top_builddir)/lib/libnbd.la
+
+list_exports_nbd_server_SOURCES = list-exports.c
+list_exports_nbd_server_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSERVER=\"$(NBD_SERVER)\" \
+	-DSERVER_PARAMS='"-C", "list-exports-nbd-config", "-d", "0"' \
+	-DEXPORTS='"disk1", "disk2"' \
+	$(NULL)
+list_exports_nbd_server_CFLAGS = $(WARNINGS_CFLAGS)
+list_exports_nbd_server_LDADD = $(top_builddir)/lib/libnbd.la
+
+list_exports_qemu_nbd_SOURCES = list-exports.c
+list_exports_qemu_nbd_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSOCKET_ACTIVATION=1 \
+	-DSERVER=\"$(QEMU_NBD)\" \
+	-DSERVER_PARAMS='"-f", "raw", "-x", "testing", tmpfile' \
+	-DEXPORTS='"testing"' \
+	$(NULL)
+list_exports_qemu_nbd_CFLAGS = $(WARNINGS_CFLAGS)
+list_exports_qemu_nbd_LDADD = $(top_builddir)/lib/libnbd.la
 
 socket_activation_qemu_nbd_SOURCES = socket-activation.c
 socket_activation_qemu_nbd_CPPFLAGS = \

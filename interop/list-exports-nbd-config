@@ -1,0 +1,6 @@
+[generic]
+allowlist = true
+[disk1]
+exportname = /dev/null
+[disk2]
+exportname = /dev/null

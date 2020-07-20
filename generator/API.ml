@@ -588,6 +588,81 @@ the time of compilation.";
                 Link "aio_is_created"; Link "aio_is_ready"];
   };
 
+  "set_list_exports", {
+    default_call with
+    args = [Bool "list"]; ret = RErr;
+    permitted_states = [ Created ];
+    shortdesc = "set whether to list server exports";
+    longdesc = "\
+Set this flag to true in order to list NBD exports provided
+by the server.
+
+In this mode, during connection we query the server for the list
+of NBD exports and collect them in the handle.  You can query
+the list of exports provided by the server by calling
+C<nbd_get_nr_exports> and C<nbd_get_export_name>.  After choosing
+the export you want, you should close this handle, create a new
+NBD handle (C<nbd_create>), set the export name (C<nbd_set_export_name>),
+and connect on the new handle.
+
+Some servers do not support listing exports at all.  In
+that case the connect call will fail with errno C<ENOTSUP>
+and C<nbd_get_nr_exports> will return 0.
+
+Some servers do not respond with all the exports they
+support, either because of an incomplete implementation of
+this feature, or because they only list exports relevant
+to non-TLS or TLS when a corresponding non-TLS or TLS
+connection is opened.
+
+For L<qemu-nbd(8)> when using the I<-x> option you may find
+that the original connect call fails with
+C<server has no export named ''> and errno C<ENOENT>.
+However you can still proceed to call C<nbd_get_nr_exports> etc.
+
+For L<nbd-server(1)> you will need to allow clients to make
+list requests by adding C<allowlist=true> to the C<[generic]>
+section of F</etc/nbd-server/config>.";
+    example = Some "examples/list-exports.c";
+    see_also = [Link "get_list_exports";
+                Link "get_nr_list_exports"; Link "get_list_export_name"];
+  };
+
+  "get_list_exports", {
+    default_call with
+    args = []; ret = RBool;
+    may_set_error = false;
+    shortdesc = "return whether list exports mode was enabled";
+    longdesc = "\
+Return true if list exports mode was enabled on this handle.";
+    see_also = [Link "set_list_exports"];
+  };
+
+  "get_nr_list_exports", {
+    default_call with
+    args = []; ret = RInt;
+    permitted_states = [ Closed; Dead ];
+    shortdesc = "return the number of exports returned by the server";
+    longdesc = "\
+If list exports mode was enabled on the handle and you connected
+to the server, this returns the number of exports returned by the
+server.  This may be 0 or incomplete for reasons given in
+C<nbd_set_list_exports>.";
+    see_also = [Link "set_list_exports"];
+  };
+
+  "get_list_export_name", {
+    default_call with
+    args = [ Int "i" ]; ret = RString;
+    permitted_states = [ Closed; Dead ];
+    shortdesc = "return the i'th export name";
+    longdesc = "\
+If list exports mode was enabled on the handle and you connected
+to the server, this can be used to return the i'th export name
+from the list returned by the server.";
+    see_also = [Link "set_list_exports"];
+  };
+
   "add_meta_context", {
     default_call with
     args = [ String "name" ]; ret = RErr;
@@ -2196,6 +2271,12 @@ let first_version = [
   "set_uri_allow_transports", (1, 2);
   "set_uri_allow_tls", (1, 2);
   "set_uri_allow_local_file", (1, 2);
+
+  (* Added in 1.3.x development cycle, will be stable and supported in 1.4. *)
+  "set_list_exports", (1, 4);
+  "get_list_exports", (1, 4);
+  "get_nr_list_exports", (1, 4);
+  "get_list_export_name", (1, 4);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

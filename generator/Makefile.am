@@ -30,6 +30,7 @@ states_code = \
 	states-issue-command.c \
 	states-magic.c \
 	states-newstyle-opt-export-name.c \
+	states-newstyle-opt-list.c \
 	states-newstyle-opt-go.c \
 	states-newstyle-opt-set-meta-context.c \
 	states-newstyle-opt-starttls.c \

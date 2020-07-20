@@ -93,6 +93,11 @@ struct nbd_handle {
   int uri_allow_tls;
   bool uri_allow_local_file;
 
+  /* List exports mode. */
+  bool list_exports;
+  size_t nr_exports;
+  char **exports;
+
   /* Global flags from the server. */
   uint16_t gflags;
 
@@ -158,6 +163,10 @@ struct nbd_handle {
     struct {
       struct nbd_fixed_new_option_reply option_reply;
       union {
+        struct {
+          struct nbd_fixed_new_option_reply_server server;
+          char str[NBD_MAX_STRING];
+        } __attribute__((packed)) server;
         struct nbd_fixed_new_option_reply_info_export export;
         struct {
           struct nbd_fixed_new_option_reply_meta_context context;

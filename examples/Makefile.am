@@ -26,6 +26,7 @@ noinst_PROGRAMS = \
 	encryption \
 	fetch-first-sector \
 	get-size \
+	list-exports \
 	open-qcow2 \
 	reads-and-writes \
 	server-flags \
@@ -100,6 +101,19 @@ get_size_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
 	$(NULL)
 get_size_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(NULL)
+
+list_exports_SOURCES = \
+	list-exports.c \
+	$(NULL)
+list_exports_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	$(NULL)
+list_exports_CFLAGS = \
+	$(WARNINGS_CFLAGS) \
+	$(NULL)
+list_exports_LDADD = \
 	$(top_builddir)/lib/libnbd.la \
 	$(NULL)
 

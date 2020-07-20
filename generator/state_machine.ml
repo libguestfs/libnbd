@@ -273,6 +273,7 @@ and newstyle_state_machine = [
    * state needs to run and skip to the next state in the list if not.
    *)
   Group ("OPT_STARTTLS", newstyle_opt_starttls_state_machine);
+  Group ("OPT_LIST", newstyle_opt_list_state_machine);
   Group ("OPT_STRUCTURED_REPLY", newstyle_opt_structured_reply_state_machine);
   Group ("OPT_SET_META_CONTEXT", newstyle_opt_set_meta_context_state_machine);
   Group ("OPT_GO", newstyle_opt_go_state_machine);
@@ -338,6 +339,44 @@ and newstyle_opt_starttls_state_machine = [
     name = "TLS_HANDSHAKE_WRITE";
     comment = "TLS handshake (writing)";
     external_events = [ NotifyWrite, "" ];
+  };
+]
+
+(* Fixed newstyle NBD_OPT_LIST option. *)
+and newstyle_opt_list_state_machine = [
+  State {
+    default_state with
+    name = "START";
+    comment = "Start listing exports if in list mode.";
+    external_events = [];
+  };
+
+  State {
+    default_state with
+    name = "SEND";
+    comment = "Send newstyle NBD_OPT_LIST to begin listing exports";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  State {
+    default_state with
+    name = "RECV_REPLY";
+    comment = "Receive NBD_REP_SERVER reply";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  State {
+    default_state with
+    name = "RECV_REPLY_PAYLOAD";
+    comment = "Receive NBD_REP_SERVER reply payload";
+    external_events = [ NotifyRead, "" ];
+  };
+
+  State {
+    default_state with
+    name = "CHECK_REPLY";
+    comment = "Check NBD_REP_SERVER reply";
+    external_events = [];
   };
 ]
 

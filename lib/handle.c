@@ -113,6 +113,7 @@ void
 nbd_close (struct nbd_handle *h)
 {
   struct meta_context *m, *m_next;
+  size_t i;
 
   nbd_internal_set_error_context ("nbd_close");
 
@@ -130,6 +131,9 @@ nbd_close (struct nbd_handle *h)
     free (m->name);
     free (m);
   }
+  for (i = 0; i < h->nr_exports; ++i)
+    free (h->exports[i]);
+  free (h->exports);
   free_cmd_list (h->cmds_to_issue);
   free_cmd_list (h->cmds_in_flight);
   free_cmd_list (h->cmds_done);
@@ -224,6 +228,52 @@ nbd_unlocked_get_export_name (struct nbd_handle *h)
   }
 
   return copy;
+}
+
+int
+nbd_unlocked_set_list_exports (struct nbd_handle *h, bool list)
+{
+  h->list_exports = list;
+  return 0;
+}
+
+/* NB: may_set_error = false. */
+int
+nbd_unlocked_get_list_exports (struct nbd_handle *h)
+{
+  return h->list_exports;
+}
+
+int
+nbd_unlocked_get_nr_list_exports (struct nbd_handle *h)
+{
+  if (!h->list_exports) {
+    set_error (EINVAL, "list exports mode not selected on this handle");
+    return -1;
+  }
+  return (int) h->nr_exports;
+}
+
+char *
+nbd_unlocked_get_list_export_name (struct nbd_handle *h,
+                                   int i)
+{
+  char *name;
+
+  if (!h->list_exports) {
+    set_error (EINVAL, "list exports mode not selected on this handle");
+    return NULL;
+  }
+  if (i < 0 || i >= (int) h->nr_exports) {
+    set_error (EINVAL, "invalid index");
+    return NULL;
+  }
+  name = strdup (h->exports[i]);
+  if (!name) {
+    set_error (errno, "strdup");
+    return NULL;
+  }
+  return name;
 }
 
 int
