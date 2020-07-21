@@ -28,4 +28,5 @@ out=info-oldstyle.out
 cleanup_fn rm -f $out
 
 nbdkit --oldstyle -U - memory 1M --run "$VG nbdinfo \$uri" > $out
+cat $out
 grep "protocol: oldstyle" $out
