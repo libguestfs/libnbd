@@ -27,6 +27,6 @@ requires nbdkit memory --version
 out=info-text.out
 cleanup_fn rm -f $out
 
-nbdkit -U - memory 1M --run "$VG nbdinfo \$uri" > $out
+nbdkit -U - memory 1M --run '$VG nbdinfo "$uri"' > $out
 cat $out
 grep "export-size: $((1024*1024))" $out

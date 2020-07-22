@@ -28,7 +28,7 @@ requires jq --version
 out=info-json.out
 cleanup_fn rm -f $out
 
-nbdkit -U - floppy . --run "$VG nbdinfo --json \$uri" > $out
+nbdkit -U - floppy . --run '$VG nbdinfo --json "$uri"' > $out
 cat $out
 test $( jq -r '.protocol' < $out ) != "newstyle"
 test $( jq -r '.exports[0]."export-size"' < $out ) != "null"
