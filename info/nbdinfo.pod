@@ -45,6 +45,9 @@ L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>):
          can_multi_conn: true
          can_trim: true
          can_zero: true
+         block_size_minimum: 1
+         block_size_preferred: 4096
+         block_size_maximum: 33554432
 
 To display only the size in bytes of the NBD export (useful for
 scripting) use the I<--size> parameter:
@@ -73,6 +76,9 @@ the I<--json> parameter:
        "can_multi_conn": true,
        "can_trim": false,
        "can_zero": false,
+       "block_size_minimum": 1,
+       "block_size_preferred": 4096,
+       "block_size_maximum": 33554432,
        "export-size": 2125119488
      }
    ]

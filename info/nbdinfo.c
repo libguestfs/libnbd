@@ -264,6 +264,7 @@ list_one_export (struct nbd_handle *nbd)
   int is_rotational, is_read_only;
   int can_cache, can_df, can_fast_zero, can_flush, can_fua,
     can_multi_conn, can_trim, can_zero;
+  int64_t block_minimum, block_preferred, block_maximum;
 
   /* Collect the metadata we are going to display. */
   size = nbd_get_size (nbd);
@@ -288,6 +289,9 @@ list_one_export (struct nbd_handle *nbd)
   can_multi_conn = nbd_can_multi_conn (nbd);
   can_trim = nbd_can_trim (nbd);
   can_zero = nbd_can_zero (nbd);
+  block_minimum = nbd_get_block_size (nbd, LIBNBD_SIZE_MINIMUM);
+  block_preferred = nbd_get_block_size (nbd, LIBNBD_SIZE_PREFERRED);
+  block_maximum = nbd_get_block_size (nbd, LIBNBD_SIZE_MAXIMUM);
 
   if (!json_output) {
     printf ("export=");
@@ -317,6 +321,12 @@ list_one_export (struct nbd_handle *nbd)
       printf ("\t%s: %s\n", "can_trim", can_trim ? "true" : "false");
     if (can_zero >= 0)
       printf ("\t%s: %s\n", "can_zero", can_zero ? "true" : "false");
+    if (block_minimum > 0)
+      printf ("\t%s: %" PRId64 "\n", "block_size_minimum", block_minimum);
+    if (block_preferred > 0)
+      printf ("\t%s: %" PRId64 "\n", "block_size_preferred", block_preferred);
+    if (block_maximum > 0)
+      printf ("\t%s: %" PRId64 "\n", "block_size_maximum", block_maximum);
   }
   else {
     printf ("\"exports\": [\n");
@@ -362,6 +372,14 @@ list_one_export (struct nbd_handle *nbd)
     if (can_zero >= 0)
       printf ("\t\"%s\": %s,\n",
               "can_zero", can_zero ? "true" : "false");
+
+    if (block_minimum > 0)
+      printf ("\t\"%s\": %" PRId64 ",\n", "block_size_minimum", block_minimum);
+    if (block_preferred > 0)
+      printf ("\t\"%s\": %" PRId64 ",\n", "block_size_preferred",
+              block_preferred);
+    if (block_maximum > 0)
+      printf ("\t\"%s\": %" PRId64 ",\n", "block_size_maximum", block_maximum);
 
     /* Put this one at the end because of the stupid comma thing in JSON. */
     printf ("\t\"export-size\": %" PRIi64 "\n", size);
