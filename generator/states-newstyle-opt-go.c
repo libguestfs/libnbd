@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,7 +23,8 @@ STATE_MACHINE {
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (NBD_OPT_GO);
   h->sbuf.option.optlen =
-    htobe32 (/* exportnamelen */ 4 + strlen (h->export_name) + /* nrinfos */ 2);
+    htobe32 (/* exportnamelen */ 4 + strlen (h->export_name)
+             + /* nrinfos */ 2 + /* INFO_BLOCK_SIZE */ 2);
   h->wbuf = &h->sbuf;
   h->wlen = sizeof h->sbuf.option;
   h->wflags = MSG_MORE;
@@ -59,7 +60,7 @@ STATE_MACHINE {
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
-    h->sbuf.nrinfos = 0;
+    h->sbuf.nrinfos = htobe16 (1);
     h->wbuf = &h->sbuf;
     h->wlen = 2;
     SET_NEXT_STATE (%SEND_NRINFOS);
@@ -67,6 +68,17 @@ STATE_MACHINE {
   return 0;
 
  NEWSTYLE.OPT_GO.SEND_NRINFOS:
+  switch (send_from_wbuf (h)) {
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
+  case 0:
+    h->sbuf.info = htobe16 (NBD_INFO_BLOCK_SIZE);
+    h->wbuf = &h->sbuf;
+    h->wlen = 2;
+    SET_NEXT_STATE (%SEND_INFO);
+  }
+  return 0;
+
+ NEWSTYLE.OPT_GO.SEND_INFO:
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
@@ -102,6 +114,7 @@ STATE_MACHINE {
   uint16_t info;
   uint64_t exportsize;
   uint16_t eflags;
+  uint32_t min, pref, max;
 
   reply = be32toh (h->sbuf.or.option_reply.reply);
   len = be32toh (h->sbuf.or.option_reply.replylen);
@@ -130,8 +143,22 @@ STATE_MACHINE {
           return 0;
         }
         break;
+      case NBD_INFO_BLOCK_SIZE:
+        if (len != sizeof h->sbuf.or.payload.block_size) {
+          SET_NEXT_STATE (%.DEAD);
+          set_error (0, "handshake: incorrect NBD_INFO_BLOCK_SIZE option reply length");
+          return 0;
+        }
+        min = be32toh (h->sbuf.or.payload.block_size.minimum);
+        pref = be32toh (h->sbuf.or.payload.block_size.preferred);
+        max = be32toh (h->sbuf.or.payload.block_size.maximum);
+        if (nbd_internal_set_block_size (h, min, pref, max) == -1) {
+          SET_NEXT_STATE (%.DEAD);
+          return 0;
+        }
+        break;
       default:
-        /* XXX Handle other info types, like NBD_INFO_BLOCK_SIZE */
+        /* XXX Handle other info types, like NBD_INFO_DESCRIPTION */
         debug (h, "skipping unknown NBD_REP_INFO type %d",
                be16toh (h->sbuf.or.payload.export.info));
         break;

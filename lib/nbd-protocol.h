@@ -1,5 +1,5 @@
 /* nbdkit
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -152,6 +152,14 @@ struct nbd_fixed_new_option_reply_info_export {
   uint16_t info;                /* NBD_INFO_EXPORT */
   uint64_t exportsize;          /* size of export */
   uint16_t eflags;              /* per-export flags */
+} NBD_ATTRIBUTE_PACKED;
+
+/* NBD_INFO_BLOCK_SIZE reply (follows fixed_new_option_reply). */
+struct nbd_fixed_new_option_reply_info_block_size {
+  uint16_t info;                /* NBD_INFO_BLOCK_SIZE */
+  uint32_t minimum;             /* minimum block size */
+  uint32_t preferred;           /* preferred block size */
+  uint32_t maximum;             /* maximum block size */
 } NBD_ATTRIBUTE_PACKED;
 
 /* NBD_REP_SERVER reply (follows fixed_new_option_reply). */

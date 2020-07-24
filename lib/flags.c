@@ -58,6 +58,42 @@ nbd_internal_set_size_and_flags (struct nbd_handle *h,
   return 0;
 }
 
+/* Set the block size constraints on the handle, validating them.
+ * This is called from the state machine if newstyle negotiation encounters
+ * a server advertisement.
+ */
+int
+nbd_internal_set_block_size (struct nbd_handle *h, uint32_t min,
+                             uint32_t pref, uint32_t max)
+{
+  debug (h, "server block size constraints: min: %u preferred: %u max: %u",
+         min, pref, max);
+  /* NBD spec recommends:
+   *  min and pref are power of 2
+   *  min <= MIN(pref, 64k)
+   *  pref >= 512
+   *  max >= MIN(MAX(pref, 1M), exportsize)
+   *  max is either multiple of min or 0xffffffff
+   *  exportsize is multiple of min
+   * At the point of this call, we don't necessarily know exportsize yet;
+   * but we ignore server advertisement if any other constraints are wrong.
+   */
+  if (!min || min > 64*1024 || min > pref || pref < 512 || pref > max) {
+  ignore:
+    debug (h, "ignoring improper server size constraints");
+    return 0; /* Use return -1 if we want to reject such servers */
+  }
+  if ((min & (min - 1)) != 0 || (pref & (pref - 1)) != 0)
+    goto ignore;
+  if (max != 0xffffffffU && max % min != 0)
+    goto ignore;
+
+  h->block_minimum = min;
+  h->block_preferred = pref;
+  h->block_maximum = max;
+  return 0;
+}
+
 static int
 get_flag (struct nbd_handle *h, uint16_t flag)
 {

@@ -544,6 +544,13 @@ and newstyle_opt_go_state_machine = [
 
   State {
     default_state with
+    name = "SEND_INFO";
+    comment = "Send newstyle NBD_OPT_GO request for NBD_INFO_BLOCK_SIZE";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  State {
+    default_state with
     name = "RECV_REPLY";
     comment = "Receive newstyle NBD_OPT_GO reply";
     external_events = [ NotifyRead, "" ];

@@ -109,6 +109,11 @@ struct nbd_handle {
   uint64_t exportsize;
   uint16_t eflags;
 
+  /* Server block size constraints, or 0 if not advertised. */
+  uint32_t block_minimum;
+  uint32_t block_preferred;
+  uint32_t block_maximum;
+
   /* Flags set by the state machine to tell what protocol and whether
    * TLS was negotiated.
    */
@@ -168,6 +173,7 @@ struct nbd_handle {
           char str[NBD_MAX_STRING];
         } __attribute__((packed)) server;
         struct nbd_fixed_new_option_reply_info_export export;
+        struct nbd_fixed_new_option_reply_info_block_size block_size;
         struct {
           struct nbd_fixed_new_option_reply_meta_context context;
           char str[NBD_MAX_STRING];
@@ -193,6 +199,7 @@ struct nbd_handle {
     uint32_t cflags;
     uint32_t len;
     uint16_t nrinfos;
+    uint16_t info;
     uint32_t nrqueries;
   } sbuf;
 
@@ -380,6 +387,8 @@ extern void nbd_internal_set_last_error (int errnum, char *error);
 extern int nbd_internal_set_size_and_flags (struct nbd_handle *h,
                                             uint64_t exportsize,
                                             uint16_t eflags);
+extern int nbd_internal_set_block_size (struct nbd_handle *h, uint32_t min,
+                                        uint32_t pref, uint32_t max);
 
 /* is-state.c */
 extern bool nbd_internal_is_state_created (enum state state);
