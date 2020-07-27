@@ -138,7 +138,15 @@ let tls_enum = {
     "REQUIRE", 2;
   ]
 }
-let all_enums = [ tls_enum ]
+let block_size_enum = {
+  enum_prefix = "SIZE";
+  enums = [
+    "MINIMUM",   0;
+    "PREFERRED", 1;
+    "MAXIMUM",   2;
+  ]
+}
+let all_enums = [ tls_enum; block_size_enum ]
 
 (* Flags. See also Constants below. *)
 let cmd_flags = {
@@ -1227,7 +1235,8 @@ Most modern NBD servers use C<\"newstyle-fixed\">.
 ^ non_blocking_test_call_description;
     see_also = [Link "get_handshake_flags";
                 Link "get_structured_replies_negotiated";
-                Link "get_tls_negotiated"];
+                Link "get_tls_negotiated";
+                Link "get_block_size"];
   };
 
   "get_size", {
@@ -1240,6 +1249,55 @@ Returns the size in bytes of the NBD export."
 ^ non_blocking_test_call_description;
     see_also = [SectionLink "Size of the export"];
     example = Some "examples/get-size.c";
+  };
+
+  "get_block_size", {
+    default_call with
+    args = [Enum ("size_type", block_size_enum)]; ret = RInt64;
+    permitted_states = [ Connected; Closed ];
+    shortdesc = "return a specific server block size constraint";
+    longdesc = "\
+Returns a specific size constraint advertised by the server, if any.  If
+the return is zero, the server did not advertise a constraint.  C<size_type>
+must be one of the following constraints:
+
+=over 4
+
+=item C<LIBNBD_SIZE_MINIMUM> = 0
+
+If non-zero, this will be a power of 2 between 1 and 64k; any client
+request that is not aligned in length or offset to this size is likely
+to fail with C<EINVAL>.  The image size will generally also be a
+multiple of this value (if not, the final few bytes are inaccessible
+while obeying alignment constraints).  If zero, it is safest to
+assume a minimum block size of 512, although many servers support
+a minimum block size of 1.
+
+=item C<LIBNBD_SIZE_PREFERRED> = 1
+
+If non-zero, this is a power of 2 representing the preferred size for
+efficient I/O.  Smaller requests may incur overhead such as
+read-modify-write cycles that will not be present when using I/O that
+is a multiple of this value.  This value may be larger than the size
+of the export.  If zero, using 4k as a preferred block size tends to
+give decent performance.
+
+=item C<LIBNBD_SIZE_MAXIMUM> = 2
+
+If non-zero, this represents the maximum length that the server is
+willing to handle during C<nbd_pread> or C<nbd_pwrite>.  Other functions
+like C<nbd_zero> may still be able to use larger sizes.  Note that
+this function returns what the server advertised, but libnbd itself
+imposes a maximum of 64M.  If zero, some NBD servers will abruptly
+disconnect if a transaction involves more than 32M.
+
+=back
+
+Future NBD extensions may result in additional C<size_type> values.
+"
+^ non_blocking_test_call_description;
+    see_also = [Link "get_protocol";
+                Link "get_size"]
   };
 
   "pread", {
@@ -1260,7 +1318,8 @@ C<LIBNBD_CMD_FLAG_DF>.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
-    see_also = [Link "aio_pread"; Link "pread_structured"];
+    see_also = [Link "aio_pread"; Link "pread_structured";
+                Link "get_block_size"];
     example = Some "examples/fetch-first-sector.c";
   };
 
@@ -1338,7 +1397,7 @@ more than one fragment (if that is supported - some servers cannot do
 this, see L<nbd_can_df(3)>). Libnbd does not validate that the server
 actually obeys the flag.";
     see_also = [Link "can_df"; Link "pread";
-                Link "aio_pread_structured"];
+                Link "aio_pread_structured"; Link "get_block_size"];
   };
 
   "pwrite", {
@@ -1361,7 +1420,7 @@ return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
 L<nbd_can_fua(3)>).";
     see_also = [Link "can_fua"; Link "is_read_only";
-                Link "aio_pwrite"];
+                Link "aio_pwrite"; Link "get_block_size"];
     example = Some "examples/reads-and-writes.c";
   };
 
@@ -2277,6 +2336,7 @@ let first_version = [
   "get_list_exports", (1, 4);
   "get_nr_list_exports", (1, 4);
   "get_list_export_name", (1, 4);
+  "get_block_size", (1, 4);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

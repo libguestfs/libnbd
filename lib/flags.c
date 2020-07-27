@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -192,4 +192,17 @@ nbd_unlocked_get_size (struct nbd_handle *h)
   }
 
   return h->exportsize;
+}
+
+int64_t nbd_unlocked_get_block_size (struct nbd_handle *h, int type)
+{
+  switch (type) {
+  case LIBNBD_SIZE_MINIMUM:
+    return h->block_minimum;
+  case LIBNBD_SIZE_PREFERRED:
+    return h->block_preferred;
+  case LIBNBD_SIZE_MAXIMUM:
+    return h->block_maximum;
+  }
+  return 0;
 }
