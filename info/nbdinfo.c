@@ -498,9 +498,9 @@ get_content (struct nbd_handle *nbd, int64_t size)
   }
   if (size > sizeof buf)
     size = sizeof buf;
-  if (nbd_pread (nbd, buf, sizeof buf, 0, 0) == -1)
+  if (nbd_pread (nbd, buf, size, 0, 0) == -1)
     goto out;
-  if (write (fd, buf, sizeof buf) == -1) {
+  if (write (fd, buf, size) == -1) {
     perror ("write");
     exit (EXIT_FAILURE);
   }
