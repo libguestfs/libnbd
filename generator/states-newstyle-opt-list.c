@@ -82,7 +82,7 @@ STATE_MACHINE {
       debug (h, "skipping too large export name reply");
     else {
       elen = be32toh (h->sbuf.or.payload.server.server.export_name_len);
-      if (elen > len - 4) {
+      if (elen > len - 4 || elen > NBD_MAX_STRING) {
         set_error (0, "invalid export length");
         SET_NEXT_STATE (%.DEAD);
         return 0;

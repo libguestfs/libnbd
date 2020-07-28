@@ -170,7 +170,7 @@ struct nbd_handle {
       union {
         struct {
           struct nbd_fixed_new_option_reply_server server;
-          char str[NBD_MAX_STRING];
+          char str[NBD_MAX_STRING * 2]; /* name and description */
         } __attribute__((packed)) server;
         struct nbd_fixed_new_option_reply_info_export export;
         struct nbd_fixed_new_option_reply_info_block_size block_size;
