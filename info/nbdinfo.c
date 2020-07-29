@@ -37,7 +37,7 @@ static bool probe_content, content_flag, no_content_flag;
 static bool json_output = false;
 static bool size_only = false;
 
-static void list_one_export (struct nbd_handle *nbd);
+static void list_one_export (struct nbd_handle *nbd, const char *desc);
 static void list_all_exports (struct nbd_handle *nbd1, const char *uri);
 static void print_json_string (const char *);
 static char *get_content (struct nbd_handle *, int64_t size);
@@ -243,7 +243,8 @@ main (int argc, char *argv[])
     }
 
     if (!list_all)
-      list_one_export (nbd);
+      /* XXX We would need libnbd to request NBD_INFO_DESCRIPTION */
+      list_one_export (nbd, NULL);
     else
       list_all_exports (nbd, argv[optind]);
 
@@ -256,7 +257,7 @@ main (int argc, char *argv[])
 }
 
 static void
-list_one_export (struct nbd_handle *nbd)
+list_one_export (struct nbd_handle *nbd, const char *desc)
 {
   int64_t size;
   char *export_name = NULL;
@@ -298,6 +299,8 @@ list_one_export (struct nbd_handle *nbd)
     /* Might as well use the JSON function to get an escaped string here ... */
     print_json_string (export_name);
     printf (":\n");
+    if (desc && *desc)
+      printf ("\tdescription: %s\n", desc);
     printf ("\texport-size: %" PRIi64 "\n", size);
     if (content)
       printf ("\tcontent: %s\n", content);
@@ -335,6 +338,12 @@ list_one_export (struct nbd_handle *nbd)
     printf ("\t\"export-name\": ");
     print_json_string (export_name);
     printf (",\n");
+
+    if (desc && *desc) {
+      printf ("\t\"description\": ");
+      print_json_string (desc);
+      printf (",\n");
+    }
 
     if (content) {
       printf ("\t\"content\": ");
@@ -402,7 +411,7 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
   xmlURIPtr xmluri = NULL;
 
   for (i = 0; i < nbd_get_nr_list_exports (nbd1); ++i) {
-    char *name, *new_path, *new_uri;
+    char *name, *desc, *new_path, *new_uri;
     struct nbd_handle *nbd2;
 
     name = nbd_get_list_export_name (nbd1, i);
@@ -437,10 +446,12 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
       }
 
       /* List the metadata of this export. */
-      list_one_export (nbd2);
+      desc = nbd_get_list_export_description (nbd1, i);
+      list_one_export (nbd2, desc);
 
       nbd_close (nbd2);
       free (new_uri);
+      free (desc);
       xmlFreeURI (xmluri); /* this also frees xmluri->path == new_path */
     }
     free (name);
