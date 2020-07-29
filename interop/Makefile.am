@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2019 Red Hat Inc.
+# Copyright (C) 2013-2020 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -137,6 +137,7 @@ list_exports_nbd_server_CPPFLAGS = \
 	-DSERVER=\"$(NBD_SERVER)\" \
 	-DSERVER_PARAMS='"-C", "list-exports-nbd-config", "-d", "0"' \
 	-DEXPORTS='"disk1", "disk2"' \
+	-DDESCRIPTIONS='"", ""' \
 	$(NULL)
 list_exports_nbd_server_CFLAGS = $(WARNINGS_CFLAGS)
 list_exports_nbd_server_LDADD = $(top_builddir)/lib/libnbd.la
@@ -146,8 +147,9 @@ list_exports_qemu_nbd_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-DSOCKET_ACTIVATION=1 \
 	-DSERVER=\"$(QEMU_NBD)\" \
-	-DSERVER_PARAMS='"-f", "raw", "-x", "testing", tmpfile' \
+	-DSERVER_PARAMS='"-f", "raw", "-x", "testing", "-D", "data", tmpfile' \
 	-DEXPORTS='"testing"' \
+	-DDESCRIPTIONS='"data"' \
 	$(NULL)
 list_exports_qemu_nbd_CFLAGS = $(WARNINGS_CFLAGS)
 list_exports_qemu_nbd_LDADD = $(top_builddir)/lib/libnbd.la

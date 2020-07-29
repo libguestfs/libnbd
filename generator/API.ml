@@ -656,7 +656,8 @@ If list exports mode was enabled on the handle and you connected
 to the server, this returns the number of exports returned by the
 server.  This may be 0 or incomplete for reasons given in
 C<nbd_set_list_exports>.";
-    see_also = [Link "set_list_exports"];
+    see_also = [Link "set_list_exports"; Link "get_list_export_name";
+                Link "get_list_export_description"];
   };
 
   "get_list_export_name", {
@@ -668,7 +669,22 @@ C<nbd_set_list_exports>.";
 If list exports mode was enabled on the handle and you connected
 to the server, this can be used to return the i'th export name
 from the list returned by the server.";
-    see_also = [Link "set_list_exports"];
+    see_also = [Link "set_list_exports"; Link "get_list_export_description"];
+  };
+
+  "get_list_export_description", {
+    default_call with
+    args = [ Int "i" ]; ret = RString;
+    permitted_states = [ Closed; Dead ];
+    shortdesc = "return the i'th export description";
+    longdesc = "\
+If list exports mode was enabled on the handle and you connected
+to the server, this can be used to return the i'th export description
+from the list returned by the server, which may be an empty string.
+
+Many servers omit a description.  For L<qemu-nbd(8)>, a description
+is set with I<-D>.";
+    see_also = [Link "set_list_exports"; Link "get_list_export_name"];
   };
 
   "add_meta_context", {
@@ -2336,6 +2352,7 @@ let first_version = [
   "get_list_exports", (1, 4);
   "get_nr_list_exports", (1, 4);
   "get_list_export_name", (1, 4);
+  "get_list_export_description", (1, 4);
   "get_block_size", (1, 4);
 
   (* These calls are proposed for a future version of libnbd, but

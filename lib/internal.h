@@ -66,6 +66,11 @@ struct meta_context;
 struct socket;
 struct command;
 
+struct export {
+  char *name;
+  char *description;
+};
+
 struct nbd_handle {
   /* Unique name assigned to this handle for debug messages
    * (to avoid having to print actual pointers).
@@ -96,7 +101,7 @@ struct nbd_handle {
   /* List exports mode. */
   bool list_exports;
   size_t nr_exports;
-  char **exports;
+  struct export *exports;
 
   /* Global flags from the server. */
   uint16_t gflags;

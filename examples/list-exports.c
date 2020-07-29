@@ -22,7 +22,7 @@ main (int argc, char *argv[])
 {
   struct nbd_handle *nbd, *nbd2;
   int r, i;
-  char *name;
+  char *name, *desc;
   int64_t size;
 
   if (argc != 2) {
@@ -65,7 +65,11 @@ main (int argc, char *argv[])
        i++) {
     name = nbd_get_list_export_name (nbd, i);
     printf ("[%d] %s\n", i, name);
+    desc = nbd_get_list_export_description (nbd, i);
+    if (desc && *desc)
+      printf("  (%s)\n", desc);
     free (name);
+    free (desc);
   }
   printf ("Which export to connect to? ");
   if (scanf ("%d", &i) != 1) exit (EXIT_FAILURE);

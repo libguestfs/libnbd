@@ -70,8 +70,8 @@ STATE_MACHINE {
   uint32_t reply;
   uint32_t len;
   uint32_t elen;
-  char *name;
-  char **new_exports;
+  struct export exp;
+  struct export *new_exports;
 
   reply = be32toh (h->sbuf.or.option_reply.reply);
   len = be32toh (h->sbuf.or.option_reply.replylen);
@@ -82,27 +82,38 @@ STATE_MACHINE {
       debug (h, "skipping too large export name reply");
     else {
       elen = be32toh (h->sbuf.or.payload.server.server.export_name_len);
-      if (elen > len - 4 || elen > NBD_MAX_STRING) {
+      if (elen > len - 4 || elen > NBD_MAX_STRING ||
+          len - 4 - elen > NBD_MAX_STRING) {
         set_error (0, "invalid export length");
         SET_NEXT_STATE (%.DEAD);
         return 0;
       }
-      /* Copy the export name to the handle list. */
-      name = strndup (h->sbuf.or.payload.server.str, elen);
-      if (name == NULL) {
+      /* Copy the export name and description to the handle list. */
+      exp.name = strndup (h->sbuf.or.payload.server.str, elen);
+      if (exp.name == NULL) {
         set_error (errno, "strdup");
         SET_NEXT_STATE (%.DEAD);
         return 0;
       }
-      new_exports = realloc (h->exports, sizeof (char *) * (h->nr_exports+1));
+      exp.description = strndup (h->sbuf.or.payload.server.str + elen,
+                                 len - 4 - elen);
+      if (exp.name == NULL) {
+        set_error (errno, "strdup");
+        free (exp.name);
+        SET_NEXT_STATE (%.DEAD);
+        return 0;
+      }
+      new_exports = realloc (h->exports,
+                             sizeof (*new_exports) * (h->nr_exports+1));
       if (new_exports == NULL) {
         set_error (errno, "strdup");
         SET_NEXT_STATE (%.DEAD);
-        free (name);
+        free (exp.name);
+        free (exp.description);
         return 0;
       }
       h->exports = new_exports;
-      h->exports[h->nr_exports++] = name;
+      h->exports[h->nr_exports++] = exp;
     }
 
     /* Just limit this so we don't receive unlimited amounts

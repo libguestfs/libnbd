@@ -34,7 +34,7 @@ main (int argc, char *argv[])
   char tmpfile[] = "/tmp/nbdXXXXXX";
   int fd, r;
   size_t i;
-  char *name;
+  char *name, *desc;
 
   /* Create a sparse temporary file. */
   fd = mkstemp (tmpfile);
@@ -71,6 +71,7 @@ main (int argc, char *argv[])
 
   /* Check for expected number of exports. */
   const char *exports[] = { EXPORTS };
+  const char *descriptions[] = { DESCRIPTIONS };
   const size_t nr_exports = sizeof exports / sizeof exports[0];
   r = nbd_get_nr_list_exports (nbd);
   if (r != nr_exports) {
@@ -79,7 +80,7 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* Check the export names. */
+  /* Check the export names and descriptions. */
   for (i = 0; i < nr_exports; ++i) {
     name = nbd_get_list_export_name (nbd, (int) i);
     if (strcmp (name, exports[i]) != 0) {
@@ -88,6 +89,13 @@ main (int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
     free (name);
+    desc = nbd_get_list_export_description (nbd, (int) i);
+    if (strcmp (desc, descriptions[i]) != 0) {
+      fprintf (stderr, "%s: expected description \"%s\", but got \"%s\"\n",
+               argv[0], descriptions[i], desc);
+      exit (EXIT_FAILURE);
+    }
+    free (desc);
   }
 
   nbd_close (nbd);

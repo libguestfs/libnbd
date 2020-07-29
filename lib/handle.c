@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -131,8 +131,10 @@ nbd_close (struct nbd_handle *h)
     free (m->name);
     free (m);
   }
-  for (i = 0; i < h->nr_exports; ++i)
-    free (h->exports[i]);
+  for (i = 0; i < h->nr_exports; ++i) {
+    free (h->exports[i].name);
+    free (h->exports[i].description);
+  }
   free (h->exports);
   free_cmd_list (h->cmds_to_issue);
   free_cmd_list (h->cmds_in_flight);
@@ -268,12 +270,34 @@ nbd_unlocked_get_list_export_name (struct nbd_handle *h,
     set_error (EINVAL, "invalid index");
     return NULL;
   }
-  name = strdup (h->exports[i]);
+  name = strdup (h->exports[i].name);
   if (!name) {
     set_error (errno, "strdup");
     return NULL;
   }
   return name;
+}
+
+char *
+nbd_unlocked_get_list_export_description (struct nbd_handle *h,
+                                          int i)
+{
+  char *desc;
+
+  if (!h->list_exports) {
+    set_error (EINVAL, "list exports mode not selected on this handle");
+    return NULL;
+  }
+  if (i < 0 || i >= (int) h->nr_exports) {
+    set_error (EINVAL, "invalid index");
+    return NULL;
+  }
+  desc = strdup (h->exports[i].description);
+  if (!desc) {
+    set_error (errno, "strdup");
+    return NULL;
+  }
+  return desc;
 }
 
 int
