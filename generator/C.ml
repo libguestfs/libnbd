@@ -542,13 +542,13 @@ let generate_lib_api_c () =
     pr "  ret = nbd_unlocked_%s " name;
     print_arg_list ~wrap:true ~types:false ~handle:true args optargs;
     pr ";\n";
+    pr "\n";
+    if !need_out_label then
+      pr " out:\n";
     if may_set_error then (
-      pr "\n";
       print_trace_leave ret;
       pr "\n"
     );
-    if !need_out_label then
-      pr " out:\n";
     if is_locked then (
       pr "  if (h->public_state != get_next_state (h))\n";
       pr "    h->public_state = get_next_state (h);\n";
