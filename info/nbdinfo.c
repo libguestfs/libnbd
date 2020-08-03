@@ -158,11 +158,6 @@ main (int argc, char *argv[])
     usage (stderr, EXIT_FAILURE);
 
   /* You can combine certain options. */
-  if (json_output && size_only) {
-    fprintf (stderr, "%s: you cannot use %s and %s together.\n",
-             argv[0], "--json", "--size");
-    exit (EXIT_FAILURE);
-  }
   if (list_all && size_only) {
     fprintf (stderr, "%s: you cannot use %s and %s together.\n",
              argv[0], "--list", "--size");
