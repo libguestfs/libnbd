@@ -37,7 +37,8 @@ static bool probe_content, content_flag, no_content_flag;
 static bool json_output = false;
 static bool size_only = false;
 
-static void list_one_export (struct nbd_handle *nbd, const char *desc);
+static void list_one_export (struct nbd_handle *nbd, const char *desc,
+                             bool first, bool last);
 static void list_all_exports (struct nbd_handle *nbd1, const char *uri);
 static void print_json_string (const char *);
 static char *get_content (struct nbd_handle *, int64_t size);
@@ -250,7 +251,7 @@ main (int argc, char *argv[])
 
     if (!list_all)
       /* XXX We would need libnbd to request NBD_INFO_DESCRIPTION */
-      list_one_export (nbd, NULL);
+      list_one_export (nbd, NULL, true, true);
     else
       list_all_exports (nbd, argv[optind]);
 
@@ -263,7 +264,8 @@ main (int argc, char *argv[])
 }
 
 static void
-list_one_export (struct nbd_handle *nbd, const char *desc)
+list_one_export (struct nbd_handle *nbd, const char *desc,
+                 bool first, bool last)
 {
   int64_t size;
   char *export_name = NULL;
@@ -338,7 +340,8 @@ list_one_export (struct nbd_handle *nbd, const char *desc)
       printf ("\t%s: %" PRId64 "\n", "block_size_maximum", block_maximum);
   }
   else {
-    printf ("\"exports\": [\n");
+    if (first)
+      printf ("\"exports\": [\n");
     printf ("\t{\n");
 
     printf ("\t\"export-name\": ");
@@ -399,8 +402,10 @@ list_one_export (struct nbd_handle *nbd, const char *desc)
     /* Put this one at the end because of the stupid comma thing in JSON. */
     printf ("\t\"export-size\": %" PRIi64 "\n", size);
 
-    printf ("\t}\n");
-    printf ("]\n");
+    if (last)
+      printf ("\t} ]\n");
+    else
+      printf ("\t},\n");
   }
 
   free (content);
@@ -415,8 +420,17 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
 {
   int i;
   xmlURIPtr xmluri = NULL;
+  int count = nbd_get_nr_list_exports (nbd1);
 
-  for (i = 0; i < nbd_get_nr_list_exports (nbd1); ++i) {
+  if (count == -1) {
+    fprintf (stderr, "unable to obtain list of exports: %s\n",
+             nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (count == 0 && json_output)
+    printf ("\t\"exports\": []\n");
+
+  for (i = 0; i < count; ++i) {
     char *name, *desc, *new_path, *new_uri;
     struct nbd_handle *nbd2;
 
@@ -453,7 +467,7 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
 
       /* List the metadata of this export. */
       desc = nbd_get_list_export_description (nbd1, i);
-      list_one_export (nbd2, desc);
+      list_one_export (nbd2, desc, i == 0, i + 1 == count);
 
       nbd_close (nbd2);
       free (new_uri);
