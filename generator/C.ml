@@ -620,9 +620,7 @@ let generate_lib_api_c () =
       | Fd n | Int n -> pr ", %s" n
       | Int64 n -> pr ", %s" n
       | SockAddrAndLen (_, len) -> pr ", (int) %s" len
-      | Path n | String n ->
-         pr ", %s ? %s_printable ? %s_printable : \"\" : \"NULL\"" n n n
-      | StringList n ->
+      | Path n | String n | StringList n ->
          pr ", %s_printable ? %s_printable : \"\"" n n
       | UInt n | UInt32 n | UInt64 n -> pr ", %s" n
     ) args;
@@ -651,7 +649,7 @@ let generate_lib_api_c () =
     pr "  if_debug (h) {\n";
     let errcode = errcode_of_ret ret in
     (match errcode with
-     | Some r -> 
+     | Some r ->
         pr "    if (ret == %s)\n" r;
      | None ->
         pr "    if (0)\n";
@@ -671,7 +669,7 @@ let generate_lib_api_c () =
      | RBool | RErr | RFd | RInt -> pr "\"%%d\", ret"
      | RInt64 | RCookie -> pr "\"%%\" PRIi64 \"\", ret"
      | RStaticString | RString ->
-        pr "\"\\\"%%s\\\"\", ret_printable ? ret_printable : \"\""
+        pr "\"%%s\", ret_printable ? ret_printable : \"\""
      | RUInt -> pr "\"%%u\", ret"
     );
     pr ");\n";

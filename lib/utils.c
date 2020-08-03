@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -218,6 +218,11 @@ static void
 printable_string (const char *str, FILE *fp)
 {
   size_t i, n, truncated;
+
+  if (str == NULL) {
+    fprintf (fp, "NULL");
+    return;
+  }
 
   n = strlen (str);
   if (n > 512) {
