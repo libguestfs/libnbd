@@ -34,7 +34,7 @@ cleanup_fn rm -f $img $out $pid $sock
 rm -f $img $out $pid $sock
 
 truncate -s 1M $img
-qemu-nbd -t --socket=$sock --pid-file=$pid -x "hello" -D "world" $img &
+qemu-nbd -e2 -t --socket=$sock --pid-file=$pid -x "hello" -D "world" $img &
 cleanup_fn kill $!
 
 # Wait for qemu-nbd to start up.
@@ -49,7 +49,16 @@ if ! test -f $pid; then
     exit 1
 fi
 
+# Test twice, once with an export name not on the list,...
 $VG nbdinfo "nbd+unix://?socket=$sock" --list --json > $out
+jq . < $out
+
+grep '"export-name": "hello"' $out
+grep '"description": "world"' $out
+grep '"export-size": 1048576' $out
+
+# ...and again with the export name included
+$VG nbdinfo "nbd+unix:///hello?socket=$sock" --list --json > $out
 jq . < $out
 
 grep '"export-name": "hello"' $out

@@ -649,7 +649,7 @@ Return true if list exports mode was enabled on this handle.";
   "get_nr_list_exports", {
     default_call with
     args = []; ret = RInt;
-    permitted_states = [ Closed; Dead ];
+    permitted_states = [ Connected; Closed; Dead ];
     shortdesc = "return the number of exports returned by the server";
     longdesc = "\
 If list exports mode was enabled on the handle and you connected
@@ -663,7 +663,7 @@ C<nbd_set_list_exports>.";
   "get_list_export_name", {
     default_call with
     args = [ Int "i" ]; ret = RString;
-    permitted_states = [ Closed; Dead ];
+    permitted_states = [ Connected; Closed; Dead ];
     shortdesc = "return the i'th export name";
     longdesc = "\
 If list exports mode was enabled on the handle and you connected
@@ -675,7 +675,7 @@ from the list returned by the server.";
   "get_list_export_description", {
     default_call with
     args = [ Int "i" ]; ret = RString;
-    permitted_states = [ Closed; Dead ];
+    permitted_states = [ Connected; Closed; Dead ];
     shortdesc = "return the i'th export description";
     longdesc = "\
 If list exports mode was enabled on the handle and you connected
