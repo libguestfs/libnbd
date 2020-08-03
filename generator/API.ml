@@ -1167,6 +1167,7 @@ the server does not."
   "can_df", {
     default_call with
     args = []; ret = RBool;
+    permitted_states = [ Connected; Closed ];
     shortdesc = "does the server support the don't fragment flag to pread?";
     longdesc = "\
 Returns true if the server supports structured reads with an
