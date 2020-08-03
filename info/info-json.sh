@@ -29,7 +29,7 @@ out=info-json.out
 cleanup_fn rm -f $out
 
 nbdkit -U - floppy . --run '$VG nbdinfo --json "$uri"' > $out
-cat $out
+jq . < $out
 test $( jq -r '.protocol' < $out ) != "newstyle"
 test $( jq -r '.exports[0]."export-size"' < $out ) != "null"
 test $( jq -r '.exports[0].is_read_only' < $out ) = "true"

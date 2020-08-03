@@ -24,6 +24,7 @@ set -x
 # XXX Use nbdkit + --run when available, see TODO.
 requires qemu-nbd --version
 requires truncate --version
+requires jq --version
 
 img=info-list-json.img
 out=info-list-json.out
@@ -49,7 +50,7 @@ if ! test -f $pid; then
 fi
 
 $VG nbdinfo "nbd+unix://?socket=$sock" --list --json > $out
-cat $out
+jq . < $out
 
 grep '"export-name": "hello"' $out
 grep '"description": "world"' $out
