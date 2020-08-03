@@ -222,6 +222,12 @@ main (int argc, char *argv[])
     protocol = nbd_get_protocol (nbd);
     tls_negotiated = nbd_get_tls_negotiated (nbd);
 
+    /* Disconnect from the server to move the handle into a closed
+     * state, in case the server serializes further connections; but
+     * ignore errors as the connection may already be dead.
+     */
+    nbd_shutdown (nbd, 0);
+
     if (!json_output) {
       if (protocol) {
         printf ("protocol: %s", protocol);

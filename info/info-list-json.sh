@@ -34,7 +34,7 @@ cleanup_fn rm -f $img $out $pid $sock
 rm -f $img $out $pid $sock
 
 truncate -s 1M $img
-qemu-nbd -e2 -t --socket=$sock --pid-file=$pid -x "hello" -D "world" $img &
+qemu-nbd -t --socket=$sock --pid-file=$pid -x "hello" -D "world" $img &
 cleanup_fn kill $!
 
 # Wait for qemu-nbd to start up.
