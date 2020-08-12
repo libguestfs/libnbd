@@ -272,7 +272,7 @@ C<\"nbd2\">, etc.";
   "set_export_name", {
     default_call with
     args = [ String "export_name" ]; ret = RErr;
-    permitted_states = [ Created ];
+    permitted_states = [ Created; Negotiating ];
     shortdesc = "set the export name";
     longdesc = "\
 For servers which require an export name or can serve different
@@ -287,7 +287,7 @@ The encoding of export names is always UTF-8.
 
 This call may be skipped if using L<nbd_connect_uri(3)> to connect
 to a URI that includes an export name.";
-  see_also = [Link "get_export_name"; Link "connect_uri"];
+    see_also = [Link "get_export_name"; Link "connect_uri"];
   };
 
   "get_export_name", {
@@ -307,7 +307,7 @@ of an empty string C<\"\">)";
   "set_full_info", {
     default_call with
     args = [Bool "request"]; ret = RErr;
-    permitted_states = [ Created ];
+    permitted_states = [ Created; Negotiating ];
     shortdesc = "control whether NBD_OPT_GO requests extra details";
     longdesc = "\
 By default, when connecting to an export, libnbd only requests the
@@ -441,7 +441,7 @@ on a particular connection use L<nbd_get_tls_negotiated(3)> instead.";
   "get_tls_negotiated", {
     default_call with
     args = []; ret = RBool;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "find out if TLS was negotiated on a connection";
     longdesc = "\
 After connecting you may call this to find out if the
@@ -610,7 +610,7 @@ L<nbd_get_structured_replies_negotiated(3)> instead.";
   "get_structured_replies_negotiated", {
     default_call with
     args = []; ret = RBool;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "see if structured replies are in use";
     longdesc = "\
 After connecting you may call this to find out if the connection is
@@ -735,7 +735,7 @@ Return true if list exports mode was enabled on this handle.";
   "get_nr_list_exports", {
     default_call with
     args = []; ret = RInt;
-    permitted_states = [ Connected; Closed; Dead ];
+    permitted_states = [ Negotiating; Connected; Closed; Dead ];
     shortdesc = "return the number of exports returned by the server";
     longdesc = "\
 If list exports mode was enabled on the handle and you connected
@@ -749,7 +749,7 @@ L<nbd_set_list_exports(3)>.";
   "get_list_export_name", {
     default_call with
     args = [ Int "i" ]; ret = RString;
-    permitted_states = [ Connected; Closed; Dead ];
+    permitted_states = [ Negotiating; Connected; Closed; Dead ];
     shortdesc = "return the i'th export name";
     longdesc = "\
 If list exports mode was enabled on the handle and you connected
@@ -761,7 +761,7 @@ from the list returned by the server.";
   "get_list_export_description", {
     default_call with
     args = [ Int "i" ]; ret = RString;
-    permitted_states = [ Connected; Closed; Dead ];
+    permitted_states = [ Negotiating; Connected; Closed; Dead ];
     shortdesc = "return the i'th export description";
     longdesc = "\
 If list exports mode was enabled on the handle and you connected
@@ -776,7 +776,7 @@ is set with I<-D>.";
   "add_meta_context", {
     default_call with
     args = [ String "name" ]; ret = RErr;
-    permitted_states = [ Created ];
+    permitted_states = [ Created; Negotiating ];
     shortdesc = "ask server to negotiate metadata context";
     longdesc = "\
 During connection libnbd can negotiate zero or more metadata
@@ -885,10 +885,14 @@ parameter in NBD URIs is allowed.";
     shortdesc = "connect to NBD URI";
     longdesc = "\
 Connect (synchronously) to an NBD server and export by specifying
-the NBD URI.  This call parses the URI and may call
+the NBD URI.  This call parses the URI and calls
 L<nbd_set_export_name(3)> and L<nbd_set_tls(3)> and other
-calls as needed, followed by
-L<nbd_connect_tcp(3)> or L<nbd_connect_unix(3)>.
+calls as needed, followed by L<nbd_connect_tcp(3)> or
+L<nbd_connect_unix(3)>.  However, it is possible to override the
+export name portion of a URI by using C<nbd_set_opt_mode> to
+enable option mode, then using L<nbd_set_export_name(3)> as part
+of later negotiation.
+
 This call returns when the connection has been made.
 
 =head2 Example URIs supported
@@ -1027,7 +1031,8 @@ test whether this is the case with L<nbd_supports_uri(3)>.
 Support for URIs that require TLS will fail if libnbd was not
 compiled with gnutls; you can test whether this is the case
 with L<nbd_supports_tls(3)>.";
-    see_also = [URLLink "https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md"];
+    see_also = [URLLink "https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md";
+                Link "set_export_name"; Link "set_tls"];
   };
 
   "connect_unix", {
@@ -1326,7 +1331,7 @@ are free to pass in other contexts."
   "get_protocol", {
     default_call with
     args = []; ret = RStaticString;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "return the NBD protocol variant";
     longdesc = "\
 Return the NBD protocol variant in use on the connection.  At

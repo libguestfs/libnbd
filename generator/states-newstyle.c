@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -136,6 +136,11 @@ STATE_MACHINE {
     return 0;
   }
 
+  if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0)
+    h->protocol = "newstyle";
+  else
+    h->protocol = "newstyle-fixed";
+
   cflags = h->gflags;
   h->sbuf.cflags = htobe32 (cflags);
   h->wbuf = &h->sbuf;
@@ -156,11 +161,6 @@ STATE_MACHINE {
   return 0;
 
  NEWSTYLE.FINISHED:
-  if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0)
-    h->protocol = "newstyle";
-  else
-    h->protocol = "newstyle-fixed";
-
   SET_NEXT_STATE (%.READY);
   return 0;
 
