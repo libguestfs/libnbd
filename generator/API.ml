@@ -90,6 +90,7 @@ and flags = {
 and permitted_state =
 | Created
 | Connecting
+| Negotiating
 | Connected
 | Closed | Dead
 and link =
@@ -2136,6 +2137,21 @@ issue commands (see L<nbd_aio_is_ready(3)>).";
     see_also = [Link "aio_is_ready"];
   };
 
+  "aio_is_negotiating", {
+    default_call with
+    args = []; ret = RBool; is_locked = false; may_set_error = false;
+    shortdesc = "check if connection is ready to send handshake option";
+    longdesc = "\
+Return true if this connection is ready to start another option
+negotiation command while handshaking with the server.  An option
+command will move back to the connecting state (see
+L<nbd_aio_is_connecting(3)>).  Note that this state cannot be
+reached unless requested by nbd_set_opt_mode, and even then
+it only works with newstyle servers; an oldstyle server will skip
+straight to L<nbd_aio_is_ready(3)>.";
+    see_also = [Link "aio_is_connecting"; Link "aio_is_ready"];
+  };
+
   "aio_is_ready", {
     default_call with
     args = []; ret = RBool; is_locked = false; may_set_error = false;
@@ -2444,6 +2460,7 @@ let first_version = [
   "get_full_info", (1, 4);
   "get_canonical_export_name", (1, 4);
   "get_export_description", (1, 4);
+  "aio_is_negotiating", (1, 4);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

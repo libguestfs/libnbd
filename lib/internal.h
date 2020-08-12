@@ -410,6 +410,7 @@ extern int nbd_internal_set_block_size (struct nbd_handle *h, uint32_t min,
 /* is-state.c */
 extern bool nbd_internal_is_state_created (enum state state);
 extern bool nbd_internal_is_state_connecting (enum state state);
+extern bool nbd_internal_is_state_negotiating (enum state state);
 extern bool nbd_internal_is_state_ready (enum state state);
 extern bool nbd_internal_is_state_processing (enum state state);
 extern bool nbd_internal_is_state_dead (enum state state);

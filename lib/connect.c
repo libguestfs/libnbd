@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,7 +40,8 @@
 static int
 error_unless_ready (struct nbd_handle *h)
 {
-  if (nbd_internal_is_state_ready (get_next_state (h)))
+  if (nbd_internal_is_state_ready (get_next_state (h)) ||
+      nbd_internal_is_state_negotiating (get_next_state (h)))
     return 0;
 
   /* Why did it fail? */

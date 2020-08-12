@@ -102,6 +102,7 @@ and flags = {
 and permitted_state =
 | Created                  (** can be called in the START state *)
 | Connecting               (** can be called when connecting/handshaking *)
+| Negotiating              (** can be called when handshaking in opt_mode *)
 | Connected                (** when connected and READY or processing, but
                                not including CLOSED or DEAD *)
 | Closed | Dead            (** can be called when the handle is

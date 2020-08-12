@@ -397,7 +397,8 @@ let permitted_state_text permitted_states =
          function
          | Created -> "newly created"
          | Connecting -> "connecting"
-         | Connected -> "connected and finished handshaking with the server"
+         | Negotiating -> "negotiating"
+         | Connected -> "connected with the server"
          | Closed -> "shut down"
          | Dead -> "dead"
        ) permitted_states
@@ -421,6 +422,7 @@ let generate_lib_api_c () =
           function
           | Created -> "nbd_internal_is_state_created (state)"
           | Connecting -> "nbd_internal_is_state_connecting (state)"
+          | Negotiating -> "nbd_internal_is_state_negotiating (state)"
           | Connected -> "nbd_internal_is_state_ready (state) || nbd_internal_is_state_processing (state)"
           | Closed -> "nbd_internal_is_state_closed (state)"
           | Dead -> "nbd_internal_is_state_dead (state)"

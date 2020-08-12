@@ -102,6 +102,13 @@ let rec state_machine = [
 
   State {
     default_state with
+    name = "NEGOTIATING";
+    comment = "Connection is ready to negotiate an NBD option";
+    external_events = [ CmdIssue, "NEWSTYLE.START" ];
+  };
+
+  State {
+    default_state with
     name = "READY";
     comment = "Connection is ready to process NBD commands";
     external_events = [ CmdIssue, "ISSUE_COMMAND.START";

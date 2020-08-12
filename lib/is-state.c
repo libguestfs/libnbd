@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -56,6 +56,12 @@ nbd_internal_is_state_connecting (enum state state)
   enum state_group group = nbd_internal_state_group (state);
 
   return is_connecting_group (group);
+}
+
+bool
+nbd_internal_is_state_negotiating (enum state state)
+{
+  return state == STATE_NEGOTIATING;
 }
 
 bool
@@ -118,6 +124,12 @@ int
 nbd_unlocked_aio_is_connecting (struct nbd_handle *h)
 {
   return nbd_internal_is_state_connecting (get_public_state (h));
+}
+
+int
+nbd_unlocked_aio_is_negotiating (struct nbd_handle *h)
+{
+  return nbd_internal_is_state_negotiating (get_public_state (h));
 }
 
 int
