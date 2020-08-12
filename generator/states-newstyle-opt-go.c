@@ -22,6 +22,7 @@ STATE_MACHINE {
  NEWSTYLE.OPT_GO.START:
   uint16_t nrinfos = h->full_info ? 3 : 1;
 
+  assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (NBD_OPT_GO);
   h->sbuf.option.optlen =

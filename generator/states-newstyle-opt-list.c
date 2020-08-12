@@ -23,6 +23,7 @@
 
 STATE_MACHINE {
  NEWSTYLE.OPT_LIST.START:
+  assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
   if (!h->list_exports) {
     SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
     return 0;

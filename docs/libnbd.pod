@@ -447,6 +447,40 @@ subprocess.  This works very similarly to L<nbd_connect_command(3)>
 described above, but you must use
 L<nbd_connect_systemd_socket_activation(3)> instead.
 
+=head1 CONTROLLING NEGOTIATION
+
+By default, when beginning a connection, libnbd will handle all
+negotiation with the server, using only the configuration
+(eg. L<nbd_set_export_name(3)> or L<nbd_add_meta_context(3)>) that was
+requested before the connection attempt; this phase continues until
+L<nbd_aio_is_connecting(3)> no longer returns true, at which point,
+either data commands are ready to use or else the connection has
+failed with an error.
+
+But there are scenarios in which it is useful to also control the
+handshaking commands sent during negotiation, such as asking the
+server for a list of available exports prior to selecting which one to
+use.  This is done by calling L<nbd_set_opt_mode(3)> before
+connecting; then after requesting a connection, the state machine will
+pause at L<nbd_aio_is_negotiating(3)> at any point that the user can
+decide which handshake command to send next.  Note that the
+negotiation state is only reachable from newstyle servers; older
+servers cannot negotiate and will progress all the way to the ready
+state.
+
+When the negotiating state is reached, you can initiate option
+commands such as L<nbd_opt_list(3)> or their asynchronous equivalents,
+as well as alter configuration such as export name that previously had
+to be set before connection.  Since the NBD protocol does not allow
+parallel negotiating commands, no cookie is involved, and you can
+track completion of each command when the state is no longer
+L<nbd_aio_is_connecting(3)>.  If L<nbd_opt_go(3)> fails but the
+connection is still live, you will be back in negotiation state, where
+you can request a different export name and try again.  Exiting the
+negotiation state is only possible with a successful L<nbd_opt_go(3)>
+which moves to the data phase, or L<nbd_opt_abort(3)> which performs a
+clean shutdown of the connection by skipping the data phase.
+
 =head1 EXPORTS AND FLAGS
 
 It is possible for NBD servers to serve different content on different
@@ -562,8 +596,8 @@ L<https://github.com/libguestfs/libnbd/blob/master/interop/dirty-bitmap.c>
 =head2 Issuing multiple in-flight requests
 
 NBD servers which properly implement the specification can handle
-multiple requests in flight over the same connection at the same time.
-Libnbd supports this when using the low level API.
+multiple data requests in flight over the same connection at the same
+time.  Libnbd supports this when using the low level API.
 
 To use it you simply issue more requests as needed (eg. using calls
 like L<nbd_aio_pread(3)>, L<nbd_aio_pwrite(3)>) without waiting for previous

@@ -20,6 +20,7 @@
 
 STATE_MACHINE {
  NEWSTYLE.OPT_STARTTLS.START:
+  assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
   /* If TLS was not requested we skip this option and go to the next one. */
   if (h->tls == LIBNBD_TLS_DISABLE) {
     SET_NEXT_STATE (%^OPT_LIST.START);

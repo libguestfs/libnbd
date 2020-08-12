@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,6 +27,7 @@ STATE_MACHINE {
    * Also we skip the group if the client didn't request any metadata
    * contexts.
    */
+  assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
   if (!h->structured_replies ||
       h->request_meta_contexts == NULL ||
       nbd_internal_string_list_length (h->request_meta_contexts) == 0) {

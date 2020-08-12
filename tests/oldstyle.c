@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -106,18 +106,26 @@ main (int argc, char *argv[])
   }
   nbd_close (nbd);
 
-  /* Now for a working connection */
+  /* Now for a working connection. Requesting an export name and opt_mode
+   * have no effects.
+   */
   nbd = nbd_create ();
-  if (nbd == NULL) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-  if (nbd_connect_command (nbd, args) == -1) {
+  if (nbd == NULL ||
+      nbd_set_opt_mode (nbd, true) == -1 ||
+      nbd_add_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION) == -1 ||
+      nbd_set_export_name (nbd, "ignored") == -1 ||
+      nbd_connect_command (nbd, args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
-  /* Protocol should be "oldstyle", with no structured replies. */
+  /* Protocol should be "oldstyle", with no structured replies or meta
+   * contexts.
+   */
+  if (nbd_aio_is_ready (nbd) != true) {
+    fprintf (stderr, "unexpected state after connection\n");
+    exit (EXIT_FAILURE);
+  }
   s = nbd_get_protocol (nbd);
   if (strcmp (s, "oldstyle") != 0) {
     fprintf (stderr,
@@ -127,6 +135,11 @@ main (int argc, char *argv[])
   if ((r = nbd_get_structured_replies_negotiated (nbd)) != 0) {
     fprintf (stderr,
              "incorrect structured replies %" PRId64 ", expected 0\n", r);
+    exit (EXIT_FAILURE);
+  }
+  if ((r = nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION)) != 0) {
+    fprintf (stderr,
+             "incorrect meta context %" PRId64 ", expected 0\n", r);
     exit (EXIT_FAILURE);
   }
 

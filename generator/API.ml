@@ -681,6 +681,40 @@ the time of compilation.";
                 Link "aio_is_created"; Link "aio_is_ready"];
   };
 
+  "set_opt_mode", {
+    default_call with
+    args = [Bool "enable"]; ret = RErr;
+    permitted_states = [ Created ];
+    shortdesc = "control option mode, for pausing during option negotiation";
+    longdesc = "\
+Set this flag to true in order to request that a connection command
+C<nbd_connect_*> will pause for negotiation options rather than
+proceeding all the way to the ready state, when communicating with a
+newstyle server.  This setting has no effect when connecting to an
+oldstyle server.
+
+When option mode is enabled, you have fine-grained control over which
+options are negotiated, compared to the default of the server
+negotiating everything on your behalf using settings made before
+starting the connection.  To leave the mode and proceed on to the
+ready state, you must use nbd_opt_go successfully; a failed
+C<nbd_opt_go> returns to the negotiating state to allow a change of
+export name before trying again.  You may also use nbd_opt_abort
+to end the connection without finishing negotiation.";
+    example = Some "examples/list-exports.c";
+    see_also = [Link "get_opt_mode"; Link "aio_is_negotiating"];
+  };
+
+  "get_opt_mode", {
+    default_call with
+    args = []; ret = RBool;
+    may_set_error = false;
+    shortdesc = "return whether option mode was enabled";
+    longdesc = "\
+Return true if option negotiation mode was enabled on this handle.";
+    see_also = [Link "set_opt_mode"];
+  };
+
   "set_list_exports", {
     default_call with
     args = [Bool "list"]; ret = RErr;
@@ -889,7 +923,7 @@ the NBD URI.  This call parses the URI and calls
 L<nbd_set_export_name(3)> and L<nbd_set_tls(3)> and other
 calls as needed, followed by L<nbd_connect_tcp(3)> or
 L<nbd_connect_unix(3)>.  However, it is possible to override the
-export name portion of a URI by using C<nbd_set_opt_mode> to
+export name portion of a URI by using L<nbd_set_opt_mode(3)> to
 enable option mode, then using L<nbd_set_export_name(3)> as part
 of later negotiation.
 
@@ -1032,7 +1066,8 @@ Support for URIs that require TLS will fail if libnbd was not
 compiled with gnutls; you can test whether this is the case
 with L<nbd_supports_tls(3)>.";
     see_also = [URLLink "https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md";
-                Link "set_export_name"; Link "set_tls"];
+                Link "set_export_name"; Link "set_tls";
+                Link "set_opt_mode"];
   };
 
   "connect_unix", {
@@ -2151,10 +2186,11 @@ Return true if this connection is ready to start another option
 negotiation command while handshaking with the server.  An option
 command will move back to the connecting state (see
 L<nbd_aio_is_connecting(3)>).  Note that this state cannot be
-reached unless requested by nbd_set_opt_mode, and even then
+reached unless requested by L<nbd_set_opt_mode(3)>, and even then
 it only works with newstyle servers; an oldstyle server will skip
 straight to L<nbd_aio_is_ready(3)>.";
-    see_also = [Link "aio_is_connecting"; Link "aio_is_ready"];
+    see_also = [Link "aio_is_connecting"; Link "aio_is_ready";
+                Link "set_opt_mode"];
   };
 
   "aio_is_ready", {
@@ -2465,6 +2501,8 @@ let first_version = [
   "get_full_info", (1, 4);
   "get_canonical_export_name", (1, 4);
   "get_export_description", (1, 4);
+  "set_opt_mode", (1, 4);
+  "get_opt_mode", (1, 4);
   "aio_is_negotiating", (1, 4);
 
   (* These calls are proposed for a future version of libnbd, but

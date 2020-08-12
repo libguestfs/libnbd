@@ -99,6 +99,9 @@ struct nbd_handle {
   int uri_allow_tls;
   bool uri_allow_local_file;
 
+  /* Option negotiation mode. */
+  bool opt_mode;
+
   /* List exports mode. */
   bool list_exports;
   size_t nr_exports;
