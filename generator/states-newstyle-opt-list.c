@@ -97,7 +97,7 @@ STATE_MACHINE {
       }
       exp.description = strndup (h->sbuf.or.payload.server.str + elen,
                                  len - 4 - elen);
-      if (exp.name == NULL) {
+      if (exp.description == NULL) {
         set_error (errno, "strdup");
         free (exp.name);
         SET_NEXT_STATE (%.DEAD);
