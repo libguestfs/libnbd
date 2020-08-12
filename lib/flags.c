@@ -196,6 +196,12 @@ nbd_unlocked_can_meta_context (struct nbd_handle *h, const char *name)
 {
   struct meta_context *meta_context;
 
+  if (h->eflags == 0) {
+    set_error (EINVAL, "server has not returned export flags, "
+               "you need to connect to the server first");
+    return -1;
+  }
+
   for (meta_context = h->meta_contexts;
        meta_context;
        meta_context = meta_context->next)
@@ -222,6 +228,12 @@ nbd_unlocked_get_size (struct nbd_handle *h)
 int64_t
 nbd_unlocked_get_block_size (struct nbd_handle *h, int type)
 {
+  if (h->eflags == 0) {
+    set_error (EINVAL, "server has not returned export flags, "
+               "you need to connect to the server first");
+    return -1;
+  }
+
   switch (type) {
   case LIBNBD_SIZE_MINIMUM:
     return h->block_minimum;

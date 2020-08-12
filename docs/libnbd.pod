@@ -493,6 +493,10 @@ Note that there are some servers (like L<nbdkit(1)> E<le> 1.14) which
 ignore this, and other servers (like L<qemu-nbd(8)>) which require it
 to be set correctly but cannot serve different content.
 
+These APIs are also available after a successful L<nbd_opt_info(3)>
+during the negotiation phase, if you used L<nbd_set_opt_mode(3)> prior
+to connecting.
+
 =head2 Flag calls
 
 After connecting the server will send back a set of flags describing

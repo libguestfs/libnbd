@@ -36,6 +36,7 @@ EXTRA_DIST = \
 	functions.sh.in \
 	make-pki.sh \
 	meta-base-allocation.sh \
+	opt-info.sh \
 	opt-list.sh \
 	synch-parallel.sh \
 	synch-parallel-tls.sh \
@@ -166,6 +167,7 @@ check_PROGRAMS += \
 	newstyle-limited \
 	opt-abort \
 	opt-list \
+	opt-info \
 	connect-unix \
 	connect-tcp \
 	aio-parallel \
@@ -203,6 +205,7 @@ TESTS += \
 	newstyle-limited \
 	opt-abort \
 	opt-list \
+	opt-info \
 	connect-unix \
 	connect-tcp \
 	aio-parallel.sh \
@@ -390,6 +393,14 @@ opt_list_CPPFLAGS = \
 	$(NULL)
 opt_list_CFLAGS = $(WARNINGS_CFLAGS)
 opt_list_LDADD = $(top_builddir)/lib/libnbd.la
+
+opt_info_SOURCES = opt-info.c
+opt_info_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DSCRIPT='"$(abs_srcdir)/opt-info.sh"' \
+	$(NULL)
+opt_info_CFLAGS = $(WARNINGS_CFLAGS)
+opt_info_LDADD = $(top_builddir)/lib/libnbd.la
 
 connect_unix_SOURCES = connect-unix.c
 connect_unix_CPPFLAGS = -I$(top_srcdir)/include

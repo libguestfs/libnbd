@@ -119,6 +119,7 @@ STATE_MACHINE {
      */
     switch (h->opt_current) {
     case NBD_OPT_GO:
+    case NBD_OPT_INFO:
       if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0)
         SET_NEXT_STATE (%OPT_EXPORT_NAME.START);
       else

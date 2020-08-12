@@ -173,6 +173,7 @@ Makefile.in
 /tests/newstyle-limited
 /tests/oldstyle
 /tests/opt-abort
+/tests/opt-info
 /tests/opt-list
 /tests/pki/
 /tests/read-only-flag

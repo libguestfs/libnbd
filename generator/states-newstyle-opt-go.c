@@ -23,8 +23,15 @@ STATE_MACHINE {
   uint16_t nrinfos = h->full_info ? 3 : 1;
 
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
+  if (h->opt_current == NBD_OPT_INFO)
+    assert (h->opt_mode);
+  else if (!h->opt_current) {
+    assert (!h->opt_mode);
+    assert(CALLBACK_IS_NULL(h->opt_cb.completion));
+    h->opt_current = NBD_OPT_GO;
+  }
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
-  h->sbuf.option.option = htobe32 (NBD_OPT_GO);
+  h->sbuf.option.option = htobe32 (h->opt_current);
   h->sbuf.option.optlen =
     htobe32 (/* exportnamelen */ 4 + strlen (h->export_name)
              + sizeof nrinfos + 2 * nrinfos);
@@ -101,7 +108,7 @@ STATE_MACHINE {
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
-    if (prepare_for_reply_payload (h, NBD_OPT_GO) == -1) {
+    if (prepare_for_reply_payload (h, h->opt_current) == -1) {
       SET_NEXT_STATE (%.DEAD);
       return 0;
     }
@@ -206,9 +213,12 @@ STATE_MACHINE {
     SET_NEXT_STATE (%RECV_REPLY);
     return 0;
   case NBD_REP_ERR_UNSUP:
-    debug (h, "server is confused by NBD_OPT_GO, continuing anyway");
-    SET_NEXT_STATE (%^OPT_EXPORT_NAME.START);
-    return 0;
+    if (h->opt_current == NBD_OPT_GO) {
+      debug (h, "server is confused by NBD_OPT_GO, continuing anyway");
+      SET_NEXT_STATE (%^OPT_EXPORT_NAME.START);
+      return 0;
+    }
+    /* fallthrough */
   default:
     if (handle_reply_error (h) == -1) {
       SET_NEXT_STATE (%.DEAD);
@@ -216,6 +226,10 @@ STATE_MACHINE {
     }
     /* Decode expected known errors into a nicer string */
     switch (reply) {
+    case NBD_REP_ERR_UNSUP:
+      assert (h->opt_current == NBD_OPT_INFO);
+      set_error (ENOTSUP, "handshake: server lacks NBD_OPT_INFO support");
+      break;
     case NBD_REP_ERR_POLICY:
     case NBD_REP_ERR_PLATFORM:
       set_error (0, "handshake: server policy prevents NBD_OPT_GO");
@@ -249,7 +263,7 @@ STATE_MACHINE {
     break;
   }
 
-  if (err == 0)
+  if (err == 0 && h->opt_current == NBD_OPT_GO)
     SET_NEXT_STATE (%^FINISHED);
   else if (h->opt_mode)
     SET_NEXT_STATE (%.NEGOTIATING);

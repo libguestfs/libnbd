@@ -294,12 +294,14 @@ before beginning a connection.  However, when L<nbd_set_opt_mode(3)>
 has enabled option mode, it is possible to change the export
 name prior to L<nbd_opt_go(3)>.  In particular, the use of
 L<nbd_opt_list(3)> during negotiation can be used to determine
-a name the server is likely to accept.
+a name the server is likely to accept, and L<nbd_opt_info(3)> can
+be used to learn details about an export before connecting.
 
 This call may be skipped if using L<nbd_connect_uri(3)> to connect
 to a URI that includes an export name.";
     see_also = [Link "get_export_name"; Link "connect_uri";
-                Link "set_opt_mode"; Link "opt_go"; Link "opt_list"];
+                Link "set_opt_mode"; Link "opt_go"; Link "opt_list";
+                Link "opt_info"];
   };
 
   "get_export_name", {
@@ -353,7 +355,7 @@ Return the state of the full info request flag on this handle.";
   "get_canonical_export_name", {
     default_call with
     args = []; ret = RString;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "return the canonical export name, if the server has one";
     longdesc = "\
 The NBD protocol permits a server to report an optional canonical
@@ -367,13 +369,14 @@ C<\"\">).
 Some servers are unlikely to report a canonical name unless the
 client specifically hinted about wanting it, via L<nbd_set_full_info(3)>.";
     example = Some "examples/server-flags.c";
-    see_also = [Link "set_full_info"; Link "get_export_name"];
+    see_also = [Link "set_full_info"; Link "get_export_name";
+                Link "opt_info"];
   };
 
   "get_export_description", {
     default_call with
     args = []; ret = RString;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "return the export description, if the server has one";
     longdesc = "\
 The NBD protocol permits a server to report an optional export
@@ -384,7 +387,7 @@ Some servers are unlikely to report a description unless the
 client specifically hinted about wanting it, via L<nbd_set_full_info(3)>.
 For L<qemu-nbd(8)>, a description is set with I<-D>.";
     example = Some "examples/server-flags.c";
-    see_also = [Link "set_full_info"];
+    see_also = [Link "set_full_info"; Link "opt_info"];
   };
 
   "set_tls", {
@@ -715,7 +718,8 @@ export name before trying again.  You may also use L<nbd_opt_abort(3)>
 to end the connection without finishing negotiation.";
     example = Some "examples/list-exports.c";
     see_also = [Link "get_opt_mode"; Link "aio_is_negotiating";
-                Link "opt_abort"; Link "opt_go"; Link "opt_list"];
+                Link "opt_abort"; Link "opt_go"; Link "opt_list";
+                Link "opt_info"];
   };
 
   "get_opt_mode", {
@@ -744,7 +748,7 @@ possible to attempt another option such as a different export name;
 although older servers will instead have killed the connection.";
     example = Some "examples/list-exports.c";
     see_also = [Link "set_opt_mode"; Link "aio_opt_go"; Link "opt_abort";
-                Link "set_export_name"; Link "connect_uri"];
+                Link "set_export_name"; Link "connect_uri"; Link "opt_info"];
   };
 
   "opt_abort", {
@@ -796,6 +800,30 @@ section of F</etc/nbd-server/config>.  For L<qemu-nbd(8)>, a
 description is set with I<-D>.";
     example = Some "examples/list-exports.c";
     see_also = [Link "set_opt_mode"; Link "aio_opt_list"; Link "opt_go";
+                Link "set_export_name"];
+  };
+
+  "opt_info", {
+    default_call with
+    args = []; ret = RErr;
+    permitted_states = [ Negotiating ];
+    shortdesc = "request the server for information about an export";
+    longdesc = "\
+Request that the server supply information about the export name
+previously specified by the most recent L<nbd_set_export_name(3)>
+or L<nbd_connect_uri(3)>.  This can only be used if
+L<nbd_set_opt_mode(3)> enabled option mode.
+
+If successful, functions like L<nbd_is_read_only(3)> and
+L<nbd_get_size(3)> will report details about that export.  In
+general, if L<nbd_opt_go(3)> is called next, that call will
+likely succeed with the details remaining the same, although this
+is not guaranteed by all servers.
+
+Not all servers understand this request, and even when it is
+understood, the server might fail the request even when a
+corresponding L<nbd_opt_go(3)> would succeed.";
+    see_also = [Link "set_opt_mode"; Link "aio_opt_info"; Link "opt_go";
                 Link "set_export_name"];
   };
 
@@ -1181,27 +1209,27 @@ is killed.";
   "is_read_only", {
     default_call with
     args = []; ret = RBool;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "is the NBD export read-only?";
     longdesc = "\
 Returns true if the NBD export is read-only; writes and
 write-like operations will fail."
 ^ non_blocking_test_call_description;
-    see_also = [SectionLink "Flag calls"];
+    see_also = [SectionLink "Flag calls"; Link "opt_info"];
     example = Some "examples/server-flags.c";
   };
 
   "can_flush", {
     default_call with
     args = []; ret = RBool;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "does the server support the flush command?";
     longdesc = "\
 Returns true if the server supports the flush command
 (see L<nbd_flush(3)>, L<nbd_aio_flush(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
-    see_also = [SectionLink "Flag calls";
+    see_also = [SectionLink "Flag calls"; Link "opt_info";
                 Link "flush"; Link "aio_flush"];
     example = Some "examples/server-flags.c";
   };
@@ -1209,13 +1237,13 @@ the server does not."
   "can_fua", {
     default_call with
     args = []; ret = RBool;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "does the server support the FUA flag?";
     longdesc = "\
 Returns true if the server supports the FUA flag on
 certain commands (see L<nbd_pwrite(3)>)."
 ^ non_blocking_test_call_description;
-    see_also = [SectionLink "Flag calls"; Link "pwrite";
+    see_also = [SectionLink "Flag calls"; Link "opt_info"; Link "pwrite";
                 Link "zero"; Link "trim"];
     example = Some "examples/server-flags.c";
   };
@@ -1223,7 +1251,7 @@ certain commands (see L<nbd_pwrite(3)>)."
   "is_rotational", {
     default_call with
     args = []; ret = RBool;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "is the NBD disk rotational (like a disk)?";
     longdesc = "\
 Returns true if the disk exposed over NBD is rotational
@@ -1231,21 +1259,21 @@ Returns true if the disk exposed over NBD is rotational
 the disk has no penalty for random access (like an SSD or
 RAM disk)."
 ^ non_blocking_test_call_description;
-    see_also = [SectionLink "Flag calls"];
+    see_also = [SectionLink "Flag calls"; Link "opt_info"];
     example = Some "examples/server-flags.c";
   };
 
   "can_trim", {
     default_call with
     args = []; ret = RBool;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "does the server support the trim command?";
     longdesc = "\
 Returns true if the server supports the trim command
 (see L<nbd_trim(3)>, L<nbd_aio_trim(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
-    see_also = [SectionLink "Flag calls";
+    see_also = [SectionLink "Flag calls"; Link "opt_info";
                 Link "trim"; Link "aio_trim"];
     example = Some "examples/server-flags.c";
   };
@@ -1253,14 +1281,14 @@ the server does not."
   "can_zero", {
     default_call with
     args = []; ret = RBool;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "does the server support the zero command?";
     longdesc = "\
 Returns true if the server supports the zero command
 (see L<nbd_zero(3)>, L<nbd_aio_zero(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
-    see_also = [SectionLink "Flag calls";
+    see_also = [SectionLink "Flag calls"; Link "opt_info";
                 Link "zero"; Link "aio_zero";
                 Link "can_fast_zero"];
     example = Some "examples/server-flags.c";
@@ -1269,7 +1297,7 @@ the server does not."
   "can_fast_zero", {
     default_call with
     args = []; ret = RBool;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "does the server support the fast zero flag?";
     longdesc = "\
 Returns true if the server supports the use of the
@@ -1277,7 +1305,7 @@ C<LIBNBD_CMD_FLAG_FAST_ZERO> flag to the zero command
 (see L<nbd_zero(3)>, L<nbd_aio_zero(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
-    see_also = [SectionLink "Flag calls";
+    see_also = [SectionLink "Flag calls"; Link "opt_info";
                 Link "zero"; Link "aio_zero"; Link "can_zero"];
     example = Some "examples/server-flags.c";
   };
@@ -1285,7 +1313,7 @@ the server does not."
   "can_df", {
     default_call with
     args = []; ret = RBool;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "does the server support the don't fragment flag to pread?";
     longdesc = "\
 Returns true if the server supports structured reads with an
@@ -1293,7 +1321,7 @@ ability to request a non-fragmented read (see L<nbd_pread_structured(3)>,
 L<nbd_aio_pread_structured(3)>).  Returns false if the server either lacks
 structured reads or if it does not support a non-fragmented read request."
 ^ non_blocking_test_call_description;
-    see_also = [SectionLink "Flag calls";
+    see_also = [SectionLink "Flag calls"; Link "opt_info";
                 Link "pread_structured";
                 Link "aio_pread_structured"];
     example = Some "examples/server-flags.c";
@@ -1302,7 +1330,7 @@ structured reads or if it does not support a non-fragmented read request."
   "can_multi_conn", {
     default_call with
     args = []; ret = RBool;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "does the server support multi-conn?";
     longdesc = "\
 Returns true if the server supports multi-conn.  Returns
@@ -1315,21 +1343,22 @@ way to check for this is to open one connection, check
 this flag is true, then open further connections as
 required."
 ^ non_blocking_test_call_description;
-    see_also = [SectionLink "Multi-conn"];
+    see_also = [SectionLink "Flag calls"; SectionLink "Multi-conn";
+                Link "opt_info"];
     example = Some "examples/server-flags.c";
   };
 
   "can_cache", {
     default_call with
     args = []; ret = RBool;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "does the server support the cache command?";
     longdesc = "\
 Returns true if the server supports the cache command
 (see L<nbd_cache(3)>, L<nbd_aio_cache(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
-    see_also = [SectionLink "Flag calls";
+    see_also = [SectionLink "Flag calls"; Link "opt_info";
                 Link "cache"; Link "aio_cache"];
     example = Some "examples/server-flags.c";
   };
@@ -1337,7 +1366,7 @@ the server does not."
   "can_meta_context", {
     default_call with
     args = [String "metacontext"]; ret = RBool;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "does the server support a specific meta context?";
     longdesc = "\
 Returns true if the server supports the given meta context
@@ -1350,7 +1379,7 @@ B<E<lt>libnbd.hE<gt>> includes defined constants for well-known
 namespace contexts beginning with C<LIBNBD_CONTEXT_>, but you
 are free to pass in other contexts."
 ^ non_blocking_test_call_description;
-    see_also = [SectionLink "Flag calls";
+    see_also = [SectionLink "Flag calls"; Link "opt_info";
                 Link "add_meta_context";
                 Link "block_status"; Link "aio_block_status"];
   };
@@ -1377,19 +1406,19 @@ Most modern NBD servers use C<\"newstyle-fixed\">.
   "get_size", {
     default_call with
     args = []; ret = RInt64;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "return the export size";
     longdesc = "\
 Returns the size in bytes of the NBD export."
 ^ non_blocking_test_call_description;
-    see_also = [SectionLink "Size of the export"];
+    see_also = [SectionLink "Size of the export"; Link "opt_info"];
     example = Some "examples/get-size.c";
   };
 
   "get_block_size", {
     default_call with
     args = [Enum ("size_type", block_size_enum)]; ret = RInt64;
-    permitted_states = [ Connected; Closed ];
+    permitted_states = [ Negotiating; Connected; Closed ];
     shortdesc = "return a specific server block size constraint";
     longdesc = "\
 Returns a specific size constraint advertised by the server, if any.  If
@@ -1432,7 +1461,7 @@ Future NBD extensions may result in additional C<size_type> values.
 "
 ^ non_blocking_test_call_description;
     see_also = [Link "get_protocol";
-                Link "get_size"]
+                Link "get_size"; Link "opt_info"]
   };
 
   "pread", {
@@ -1935,6 +1964,30 @@ server returns an error (as is done by the return value of the
 synchronous counterpart) is only possible with a completion
 callback.";
     see_also = [Link "set_opt_mode"; Link "opt_list"];
+  };
+
+  "aio_opt_info", {
+    default_call with
+    args = [];
+    optargs = [ OClosure completion_closure ];
+    ret = RErr;
+    permitted_states = [ Negotiating ];
+    shortdesc = "request the server for information about an export";
+    longdesc = "\
+Request that the server supply information about the export name
+previously specified by the most recent L<nbd_set_export_name(3)>
+or L<nbd_connect_uri(3)>.  This can only be used if
+L<nbd_set_opt_mode(3)> enabled option mode.
+
+To determine when the request completes, wait for
+L<nbd_aio_is_connecting(3)> to return false.  Or supply the optional
+C<completion_callback> which will be invoked as described in
+L<libnbd(3)/Completion callbacks>, except that it is automatically
+retired regardless of return value.  Note that detecting whether the
+server returns an error (as is done by the return value of the
+synchronous counterpart) is only possible with a completion
+callback.";
+    see_also = [Link "set_opt_mode"; Link "opt_info"; Link "is_read_only"];
   };
 
   "aio_pread", {
@@ -2556,9 +2609,11 @@ let first_version = [
   "opt_go", (1, 4);
   "opt_abort", (1, 4);
   "opt_list", (1, 4);
+  "opt_info", (1, 4);
   "aio_opt_go", (1, 4);
   "aio_opt_abort", (1, 4);
   "aio_opt_list", (1, 4);
+  "aio_opt_info", (1, 4);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.
