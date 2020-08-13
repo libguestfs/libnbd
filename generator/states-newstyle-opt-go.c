@@ -20,11 +20,13 @@
 
 STATE_MACHINE {
  NEWSTYLE.OPT_GO.START:
+  uint16_t nrinfos = h->full_info ? 3 : 1;
+
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (NBD_OPT_GO);
   h->sbuf.option.optlen =
     htobe32 (/* exportnamelen */ 4 + strlen (h->export_name)
-             + /* nrinfos */ 2 + /* INFO_BLOCK_SIZE */ 2);
+             + sizeof nrinfos + 2 * nrinfos);
   h->wbuf = &h->sbuf;
   h->wlen = sizeof h->sbuf.option;
   h->wflags = MSG_MORE;
@@ -57,23 +59,29 @@ STATE_MACHINE {
   return 0;
 
  NEWSTYLE.OPT_GO.SEND_EXPORT:
+  uint16_t nrinfos = h->full_info ? 3 : 1;
+
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
-    h->sbuf.nrinfos = htobe16 (1);
+    h->sbuf.nrinfos = htobe16 (nrinfos);
     h->wbuf = &h->sbuf;
-    h->wlen = 2;
+    h->wlen = sizeof h->sbuf.nrinfos;
     SET_NEXT_STATE (%SEND_NRINFOS);
   }
   return 0;
 
  NEWSTYLE.OPT_GO.SEND_NRINFOS:
+  uint16_t nrinfos = h->full_info ? 3 : 1;
+
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
-    h->sbuf.info = htobe16 (NBD_INFO_BLOCK_SIZE);
+    h->sbuf.info[0] = htobe16 (NBD_INFO_BLOCK_SIZE);
+    h->sbuf.info[1] = htobe16 (NBD_INFO_NAME);
+    h->sbuf.info[2] = htobe16 (NBD_INFO_DESCRIPTION);
     h->wbuf = &h->sbuf;
-    h->wlen = 2;
+    h->wlen = sizeof h->sbuf.info[0] * nrinfos;
     SET_NEXT_STATE (%SEND_INFO);
   }
   return 0;
@@ -154,8 +162,37 @@ STATE_MACHINE {
           return 0;
         }
         break;
+      case NBD_INFO_NAME:
+        if (len > sizeof h->sbuf.or.payload.name_desc.info + NBD_MAX_STRING ||
+            len < sizeof h->sbuf.or.payload.name_desc.info) {
+          SET_NEXT_STATE (%.DEAD);
+          set_error (0, "handshake: incorrect NBD_INFO_NAME option reply length");
+          return 0;
+        }
+        free (h->canonical_name);
+        h->canonical_name = strndup (h->sbuf.or.payload.name_desc.str, len - 2);
+        if (h->canonical_name == NULL) {
+          SET_NEXT_STATE (%.DEAD);
+          set_error (errno, "strndup");
+          return 0;
+        }
+        break;
+      case NBD_INFO_DESCRIPTION:
+        if (len > sizeof h->sbuf.or.payload.name_desc.info + NBD_MAX_STRING ||
+            len < sizeof h->sbuf.or.payload.name_desc.info) {
+          SET_NEXT_STATE (%.DEAD);
+          set_error (0, "handshake: incorrect NBD_INFO_DESCRIPTION option reply length");
+          return 0;
+        }
+        free (h->description);
+        h->description = strndup (h->sbuf.or.payload.name_desc.str, len - 2);
+        if (h->description == NULL) {
+          SET_NEXT_STATE (%.DEAD);
+          set_error (errno, "strndup");
+          return 0;
+        }
+        break;
       default:
-        /* XXX Handle other info types, like NBD_INFO_DESCRIPTION */
         debug (h, "skipping unknown NBD_REP_INFO type %d",
                be16toh (h->sbuf.or.payload.export.info));
         break;

@@ -104,6 +104,9 @@ struct nbd_handle {
   size_t nr_exports;
   struct export *exports;
 
+  /* Full info mode. */
+  bool full_info;
+
   /* Global flags from the server. */
   uint16_t gflags;
 
@@ -119,6 +122,10 @@ struct nbd_handle {
   uint32_t block_minimum;
   uint32_t block_preferred;
   uint32_t block_maximum;
+
+  /* Server canonical name and description, or NULL if not advertised. */
+  char *canonical_name;
+  char *description;
 
   /* Flags set by the state machine to tell what protocol and whether
    * TLS was negotiated.
@@ -181,6 +188,10 @@ struct nbd_handle {
         struct nbd_fixed_new_option_reply_info_export export;
         struct nbd_fixed_new_option_reply_info_block_size block_size;
         struct {
+          struct nbd_fixed_new_option_reply_info_name_or_desc info;
+          char str[NBD_MAX_STRING];
+        } __attribute__((packed)) name_desc;
+        struct {
           struct nbd_fixed_new_option_reply_meta_context context;
           char str[NBD_MAX_STRING];
         }  __attribute__((packed)) context;
@@ -205,7 +216,7 @@ struct nbd_handle {
     uint32_t cflags;
     uint32_t len;
     uint16_t nrinfos;
-    uint16_t info;
+    uint16_t info[3];
     uint32_t nrqueries;
   } sbuf;
 

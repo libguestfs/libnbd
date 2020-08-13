@@ -136,6 +136,8 @@ nbd_close (struct nbd_handle *h)
     free (h->exports[i].description);
   }
   free (h->exports);
+  free (h->canonical_name);
+  free (h->description);
   free_cmd_list (h->cmds_to_issue);
   free_cmd_list (h->cmds_in_flight);
   free_cmd_list (h->cmds_done);
@@ -230,6 +232,65 @@ nbd_unlocked_get_export_name (struct nbd_handle *h)
   }
 
   return copy;
+}
+
+int
+nbd_unlocked_set_full_info (struct nbd_handle *h, bool request)
+{
+  h->full_info = request;
+  return 0;
+}
+
+int
+nbd_unlocked_get_full_info (struct nbd_handle *h)
+{
+  return h->full_info;
+}
+
+char *
+nbd_unlocked_get_canonical_export_name (struct nbd_handle *h)
+{
+  char *r;
+
+  if (h->eflags == 0) {
+    set_error (EINVAL, "server has not returned export flags, "
+               "you need to connect to the server first");
+    return NULL;
+  }
+  if (h->canonical_name == NULL) {
+    set_error (ENOTSUP, "server did not advertise a canonical name");
+    return NULL;
+  }
+
+  r = strdup (h->canonical_name);
+  if (r == NULL) {
+    set_error (errno, "strdup");
+    return NULL;
+  }
+  return r;
+}
+
+char *
+nbd_unlocked_get_export_description (struct nbd_handle *h)
+{
+  char *r;
+
+  if (h->eflags == 0) {
+    set_error (EINVAL, "server has not returned export flags, "
+               "you need to connect to the server first");
+    return NULL;
+  }
+  if (h->description == NULL) {
+    set_error (ENOTSUP, "server did not advertise a description");
+    return NULL;
+  }
+
+  r = strdup (h->description);
+  if (r == NULL) {
+    set_error (errno, "strdup");
+    return NULL;
+  }
+  return r;
 }
 
 int

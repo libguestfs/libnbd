@@ -294,8 +294,81 @@ to a URI that includes an export name.";
     args = []; ret = RString;
     shortdesc = "get the export name";
     longdesc = "\
-Get the export name associated with the handle.";
-  see_also = [Link "set_export_name"; Link "connect_uri"];
+Get the export name associated with the handle.  This is the name
+that libnbd requests; see L<nbd_get_canonical_export_name(3)> for
+determining if the server has a different canonical name for the
+given export (most common when requesting the default export name
+of an empty string C<\"\">)";
+    see_also = [Link "set_export_name"; Link "connect_uri";
+                Link "get_canonical_export_name"];
+  };
+
+  "set_full_info", {
+    default_call with
+    args = [Bool "request"]; ret = RErr;
+    permitted_states = [ Created ];
+    shortdesc = "control whether NBD_OPT_GO requests extra details";
+    longdesc = "\
+By default, when connecting to an export, libnbd only requests the
+details it needs to service data operations.  The NBD protocol says
+that a server can supply optional information, such as a canonical
+name of the export (see L<nbd_get_canonical_export_name(3)>) or
+a description of the export (see L<nbd_get_export_description(3)>),
+but that a hint from the client makes it more likely for this
+extra information to be provided.  This function controls whether
+libnbd will provide that hint.
+
+Note that even when full info is requested, the server is not
+obligated to reply with all information that libnbd requested.
+Similarly, libnbd will ignore any optional server information that
+libnbd has not yet been taught to recognize.";
+    see_also = [Link "get_full_info"; Link "get_canonical_export_name";
+                Link "get_export_description"];
+  };
+
+  "get_full_info", {
+    default_call with
+    args = []; ret = RBool;
+    permitted_states = [];
+    shortdesc = "see if NBD_OPT_GO requests extra details";
+    longdesc = "\
+Return the state of the full info request flag on this handle.";
+    see_also = [Link "set_full_info"];
+  };
+
+  "get_canonical_export_name", {
+    default_call with
+    args = []; ret = RString;
+    permitted_states = [ Connected; Closed ];
+    shortdesc = "return the canonical export name, if the server has one";
+    longdesc = "\
+The NBD protocol permits a server to report an optional canonical
+export name, which may differ from the client's request (as set by
+L<nbd_set_export_name(3)> or L<nbd_connect_uri(3)>).  This function
+accesses any name returned by the server; it may be the same as
+the client request, but is more likely to differ when the client
+requested a connection to the default export name (an empty string
+C<\"\">).
+
+Some servers are unlikely to report a canonical name unless the
+client specifically hinted about wanting it, via L<nbd_set_full_info(3)>.";
+    see_also = [Link "set_full_info"; Link "get_export_name"];
+  };
+
+  "get_export_description", {
+    default_call with
+    args = []; ret = RString;
+    permitted_states = [ Connected; Closed ];
+    shortdesc = "return the export description, if the server has one";
+    longdesc = "\
+The NBD protocol permits a server to report an optional export
+description.  This function reports any description returned by
+the server.
+
+Some servers are unlikely to report a description unless the
+client specifically hinted about wanting it, via L<nbd_set_full_info(3)>.
+For L<qemu-nbd(8)>, a description is set with I<-D>.";
+    see_also = [Link "set_full_info"];
   };
 
   "set_tls", {
@@ -2364,6 +2437,10 @@ let first_version = [
   "get_list_export_name", (1, 4);
   "get_list_export_description", (1, 4);
   "get_block_size", (1, 4);
+  "set_full_info", (1, 4);
+  "get_full_info", (1, 4);
+  "get_canonical_export_name", (1, 4);
+  "get_export_description", (1, 4);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.
