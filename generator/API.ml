@@ -496,7 +496,7 @@ Get the current TLS PSK filename.";
     longdesc = "\
 By default, libnbd tries to negotiate structured replies with the
 server, as this protocol extension must be in use before
-C<nbd_can_meta_context> or C<nbd_can_df> can return true.  However,
+L<nbd_can_meta_context(3)> or L<nbd_can_df(3)> can return true.  However,
 for integration testing, it can be useful to clear this flag
 rather than find a way to alter the server to fail the negotiation
 request.";
@@ -517,7 +517,7 @@ handle.
 
 B<Note:> If you want to find out if structured replies were actually
 negotiated on a particular connection use
-C<nbd_get_structured_replies_negotiated> instead.";
+L<nbd_get_structured_replies_negotiated(3)> instead.";
     see_also = [Link "set_request_structured_replies";
                 Link "get_structured_replies_negotiated"];
   };
@@ -583,10 +583,10 @@ Future NBD extensions may add further flags.
     shortdesc = "see which handshake flags are supported";
     longdesc = "\
 Return the state of the handshake flags on this handle.  When the
-handle has not yet completed a connection (see C<nbd_aio_is_created>),
+handle has not yet completed a connection (see L<nbd_aio_is_created(3)>),
 this returns the flags that the client is willing to use, provided
 the server also advertises those flags.  After the connection is
-ready (see C<nbd_aio_is_ready>), this returns the flags that were
+ready (see L<nbd_aio_is_ready(3)>), this returns the flags that were
 actually agreed on between the server and client.  If the NBD
 protocol defines new handshake flags, then the return value from
 a newer library version may include bits that were undefined at
@@ -608,14 +608,15 @@ by the server.
 In this mode, during connection we query the server for the list
 of NBD exports and collect them in the handle.  You can query
 the list of exports provided by the server by calling
-C<nbd_get_nr_exports> and C<nbd_get_export_name>.  After choosing
-the export you want, you should close this handle, create a new
-NBD handle (C<nbd_create>), set the export name (C<nbd_set_export_name>),
-and connect on the new handle.
+L<nbd_get_nr_list_exports(3)> and L<nbd_get_list_export_name(3)>.
+After choosing the export you want, you should close this handle,
+create a new NBD handle (L<nbd_create(3)>), set the export name
+(L<nbd_set_export_name(3)>), and connect on the new handle
+(C<nbd_connect_*>).
 
 Some servers do not support listing exports at all.  In
 that case the connect call will fail with errno C<ENOTSUP>
-and C<nbd_get_nr_exports> will return 0.
+and L<nbd_get_nr_list_exports(3)> will return 0.
 
 Some servers do not respond with all the exports they
 support, either because of an incomplete implementation of
@@ -626,7 +627,7 @@ connection is opened.
 For L<qemu-nbd(8)> when using the I<-x> option you may find
 that the original connect call fails with
 C<server has no export named ''> and errno C<ENOENT>.
-However you can still proceed to call C<nbd_get_nr_exports> etc.
+However you can still proceed to call L<nbd_get_nr_list_exports(3)> etc.
 
 For L<nbd-server(1)> you will need to allow clients to make
 list requests by adding C<allowlist=true> to the C<[generic]>
@@ -655,7 +656,7 @@ Return true if list exports mode was enabled on this handle.";
 If list exports mode was enabled on the handle and you connected
 to the server, this returns the number of exports returned by the
 server.  This may be 0 or incomplete for reasons given in
-C<nbd_set_list_exports>.";
+L<nbd_set_list_exports(3)>.";
     see_also = [Link "set_list_exports"; Link "get_list_export_name";
                 Link "get_list_export_description"];
   };
@@ -897,7 +898,7 @@ For security reasons you might want to disable certain URI
 features.  Pre-filtering URIs is error-prone and should not
 be attempted.  Instead use the libnbd APIs below to control
 what can appear in URIs.  Note you must call these functions
-on the same handle before calling C<nbd_connect_uri> or
+on the same handle before calling L<nbd_connect_uri(3)> or
 L<nbd_aio_connect_uri(3)>.
 
 =over 4
@@ -1156,7 +1157,7 @@ the server does not."
     longdesc = "\
 Returns true if the server supports the use of the
 C<LIBNBD_CMD_FLAG_FAST_ZERO> flag to the zero command
-(see C<nbd_zero>, C<nbd_aio_zero>).  Returns false if
+(see L<nbd_zero(3)>, L<nbd_aio_zero(3)>).  Returns false if
 the server does not."
 ^ non_blocking_test_call_description;
     see_also = [SectionLink "Flag calls";
@@ -1302,11 +1303,11 @@ give decent performance.
 =item C<LIBNBD_SIZE_MAXIMUM> = 2
 
 If non-zero, this represents the maximum length that the server is
-willing to handle during C<nbd_pread> or C<nbd_pwrite>.  Other functions
-like C<nbd_zero> may still be able to use larger sizes.  Note that
-this function returns what the server advertised, but libnbd itself
-imposes a maximum of 64M.  If zero, some NBD servers will abruptly
-disconnect if a transaction involves more than 32M.
+willing to handle during L<nbd_pread(3)> or L<nbd_pwrite(3)>.  Other
+functions like L<nbd_zero(3)> may still be able to use larger sizes.
+Note that this function returns what the server advertised, but libnbd
+itself imposes a maximum of 64M.  If zero, some NBD servers will
+abruptly disconnect if a transaction involves more than 32M.
 
 =back
 
