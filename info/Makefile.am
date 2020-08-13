@@ -27,8 +27,6 @@ EXTRA_DIST = \
 	nbdinfo.pod \
 	$(NULL)
 
-if HAVE_LIBXML2
-
 TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
 LOG_COMPILER = $(top_builddir)/run
 TESTS =
@@ -39,11 +37,9 @@ nbdinfo_SOURCES = nbdinfo.c
 nbdinfo_CPPFLAGS = -I$(top_srcdir)/include
 nbdinfo_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
-	$(LIBXML2_CFLAGS) \
 	$(NULL)
 nbdinfo_LDADD = \
 	$(top_builddir)/lib/libnbd.la \
-	$(LIBXML2_LIBS) \
 	$(NULL)
 
 if HAVE_POD
@@ -58,6 +54,8 @@ nbdinfo.1: nbdinfo.pod $(top_builddir)/podwrapper.pl
 	    $<
 
 endif HAVE_POD
+
+if HAVE_LIBXML2
 
 TESTS += \
 	info-list.sh \

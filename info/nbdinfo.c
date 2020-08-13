@@ -29,7 +29,6 @@
 #include <limits.h>
 #include <errno.h>
 
-#include <libxml/uri.h>
 #include <libnbd.h>
 
 static bool list_all = false;
@@ -422,7 +421,6 @@ static void
 list_all_exports (struct nbd_handle *nbd1, const char *uri)
 {
   int i;
-  xmlURIPtr xmluri = NULL;
   int count = nbd_get_nr_list_exports (nbd1);
 
   if (count == -1) {
@@ -434,49 +432,38 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
     printf ("\t\"exports\": []\n");
 
   for (i = 0; i < count; ++i) {
-    char *name, *desc, *new_path, *new_uri;
+    char *name, *desc;
     struct nbd_handle *nbd2;
 
     name = nbd_get_list_export_name (nbd1, i);
-    if (name) {
-      /* We have to modify the original URI to change the export name.
-       * In the URI spec, paths always start with '/' (which is ignored).
-       */
-      xmluri = xmlParseURI (uri);
-      if (!xmluri) {
-        fprintf (stderr, "unable to parse original URI: %s\n", uri);
-        exit (EXIT_FAILURE);
-      }
-      if (asprintf (&new_path, "/%s", name) == -1) {
-        perror ("asprintf");
-        exit (EXIT_FAILURE);
-      }
-      free (xmluri->path);
-      xmluri->path = new_path;
-      new_uri = (char *) xmlSaveUri (xmluri);
-
-      /* Connect to the new URI. */
-      nbd2 = nbd_create ();
-      if (nbd2 == NULL) {
-        fprintf (stderr, "%s\n", nbd_get_error ());
-        exit (EXIT_FAILURE);
-      }
-      nbd_set_uri_allow_local_file (nbd2, true); /* Allow ?tls-psk-file. */
-
-      if (nbd_connect_uri (nbd2, new_uri) == -1) {
-        fprintf (stderr, "%s\n", nbd_get_error ());
-        exit (EXIT_FAILURE);
-      }
-
-      /* List the metadata of this export. */
-      desc = nbd_get_list_export_description (nbd1, i);
-      list_one_export (nbd2, desc, i == 0, i + 1 == count);
-
-      nbd_close (nbd2);
-      free (new_uri);
-      free (desc);
-      xmlFreeURI (xmluri); /* this also frees xmluri->path == new_path */
+    if (!name) {
+      fprintf (stderr, "unable to obtain export name: %s\n",
+               nbd_get_error ());
+      exit (EXIT_FAILURE);
     }
+
+    /* Connect to the original URI, but using opt mode to alter the export. */
+    nbd2 = nbd_create ();
+    if (nbd2 == NULL) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    nbd_set_uri_allow_local_file (nbd2, true); /* Allow ?tls-psk-file. */
+    nbd_set_opt_mode (nbd2, true);
+
+    if (nbd_connect_uri (nbd2, uri) == -1 ||
+        nbd_set_export_name (nbd2, name) == -1 ||
+        nbd_opt_go (nbd2) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+
+    /* List the metadata of this export. */
+    desc = nbd_get_list_export_description (nbd1, i);
+    list_one_export (nbd2, desc, i == 0, i + 1 == count);
+
+    nbd_close (nbd2);
+    free (desc);
     free (name);
   }
 }
