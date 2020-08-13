@@ -322,6 +322,7 @@ Note that even when full info is requested, the server is not
 obligated to reply with all information that libnbd requested.
 Similarly, libnbd will ignore any optional server information that
 libnbd has not yet been taught to recognize.";
+    example = Some "examples/server-flags.c";
     see_also = [Link "get_full_info"; Link "get_canonical_export_name";
                 Link "get_export_description"];
   };
@@ -352,6 +353,7 @@ C<\"\">).
 
 Some servers are unlikely to report a canonical name unless the
 client specifically hinted about wanting it, via L<nbd_set_full_info(3)>.";
+    example = Some "examples/server-flags.c";
     see_also = [Link "set_full_info"; Link "get_export_name"];
   };
 
@@ -368,6 +370,7 @@ the server.
 Some servers are unlikely to report a description unless the
 client specifically hinted about wanting it, via L<nbd_set_full_info(3)>.
 For L<qemu-nbd(8)>, a description is set with I<-D>.";
+    example = Some "examples/server-flags.c";
     see_also = [Link "set_full_info"];
   };
 

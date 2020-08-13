@@ -66,6 +66,7 @@ TESTS += \
 	info-oldstyle.sh \
 	info-size.sh \
 	info-text.sh \
+	info-description.sh \
 	$(NULL)
 
 check-valgrind:

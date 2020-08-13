@@ -99,6 +99,7 @@ main (int argc, char *argv[])
   int64_t size;
   const char *protocol;
   int tls_negotiated;
+  char *desc;
 
   for (;;) {
     c = getopt_long (argc, argv, short_options, long_options, NULL);
@@ -191,6 +192,8 @@ main (int argc, char *argv[])
    */
   if (list_all)
     nbd_set_list_exports (nbd, true);
+  else if (!size_only)
+    nbd_set_full_info (nbd, true);
 
   if (nbd_connect_uri (nbd, argv[optind]) == -1) {
     if (!list_all || nbd_get_errno () == ENOTSUP) {
@@ -244,9 +247,11 @@ main (int argc, char *argv[])
         printf ("\"TLS\": %s,\n", tls_negotiated ? "true" : "false");
     }
 
-    if (!list_all)
-      /* XXX We would need libnbd to request NBD_INFO_DESCRIPTION */
-      list_one_export (nbd, NULL, true, true);
+    if (!list_all) {
+      desc = nbd_get_export_description (nbd);
+      list_one_export (nbd, desc, true, true);
+      free (desc);
+    }
     else
       list_all_exports (nbd, argv[optind]);
 
@@ -277,7 +282,10 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
     exit (EXIT_FAILURE);
   }
 
-  export_name = nbd_get_export_name (nbd);
+  /* Prefer the server's version of the name, if available */
+  export_name = nbd_get_canonical_export_name (nbd);
+  if (export_name == NULL)
+    export_name = nbd_get_export_name (nbd);
   if (export_name == NULL) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);

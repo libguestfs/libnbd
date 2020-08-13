@@ -16,6 +16,7 @@ int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
+  char *str;
   int flag;
 
   if (argc != 2) {
@@ -30,6 +31,14 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  /* Request full information. */
+#if LIBNBD_HAVE_NBD_SET_FULL_INFO /* Added in 1.4 */
+  if (nbd_set_full_info (nbd, true) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+#endif
+
   /* Connect to the NBD server over a
    * Unix domain socket.
    */
@@ -37,6 +46,20 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+
+  /* See if the server provided extra details,
+   * using functions added in 1.4
+   */
+#if LIBNBD_HAVE_NBD_GET_EXPORT_DESCRIPTION
+  str = nbd_get_canonical_export_name (nbd);
+  if (str)
+    printf ("canonical_name = %s\n", str);
+  free (str);
+  str = nbd_get_export_description (nbd);
+  if (str)
+    printf ("description = %s\n", str);
+  free (str);
+#endif
 
   /* Read and print the flags. */
 #define PRINT_FLAG(flag_fn)                     \
