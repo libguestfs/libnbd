@@ -278,7 +278,7 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
   }
 
   export_name = nbd_get_export_name (nbd);
-  if (nbd == NULL) {
+  if (export_name == NULL) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
