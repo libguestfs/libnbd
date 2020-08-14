@@ -210,6 +210,7 @@ set in the environment in which case it defaults to true.";
     shortdesc = "return the state of the debug flag";
     longdesc = "\
 Return the state of the debug flag on this handle.";
+    see_also = [Link "set_debug"];
   };
 
   "set_debug_callback", {
@@ -252,6 +253,7 @@ Handle names are normally generated automatically and have the
 form C<\"nbd1\">, C<\"nbd2\">, etc., but you can optionally use
 this call to give the handles a name which is meaningful for
 your application to make debugging output easier to understand.";
+    see_also = [Link "get_handle_name"];
   };
 
   "get_handle_name", {
@@ -263,6 +265,7 @@ Get the name of the handle.  If it was previously set by calling
 L<nbd_set_handle_name(3)> then this returns the name that was set.
 Otherwise it will return a generic name like C<\"nbd1\">,
 C<\"nbd2\">, etc.";
+    see_also = [Link "set_handle_name"];
   };
 
   "set_export_name", {
@@ -395,6 +398,7 @@ trusted CAs are used.
 This function may be called regardless of whether TLS is
 supported, but will have no effect unless L<nbd_set_tls(3)>
 is also used to request or require TLS.";
+    see_also = [Link "set_tls"];
   };
 
 (* Can't implement this because we need a way to return string that
@@ -423,6 +427,7 @@ using TLS certificate authentication, and false otherwise.
 This function may be called regardless of whether TLS is
 supported, but will have no effect unless L<nbd_set_tls(3)>
 is also used to request or require TLS.";
+    see_also = [Link "set_tls"; Link "get_tls_verify_peer"];
   };
 
   "get_tls_verify_peer", {
@@ -432,6 +437,7 @@ is also used to request or require TLS.";
     shortdesc = "get whether we verify the identity of the server";
     longdesc = "\
 Get the verify peer flag.";
+    see_also = [Link "set_tls_verify_peer"];
   };
 
   "set_tls_username", {
@@ -448,6 +454,7 @@ This function may be called regardless of whether TLS is
 supported, but will have no effect unless L<nbd_set_tls(3)>
 is also used to request or require TLS.";
     example = Some "examples/encryption.c";
+    see_also = [Link "get_tls_username"; Link "set_tls"];
   };
 
   "get_tls_username", {
@@ -474,6 +481,7 @@ This function may be called regardless of whether TLS is
 supported, but will have no effect unless L<nbd_set_tls(3)>
 is also used to request or require TLS.";
     example = Some "examples/encryption.c";
+    see_also = [Link "set_tls"];
   };
 
 (* Can't implement this because we need a way to return string that
