@@ -120,9 +120,6 @@ STATE_MACHINE {
   len = be32toh (h->sbuf.or.option_reply.replylen);
 
   switch (reply) {
-  case NBD_REP_ACK:
-    SET_NEXT_STATE (%^FINISHED);
-    return 0;
   case NBD_REP_INFO:
     if (len > maxpayload /* see RECV_NEWSTYLE_OPT_GO_REPLY */)
       debug (h, "skipping large NBD_REP_INFO");
@@ -174,37 +171,43 @@ STATE_MACHINE {
     SET_NEXT_STATE (%^OPT_EXPORT_NAME.START);
     return 0;
   default:
-    if (handle_reply_error (h) == 0) {
-      /* Decode expected known errors into a nicer string */
-      switch (reply) {
-      case NBD_REP_ERR_POLICY:
-      case NBD_REP_ERR_PLATFORM:
-        set_error (0, "handshake: server policy prevents NBD_OPT_GO");
-        break;
-      case NBD_REP_ERR_INVALID:
-      case NBD_REP_ERR_TOO_BIG:
-        set_error (EINVAL, "handshake: server rejected NBD_OPT_GO as invalid");
-        break;
-      case NBD_REP_ERR_TLS_REQD:
-        set_error (ENOTSUP, "handshake: server requires TLS encryption first");
-        break;
-      case NBD_REP_ERR_UNKNOWN:
-        set_error (ENOENT, "handshake: server has no export named '%s'",
-                   h->export_name);
-        break;
-      case NBD_REP_ERR_SHUTDOWN:
-        set_error (ESHUTDOWN, "handshake: server is shutting down");
-        break;
-      case NBD_REP_ERR_BLOCK_SIZE_REQD:
-        set_error (EINVAL, "handshake: server requires specific block sizes");
-        break;
-      default:
-        set_error (0, "handshake: unknown reply from NBD_OPT_GO: 0x%" PRIx32,
-                   reply);
-      }
+    if (handle_reply_error (h) == -1) {
+      SET_NEXT_STATE (%.DEAD);
+      return 0;
+    }
+    /* Decode expected known errors into a nicer string */
+    switch (reply) {
+    case NBD_REP_ERR_POLICY:
+    case NBD_REP_ERR_PLATFORM:
+      set_error (0, "handshake: server policy prevents NBD_OPT_GO");
+      break;
+    case NBD_REP_ERR_INVALID:
+    case NBD_REP_ERR_TOO_BIG:
+      set_error (EINVAL, "handshake: server rejected NBD_OPT_GO as invalid");
+      break;
+    case NBD_REP_ERR_TLS_REQD:
+      set_error (ENOTSUP, "handshake: server requires TLS encryption first");
+      break;
+    case NBD_REP_ERR_UNKNOWN:
+      set_error (ENOENT, "handshake: server has no export named '%s'",
+                 h->export_name);
+      break;
+    case NBD_REP_ERR_SHUTDOWN:
+      set_error (ESHUTDOWN, "handshake: server is shutting down");
+      break;
+    case NBD_REP_ERR_BLOCK_SIZE_REQD:
+      set_error (EINVAL, "handshake: server requires specific block sizes");
+      break;
+    default:
+      set_error (0, "handshake: unknown reply from NBD_OPT_GO: 0x%" PRIx32,
+                 reply);
     }
     SET_NEXT_STATE (%.DEAD);
-    return 0;
+    break;
+  case NBD_REP_ACK:
+    SET_NEXT_STATE (%^FINISHED);
+    break;
   }
+  return 0;
 
 } /* END STATE MACHINE */
