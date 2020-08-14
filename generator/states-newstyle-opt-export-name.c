@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,7 +22,7 @@ STATE_MACHINE {
  NEWSTYLE.OPT_EXPORT_NAME.START:
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (NBD_OPT_EXPORT_NAME);
-  h->sbuf.option.optlen = strlen (h->export_name);
+  h->sbuf.option.optlen = htobe32 (strlen (h->export_name));
   h->wbuf = &h->sbuf;
   h->wlen = sizeof h->sbuf.option;
   h->wflags = MSG_MORE;

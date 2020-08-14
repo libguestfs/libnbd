@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2019 Red Hat Inc.
+# Copyright (C) 2013-2020 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -162,6 +162,7 @@ check_PROGRAMS += \
 	can-cache-flag \
 	can-not-cache-flag \
 	oldstyle \
+	newstyle-limited \
 	connect-unix \
 	connect-tcp \
 	aio-parallel \
@@ -196,6 +197,7 @@ TESTS += \
 	can-cache-flag \
 	can-not-cache-flag \
 	oldstyle \
+	newstyle-limited \
 	connect-unix \
 	connect-tcp \
 	aio-parallel.sh \
@@ -365,6 +367,11 @@ oldstyle_SOURCES = oldstyle.c
 oldstyle_CPPFLAGS = -I$(top_srcdir)/include
 oldstyle_CFLAGS = $(WARNINGS_CFLAGS)
 oldstyle_LDADD = $(top_builddir)/lib/libnbd.la
+
+newstyle_limited_SOURCES = newstyle-limited.c
+newstyle_limited_CPPFLAGS = -I$(top_srcdir)/include
+newstyle_limited_CFLAGS = $(WARNINGS_CFLAGS)
+newstyle_limited_LDADD = $(top_builddir)/lib/libnbd.la
 
 connect_unix_SOURCES = connect-unix.c
 connect_unix_CPPFLAGS = -I$(top_srcdir)/include

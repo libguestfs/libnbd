@@ -170,6 +170,7 @@ Makefile.in
 /tests/is-rotational-flag
 /tests/keys.psk
 /tests/meta-base-allocation
+/tests/newstyle-limited
 /tests/oldstyle
 /tests/pki/
 /tests/read-only-flag
