@@ -699,10 +699,11 @@ negotiating everything on your behalf using settings made before
 starting the connection.  To leave the mode and proceed on to the
 ready state, you must use nbd_opt_go successfully; a failed
 C<nbd_opt_go> returns to the negotiating state to allow a change of
-export name before trying again.  You may also use nbd_opt_abort
+export name before trying again.  You may also use L<nbd_opt_abort(3)>
 to end the connection without finishing negotiation.";
     example = Some "examples/list-exports.c";
-    see_also = [Link "get_opt_mode"; Link "aio_is_negotiating"];
+    see_also = [Link "get_opt_mode"; Link "aio_is_negotiating";
+                Link "opt_abort"];
   };
 
   "get_opt_mode", {
@@ -713,6 +714,19 @@ to end the connection without finishing negotiation.";
     longdesc = "\
 Return true if option negotiation mode was enabled on this handle.";
     see_also = [Link "set_opt_mode"];
+  };
+
+  "opt_abort", {
+    default_call with
+    args = []; ret = RErr;
+    permitted_states = [ Negotiating ];
+    shortdesc = "end negotiation and close the connection";
+    longdesc = "\
+Request that the server finish negotiation, gracefully if possible, then
+close the connection.  This can only be used if L<nbd_set_opt_mode(3)>
+enabled option mode.";
+    example = Some "examples/list-exports.c";
+    see_also = [Link "set_opt_mode"; Link "aio_opt_abort"];
   };
 
   "set_list_exports", {
@@ -1883,6 +1897,21 @@ and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
   };
 
+  "aio_opt_abort", {
+    default_call with
+    args = []; ret = RErr;
+    permitted_states = [ Negotiating ];
+    shortdesc = "end negotiation and close the connection";
+    longdesc = "\
+Request that the server finish negotiation, gracefully if possible, then
+close the connection.  This can only be used if L<nbd_set_opt_mode(3)>
+enabled option mode.
+
+To determine when the request completes, wait for
+L<nbd_aio_is_connecting(3)> to return false.";
+    see_also = [Link "set_opt_mode"; Link "opt_abort"];
+  };
+
   "aio_pread", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset" ];
@@ -2504,6 +2533,8 @@ let first_version = [
   "set_opt_mode", (1, 4);
   "get_opt_mode", (1, 4);
   "aio_is_negotiating", (1, 4);
+  "opt_abort", (1, 4);
+  "aio_opt_abort", (1, 4);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

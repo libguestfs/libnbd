@@ -121,6 +121,32 @@ main (int argc, char *argv[])
   }
   nbd_close (nbd);
 
+  /* Next try. Requesting opt_mode works, but opt_go is the only
+   * option that can succeed (via NBD_OPT_EXPORT_NAME); opt_abort is
+   * special-cased but moves to DEAD rather than CLOSED.
+   */
+  nbd = nbd_create ();
+  if (nbd == NULL ||
+      nbd_set_opt_mode (nbd, true) == -1 ||
+      nbd_connect_command (nbd, args) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (!nbd_aio_is_negotiating (nbd)) {
+    fprintf (stderr, "unexpected state after negotiating\n");
+    exit (EXIT_FAILURE);
+  }
+  /* XXX Test nbd_opt_list when it is implemented */
+  if (nbd_opt_abort (nbd) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (!nbd_aio_is_dead (nbd)) {
+    fprintf (stderr, "unexpected state after opt_abort\n");
+    exit (EXIT_FAILURE);
+  }
+  nbd_close (nbd);
+
   /* And another try: an incorrect export name kills the connection,
    * rather than allowing a second try.
    */

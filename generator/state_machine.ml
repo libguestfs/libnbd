@@ -278,6 +278,8 @@ and newstyle_state_machine = [
   (* Options.  These state groups are always entered unconditionally,
    * in this order.  The START state in each group will check if the
    * state needs to run and skip to the next state in the list if not.
+   * When opt_mode is set, control is returned to the user in state
+   * NEGOTIATING after OPT_STRUCTURED_REPLY or any failed OPT_GO.
    *)
   Group ("OPT_STARTTLS", newstyle_opt_starttls_state_machine);
   Group ("OPT_LIST", newstyle_opt_list_state_machine);
@@ -285,6 +287,30 @@ and newstyle_state_machine = [
   Group ("OPT_SET_META_CONTEXT", newstyle_opt_set_meta_context_state_machine);
   Group ("OPT_GO", newstyle_opt_go_state_machine);
   Group ("OPT_EXPORT_NAME", newstyle_opt_export_name_state_machine);
+
+  (* When NBD_OPT_GO fails, or when opt_mode is enabled, option parsing
+   * can be cleanly ended without moving through the %READY state.
+   *)
+  State {
+    default_state with
+    name = "PREPARE_OPT_ABORT";
+    comment = "Prepare to send NBD_OPT_ABORT";
+    external_events = [];
+  };
+
+  State {
+    default_state with
+    name = "SEND_OPT_ABORT";
+    comment = "Send NBD_OPT_ABORT to end negotiation";
+    external_events = [ NotifyWrite, "" ];
+  };
+
+  State {
+    default_state with
+    name = "SEND_OPTION_SHUTDOWN";
+    comment = "Sending write shutdown notification to the remote server";
+    external_events = [ NotifyWrite, "" ];
+  };
 
   (* When option parsing has successfully finished negotiation
    * it will jump to this state for final steps before moving to

@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2019 Red Hat Inc.
+# Copyright (C) 2013-2020 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -23,6 +23,7 @@ EXTRA_DIST = \
 	test_010_import.ml \
 	test_100_handle.ml \
 	test_200_connect_command.ml \
+	test_210_opt_abort.ml \
 	test_300_get_size.ml \
 	test_400_pread.ml \
 	test_405_pread_structured.ml \
@@ -43,6 +44,7 @@ tests_bc = \
 	test_010_import.bc \
 	test_100_handle.bc \
 	test_200_connect_command.bc \
+	test_210_opt_abort.bc \
 	test_300_get_size.bc \
 	test_400_pread.bc \
 	test_405_pread_structured.bc \
@@ -60,6 +62,7 @@ tests_opt = \
 	test_010_import.opt \
 	test_100_handle.opt \
 	test_200_connect_command.opt \
+	test_210_opt_abort.opt \
 	test_300_get_size.opt \
 	test_400_pread.opt \
 	test_405_pread_structured.opt \

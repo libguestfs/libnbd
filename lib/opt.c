@@ -36,3 +36,37 @@ nbd_unlocked_get_opt_mode (struct nbd_handle *h)
 {
   return h->opt_mode;
 }
+
+static int
+wait_for_option (struct nbd_handle *h)
+{
+  while (nbd_internal_is_state_connecting (get_next_state (h))) {
+    if (nbd_unlocked_poll (h, -1) == -1)
+      return -1;
+  }
+
+  return 0;
+}
+
+/* Issue NBD_OPT_ABORT and wait for the state change. */
+int
+nbd_unlocked_opt_abort (struct nbd_handle *h)
+{
+  int r = nbd_unlocked_aio_opt_abort (h);
+
+  if (r == -1)
+    return r;
+
+  return wait_for_option (h);
+}
+
+/* Issue NBD_OPT_ABORT without waiting. */
+int
+nbd_unlocked_aio_opt_abort (struct nbd_handle *h)
+{
+  h->opt_current = NBD_OPT_ABORT;
+
+  if (nbd_internal_run (h, cmd_issue) == -1)
+    debug (h, "option queued, ignoring state machine failure");
+  return 0;
+}

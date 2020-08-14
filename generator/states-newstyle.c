@@ -112,6 +112,26 @@ handle_reply_error (struct nbd_handle *h)
 
 STATE_MACHINE {
  NEWSTYLE.START:
+  if (h->opt_mode) {
+    /* NEWSTYLE can be entered multiple times, from MAGIC.CHECK_MAGIC and
+     * during various nbd_opt_* calls during NEGOTIATION.  Each previous
+     * state has informed us what we still need to do.
+     */
+    switch (h->opt_current) {
+    case NBD_OPT_ABORT:
+      if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0) {
+        SET_NEXT_STATE (%.DEAD);
+        set_error (ENOTSUP, "handshake: server is not using fixed newstyle");
+        return 0;
+      }
+      SET_NEXT_STATE (%PREPARE_OPT_ABORT);
+      return 0;
+    case 0:
+      break;
+    default:
+      abort ();
+    }
+  }
   h->rbuf = &h->sbuf;
   h->rlen = sizeof h->sbuf.gflags;
   SET_NEXT_STATE (%RECV_GFLAGS);
@@ -153,10 +173,45 @@ STATE_MACHINE {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
     /* Start sending options. */
-    if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0)
-      SET_NEXT_STATE (%OPT_EXPORT_NAME.START);
+    if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0) {
+      if (h->opt_mode)
+        SET_NEXT_STATE (%.NEGOTIATING);
+      else
+        SET_NEXT_STATE (%OPT_EXPORT_NAME.START);
+    }
     else
       SET_NEXT_STATE (%OPT_STARTTLS.START);
+  }
+  return 0;
+
+ NEWSTYLE.PREPARE_OPT_ABORT:
+  assert ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) != 0);
+  h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
+  h->sbuf.option.option = htobe32 (NBD_OPT_ABORT);
+  h->sbuf.option.optlen = htobe32 (0);
+  h->wbuf = &h->sbuf;
+  h->wlen = sizeof h->sbuf.option;
+  SET_NEXT_STATE (%SEND_OPT_ABORT);
+  return 0;
+
+ NEWSTYLE.SEND_OPT_ABORT:
+  switch (send_from_wbuf (h)) {
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
+  case 0:
+    SET_NEXT_STATE (%SEND_OPTION_SHUTDOWN);
+  }
+  return 0;
+
+ NEWSTYLE.SEND_OPTION_SHUTDOWN:
+  /* We don't care if the server replies to NBD_OPT_ABORT.  However,
+   * unless we are in opt mode, we want to preserve the error message
+   * from a failed OPT_GO by moving to DEAD instead.
+   */
+  if (h->sock->ops->shut_writes (h, h->sock)) {
+    if (h->opt_mode)
+      SET_NEXT_STATE (%.CLOSED);
+    else
+      SET_NEXT_STATE (%.DEAD);
   }
   return 0;
 

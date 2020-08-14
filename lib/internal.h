@@ -101,6 +101,7 @@ struct nbd_handle {
 
   /* Option negotiation mode. */
   bool opt_mode;
+  uint8_t opt_current; /* 0 or one of NBD_OPT_* */
 
   /* List exports mode. */
   bool list_exports;

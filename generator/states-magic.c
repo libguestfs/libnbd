@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -42,8 +42,10 @@ STATE_MACHINE {
   }
 
   version = be64toh (h->sbuf.new_handshake.version);
-  if (version == NBD_NEW_VERSION)
+  if (version == NBD_NEW_VERSION) {
+    assert (h->opt_current == 0);
     SET_NEXT_STATE (%.NEWSTYLE.START);
+  }
   else if (version == NBD_OLD_VERSION)
     SET_NEXT_STATE (%.OLDSTYLE.START);
   else {

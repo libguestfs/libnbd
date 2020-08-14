@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -93,7 +93,7 @@ STATE_MACHINE {
      * then we can continue unencrypted.
      */
     if (h->tls == LIBNBD_TLS_REQUIRE) {
-      SET_NEXT_STATE (%.DEAD);
+      SET_NEXT_STATE (%^PREPARE_OPT_ABORT);
       set_error (ENOTSUP, "handshake: server refused TLS, "
                  "but handle TLS setting is 'require' (2)");
       return 0;

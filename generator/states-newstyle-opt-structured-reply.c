@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -84,7 +84,10 @@ STATE_MACHINE {
   }
 
   /* Next option. */
-  SET_NEXT_STATE (%^OPT_SET_META_CONTEXT.START);
+  if (h->opt_mode)
+    SET_NEXT_STATE (%.NEGOTIATING);
+  else
+    SET_NEXT_STATE (%^OPT_SET_META_CONTEXT.START);
   return 0;
 
 } /* END STATE MACHINE */

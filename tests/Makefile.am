@@ -163,6 +163,7 @@ check_PROGRAMS += \
 	can-not-cache-flag \
 	oldstyle \
 	newstyle-limited \
+	opt-abort \
 	connect-unix \
 	connect-tcp \
 	aio-parallel \
@@ -198,6 +199,7 @@ TESTS += \
 	can-not-cache-flag \
 	oldstyle \
 	newstyle-limited \
+	opt-abort \
 	connect-unix \
 	connect-tcp \
 	aio-parallel.sh \
@@ -372,6 +374,11 @@ newstyle_limited_SOURCES = newstyle-limited.c
 newstyle_limited_CPPFLAGS = -I$(top_srcdir)/include
 newstyle_limited_CFLAGS = $(WARNINGS_CFLAGS)
 newstyle_limited_LDADD = $(top_builddir)/lib/libnbd.la
+
+opt_abort_SOURCES = opt-abort.c
+opt_abort_CPPFLAGS = -I$(top_srcdir)/include
+opt_abort_CFLAGS = $(WARNINGS_CFLAGS)
+opt_abort_LDADD = $(top_builddir)/lib/libnbd.la
 
 connect_unix_SOURCES = connect-unix.c
 connect_unix_CPPFLAGS = -I$(top_srcdir)/include

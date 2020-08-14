@@ -172,6 +172,7 @@ Makefile.in
 /tests/meta-base-allocation
 /tests/newstyle-limited
 /tests/oldstyle
+/tests/opt-abort
 /tests/pki/
 /tests/read-only-flag
 /tests/read-write-flag

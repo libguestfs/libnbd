@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -177,6 +177,15 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
   check (EINVAL, "nbd_connect_command: ");
+
+  /* nbd_opt_abort can only be called during negotiation. */
+  if (nbd_opt_abort (nbd) != -1) {
+    fprintf (stderr, "%s: test failed: "
+             "nbd_opt_abort did not reject attempt in wrong state\n",
+             argv[0]);
+    exit (EXIT_FAILURE);
+  }
+  check (EINVAL, "nbd_opt_abort: ");
 
   /* Try to notify that writes are ready when we aren't blocked on POLLOUT */
   if (nbd_aio_notify_write (nbd) != -1) {
