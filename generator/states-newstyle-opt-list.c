@@ -18,17 +18,13 @@
 
 /* State machine for sending NBD_OPT_LIST to list exports.
  *
- * This is skipped unless list exports mode was enabled on the handle.
+ * This is only reached via nbd_opt_list during opt_mode.
  */
 
 STATE_MACHINE {
  NEWSTYLE.OPT_LIST.START:
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
-  if (!h->list_exports) {
-    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
-    return 0;
-  }
-
+  assert (h->opt_mode && h->exports && !h->nr_exports);
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (NBD_OPT_LIST);
   h->sbuf.option.optlen = 0;
@@ -135,7 +131,7 @@ STATE_MACHINE {
 
   case NBD_REP_ACK:
     /* Finished receiving the list. */
-    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
+    SET_NEXT_STATE (%.NEGOTIATING);
     return 0;
 
   default:
@@ -145,7 +141,7 @@ STATE_MACHINE {
     }
     set_error (ENOTSUP, "unexpected response, possibly the server does not "
                "support listing exports");
-    SET_NEXT_STATE (%.DEAD);
+    SET_NEXT_STATE (%.NEGOTIATING);
     return 0;
   }
   return 0;

@@ -288,12 +288,14 @@ The encoding of export names is always UTF-8.
 When option mode is not in use, the export name must be set
 before beginning a connection.  However, when L<nbd_set_opt_mode(3)>
 has enabled option mode, it is possible to change the export
-name prior to L<nbd_opt_go(3)>.
+name prior to L<nbd_opt_go(3)>.  In particular, the use of
+L<nbd_opt_list(3)> during negotiation can be used to determine
+a name the server is likely to accept.
 
 This call may be skipped if using L<nbd_connect_uri(3)> to connect
 to a URI that includes an export name.";
     see_also = [Link "get_export_name"; Link "connect_uri";
-                Link "set_opt_mode"; Link "opt_go"];
+                Link "set_opt_mode"; Link "opt_go"; Link "opt_list"];
   };
 
   "get_export_name", {
@@ -709,7 +711,7 @@ export name before trying again.  You may also use L<nbd_opt_abort(3)>
 to end the connection without finishing negotiation.";
     example = Some "examples/list-exports.c";
     see_also = [Link "get_opt_mode"; Link "aio_is_negotiating";
-                Link "opt_abort"; Link "opt_go"];
+                Link "opt_abort"; Link "opt_go"; Link "opt_list"];
   };
 
   "get_opt_mode", {
@@ -754,55 +756,43 @@ enabled option mode.";
     see_also = [Link "set_opt_mode"; Link "aio_opt_abort"; Link "opt_go"];
   };
 
-  "set_list_exports", {
+  "opt_list", {
     default_call with
-    args = [Bool "list"]; ret = RErr;
-    permitted_states = [ Created ];
-    shortdesc = "set whether to list server exports";
+    args = []; ret = RErr;
+    permitted_states = [ Negotiating ];
+    shortdesc = "request the server to list all exports during negotiation";
     longdesc = "\
-Set this flag to true in order to list NBD exports provided
-by the server.
+Request that the server list all exports that it supports.  This can
+only be used if L<nbd_set_opt_mode(3)> enabled option mode.
 
 In this mode, during connection we query the server for the list
 of NBD exports and collect them in the handle.  You can query
 the list of exports provided by the server by calling
 L<nbd_get_nr_list_exports(3)> and L<nbd_get_list_export_name(3)>.
-After choosing the export you want, you should close this handle,
-create a new NBD handle (L<nbd_create(3)>), set the export name
-(L<nbd_set_export_name(3)>), and connect on the new handle
-(C<nbd_connect_*>).
+After choosing the export you want, set the export name
+(L<nbd_set_export_name(3)>), then finish connecting with L<nbd_opt_go(3)>.
 
 Some servers do not support listing exports at all.  In
 that case the connect call will fail with errno C<ENOTSUP>
 and L<nbd_get_nr_list_exports(3)> will return 0.
 
-Some servers do not respond with all the exports they
-support, either because of an incomplete implementation of
-this feature, or because they only list exports relevant
-to non-TLS or TLS when a corresponding non-TLS or TLS
-connection is opened.
-
-For L<qemu-nbd(8)> when using the I<-x> option you may find
-that the original connect call fails with
-C<server has no export named ''> and errno C<ENOENT>.
-However you can still proceed to call L<nbd_get_nr_list_exports(3)> etc.
+Not all servers understand this request, and even when it is understood,
+the server might intentionally send an empty list to avoid being an
+information leak or may encounter a failure after delivering partial
+results.  Thus, this function may succeed even when no exports
+are reported, or may fail but have a non-empty list.  Likewise,
+the NBD protocol does not specify an upper bound for the number of
+exports that might be advertised, so client code should be aware that
+a server may send a lengthy list; libnbd truncates the server reply
+after 10000 exports.
 
 For L<nbd-server(1)> you will need to allow clients to make
 list requests by adding C<allowlist=true> to the C<[generic]>
-section of F</etc/nbd-server/config>.";
+section of F</etc/nbd-server/config>.  For L<qemu-nbd(8)>, a
+description is set with I<-D>.";
     example = Some "examples/list-exports.c";
-    see_also = [Link "get_list_exports";
+    see_also = [Link "set_opt_mode"; Link "opt_go";
                 Link "get_nr_list_exports"; Link "get_list_export_name"];
-  };
-
-  "get_list_exports", {
-    default_call with
-    args = []; ret = RBool;
-    may_set_error = false;
-    shortdesc = "return whether list exports mode was enabled";
-    longdesc = "\
-Return true if list exports mode was enabled on this handle.";
-    see_also = [Link "set_list_exports"];
   };
 
   "get_nr_list_exports", {
@@ -811,11 +801,10 @@ Return true if list exports mode was enabled on this handle.";
     permitted_states = [ Negotiating; Connected; Closed; Dead ];
     shortdesc = "return the number of exports returned by the server";
     longdesc = "\
-If list exports mode was enabled on the handle and you connected
-to the server, this returns the number of exports returned by the
-server.  This may be 0 or incomplete for reasons given in
-L<nbd_set_list_exports(3)>.";
-    see_also = [Link "set_list_exports"; Link "get_list_export_name";
+If option mode is in effect and you called L<nbd_opt_list(3)>,
+this returns the number of exports returned by the server.  This
+may be 0 or incomplete for reasons given in L<nbd_opt_list(3)>.";
+    see_also = [Link "opt_list"; Link "get_list_export_name";
                 Link "get_list_export_description"];
   };
 
@@ -825,10 +814,10 @@ L<nbd_set_list_exports(3)>.";
     permitted_states = [ Negotiating; Connected; Closed; Dead ];
     shortdesc = "return the i'th export name";
     longdesc = "\
-If list exports mode was enabled on the handle and you connected
-to the server, this can be used to return the i'th export name
+If L<nbd_opt_list(3)> succeeded with option mode enabled,
+this can be used to return the i'th export name
 from the list returned by the server.";
-    see_also = [Link "set_list_exports"; Link "get_list_export_description"];
+    see_also = [Link "opt_list"; Link "get_list_export_description"];
   };
 
   "get_list_export_description", {
@@ -837,13 +826,13 @@ from the list returned by the server.";
     permitted_states = [ Negotiating; Connected; Closed; Dead ];
     shortdesc = "return the i'th export description";
     longdesc = "\
-If list exports mode was enabled on the handle and you connected
-to the server, this can be used to return the i'th export description
+If L<nbd_opt_list(3)> succeeded with option mode enabled,
+this can be used to return the i'th export description
 from the list returned by the server, which may be an empty string.
 
 Many servers omit a description.  For L<qemu-nbd(8)>, a description
 is set with I<-D>.";
-    see_also = [Link "set_list_exports"; Link "get_list_export_name"];
+    see_also = [Link "set_opt_mode"; Link "opt_go"];
   };
 
   "add_meta_context", {
@@ -2570,8 +2559,6 @@ let first_version = [
   "set_uri_allow_local_file", (1, 2);
 
   (* Added in 1.3.x development cycle, will be stable and supported in 1.4. *)
-  "set_list_exports", (1, 4);
-  "get_list_exports", (1, 4);
   "get_nr_list_exports", (1, 4);
   "get_list_export_name", (1, 4);
   "get_list_export_description", (1, 4);
@@ -2585,6 +2572,7 @@ let first_version = [
   "aio_is_negotiating", (1, 4);
   "opt_go", (1, 4);
   "opt_abort", (1, 4);
+  "opt_list", (1, 4);
   "aio_opt_go", (1, 4);
   "aio_opt_abort", (1, 4);
 

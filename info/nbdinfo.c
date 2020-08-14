@@ -184,21 +184,27 @@ main (int argc, char *argv[])
   }
   nbd_set_uri_allow_local_file (nbd, true); /* Allow ?tls-psk-file. */
 
-  /* If using --list then we set the list_exports mode flag in the
-   * handle.  In this case it can be OK for the connection to fail.
-   * In particular it can fail because the export in the URI is not
-   * recognized.
-   */
+  /* If using --list then we need opt mode in the handle. */
   if (list_all)
-    nbd_set_list_exports (nbd, true);
+    nbd_set_opt_mode (nbd, true);
   else if (!size_only)
     nbd_set_full_info (nbd, true);
 
   if (nbd_connect_uri (nbd, argv[optind]) == -1) {
-    if (!list_all || nbd_get_errno () == ENOTSUP) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  if (list_all) {
+    if (nbd_opt_list (nbd) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
+    /* Disconnect from the server to move the handle into a closed
+     * state, in case the server serializes further connections.
+     * But we can ignore errors in this case.
+     */
+    nbd_opt_abort (nbd);
   }
 
   if (size_only) {
@@ -211,20 +217,9 @@ main (int argc, char *argv[])
     printf ("%" PRIi64 "\n", size);
   }
   else {
-    /* Print per-connection fields.
-     *
-     * XXX Not always displayed when using --list mode.  This is
-     * because if the connection fails above (as we expect) then the
-     * handle state is dead and we cannot query these.
-     */
+    /* Print per-connection fields. */
     protocol = nbd_get_protocol (nbd);
     tls_negotiated = nbd_get_tls_negotiated (nbd);
-
-    /* Disconnect from the server to move the handle into a closed
-     * state, in case the server serializes further connections; but
-     * ignore errors as the connection may already be dead.
-     */
-    nbd_shutdown (nbd, 0);
 
     if (!json_output) {
       if (protocol) {

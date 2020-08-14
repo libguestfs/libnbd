@@ -104,8 +104,7 @@ struct nbd_handle {
   uint8_t opt_current; /* 0 or one of NBD_OPT_* */
   nbd_completion_callback opt_completion;
 
-  /* List exports mode. */
-  bool list_exports;
+  /* Results of nbd_opt_list. */
   size_t nr_exports;
   struct export *exports;
 

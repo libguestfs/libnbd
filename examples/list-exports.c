@@ -54,26 +54,28 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* Set opt mode and request list exports. */
+  /* Set opt mode. */
   nbd_set_opt_mode (nbd, true);
-  nbd_set_list_exports (nbd, true);
 
   /* Connect to the NBD server over a
-   * Unix domain socket.  A side effect of
-   * connecting is to list the exports.
-   * This operation can fail normally, so
-   * we need to check the return value and
-   * error code.
+   * Unix domain socket.  If we did not
+   * end up in option mode, then a
+   * listing is not possible.
    */
   r = nbd_connect_unix (nbd, argv[1]);
-  if (r == -1 && nbd_get_errno () == ENOTSUP) {
+  if (r == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if (!nbd_aio_is_negotiating (nbd) ||
-      nbd_get_nr_list_exports (nbd) == 0) {
+  if (!nbd_aio_is_negotiating (nbd)) {
     fprintf (stderr, "Server does not support "
              "listing exports.\n");
+    exit (EXIT_FAILURE);
+  }
+
+  /* Grab the export list. */
+  if (nbd_opt_list (nbd) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 

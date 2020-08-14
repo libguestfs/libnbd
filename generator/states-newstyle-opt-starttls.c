@@ -23,7 +23,7 @@ STATE_MACHINE {
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
   /* If TLS was not requested we skip this option and go to the next one. */
   if (h->tls == LIBNBD_TLS_DISABLE) {
-    SET_NEXT_STATE (%^OPT_LIST.START);
+    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
     return 0;
   }
 
@@ -102,7 +102,7 @@ STATE_MACHINE {
     debug (h,
            "server refused TLS (%s), continuing with unencrypted connection",
            reply == NBD_REP_ERR_POLICY ? "policy" : "not supported");
-    SET_NEXT_STATE (%^OPT_LIST.START);
+    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
     return 0;
   }
   return 0;
@@ -121,7 +121,7 @@ STATE_MACHINE {
     nbd_internal_crypto_debug_tls_enabled (h);
 
     /* Continue with option negotiation. */
-    SET_NEXT_STATE (%^OPT_LIST.START);
+    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
     return 0;
   }
   /* Continue handshake. */
@@ -144,7 +144,7 @@ STATE_MACHINE {
     debug (h, "connection is using TLS");
 
     /* Continue with option negotiation. */
-    SET_NEXT_STATE (%^OPT_LIST.START);
+    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
     return 0;
   }
   /* Continue handshake. */

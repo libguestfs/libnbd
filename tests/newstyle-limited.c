@@ -136,7 +136,14 @@ main (int argc, char *argv[])
     fprintf (stderr, "unexpected state after negotiating\n");
     exit (EXIT_FAILURE);
   }
-  /* XXX Test nbd_opt_list when it is implemented */
+  if (nbd_opt_list (nbd) != -1) {
+    fprintf (stderr, "nbd_opt_list: expected failure\n");
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_get_errno () != ENOTSUP) {
+    fprintf (stderr, "%s: wrong errno value after failed opt_list\n", argv[0]);
+    exit (EXIT_FAILURE);
+  }
   if (nbd_opt_abort (nbd) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);

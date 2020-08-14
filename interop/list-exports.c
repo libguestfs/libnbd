@@ -52,8 +52,8 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* Set the list exports mode in the handle. */
-  nbd_set_list_exports (nbd, true);
+  /* Set option mode in the handle. */
+  nbd_set_opt_mode (nbd, true);
 
   /* Run qemu-nbd. */
   char *args[] = { SERVER, SERVER_PARAMS, NULL };
@@ -62,9 +62,11 @@ main (int argc, char *argv[])
 #else
 #define NBD_CONNECT nbd_connect_command
 #endif
-  if (NBD_CONNECT (nbd, args) == -1)
-    /* This is not an error so don't fail here. */
+  if (NBD_CONNECT (nbd, args) == -1 || nbd_opt_list (nbd) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
+    unlink (tmpfile);
+    exit (EXIT_FAILURE);
+  }
 
   /* We don't need the temporary file any longer. */
   unlink (tmpfile);
@@ -98,6 +100,7 @@ main (int argc, char *argv[])
     free (desc);
   }
 
+  nbd_opt_abort (nbd);
   nbd_close (nbd);
   exit (EXIT_SUCCESS);
 }

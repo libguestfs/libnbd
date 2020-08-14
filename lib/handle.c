@@ -288,24 +288,10 @@ nbd_unlocked_get_export_description (struct nbd_handle *h)
 }
 
 int
-nbd_unlocked_set_list_exports (struct nbd_handle *h, bool list)
-{
-  h->list_exports = list;
-  return 0;
-}
-
-/* NB: may_set_error = false. */
-int
-nbd_unlocked_get_list_exports (struct nbd_handle *h)
-{
-  return h->list_exports;
-}
-
-int
 nbd_unlocked_get_nr_list_exports (struct nbd_handle *h)
 {
-  if (!h->list_exports) {
-    set_error (EINVAL, "list exports mode not selected on this handle");
+  if (!h->exports) {
+    set_error (EINVAL, "nbd_opt_list not yet run on this handle");
     return -1;
   }
   return (int) h->nr_exports;
@@ -317,8 +303,8 @@ nbd_unlocked_get_list_export_name (struct nbd_handle *h,
 {
   char *name;
 
-  if (!h->list_exports) {
-    set_error (EINVAL, "list exports mode not selected on this handle");
+  if (!h->exports) {
+    set_error (EINVAL, "nbd_opt_list not yet run on this handle");
     return NULL;
   }
   if (i < 0 || i >= (int) h->nr_exports) {
@@ -339,8 +325,8 @@ nbd_unlocked_get_list_export_description (struct nbd_handle *h,
 {
   char *desc;
 
-  if (!h->list_exports) {
-    set_error (EINVAL, "list exports mode not selected on this handle");
+  if (!h->exports) {
+    set_error (EINVAL, "nbd_opt_list not yet run on this handle");
     return NULL;
   }
   if (i < 0 || i >= (int) h->nr_exports) {

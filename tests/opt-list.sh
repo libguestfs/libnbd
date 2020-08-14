@@ -16,30 +16,29 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-# This is used to test metadata context "base:allocation".
-# See tests/meta-base-allocation.c and test 460 in language bindings.
+# This is used to test nbd_opt_list in various language bindings.
+# See tests/opt-list.c and test 220 in language bindings.
 
+if test ! -e "$tmpdir/count"; then
+    echo 0 > "$tmpdir/count"
+fi
 case "$1" in
-    thread_model)
-        echo parallel
-        ;;
+    list_exports)
+	read i < "$tmpdir/count"
+	# XXX nbkdit .list_exports interface not stable, this may need tweaking
+	if test "$2" = false; then
+	    echo $((i+1)) > "$tmpdir/count"
+	fi
+	case $i in
+	    0) echo EINVAL listing not supported >&2; exit 1 ;;
+	    1) echo NAMES; echo a; echo b ;;
+	    2) echo NAMES ;;
+	    *) echo NAMES; echo a ;;
+	esac ;;
     get_size)
-        echo 65536
-        ;;
+        echo 512 ;;
     pread)
-        dd if=/dev/zero count=$3 iflag=count_bytes
-        ;;
-    can_extents)
-        exit 0
-        ;;
-    extents)
-        echo     0  8192
-        echo  8192  8192 hole
-        echo 16384 16384 hole,zero
-        echo 32768 16384 zero
-        echo 49152 16384
-        ;;
+        dd bs=1 if=/dev/zero count=$3 ;;
     *)
-        exit 2
-        ;;
+        exit 2 ;;
 esac

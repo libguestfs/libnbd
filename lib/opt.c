@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <errno.h>
 #include <assert.h>
 
 #include "internal.h"
@@ -95,6 +96,39 @@ nbd_unlocked_opt_abort (struct nbd_handle *h)
   if (r == -1)
     return r;
 
+  return wait_for_option (h);
+}
+
+/* Issue NBD_OPT_LIST and wait for the reply. */
+int
+nbd_unlocked_opt_list (struct nbd_handle *h)
+{
+  size_t i;
+
+  if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0) {
+    set_error (ENOTSUP, "server is not using fixed newstyle protocol");
+    return -1;
+  }
+
+  /* Overwrite any previous results */
+  if (h->exports) {
+    for (i = 0; i < h->nr_exports; ++i) {
+      free (h->exports[i].name);
+      free (h->exports[i].description);
+    }
+    h->nr_exports = 0;
+  }
+  else {
+    h->exports = malloc (sizeof *h->exports);
+    if (h->exports == NULL) {
+      set_error (errno, "malloc");
+      return -1;
+    }
+  }
+
+  h->opt_current = NBD_OPT_LIST;
+  if (nbd_internal_run (h, cmd_issue) == -1)
+    debug (h, "option queued, ignoring state machine failure");
   return wait_for_option (h);
 }
 

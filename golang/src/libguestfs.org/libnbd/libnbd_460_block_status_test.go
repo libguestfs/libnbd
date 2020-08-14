@@ -25,9 +25,6 @@ import (
 	"testing"
 )
 
-var srcdir = os.Getenv("srcdir")
-var script = srcdir + "/../../../../tests/meta-base-allocation.sh"
-
 var entries []uint32
 
 func mcf(metacontext string, offset uint64, e []uint32, error *int) int {
@@ -63,6 +60,9 @@ func mc_to_string(a []uint32) string {
 }
 
 func Test460BlockStatus(t *testing.T) {
+	srcdir := os.Getenv("srcdir")
+	script := srcdir + "/../../../../tests/meta-base-allocation.sh"
+
 	h, err := Create()
 	if err != nil {
 		t.Fatalf("could not create handle: %s", err)
