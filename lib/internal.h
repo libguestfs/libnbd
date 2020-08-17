@@ -405,6 +405,7 @@ extern void nbd_internal_set_last_error (int errnum, char *error);
   } while (0)
 
 /* flags.c */
+extern void nbd_internal_reset_size_and_flags (struct nbd_handle *h);
 extern int nbd_internal_set_size_and_flags (struct nbd_handle *h,
                                             uint64_t exportsize,
                                             uint16_t eflags);

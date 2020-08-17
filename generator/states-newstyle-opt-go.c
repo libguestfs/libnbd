@@ -240,7 +240,11 @@ STATE_MACHINE {
       set_error (0, "handshake: unknown reply from NBD_OPT_GO: 0x%" PRIx32,
                  reply);
     }
-    SET_NEXT_STATE (%^PREPARE_OPT_ABORT);
+    nbd_internal_reset_size_and_flags (h);
+    if (h->opt_mode)
+      SET_NEXT_STATE (%.NEGOTIATING);
+    else
+      SET_NEXT_STATE (%^PREPARE_OPT_ABORT);
     break;
   case NBD_REP_ACK:
     SET_NEXT_STATE (%^FINISHED);

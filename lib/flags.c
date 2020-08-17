@@ -27,6 +27,31 @@
 
 #include "internal.h"
 
+/* Reset connection data.  Called after swapping export name, after
+ * failed OPT_GO/OPT_INFO, or when starting a fresh OPT_SET_META_CONTEXT.
+ */
+void
+nbd_internal_reset_size_and_flags (struct nbd_handle *h)
+{
+  struct meta_context *m, *m_next;
+
+  h->exportsize = 0;
+  h->eflags = 0;
+  for (m = h->meta_contexts; m != NULL; m = m_next) {
+    m_next = m->next;
+    free (m->name);
+    free (m);
+  }
+  h->meta_contexts = NULL;
+  h->block_minimum = 0;
+  h->block_preferred = 0;
+  h->block_maximum = 0;
+  free (h->canonical_name);
+  h->canonical_name = NULL;
+  free (h->description);
+  h->description = NULL;
+}
+
 /* Set the export size and eflags on the handle, validating them.
  * This is called from the state machine when either the newstyle or
  * oldstyle negotiation reaches the point that these are available.
@@ -194,7 +219,8 @@ nbd_unlocked_get_size (struct nbd_handle *h)
   return h->exportsize;
 }
 
-int64_t nbd_unlocked_get_block_size (struct nbd_handle *h, int type)
+int64_t
+nbd_unlocked_get_block_size (struct nbd_handle *h, int type)
 {
   switch (type) {
   case LIBNBD_SIZE_MINIMUM:

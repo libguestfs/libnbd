@@ -48,6 +48,21 @@ wait_for_option (struct nbd_handle *h)
   return 0;
 }
 
+/* Issue NBD_OPT_GO (or NBD_OPT_EXPORT_NAME) and wait for the reply. */
+int
+nbd_unlocked_opt_go (struct nbd_handle *h)
+{
+  int r = nbd_unlocked_aio_opt_go (h);
+
+  if (r == -1)
+    return r;
+
+  r = wait_for_option (h);
+  if (r == 0 && nbd_internal_is_state_negotiating (get_next_state (h)))
+    return -1; /* NBD_OPT_GO failed, but can be attempted again */
+  return r;
+}
+
 /* Issue NBD_OPT_ABORT and wait for the state change. */
 int
 nbd_unlocked_opt_abort (struct nbd_handle *h)
@@ -58,6 +73,17 @@ nbd_unlocked_opt_abort (struct nbd_handle *h)
     return r;
 
   return wait_for_option (h);
+}
+
+/* Issue NBD_OPT_GO (or NBD_OPT_EXPORT_NAME) without waiting. */
+int
+nbd_unlocked_aio_opt_go (struct nbd_handle *h)
+{
+  h->opt_current = NBD_OPT_GO;
+
+  if (nbd_internal_run (h, cmd_issue) == -1)
+    debug (h, "option queued, ignoring state machine failure");
+  return 0;
 }
 
 /* Issue NBD_OPT_ABORT without waiting. */

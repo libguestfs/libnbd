@@ -118,6 +118,12 @@ STATE_MACHINE {
      * state has informed us what we still need to do.
      */
     switch (h->opt_current) {
+    case NBD_OPT_GO:
+      if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0)
+        SET_NEXT_STATE (%OPT_EXPORT_NAME.START);
+      else
+        SET_NEXT_STATE (%OPT_SET_META_CONTEXT.START);
+      return 0;
     case NBD_OPT_ABORT:
       if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0) {
         SET_NEXT_STATE (%.DEAD);

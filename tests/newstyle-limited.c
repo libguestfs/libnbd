@@ -152,9 +152,14 @@ main (int argc, char *argv[])
    */
   nbd = nbd_create ();
   if (nbd == NULL ||
-      nbd_set_export_name (nbd, "b") == -1 ||
-      nbd_connect_command (nbd, args) == 1) {
+      nbd_set_opt_mode (nbd, true) == -1 ||
+      nbd_connect_command (nbd, args) == -1 ||
+      nbd_set_export_name (nbd, "b") == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_opt_go (nbd) != -1) {
+    fprintf (stderr, "%s\n", "expected failure");
     exit (EXIT_FAILURE);
   }
   if (!nbd_aio_is_dead (nbd)) {

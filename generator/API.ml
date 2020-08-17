@@ -285,9 +285,15 @@ export names.  The NBD protocol limits export names to
 4096 bytes, but servers may not support the full length.
 The encoding of export names is always UTF-8.
 
+When option mode is not in use, the export name must be set
+before beginning a connection.  However, when L<nbd_set_opt_mode(3)>
+has enabled option mode, it is possible to change the export
+name prior to L<nbd_opt_go(3)>.
+
 This call may be skipped if using L<nbd_connect_uri(3)> to connect
 to a URI that includes an export name.";
-    see_also = [Link "get_export_name"; Link "connect_uri"];
+    see_also = [Link "get_export_name"; Link "connect_uri";
+                Link "set_opt_mode"; Link "opt_go"];
   };
 
   "get_export_name", {
@@ -697,13 +703,13 @@ When option mode is enabled, you have fine-grained control over which
 options are negotiated, compared to the default of the server
 negotiating everything on your behalf using settings made before
 starting the connection.  To leave the mode and proceed on to the
-ready state, you must use nbd_opt_go successfully; a failed
-C<nbd_opt_go> returns to the negotiating state to allow a change of
+ready state, you must use L<nbd_opt_go(3)> successfully; a failed
+L<nbd_opt_go(3)> returns to the negotiating state to allow a change of
 export name before trying again.  You may also use L<nbd_opt_abort(3)>
 to end the connection without finishing negotiation.";
     example = Some "examples/list-exports.c";
     see_also = [Link "get_opt_mode"; Link "aio_is_negotiating";
-                Link "opt_abort"];
+                Link "opt_abort"; Link "opt_go"];
   };
 
   "get_opt_mode", {
@@ -716,6 +722,25 @@ Return true if option negotiation mode was enabled on this handle.";
     see_also = [Link "set_opt_mode"];
   };
 
+  "opt_go", {
+    default_call with
+    args = []; ret = RErr;
+    permitted_states = [ Negotiating ];
+    shortdesc = "end negotiation and move on to using an export";
+    longdesc = "\
+Request that the server finish negotiation and move on to serving the
+export previously specified by the most recent L<nbd_set_export_name(3)>
+or L<nbd_connect_uri(3)>.  This can only be used if
+L<nbd_set_opt_mode(3)> enabled option mode.
+
+If this fails, the server may still be in negotiation, where it is
+possible to attempt another option such as a different export name;
+although older servers will instead have killed the connection.";
+    example = Some "examples/list-exports.c";
+    see_also = [Link "set_opt_mode"; Link "aio_opt_go"; Link "opt_abort";
+                Link "set_export_name"; Link "connect_uri"];
+  };
+
   "opt_abort", {
     default_call with
     args = []; ret = RErr;
@@ -726,7 +751,7 @@ Request that the server finish negotiation, gracefully if possible, then
 close the connection.  This can only be used if L<nbd_set_opt_mode(3)>
 enabled option mode.";
     example = Some "examples/list-exports.c";
-    see_also = [Link "set_opt_mode"; Link "aio_opt_abort"];
+    see_also = [Link "set_opt_mode"; Link "aio_opt_abort"; Link "opt_go"];
   };
 
   "set_list_exports", {
@@ -938,8 +963,8 @@ L<nbd_set_export_name(3)> and L<nbd_set_tls(3)> and other
 calls as needed, followed by L<nbd_connect_tcp(3)> or
 L<nbd_connect_unix(3)>.  However, it is possible to override the
 export name portion of a URI by using L<nbd_set_opt_mode(3)> to
-enable option mode, then using L<nbd_set_export_name(3)> as part
-of later negotiation.
+enable option mode, then using L<nbd_set_export_name(3)> and
+L<nbd_opt_go(3)> as part of subsequent negotiation.
 
 This call returns when the connection has been made.
 
@@ -1897,6 +1922,22 @@ and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
   };
 
+  "aio_opt_go", {
+    default_call with
+    args = []; ret = RErr;
+    permitted_states = [ Negotiating ];
+    shortdesc = "end negotiation and move on to using an export";
+    longdesc = "\
+Request that the server finish negotiation and move on to serving the
+export previously specified by the most recent L<nbd_set_export_name(3)>
+or L<nbd_connect_uri(3)>.  This can only be used if
+L<nbd_set_opt_mode(3)> enabled option mode.
+
+To determine when the request completes, wait for
+L<nbd_aio_is_connecting(3)> to return false.";
+    see_also = [Link "set_opt_mode"; Link "opt_go"];
+  };
+
   "aio_opt_abort", {
     default_call with
     args = []; ret = RErr;
@@ -2533,7 +2574,9 @@ let first_version = [
   "set_opt_mode", (1, 4);
   "get_opt_mode", (1, 4);
   "aio_is_negotiating", (1, 4);
+  "opt_go", (1, 4);
   "opt_abort", (1, 4);
+  "aio_opt_go", (1, 4);
   "aio_opt_abort", (1, 4);
 
   (* These calls are proposed for a future version of libnbd, but
