@@ -20,8 +20,16 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #include "internal.h"
+
+/* Internal function which frees an option with callback. */
+void
+nbd_internal_free_option (struct nbd_handle *h)
+{
+  FREE_CALLBACK (h->opt_completion);
+}
 
 int
 nbd_unlocked_set_opt_mode (struct nbd_handle *h, bool value)
@@ -48,18 +56,33 @@ wait_for_option (struct nbd_handle *h)
   return 0;
 }
 
+static int
+go_complete (void *opaque, int *err)
+{
+  int *i = opaque;
+  *i = *err;
+  return 0;
+}
+
 /* Issue NBD_OPT_GO (or NBD_OPT_EXPORT_NAME) and wait for the reply. */
 int
 nbd_unlocked_opt_go (struct nbd_handle *h)
 {
-  int r = nbd_unlocked_aio_opt_go (h);
+  int err;
+  nbd_completion_callback c = { .callback = go_complete, .user_data = &err };
+  int r = nbd_unlocked_aio_opt_go (h, c);
 
   if (r == -1)
     return r;
 
   r = wait_for_option (h);
-  if (r == 0 && nbd_internal_is_state_negotiating (get_next_state (h)))
-    return -1; /* NBD_OPT_GO failed, but can be attempted again */
+  if (r == 0 && err) {
+    assert (nbd_internal_is_state_negotiating (get_next_state (h)));
+    set_error (err, "server replied with error to opt_go request");
+    return -1;
+  }
+  if (r == 0)
+    assert (nbd_internal_is_state_ready (get_next_state (h)));
   return r;
 }
 
@@ -77,9 +100,11 @@ nbd_unlocked_opt_abort (struct nbd_handle *h)
 
 /* Issue NBD_OPT_GO (or NBD_OPT_EXPORT_NAME) without waiting. */
 int
-nbd_unlocked_aio_opt_go (struct nbd_handle *h)
+nbd_unlocked_aio_opt_go (struct nbd_handle *h,
+                         nbd_completion_callback complete)
 {
   h->opt_current = NBD_OPT_GO;
+  h->opt_completion = complete;
 
   if (nbd_internal_run (h, cmd_issue) == -1)
     debug (h, "option queued, ignoring state machine failure");

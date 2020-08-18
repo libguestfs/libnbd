@@ -102,6 +102,7 @@ struct nbd_handle {
   /* Option negotiation mode. */
   bool opt_mode;
   uint8_t opt_current; /* 0 or one of NBD_OPT_* */
+  nbd_completion_callback opt_completion;
 
   /* List exports mode. */
   bool list_exports;
@@ -420,6 +421,9 @@ extern bool nbd_internal_is_state_ready (enum state state);
 extern bool nbd_internal_is_state_processing (enum state state);
 extern bool nbd_internal_is_state_dead (enum state state);
 extern bool nbd_internal_is_state_closed (enum state state);
+
+/* opt.c */
+extern void nbd_internal_free_option (struct nbd_handle *h);
 
 /* protocol.c */
 extern int nbd_internal_errno_of_nbd_error (uint32_t error);

@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -111,9 +111,19 @@ send_from_wbuf (struct nbd_handle *h)
   return 0;                     /* move to next state */
 }
 
+/* Forcefully fail any in-flight option */
+static void
+abort_option (struct nbd_handle *h)
+{
+  int err = nbd_get_errno () ? : ENOTCONN;
+
+  CALL_CALLBACK (h->opt_completion, &err);
+  nbd_internal_free_option(h);
+}
+
 /* Forcefully fail any remaining in-flight commands in list */
-void abort_commands (struct nbd_handle *h,
-                     struct command **list)
+static void
+abort_commands (struct nbd_handle *h, struct command **list)
 {
   struct command *next, *cmd;
 
@@ -168,6 +178,7 @@ STATE_MACHINE {
  DEAD:
   /* The caller should have used set_error() before reaching here */
   assert (nbd_get_error ());
+  abort_option (h);
   abort_commands (h, &h->cmds_to_issue);
   abort_commands (h, &h->cmds_in_flight);
   h->in_flight = 0;
@@ -178,6 +189,7 @@ STATE_MACHINE {
   return -1;
 
  CLOSED:
+  abort_option (h);
   abort_commands (h, &h->cmds_to_issue);
   abort_commands (h, &h->cmds_in_flight);
   h->in_flight = 0;

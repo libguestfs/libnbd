@@ -131,6 +131,7 @@ nbd_close (struct nbd_handle *h)
     free (h->exports[i].description);
   }
   free (h->exports);
+  nbd_internal_free_option (h);
   free_cmd_list (h->cmds_to_issue);
   free_cmd_list (h->cmds_in_flight);
   free_cmd_list (h->cmds_done);

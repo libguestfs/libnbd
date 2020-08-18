@@ -1924,7 +1924,9 @@ on the connection.";
 
   "aio_opt_go", {
     default_call with
-    args = []; ret = RErr;
+    args = [];
+    optargs = [ OClosure completion_closure ];
+    ret = RErr;
     permitted_states = [ Negotiating ];
     shortdesc = "end negotiation and move on to using an export";
     longdesc = "\
@@ -1934,7 +1936,14 @@ or L<nbd_connect_uri(3)>.  This can only be used if
 L<nbd_set_opt_mode(3)> enabled option mode.
 
 To determine when the request completes, wait for
-L<nbd_aio_is_connecting(3)> to return false.";
+L<nbd_aio_is_connecting(3)> to return false.  Or supply the optional
+C<completion_callback> which will be invoked as described in
+L<libnbd(3)/Completion callbacks>, except that it is automatically
+retired regardless of return value.  Note that directly detecting
+whether the server returns an error (as is done by the return value
+of the synchronous counterpart) is only possible with a completion
+callback; however it is also possible to indirectly detect an error
+when L<nbd_aio_is_negotiating(3)> returns true.";
     see_also = [Link "set_opt_mode"; Link "opt_go"];
   };
 

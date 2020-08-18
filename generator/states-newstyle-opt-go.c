@@ -124,6 +124,7 @@ STATE_MACHINE {
   uint64_t exportsize;
   uint16_t eflags;
   uint32_t min, pref, max;
+  int err;
 
   reply = be32toh (h->sbuf.or.option_reply.reply);
   len = be32toh (h->sbuf.or.option_reply.replylen);
@@ -241,15 +242,21 @@ STATE_MACHINE {
                  reply);
     }
     nbd_internal_reset_size_and_flags (h);
-    if (h->opt_mode)
-      SET_NEXT_STATE (%.NEGOTIATING);
-    else
-      SET_NEXT_STATE (%^PREPARE_OPT_ABORT);
+    err = nbd_get_errno () ? : ENOTSUP;
     break;
   case NBD_REP_ACK:
-    SET_NEXT_STATE (%^FINISHED);
+    err = 0;
     break;
   }
+
+  if (err == 0)
+    SET_NEXT_STATE (%^FINISHED);
+  else if (h->opt_mode)
+    SET_NEXT_STATE (%.NEGOTIATING);
+  else
+    SET_NEXT_STATE (%^PREPARE_OPT_ABORT);
+  CALL_CALLBACK (h->opt_completion, &err);
+  nbd_internal_free_option (h);
   return 0;
 
 } /* END STATE MACHINE */
