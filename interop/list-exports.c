@@ -27,14 +27,44 @@
 
 #include <libnbd.h>
 
+static const char *exports[] = { EXPORTS };
+static const char *descriptions[] = { DESCRIPTIONS };
+static const size_t nr_exports = sizeof exports / sizeof exports[0];
+
+static char *progname;
+
+static int
+check (void *opaque, const char *name, const char *description)
+{
+  size_t *i = opaque;
+  if (*i == nr_exports) {
+    fprintf (stderr, "%s: server returned more exports than expected",
+             progname);
+    exit (EXIT_FAILURE);
+  }
+  if (strcmp (exports[*i], name) != 0) {
+    fprintf (stderr, "%s: expected export \"%s\", but got \"%s\"\n",
+             progname, exports[*i], name);
+    exit (EXIT_FAILURE);
+  }
+  if (strcmp (descriptions[*i], description) != 0) {
+    fprintf (stderr, "%s: expected description \"%s\", but got \"%s\"\n",
+             progname, descriptions[*i], description);
+    exit (EXIT_FAILURE);
+  }
+  (*i)++;
+  return 0;
+}
+
 int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
   char tmpfile[] = "/tmp/nbdXXXXXX";
-  int fd, r;
-  size_t i;
-  char *name, *desc;
+  int fd;
+  size_t i = 0;
+
+  progname = argv[0];
 
   /* Create a sparse temporary file. */
   fd = mkstemp (tmpfile);
@@ -62,7 +92,9 @@ main (int argc, char *argv[])
 #else
 #define NBD_CONNECT nbd_connect_command
 #endif
-  if (NBD_CONNECT (nbd, args) == -1 || nbd_opt_list (nbd) == -1) {
+  if (NBD_CONNECT (nbd, args) == -1 ||
+      nbd_opt_list (nbd, (nbd_list_callback) {
+          .callback = check, .user_data = &i}) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     unlink (tmpfile);
     exit (EXIT_FAILURE);
@@ -72,32 +104,10 @@ main (int argc, char *argv[])
   unlink (tmpfile);
 
   /* Check for expected number of exports. */
-  const char *exports[] = { EXPORTS };
-  const char *descriptions[] = { DESCRIPTIONS };
-  const size_t nr_exports = sizeof exports / sizeof exports[0];
-  r = nbd_get_nr_list_exports (nbd);
-  if (r != nr_exports) {
-    fprintf (stderr, "%s: expected %zu export, but got %d\n",
-             argv[0], nr_exports, r);
+  if (i != nr_exports) {
+    fprintf (stderr, "%s: expected %zu export, but got %zu\n",
+             argv[0], nr_exports, i);
     exit (EXIT_FAILURE);
-  }
-
-  /* Check the export names and descriptions. */
-  for (i = 0; i < nr_exports; ++i) {
-    name = nbd_get_list_export_name (nbd, (int) i);
-    if (strcmp (name, exports[i]) != 0) {
-      fprintf (stderr, "%s: expected export \"%s\", but got \"%s\"\n",
-               argv[0], exports[i], name);
-      exit (EXIT_FAILURE);
-    }
-    free (name);
-    desc = nbd_get_list_export_description (nbd, (int) i);
-    if (strcmp (desc, descriptions[i]) != 0) {
-      fprintf (stderr, "%s: expected description \"%s\", but got \"%s\"\n",
-               argv[0], descriptions[i], desc);
-      exit (EXIT_FAILURE);
-    }
-    free (desc);
   }
 
   nbd_opt_abort (nbd);

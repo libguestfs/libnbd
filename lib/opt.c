@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <stdbool.h>
+#include <limits.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -29,7 +30,9 @@
 void
 nbd_internal_free_option (struct nbd_handle *h)
 {
-  FREE_CALLBACK (h->opt_completion);
+  if (h->opt_current == NBD_OPT_LIST)
+    FREE_CALLBACK (h->opt_cb.fn.list);
+  FREE_CALLBACK (h->opt_cb.completion);
 }
 
 int
@@ -99,37 +102,47 @@ nbd_unlocked_opt_abort (struct nbd_handle *h)
   return wait_for_option (h);
 }
 
+struct list_helper {
+  int count;
+  nbd_list_callback list;
+  int err;
+};
+static int
+list_visitor (void *opaque, const char *name, const char *description)
+{
+  struct list_helper *h = opaque;
+  if (h->count < INT_MAX)
+    h->count++;
+  CALL_CALLBACK (h->list, name, description);
+  return 0;
+}
+static int
+list_complete (void *opaque, int *err)
+{
+  struct list_helper *h = opaque;
+  h->err = *err;
+  FREE_CALLBACK (h->list);
+  return 0;
+}
+
 /* Issue NBD_OPT_LIST and wait for the reply. */
 int
-nbd_unlocked_opt_list (struct nbd_handle *h)
+nbd_unlocked_opt_list (struct nbd_handle *h, nbd_list_callback list)
 {
-  size_t i;
+  struct list_helper s = { .list = list };
+  nbd_list_callback l = { .callback = list_visitor, .user_data = &s };
+  nbd_completion_callback c = { .callback = list_complete, .user_data = &s };
 
-  if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0) {
-    set_error (ENOTSUP, "server is not using fixed newstyle protocol");
+  if (nbd_unlocked_aio_opt_list (h, l, c) == -1)
+    return -1;
+
+  if (wait_for_option (h) == -1)
+    return -1;
+  if (s.err) {
+    set_error (s.err, "server replied with error to list request");
     return -1;
   }
-
-  /* Overwrite any previous results */
-  if (h->exports) {
-    for (i = 0; i < h->nr_exports; ++i) {
-      free (h->exports[i].name);
-      free (h->exports[i].description);
-    }
-    h->nr_exports = 0;
-  }
-  else {
-    h->exports = malloc (sizeof *h->exports);
-    if (h->exports == NULL) {
-      set_error (errno, "malloc");
-      return -1;
-    }
-  }
-
-  h->opt_current = NBD_OPT_LIST;
-  if (nbd_internal_run (h, cmd_issue) == -1)
-    debug (h, "option queued, ignoring state machine failure");
-  return wait_for_option (h);
+  return s.count;
 }
 
 /* Issue NBD_OPT_GO (or NBD_OPT_EXPORT_NAME) without waiting. */
@@ -138,7 +151,7 @@ nbd_unlocked_aio_opt_go (struct nbd_handle *h,
                          nbd_completion_callback complete)
 {
   h->opt_current = NBD_OPT_GO;
-  h->opt_completion = complete;
+  h->opt_cb.completion = complete;
 
   if (nbd_internal_run (h, cmd_issue) == -1)
     debug (h, "option queued, ignoring state machine failure");
@@ -151,6 +164,25 @@ nbd_unlocked_aio_opt_abort (struct nbd_handle *h)
 {
   h->opt_current = NBD_OPT_ABORT;
 
+  if (nbd_internal_run (h, cmd_issue) == -1)
+    debug (h, "option queued, ignoring state machine failure");
+  return 0;
+}
+
+/* Issue NBD_OPT_LIST without waiting. */
+int
+nbd_unlocked_aio_opt_list (struct nbd_handle *h, nbd_list_callback list,
+                           nbd_completion_callback complete)
+{
+  if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0) {
+    set_error (ENOTSUP, "server is not using fixed newstyle protocol");
+    return -1;
+  }
+
+  assert (CALLBACK_IS_NULL (h->opt_cb.fn.list));
+  h->opt_cb.fn.list = list;
+  h->opt_cb.completion = complete;
+  h->opt_current = NBD_OPT_LIST;
   if (nbd_internal_run (h, cmd_issue) == -1)
     debug (h, "option queued, ignoring state machine failure");
   return 0;

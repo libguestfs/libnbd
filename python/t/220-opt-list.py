@@ -31,29 +31,34 @@ h.set_opt_mode (True)
 h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
                     "sh", script])
 
+exports = []
+def f (user_data, name, desc):
+    global exports
+    assert user_data == 42
+    assert desc == ""
+    exports.append(name)
+
 # First pass: server fails NBD_OPT_LIST
-# XXX We can't tell the difference
-h.opt_list ()
-assert h.get_nr_list_exports () == 0
-
-# Second pass: server advertises 'a' and 'b'
-h.opt_list ()
-assert h.get_nr_list_exports () == 2
-assert h.get_list_export_name (0) == "a"
-assert h.get_list_export_name (1) == "b"
-
-# Third pass: server advertises empty list
-h.opt_list ()
-assert h.get_nr_list_exports () == 0
 try:
-    h.get_list_export_name (0)
+    h.opt_list (lambda *args: f (42, *args))
     assert False
 except nbd.Error as ex:
     pass
+assert exports == []
+
+# Second pass: server advertises 'a' and 'b'
+exports = []
+assert h.opt_list (lambda *args: f (42, *args)) == 2
+assert exports == [ "a", "b" ]
+
+# Third pass: server advertises empty list
+exports = []
+assert h.opt_list (lambda *args: f (42, *args)) == 0
+assert exports == []
 
 # Final pass: server advertises 'a'
-h.opt_list ()
-assert h.get_nr_list_exports () == 1
-assert h.get_list_export_name (0) == "a"
+exports = []
+assert h.opt_list (lambda *args: f (42, *args)) == 1
+assert exports == [ "a" ]
 
 h.opt_abort ()

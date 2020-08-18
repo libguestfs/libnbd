@@ -127,8 +127,12 @@ let extent_closure = {
                             "nr_entries");
              CBMutable (Int "error") ]
 }
+let list_closure = {
+  cbname = "list";
+  cbargs = [ CBString "name"; CBString "description" ]
+}
 let all_closures = [ chunk_closure; completion_closure;
-                     debug_closure; extent_closure ]
+                     debug_closure; extent_closure; list_closure ]
 
 (* Enums. *)
 let tls_enum = {
@@ -758,23 +762,24 @@ enabled option mode.";
 
   "opt_list", {
     default_call with
-    args = []; ret = RErr;
+    args = [ Closure list_closure ]; ret = RInt;
     permitted_states = [ Negotiating ];
     shortdesc = "request the server to list all exports during negotiation";
     longdesc = "\
 Request that the server list all exports that it supports.  This can
 only be used if L<nbd_set_opt_mode(3)> enabled option mode.
 
-In this mode, during connection we query the server for the list
-of NBD exports and collect them in the handle.  You can query
-the list of exports provided by the server by calling
-L<nbd_get_nr_list_exports(3)> and L<nbd_get_list_export_name(3)>.
-After choosing the export you want, set the export name
-(L<nbd_set_export_name(3)>), then finish connecting with L<nbd_opt_go(3)>.
+The <list> function is called once per advertised export, with any
+C<user_data> passed to this function, and with C<name> and C<description>
+supplied by the server.  Many servers omit descriptions, in which
+case C<description> will be an empty string.  Remember that it is not
+safe to call L<nbd_set_export_name(3)> from within the context of the
+callback function; rather, your code must copy any C<name> needed for
+later use after this function completes.  At present, the return value
+of the callback is ignored, although a return of -1 should be avoided.
 
-Some servers do not support listing exports at all.  In
-that case the connect call will fail with errno C<ENOTSUP>
-and L<nbd_get_nr_list_exports(3)> will return 0.
+For convenience, when this function succeeds, it returns the number
+of exports that were advertised by the server.
 
 Not all servers understand this request, and even when it is understood,
 the server might intentionally send an empty list to avoid being an
@@ -783,56 +788,15 @@ results.  Thus, this function may succeed even when no exports
 are reported, or may fail but have a non-empty list.  Likewise,
 the NBD protocol does not specify an upper bound for the number of
 exports that might be advertised, so client code should be aware that
-a server may send a lengthy list; libnbd truncates the server reply
-after 10000 exports.
+a server may send a lengthy list.
 
 For L<nbd-server(1)> you will need to allow clients to make
 list requests by adding C<allowlist=true> to the C<[generic]>
 section of F</etc/nbd-server/config>.  For L<qemu-nbd(8)>, a
 description is set with I<-D>.";
     example = Some "examples/list-exports.c";
-    see_also = [Link "set_opt_mode"; Link "opt_go";
-                Link "get_nr_list_exports"; Link "get_list_export_name"];
-  };
-
-  "get_nr_list_exports", {
-    default_call with
-    args = []; ret = RInt;
-    permitted_states = [ Negotiating; Connected; Closed; Dead ];
-    shortdesc = "return the number of exports returned by the server";
-    longdesc = "\
-If option mode is in effect and you called L<nbd_opt_list(3)>,
-this returns the number of exports returned by the server.  This
-may be 0 or incomplete for reasons given in L<nbd_opt_list(3)>.";
-    see_also = [Link "opt_list"; Link "get_list_export_name";
-                Link "get_list_export_description"];
-  };
-
-  "get_list_export_name", {
-    default_call with
-    args = [ Int "i" ]; ret = RString;
-    permitted_states = [ Negotiating; Connected; Closed; Dead ];
-    shortdesc = "return the i'th export name";
-    longdesc = "\
-If L<nbd_opt_list(3)> succeeded with option mode enabled,
-this can be used to return the i'th export name
-from the list returned by the server.";
-    see_also = [Link "opt_list"; Link "get_list_export_description"];
-  };
-
-  "get_list_export_description", {
-    default_call with
-    args = [ Int "i" ]; ret = RString;
-    permitted_states = [ Negotiating; Connected; Closed; Dead ];
-    shortdesc = "return the i'th export description";
-    longdesc = "\
-If L<nbd_opt_list(3)> succeeded with option mode enabled,
-this can be used to return the i'th export description
-from the list returned by the server, which may be an empty string.
-
-Many servers omit a description.  For L<qemu-nbd(8)>, a description
-is set with I<-D>.";
-    see_also = [Link "set_opt_mode"; Link "opt_go"];
+    see_also = [Link "set_opt_mode"; Link "aio_opt_list"; Link "opt_go";
+                Link "set_export_name"];
   };
 
   "add_meta_context", {
@@ -1951,6 +1915,28 @@ L<nbd_aio_is_connecting(3)> to return false.";
     see_also = [Link "set_opt_mode"; Link "opt_abort"];
   };
 
+  "aio_opt_list", {
+    default_call with
+    args = [ Closure list_closure ];
+    optargs = [ OClosure completion_closure ];
+    ret = RErr;
+    permitted_states = [ Negotiating ];
+    shortdesc = "request the server to list all exports during negotiation";
+    longdesc = "\
+Request that the server list all exports that it supports.  This can
+only be used if L<nbd_set_opt_mode(3)> enabled option mode.
+
+To determine when the request completes, wait for
+L<nbd_aio_is_connecting(3)> to return false.  Or supply the optional
+C<completion_callback> which will be invoked as described in
+L<libnbd(3)/Completion callbacks>, except that it is automatically
+retired regardless of return value.  Note that detecting whether the
+server returns an error (as is done by the return value of the
+synchronous counterpart) is only possible with a completion
+callback.";
+    see_also = [Link "set_opt_mode"; Link "opt_list"];
+  };
+
   "aio_pread", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset" ];
@@ -2559,9 +2545,6 @@ let first_version = [
   "set_uri_allow_local_file", (1, 2);
 
   (* Added in 1.3.x development cycle, will be stable and supported in 1.4. *)
-  "get_nr_list_exports", (1, 4);
-  "get_list_export_name", (1, 4);
-  "get_list_export_description", (1, 4);
   "get_block_size", (1, 4);
   "set_full_info", (1, 4);
   "get_full_info", (1, 4);
@@ -2575,6 +2558,7 @@ let first_version = [
   "opt_list", (1, 4);
   "aio_opt_go", (1, 4);
   "aio_opt_abort", (1, 4);
+  "aio_opt_list", (1, 4);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

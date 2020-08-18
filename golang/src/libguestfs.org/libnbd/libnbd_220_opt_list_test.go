@@ -24,6 +24,16 @@ import (
 	"testing"
 )
 
+var exports []string
+
+func listf(name string, desc string) int {
+	if desc != "" {
+		panic("expected empty description")
+	}
+	exports = append(exports, name)
+	return 0
+}
+
 func Test220OptList(t *testing.T) {
 	/* Require new-enough nbdkit */
 	srcdir := os.Getenv("srcdir")
@@ -54,60 +64,52 @@ func Test220OptList(t *testing.T) {
 	}
 
 	/* First pass: server fails NBD_OPT_LIST */
-	/* XXX We can't tell the difference */
-	err = h.OptList()
-	if err != nil {
-		t.Fatalf("could not request opt_list: %s", err)
+	exports = make([]string, 0, 4)
+	_, err = h.OptList(listf)
+	if err == nil {
+		t.Fatalf("expected error")
 	}
-	count, err := h.GetNrListExports()
-	if err != nil || count != 0 {
-		t.Fatalf("unexpected count after opt_list: %s", err)
+	if len(exports) != 0 {
+		t.Fatalf("exports should be empty")
 	}
 
 	/* Second pass: server advertises 'a' and 'b' */
-	err = h.OptList()
+	exports = make([]string, 0, 4)
+	count, err := h.OptList(listf)
 	if err != nil {
 		t.Fatalf("could not request opt_list: %s", err)
 	}
-	count, err = h.GetNrListExports()
-	if err != nil || count != 2 {
-		t.Fatalf("unexpected count after opt_list: %s", err)
+	if count != 2 {
+		t.Fatalf("unexpected count after opt_list")
 	}
-	name, err := h.GetListExportName(0)
-	if err != nil || *name != "a" {
-		t.Fatalf("unexpected name after opt_list: %s", err)
-	}
-	name, err = h.GetListExportName(1)
-	if err != nil || *name != "b" {
-		t.Fatalf("unexpected name after opt_list: %s", err)
+	if len(exports) != 2  || exports[0] != "a" || exports[1] != "b" {
+		t.Fatalf("unexpected exports contents after opt_list")
 	}
 
 	/* Third pass: server advertises empty list */
-	err = h.OptList()
+	exports = make([]string, 0, 4)
+	count, err = h.OptList(listf)
 	if err != nil {
 		t.Fatalf("could not request opt_list: %s", err)
 	}
-	count, err = h.GetNrListExports()
-	if err != nil || count != 0 {
-		t.Fatalf("unexpected count after opt_list: %s", err)
+	if count != 0 {
+		t.Fatalf("unexpected count after opt_list")
 	}
-	name, err = h.GetListExportName(0)
-	if err == nil {
-		t.Fatalf("expecting error after out-of-bounds request")
+	if len(exports) != 0 {
+		t.Fatalf("exports should be empty")
 	}
 
 	/* Final pass: server advertises 'a' */
-	err = h.OptList()
+	exports = make([]string, 0, 4)
+	count, err = h.OptList(listf)
 	if err != nil {
 		t.Fatalf("could not request opt_list: %s", err)
 	}
-	count, err = h.GetNrListExports()
-	if err != nil || count != 1 {
-		t.Fatalf("unexpected count after opt_list: %s", err)
+	if count != 1 {
+		t.Fatalf("unexpected count after opt_list")
 	}
-	name, err = h.GetListExportName(0)
-	if err != nil || *name != "a" {
-		t.Fatalf("unexpected name after opt_list: %s", err)
+	if len(exports) != 1 || exports[0] != "a" {
+		t.Fatalf("unexpected exports contents after opt_list")
 	}
 
 	h.OptAbort()

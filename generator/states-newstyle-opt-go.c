@@ -255,7 +255,7 @@ STATE_MACHINE {
     SET_NEXT_STATE (%.NEGOTIATING);
   else
     SET_NEXT_STATE (%^PREPARE_OPT_ABORT);
-  CALL_CALLBACK (h->opt_completion, &err);
+  CALL_CALLBACK (h->opt_cb.completion, &err);
   nbd_internal_free_option (h);
   return 0;
 

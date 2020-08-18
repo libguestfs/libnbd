@@ -112,8 +112,6 @@ nbd_create (void)
 void
 nbd_close (struct nbd_handle *h)
 {
-  size_t i;
-
   nbd_internal_set_error_context ("nbd_close");
 
   if (h == NULL)
@@ -126,11 +124,6 @@ nbd_close (struct nbd_handle *h)
 
   free (h->bs_entries);
   nbd_internal_reset_size_and_flags (h);
-  for (i = 0; i < h->nr_exports; ++i) {
-    free (h->exports[i].name);
-    free (h->exports[i].description);
-  }
-  free (h->exports);
   nbd_internal_free_option (h);
   free_cmd_list (h->cmds_to_issue);
   free_cmd_list (h->cmds_in_flight);
@@ -285,60 +278,6 @@ nbd_unlocked_get_export_description (struct nbd_handle *h)
     return NULL;
   }
   return r;
-}
-
-int
-nbd_unlocked_get_nr_list_exports (struct nbd_handle *h)
-{
-  if (!h->exports) {
-    set_error (EINVAL, "nbd_opt_list not yet run on this handle");
-    return -1;
-  }
-  return (int) h->nr_exports;
-}
-
-char *
-nbd_unlocked_get_list_export_name (struct nbd_handle *h,
-                                   int i)
-{
-  char *name;
-
-  if (!h->exports) {
-    set_error (EINVAL, "nbd_opt_list not yet run on this handle");
-    return NULL;
-  }
-  if (i < 0 || i >= (int) h->nr_exports) {
-    set_error (EINVAL, "invalid index");
-    return NULL;
-  }
-  name = strdup (h->exports[i].name);
-  if (!name) {
-    set_error (errno, "strdup");
-    return NULL;
-  }
-  return name;
-}
-
-char *
-nbd_unlocked_get_list_export_description (struct nbd_handle *h,
-                                          int i)
-{
-  char *desc;
-
-  if (!h->exports) {
-    set_error (EINVAL, "nbd_opt_list not yet run on this handle");
-    return NULL;
-  }
-  if (i < 0 || i >= (int) h->nr_exports) {
-    set_error (EINVAL, "invalid index");
-    return NULL;
-  }
-  desc = strdup (h->exports[i].description);
-  if (!desc) {
-    set_error (errno, "strdup");
-    return NULL;
-  }
-  return desc;
 }
 
 int

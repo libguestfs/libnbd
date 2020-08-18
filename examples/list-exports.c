@@ -29,18 +29,52 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include <inttypes.h>
 #include <errno.h>
 
 #include <libnbd.h>
 
+struct export_list {
+  int i;
+  char **names;
+};
+
+/* Callback function for nbd_opt_list */
+static int
+list_one (void *opaque, const char *name,
+          const char *description)
+{
+  struct export_list *l = opaque;
+  char **names;
+
+  printf ("[%d] %s\n", l->i, name);
+  if (*description)
+    printf("  (%s)\n", description);
+  names = realloc (l->names,
+                   (l->i + 1) * sizeof *names);
+  if (!names) {
+    perror ("realloc");
+    exit (EXIT_FAILURE);
+  }
+  names[l->i] = strdup (name);
+  if (!names[l->i]) {
+    perror ("strdup");
+    exit (EXIT_FAILURE);
+  }
+  l->names = names;
+  l->i++;
+  return 0;
+}
+
 int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
-  int r, i;
-  char *name, *desc;
+  int i;
+  const char *name;
   int64_t size;
+  struct export_list list = { 0 };
 
   if (argc != 2) {
     fprintf (stderr, "%s socket\n", argv[0]);
@@ -62,8 +96,7 @@ main (int argc, char *argv[])
    * end up in option mode, then a
    * listing is not possible.
    */
-  r = nbd_connect_unix (nbd, argv[1]);
-  if (r == -1) {
+  if (nbd_connect_unix (nbd, argv[1]) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -73,24 +106,16 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* Grab the export list. */
-  if (nbd_opt_list (nbd) == -1) {
+  /* Print the export list. */
+  if (nbd_opt_list (nbd,
+                    (nbd_list_callback) {
+                      .callback = list_one,
+                      .user_data = &list, }) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   /* Display the list of exports. */
-  for (i = 0;
-       i < nbd_get_nr_list_exports (nbd);
-       i++) {
-    name = nbd_get_list_export_name (nbd, i);
-    printf ("[%d] %s\n", i, name);
-    desc = nbd_get_list_export_description (nbd, i);
-    if (desc && *desc)
-      printf("  (%s)\n", desc);
-    free (name);
-    free (desc);
-  }
   printf ("Which export to connect to? ");
   if (scanf ("%d", &i) != 1) exit (EXIT_FAILURE);
   if (i == -1) {
@@ -101,11 +126,11 @@ main (int argc, char *argv[])
     nbd_close (nbd);
     exit (EXIT_SUCCESS);
   }
-  name = nbd_get_list_export_name (nbd, i);
-  if (name == NULL) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
+  if (i < 0 || i >= list.i) {
+    fprintf (stderr, "index %d out of range", i);
     exit (EXIT_FAILURE);
   }
+  name = list.names[i];
   printf ("Connecting to %s ...\n", name);
 
   /* Resume connecting to the chosen export. */
@@ -131,7 +156,9 @@ main (int argc, char *argv[])
   /* Close the libnbd handle. */
   nbd_close (nbd);
 
-  free (name);
+  for (i = 0; i < list.i; i++)
+    free (list.names[i]);
+  free (list.names);
 
   exit (EXIT_SUCCESS);
 }

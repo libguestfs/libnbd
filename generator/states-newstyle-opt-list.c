@@ -24,7 +24,8 @@
 STATE_MACHINE {
  NEWSTYLE.OPT_LIST.START:
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
-  assert (h->opt_mode && h->exports && !h->nr_exports);
+  assert (h->opt_mode && h->opt_current == NBD_OPT_LIST);
+  assert (CALLBACK_IS_NOT_NULL (h->opt_cb.fn.list));
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (NBD_OPT_LIST);
   h->sbuf.option.optlen = 0;
@@ -67,17 +68,21 @@ STATE_MACHINE {
   uint32_t reply;
   uint32_t len;
   uint32_t elen;
-  struct export exp;
-  struct export *new_exports;
+  const char *name;
+  const char *desc;
+  char *tmp;
+  int err;
 
   reply = be32toh (h->sbuf.or.option_reply.reply);
   len = be32toh (h->sbuf.or.option_reply.replylen);
   switch (reply) {
   case NBD_REP_SERVER:
     /* Got one export. */
-    if (len > maxpayload)
+    if (len >= maxpayload)
       debug (h, "skipping too large export name reply");
     else {
+      /* server.str is oversized for trailing NUL byte convenience */
+      h->sbuf.or.payload.server.str[len - 4] = '\0';
       elen = be32toh (h->sbuf.or.payload.server.server.export_name_len);
       if (elen > len - 4 || elen > NBD_MAX_STRING ||
           len - 4 - elen > NBD_MAX_STRING) {
@@ -85,42 +90,23 @@ STATE_MACHINE {
         SET_NEXT_STATE (%.DEAD);
         return 0;
       }
-      /* Copy the export name and description to the handle list. */
-      exp.name = strndup (h->sbuf.or.payload.server.str, elen);
-      if (exp.name == NULL) {
-        set_error (errno, "strdup");
-        SET_NEXT_STATE (%.DEAD);
-        return 0;
+      if (elen == len + 4) {
+        tmp = NULL;
+        name = h->sbuf.or.payload.server.str;
+        desc = "";
       }
-      exp.description = strndup (h->sbuf.or.payload.server.str + elen,
-                                 len - 4 - elen);
-      if (exp.description == NULL) {
-        set_error (errno, "strdup");
-        free (exp.name);
-        SET_NEXT_STATE (%.DEAD);
-        return 0;
+      else {
+        tmp = strndup (h->sbuf.or.payload.server.str, elen);
+        if (tmp == NULL) {
+          set_error (errno, "strdup");
+          SET_NEXT_STATE (%.DEAD);
+          return 0;
+        }
+        name = tmp;
+        desc = h->sbuf.or.payload.server.str + elen;
       }
-      new_exports = realloc (h->exports,
-                             sizeof (*new_exports) * (h->nr_exports+1));
-      if (new_exports == NULL) {
-        set_error (errno, "strdup");
-        SET_NEXT_STATE (%.DEAD);
-        free (exp.name);
-        free (exp.description);
-        return 0;
-      }
-      h->exports = new_exports;
-      h->exports[h->nr_exports++] = exp;
-    }
-
-    /* Just limit this so we don't receive unlimited amounts
-     * of data from the server.  Note each export name can be
-     * up to 4K.
-     */
-    if (h->nr_exports > 10000) {
-      set_error (0, "too many export names sent by the server");
-      SET_NEXT_STATE (%.DEAD);
-      return 0;
+      CALL_CALLBACK (h->opt_cb.fn.list, name, desc);
+      free (tmp);
     }
 
     /* Wait for more replies. */
@@ -131,19 +117,23 @@ STATE_MACHINE {
 
   case NBD_REP_ACK:
     /* Finished receiving the list. */
-    SET_NEXT_STATE (%.NEGOTIATING);
-    return 0;
+    err = 0;
+    break;
 
   default:
     if (handle_reply_error (h) == -1) {
       SET_NEXT_STATE (%.DEAD);
       return 0;
     }
-    set_error (ENOTSUP, "unexpected response, possibly the server does not "
+    err = ENOTSUP;
+    set_error (err, "unexpected response, possibly the server does not "
                "support listing exports");
-    SET_NEXT_STATE (%.NEGOTIATING);
-    return 0;
+    break;
   }
+
+  CALL_CALLBACK (h->opt_cb.completion, &err);
+  nbd_internal_free_option (h);
+  SET_NEXT_STATE (%.NEGOTIATING);
   return 0;
 
 } /* END STATE MACHINE */

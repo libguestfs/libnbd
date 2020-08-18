@@ -29,14 +29,75 @@
 
 #include <libnbd.h>
 
+struct progress {
+  int id;
+  int visit;
+};
+
+static int
+check (void *user_data, const char *name, const char *description)
+{
+  struct progress *p = user_data;
+
+  if (*description) {
+    fprintf (stderr, "unexpected description for id %d visit %d: %s\n",
+             p->id, p->visit, description);
+    exit (EXIT_FAILURE);
+  }
+
+  switch (p->id) {
+  case 0:
+    fprintf (stderr, "callback shouldn't be reached when server has error\n");
+    exit (EXIT_FAILURE);
+  case 1:
+    switch (p->visit) {
+    case 0:
+      if (strcmp (name, "a") != 0) {
+        fprintf (stderr, "unexpected name '%s', expecting 'a'\n", name);
+        exit (EXIT_FAILURE);
+      }
+      break;
+    case 1:
+      if (strcmp (name, "b") != 0) {
+        fprintf (stderr, "unexpected name '%s', expecting 'b'\n", name);
+        exit (EXIT_FAILURE);
+      }
+      break;
+    default:
+      fprintf (stderr, "callback reached too many times\n");
+      exit (EXIT_FAILURE);
+    }
+    break;
+  case 2:
+    fprintf (stderr, "callback shouldn't be reached when list is empty\n");
+    exit (EXIT_FAILURE);
+  case 3:
+    if (p->visit != 0) {
+      fprintf (stderr, "callback reached too many times\n");
+      exit (EXIT_FAILURE);
+    }
+    if (strcmp (name, "a") != 0) {
+      fprintf (stderr, "unexpected name '%s', expecting 'a'\n", name);
+      exit (EXIT_FAILURE);
+    }
+    break;
+  default:
+    fprintf (stderr, "callback reached with unexpected id %d\n", p->id);
+    exit (EXIT_FAILURE);
+  }
+
+  p->visit++;
+  return 0;
+}
+
 int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
   int64_t r;
-  char *name;
   char *args[] = { "nbdkit", "-s", "--exit-with-parent", "-v",
                    "sh", SCRIPT, NULL };
+  struct progress p;
 
   /* Quick check that nbdkit is new enough */
   if (system ("nbdkit sh --dump-plugin | grep -q has_list_exports=1")) {
@@ -54,72 +115,59 @@ main (int argc, char *argv[])
   }
 
   /* First pass: server fails NBD_OPT_LIST. */
-  /* XXX We can't tell the difference */
-  if (nbd_opt_list (nbd) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
+  p = (struct progress) { .id = 0 };
+  r = nbd_opt_list (nbd, (nbd_list_callback) { .callback = check,
+                                               .user_data = &p});
+  if (r != -1) {
+    fprintf (stderr, "expected error after opt_list\n");
     exit (EXIT_FAILURE);
   }
-  if ((r = nbd_get_nr_list_exports (nbd)) != 0) {
-    fprintf (stderr, "wrong number of exports, got %" PRId64 " expecting 0\n",
-             r);
+  if (p.visit != 0) {
+    fprintf (stderr, "callback called unexpectedly\n");
     exit (EXIT_FAILURE);
   }
 
   /* Second pass: server advertises 'a' and 'b'. */
-  if (nbd_opt_list (nbd) == -1) {
+  p = (struct progress) { .id = 1 };
+  r = nbd_opt_list (nbd, (nbd_list_callback) { .callback = check,
+                                               .user_data = &p});
+  if (r == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if ((r = nbd_get_nr_list_exports (nbd)) != 2) {
+  else if (r != 2 || p.visit != r) {
     fprintf (stderr, "wrong number of exports, got %" PRId64 " expecting 2\n",
              r);
     exit (EXIT_FAILURE);
   }
-  name = nbd_get_list_export_name (nbd, 0);
-  if (!name || strcmp (name, "a") != 0) {
-    fprintf (stderr, "wrong first export %s, expecting 'a'\n", name ?: "(nil)");
-    exit (EXIT_FAILURE);
-  }
-  free (name);
-  name = nbd_get_list_export_name (nbd, 1);
-  if (!name || strcmp (name, "b") != 0) {
-    fprintf (stderr, "wrong first export %s, expecting 'b'\n", name ?: "(nil)");
-    exit (EXIT_FAILURE);
-  }
-  free (name);
 
   /* Third pass: server advertises empty list. */
-  if (nbd_opt_list (nbd) == -1) {
+  p = (struct progress) { .id = 2 };
+  r = nbd_opt_list (nbd, (nbd_list_callback) { .callback = check,
+                                               .user_data = &p});
+  if (r == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if ((r = nbd_get_nr_list_exports (nbd)) != 0) {
+  else if (r != 0 || p.visit != r) {
     fprintf (stderr, "wrong number of exports, got %" PRId64 " expecting 0\n",
              r);
     exit (EXIT_FAILURE);
   }
-  name = nbd_get_list_export_name (nbd, 0);
-  if (name) {
-    fprintf (stderr, "expecting error for out of bounds request\n");
-    exit (EXIT_FAILURE);
-  }
 
   /* Final pass: server advertises 'a'. */
-  if (nbd_opt_list (nbd) == -1) {
+  p = (struct progress) { .id = 3 };
+  r = nbd_opt_list (nbd, (nbd_list_callback) { .callback = check,
+                                               .user_data = &p});
+  if (r == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if ((r = nbd_get_nr_list_exports (nbd)) != 1) {
+  else if (r != 1 || p.visit != r) {
     fprintf (stderr, "wrong number of exports, got %" PRId64 " expecting 1\n",
              r);
     exit (EXIT_FAILURE);
   }
-  name = nbd_get_list_export_name (nbd, 0);
-  if (!name || strcmp (name, "a") != 0) {
-    fprintf (stderr, "wrong first export %s, expecting 'a'\n", name ?: "(nil)");
-    exit (EXIT_FAILURE);
-  }
-  free (name);
 
   nbd_opt_abort (nbd);
   nbd_close (nbd);

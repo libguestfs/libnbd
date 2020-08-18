@@ -36,6 +36,14 @@ static bool probe_content, content_flag, no_content_flag;
 static bool json_output = false;
 static bool size_only = false;
 
+static struct export_list {
+  size_t len;
+  char **names;
+  char **descs;
+} export_list;
+
+static int collect_export (void *opaque, const char *name,
+                           const char *desc);
 static void list_one_export (struct nbd_handle *nbd, const char *desc,
                              bool first, bool last);
 static void list_all_exports (struct nbd_handle *nbd1, const char *uri);
@@ -196,7 +204,8 @@ main (int argc, char *argv[])
   }
 
   if (list_all) {
-    if (nbd_opt_list (nbd) == -1) {
+    if (nbd_opt_list (nbd, (nbd_list_callback) {
+          .callback = collect_export, .user_data = &export_list}) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
@@ -253,8 +262,46 @@ main (int argc, char *argv[])
       printf ("}\n");
   }
 
+  for (i = 0; i < export_list.len; i++) {
+    free (export_list.names[i]);
+    free (export_list.descs[i]);
+  }
+  free (export_list.names);
+  free (export_list.descs);
   nbd_close (nbd);
   exit (EXIT_SUCCESS);
+}
+
+static int
+collect_export (void *opaque, const char *name, const char *desc)
+{
+  struct export_list *l = opaque;
+  char **names, **descs;
+
+  names = realloc (l->names, (l->len + 1) * sizeof name);
+  descs = realloc (l->descs, (l->len + 1) * sizeof desc);
+  if (!names || !descs) {
+    perror ("realloc");
+    exit (EXIT_FAILURE);
+  }
+  l->names = names;
+  l->descs = descs;
+  l->names[l->len] = strdup (name);
+  if (!l->names[l->len]) {
+    perror ("strdup");
+    exit (EXIT_FAILURE);
+  }
+  if (*desc) {
+    l->descs[l->len] = strdup (desc);
+    if (!l->descs[l->len]) {
+      perror ("strdup");
+      exit (EXIT_FAILURE);
+    }
+  }
+  else
+    l->descs[l->len] = NULL;
+  l->len++;
+  return 0;
 }
 
 static void
@@ -415,29 +462,17 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
 static void
 list_all_exports (struct nbd_handle *nbd1, const char *uri)
 {
-  int i;
-  int count = nbd_get_nr_list_exports (nbd1);
+  size_t i;
 
-  if (count == -1) {
-    fprintf (stderr, "unable to obtain list of exports: %s\n",
-             nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-  if (count == 0 && json_output)
+  if (export_list.len == 0 && json_output)
     printf ("\t\"exports\": []\n");
 
-  for (i = 0; i < count; ++i) {
-    char *name, *desc;
+  for (i = 0; i < export_list.len; ++i) {
+    const char *name;
     struct nbd_handle *nbd2;
 
-    name = nbd_get_list_export_name (nbd1, i);
-    if (!name) {
-      fprintf (stderr, "unable to obtain export name: %s\n",
-               nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-
     /* Connect to the original URI, but using opt mode to alter the export. */
+    name = export_list.names[i];
     nbd2 = nbd_create ();
     if (nbd2 == NULL) {
       fprintf (stderr, "%s\n", nbd_get_error ());
@@ -454,12 +489,10 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
     }
 
     /* List the metadata of this export. */
-    desc = nbd_get_list_export_description (nbd1, i);
-    list_one_export (nbd2, desc, i == 0, i + 1 == count);
+    list_one_export (nbd2, export_list.descs[i], i == 0,
+                     i + 1 == export_list.len);
 
     nbd_close (nbd2);
-    free (desc);
-    free (name);
   }
 }
 

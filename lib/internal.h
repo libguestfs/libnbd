@@ -72,6 +72,15 @@ struct export {
   char *description;
 };
 
+struct command_cb {
+  union {
+    nbd_extent_callback extent;
+    nbd_chunk_callback chunk;
+    nbd_list_callback list;
+  } fn;
+  nbd_completion_callback completion;
+};
+
 struct nbd_handle {
   /* Unique name assigned to this handle for debug messages
    * (to avoid having to print actual pointers).
@@ -102,11 +111,7 @@ struct nbd_handle {
   /* Option negotiation mode. */
   bool opt_mode;
   uint8_t opt_current; /* 0 or one of NBD_OPT_* */
-  nbd_completion_callback opt_completion;
-
-  /* Results of nbd_opt_list. */
-  size_t nr_exports;
-  struct export *exports;
+  struct command_cb opt_cb;
 
   /* Full info mode. */
   bool full_info;
@@ -187,7 +192,7 @@ struct nbd_handle {
       union {
         struct {
           struct nbd_fixed_new_option_reply_server server;
-          char str[NBD_MAX_STRING * 2]; /* name and description */
+          char str[NBD_MAX_STRING * 2 + 1]; /* name, description, NUL */
         } __attribute__((packed)) server;
         struct nbd_fixed_new_option_reply_info_export export;
         struct nbd_fixed_new_option_reply_info_block_size block_size;
@@ -323,14 +328,6 @@ struct socket {
     } tls;
   } u;
   const struct socket_ops *ops;
-};
-
-struct command_cb {
-  union {
-    nbd_extent_callback extent;
-    nbd_chunk_callback chunk;
-  } fn;
-  nbd_completion_callback completion;
 };
 
 struct command {

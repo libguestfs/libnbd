@@ -117,7 +117,7 @@ abort_option (struct nbd_handle *h)
 {
   int err = nbd_get_errno () ? : ENOTCONN;
 
-  CALL_CALLBACK (h->opt_completion, &err);
+  CALL_CALLBACK (h->opt_cb.completion, &err);
   nbd_internal_free_option(h);
 }
 

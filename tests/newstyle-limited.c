@@ -76,6 +76,14 @@ pread_cb (void *data,
   return 0;
 }
 
+static int
+list_cb (void *opaque, const char *name, const char *description)
+{
+  /* This callback is unreachable; plain newstyle can't do OPT_LIST */
+  fprintf (stderr, "%s: list callback mistakenly reached", progname);
+  exit (EXIT_FAILURE);
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -136,7 +144,7 @@ main (int argc, char *argv[])
     fprintf (stderr, "unexpected state after negotiating\n");
     exit (EXIT_FAILURE);
   }
-  if (nbd_opt_list (nbd) != -1) {
+  if (nbd_opt_list (nbd, (nbd_list_callback) { .callback = list_cb }) != -1) {
     fprintf (stderr, "nbd_opt_list: expected failure\n");
     exit (EXIT_FAILURE);
   }
