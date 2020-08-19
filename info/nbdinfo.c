@@ -209,11 +209,12 @@ main (int argc, char *argv[])
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
-    /* Disconnect from the server to move the handle into a closed
-     * state, in case the server serializes further connections.
-     * But we can ignore errors in this case.
-     */
-    nbd_opt_abort (nbd);
+    if (probe_content)
+      /* Disconnect from the server to move the handle into a closed
+       * state, in case the server serializes further connections.
+       * But we can ignore errors in this case.
+       */
+      nbd_opt_abort (nbd);
   }
 
   if (size_only) {
@@ -456,9 +457,6 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
   free (export_name);
 }
 
-/* XXX Inefficient and hacky.  See TODO for a suggestion on how to
- * improve this.
- */
 static void
 list_all_exports (struct nbd_handle *nbd1, const char *uri)
 {
@@ -468,31 +466,41 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
     printf ("\t\"exports\": []\n");
 
   for (i = 0; i < export_list.len; ++i) {
-    const char *name;
+    const char *name = export_list.names[i];
     struct nbd_handle *nbd2;
 
-    /* Connect to the original URI, but using opt mode to alter the export. */
-    name = export_list.names[i];
-    nbd2 = nbd_create ();
-    if (nbd2 == NULL) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    nbd_set_uri_allow_local_file (nbd2, true); /* Allow ?tls-psk-file. */
-    nbd_set_opt_mode (nbd2, true);
+    if (probe_content) {
+      /* Connect to the original URI, but using opt mode to alter the export. */
+      nbd2 = nbd_create ();
+      if (nbd2 == NULL) {
+        fprintf (stderr, "%s\n", nbd_get_error ());
+        exit (EXIT_FAILURE);
+      }
+      nbd_set_uri_allow_local_file (nbd2, true); /* Allow ?tls-psk-file. */
+      nbd_set_opt_mode (nbd2, true);
 
-    if (nbd_connect_uri (nbd2, uri) == -1 ||
-        nbd_set_export_name (nbd2, name) == -1 ||
-        nbd_opt_go (nbd2) == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
-      exit (EXIT_FAILURE);
+      if (nbd_connect_uri (nbd2, uri) == -1 ||
+          nbd_set_export_name (nbd2, name) == -1 ||
+          nbd_opt_go (nbd2) == -1) {
+        fprintf (stderr, "%s\n", nbd_get_error ());
+        exit (EXIT_FAILURE);
+      }
+    }
+    else { /* ! probe_content */
+      if (nbd_set_export_name (nbd1, name) == -1 ||
+          nbd_opt_info (nbd1) == -1) {
+        fprintf (stderr, "%s\n", nbd_get_error ());
+        exit (EXIT_FAILURE);
+      }
+      nbd2 = nbd1;
     }
 
     /* List the metadata of this export. */
     list_one_export (nbd2, export_list.descs[i], i == 0,
                      i + 1 == export_list.len);
 
-    nbd_close (nbd2);
+    if (probe_content)
+      nbd_close (nbd2);
   }
 }
 
