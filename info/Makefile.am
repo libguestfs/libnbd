@@ -24,6 +24,7 @@ EXTRA_DIST = \
 	info-oldstyle.sh \
 	info-size.sh \
 	info-text.sh \
+	info-description.sh \
 	nbdinfo.pod \
 	$(NULL)
 
