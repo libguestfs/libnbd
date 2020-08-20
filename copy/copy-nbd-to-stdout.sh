@@ -29,7 +29,7 @@ pidfile=copy-nbd-to-stdout.pid
 sock=`mktemp -u`
 cleanup_fn rm -f $file $pidfile $sock
 
-nbdkit --exit-with-parent -f -v -P $pidfile -U $sock pattern 10M &
+nbdkit --exit-with-parent -f -v -P $pidfile -U $sock pattern size=10M &
 # Wait for the pidfile to appear.
 for i in {1..60}; do
     if test -f $pidfile; then

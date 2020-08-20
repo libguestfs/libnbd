@@ -27,5 +27,6 @@ requires nbdkit memory --version
 out=info-size.out
 cleanup_fn rm -f $out
 
-nbdkit -U - memory $((512*1024*1024)) --run '$VG nbdinfo --size "$uri"' > $out
+nbdkit -U - memory size=$((512*1024*1024)) \
+       --run '$VG nbdinfo --size "nbd+unix:///?socket=$unixsocket"' > $out
 test "$(cat $out)" -eq $((512*1024*1024))
