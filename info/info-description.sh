@@ -23,6 +23,7 @@ set -x
 
 # XXX Use nbdkit once it supports NBD_INFO_DESCRIPTION
 requires qemu-nbd --version
+requires bash -c 'qemu-nbd --help | grep pid-file'
 requires truncate --version
 
 img=info-description.img

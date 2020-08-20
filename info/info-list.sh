@@ -23,6 +23,7 @@ set -x
 
 # XXX Use nbdkit + --run when available, see TODO.
 requires qemu-nbd --version
+requires bash -c 'qemu-nbd --help | grep pid-file'
 requires truncate --version
 
 img=info-list.img
