@@ -51,7 +51,7 @@ Using the API from Go.
 
 =item L<nbdsh(1)>
 
-Using the NBD shell (nbdsh) for command line and scripting.
+Using the NBD shell (nbdsh) for command line and Python scripting.
 
 =back
 
