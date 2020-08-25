@@ -125,7 +125,7 @@ with non-printable characters are escaped, and lists of strings are
 printed.
 
 The generator was split from a large single script into several small
-files.  To builds from git the OCaml bytecode compiler (L<ocamlc(1)>)
+files.  To build from git the OCaml bytecode compiler (L<ocamlc(1)>)
 is now required instead of the interpreter (L<ocaml(1)>).
 
 Long login names are supported in L<nbd_get_tls_username(3)>.
