@@ -7,7 +7,7 @@ libnbd-release-notes-1.4 - release notes for libnbd 1.4
 These are the release notes for libnbd stable release 1.4.
 This describes the major changes since 1.2.
 
-libnbd 1.4.0 was released on XXX DATE TBD XXX 2020.
+libnbd 1.4.0 was released on 25 August 2020.
 
 =head2 Security
 
