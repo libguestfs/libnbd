@@ -773,7 +773,7 @@ enabled option mode.";
 Request that the server list all exports that it supports.  This can
 only be used if L<nbd_set_opt_mode(3)> enabled option mode.
 
-The <list> function is called once per advertised export, with any
+The C<list> function is called once per advertised export, with any
 C<user_data> passed to this function, and with C<name> and C<description>
 supplied by the server.  Many servers omit descriptions, in which
 case C<description> will be an empty string.  Remember that it is not
