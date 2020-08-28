@@ -463,7 +463,7 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
   size_t i;
 
   if (export_list.len == 0 && json_output)
-    printf ("\t\"exports\": []\n");
+    printf ("\"exports\": []\n");
 
   for (i = 0; i < export_list.len; ++i) {
     const char *name = export_list.names[i];
