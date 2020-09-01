@@ -52,7 +52,7 @@ list_exports_nbd_server_SOURCES = list-exports.c
 list_exports_nbd_server_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-DSERVER=\"$(NBD_SERVER)\" \
-	-DSERVER_PARAMS='"-C", "list-exports-nbd-config", "-d", "0"' \
+	-DSERVER_PARAMS='"-C", "$(srcdir)/list-exports-nbd-config", "-d", "0"' \
 	-DEXPORTS='"disk1", "disk2"' \
 	-DDESCRIPTIONS='"", ""' \
 	$(NULL)
