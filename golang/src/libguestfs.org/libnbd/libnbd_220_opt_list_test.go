@@ -36,8 +36,8 @@ func listf(name string, desc string) int {
 
 func Test220OptList(t *testing.T) {
 	/* Require new-enough nbdkit */
-	srcdir := os.Getenv("srcdir")
-	script := srcdir + "/../../../../tests/opt-list.sh"
+	srcdir := os.Getenv("abs_top_srcdir")
+	script := srcdir + "/tests/opt-list.sh"
 	cmd := exec.Command("/bin/sh", "-c",
 		"nbdkit sh --dump-plugin | grep -q has_list_exports=1")
 	err := cmd.Run()
