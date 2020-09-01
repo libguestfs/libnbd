@@ -106,7 +106,6 @@ main (int argc, char *argv[])
   int64_t size;
   const char *protocol;
   int tls_negotiated;
-  char *desc;
 
   for (;;) {
     c = getopt_long (argc, argv, short_options, long_options, NULL);
@@ -195,7 +194,7 @@ main (int argc, char *argv[])
   /* If using --list then we need opt mode in the handle. */
   if (list_all)
     nbd_set_opt_mode (nbd, true);
-  else if (!size_only)
+  if (!size_only)
     nbd_set_full_info (nbd, true);
 
   if (nbd_connect_uri (nbd, argv[optind]) == -1) {
@@ -251,11 +250,8 @@ main (int argc, char *argv[])
         printf ("\"TLS\": %s,\n", tls_negotiated ? "true" : "false");
     }
 
-    if (!list_all) {
-      desc = nbd_get_export_description (nbd);
-      list_one_export (nbd, desc, true, true);
-      free (desc);
-    }
+    if (!list_all)
+      list_one_export (nbd, NULL, true, true);
     else
       list_all_exports (nbd, argv[optind]);
 
@@ -311,6 +307,7 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
 {
   int64_t size;
   char *export_name = NULL;
+  char *export_desc = NULL;
   char *content = NULL;
   int is_rotational, is_read_only;
   int can_cache, can_df, can_fast_zero, can_flush, can_fua,
@@ -332,6 +329,9 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+  /* Get description if list didn't already give us one */
+  if (!desc)
+    desc = export_desc = nbd_get_export_description (nbd);
   content = get_content (nbd, size);
   is_rotational = nbd_is_rotational (nbd);
   is_read_only = nbd_is_read_only (nbd);
@@ -455,6 +455,7 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
 
   free (content);
   free (export_name);
+  free (export_desc);
 }
 
 static void
