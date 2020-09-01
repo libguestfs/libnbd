@@ -60,8 +60,8 @@ func mc_to_string(a []uint32) string {
 }
 
 func Test460BlockStatus(t *testing.T) {
-	srcdir := os.Getenv("srcdir")
-	script := srcdir + "/../../../../tests/meta-base-allocation.sh"
+	srcdir := os.Getenv("abs_top_srcdir")
+	script := srcdir + "/tests/meta-base-allocation.sh"
 
 	h, err := Create()
 	if err != nil {

@@ -24,8 +24,8 @@ import (
 )
 
 func Test230OptInfo(t *testing.T) {
-	srcdir := os.Getenv("srcdir")
-	script := srcdir + "/../../../../tests/opt-info.sh"
+	srcdir := os.Getenv("abs_top_srcdir")
+	script := srcdir + "/tests/opt-info.sh"
 
 	h, err := Create()
 	if err != nil {

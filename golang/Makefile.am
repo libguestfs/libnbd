@@ -28,13 +28,30 @@ source_files = \
 	src/$(pkg)/handle.go \
 	src/$(pkg)/wrappers.go \
 	src/$(pkg)/wrappers.h \
-	src/$(pkg)/libnbd_*_test.go
+	src/$(pkg)/libnbd_010_load_test.go \
+	src/$(pkg)/libnbd_100_handle_test.go \
+	src/$(pkg)/libnbd_200_connect_command_test.go \
+	src/$(pkg)/libnbd_210_opt_abort_test.go \
+	src/$(pkg)/libnbd_220_opt_list_test.go \
+	src/$(pkg)/libnbd_230_opt_info_test.go \
+	src/$(pkg)/libnbd_300_get_size_test.go \
+	src/$(pkg)/libnbd_400_pread_test.go \
+	src/$(pkg)/libnbd_405_pread_structured_test.go \
+	src/$(pkg)/libnbd_410_pwrite_test.go \
+	src/$(pkg)/libnbd_460_block_status_test.go \
+	src/$(pkg)/libnbd_500_aio_pread_test.go \
+	src/$(pkg)/libnbd_510_aio_pwrite_test.go \
+	src/$(pkg)/libnbd_590_aio_copy_test.go \
+	src/$(pkg)/libnbd_600_debug_callback_test.go \
+	src/$(pkg)/libnbd_610_error_test.go \
+	$(NULL)
 
 generator_built = \
 	src/$(pkg)/bindings.go \
 	src/$(pkg)/closures.go \
 	src/$(pkg)/wrappers.go \
-	src/$(pkg)/wrappers.h
+	src/$(pkg)/wrappers.h \
+	$(NULL)
 
 EXTRA_DIST = \
 	src/$(pkg)/.gitignore \
@@ -45,7 +62,8 @@ EXTRA_DIST = \
 	$(generator_built) \
 	config-test.go \
 	libnbd-golang.pod \
-	run-tests.sh
+	run-tests.sh \
+	$(NULL)
 
 if HAVE_POD
 
@@ -72,7 +90,7 @@ pkg/$(GOOS)_$(GOARCH)/$(pkg).a: $(source_files)
 
 golangsrc_DATA = $(source_files)
 
-TESTS_ENVIRONMENT = pkg=$(pkg) LIBNBD_DEBUG=1
+TESTS_ENVIRONMENT = pkg=$(pkg) abs_top_srcdir=$(abs_top_srcdir) LIBNBD_DEBUG=1
 LOG_COMPILER = $(top_builddir)/run
 TESTS = run-tests.sh
 
