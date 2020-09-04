@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -314,7 +314,7 @@ nbd_unlocked_aio_pwrite (struct nbd_handle *h, const void *buf,
   struct command_cb cb = { .completion = completion };
 
   if (nbd_unlocked_is_read_only (h) == 1) {
-    set_error (EINVAL, "server does not support write operations");
+    set_error (EPERM, "server does not support write operations");
     return -1;
   }
 
@@ -363,7 +363,7 @@ nbd_unlocked_aio_trim (struct nbd_handle *h,
   struct command_cb cb = { .completion = completion };
 
   if (nbd_unlocked_is_read_only (h) == 1) {
-    set_error (EINVAL, "server does not support write operations");
+    set_error (EPERM, "server does not support write operations");
     return -1;
   }
 
@@ -422,7 +422,7 @@ nbd_unlocked_aio_zero (struct nbd_handle *h,
   struct command_cb cb = { .completion = completion };
 
   if (nbd_unlocked_is_read_only (h) == 1) {
-    set_error (EINVAL, "server does not support write operations");
+    set_error (EPERM, "server does not support write operations");
     return -1;
   }
 
