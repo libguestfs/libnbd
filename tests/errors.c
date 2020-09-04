@@ -231,6 +231,15 @@ main (int argc, char *argv[])
   }
   check (ERANGE, "nbd_aio_pwrite: ");
 
+  /* Use unadvertised command */
+  if (nbd_trim (nbd, 512, 0, 0) != -1) {
+    fprintf (stderr, "%s: test failed: "
+             "unpermitted nbd_trim did not fail\n",
+             argv[0]);
+    exit (EXIT_FAILURE);
+  }
+  check (EINVAL, "nbd_trim: ");
+
   /* Send a read that the nbdkit sh plugin will fail. */
   if (nbd_pread (nbd, buf, 512, 0, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
