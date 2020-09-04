@@ -362,6 +362,10 @@ nbd_unlocked_aio_trim (struct nbd_handle *h,
 {
   struct command_cb cb = { .completion = completion };
 
+  if (nbd_unlocked_can_trim (h) != 1) {
+    set_error (EINVAL, "server does not support trim operations");
+    return -1;
+  }
   if (nbd_unlocked_is_read_only (h) == 1) {
     set_error (EPERM, "server does not support write operations");
     return -1;
@@ -421,6 +425,10 @@ nbd_unlocked_aio_zero (struct nbd_handle *h,
 {
   struct command_cb cb = { .completion = completion };
 
+  if (nbd_unlocked_can_zero (h) != 1) {
+    set_error (EINVAL, "server does not support zero operations");
+    return -1;
+  }
   if (nbd_unlocked_is_read_only (h) == 1) {
     set_error (EPERM, "server does not support write operations");
     return -1;
