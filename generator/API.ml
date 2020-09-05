@@ -66,6 +66,8 @@ and ret =
 | RCookie
 | RString
 | RUInt
+| REnum of enum
+| RFlags of flags
 and closure = {
   cbname : string;
   cbargs : cbarg list;
@@ -442,7 +444,7 @@ test whether this is the case with L<nbd_supports_tls(3)>.";
 
   "get_tls", {
     default_call with
-    args = []; ret = RInt;
+    args = []; ret = REnum (tls_enum);
     may_set_error = false;
     shortdesc = "get the TLS request setting";
     longdesc = "\
@@ -678,7 +680,7 @@ Future NBD extensions may add further flags.
 
   "get_handshake_flags", {
     default_call with
-    args = []; ret = RUInt;
+    args = []; ret = RFlags (handshake_flags);
     may_set_error = false;
     shortdesc = "see which handshake flags are supported";
     longdesc = "\
@@ -2708,11 +2710,13 @@ let () =
        failwithf "%s: if may_set_error is false, permitted_states must be empty (any permitted state)"
                  name
 
-    (* may_set_error = true is incompatible with RUInt because
-     * these calls cannot return an error indication.
+    (* may_set_error = true is incompatible with RUInt, REnum, and RFlags
+     * because these calls cannot return an error indication.
      *)
-    | name, { ret = RUInt; may_set_error = true } ->
-       failwithf "%s: if ret is RUInt, may_set_error must be false" name
+    | name, { ret = RUInt; may_set_error = true }
+    | name, { ret = REnum _; may_set_error = true }
+    | name, { ret = RFlags _; may_set_error = true } ->
+       failwithf "%s: if ret is RUInt/REnum/RFlags, may_set_error must be false" name
 
     (* !may_set_error is incompatible with certain parameters because
      * we have to do a NULL-check on those which may return an error.
