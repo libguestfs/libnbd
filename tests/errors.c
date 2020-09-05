@@ -132,7 +132,7 @@ main (int argc, char *argv[])
   }
 
   /* Issue a connected command when not connected. */
-  if (nbd_pread (nbd, NULL, 0, 0, 0) != -1) {
+  if (nbd_pread (nbd, buf, 1, 0, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_pread did not fail on non-connected handle\n",
              argv[0]);
@@ -206,7 +206,7 @@ main (int argc, char *argv[])
   check (EINVAL, "nbd_aio_command_completed: ");
 
   /* Read from an invalid offset */
-  if (nbd_pread (nbd, NULL, 0, -1, 0) != -1) {
+  if (nbd_pread (nbd, buf, 1, -1, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_pread did not fail with bogus offset\n",
              argv[0]);
@@ -215,7 +215,7 @@ main (int argc, char *argv[])
   check (EINVAL, "nbd_pread: ");
 
   /* Use unknown command flags */
-  if (nbd_pread (nbd, NULL, 0, 0, -1) != -1) {
+  if (nbd_pread (nbd, buf, 1, 0, -1) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_pread did not fail with bogus flags\n",
              argv[0]);
@@ -312,7 +312,7 @@ main (int argc, char *argv[])
   }
   else
     fprintf (stderr, "%s: shutdown completed successfully\n", argv[0]);
-  if (nbd_pread (nbd, NULL, 0, 0, 0) != -1) {
+  if (nbd_pread (nbd, buf, 1, 0, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_pread did not fail on non-connected handle\n",
              argv[0]);
