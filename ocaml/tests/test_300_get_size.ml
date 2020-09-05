@@ -1,3 +1,4 @@
+(* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* libnbd OCaml test case
  * Copyright (C) 2013-2019 Red Hat Inc.
  *
