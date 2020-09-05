@@ -30,6 +30,8 @@ source_files = \
 	src/$(pkg)/wrappers.h \
 	src/$(pkg)/libnbd_010_load_test.go \
 	src/$(pkg)/libnbd_100_handle_test.go \
+	src/$(pkg)/libnbd_110_defaults_test.go \
+	src/$(pkg)/libnbd_120_set_non_defaults_test.go \
 	src/$(pkg)/libnbd_200_connect_command_test.go \
 	src/$(pkg)/libnbd_210_opt_abort_test.go \
 	src/$(pkg)/libnbd_220_opt_list_test.go \
