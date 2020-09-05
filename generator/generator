@@ -5721,7 +5721,7 @@ and ocaml_arg_to_string = function
      sprintf "(%s)" (ocaml_closuredecl_to_string cbargs)
   | Enum (_, { enum_prefix }) -> sprintf "%s.t" enum_prefix
   | Fd _ -> "Unix.file_descr"
-  | Flags (_, { flag_prefix }) -> sprintf "%s.t" flag_prefix
+  | Flags (_, { flag_prefix }) -> sprintf "%s.t list" flag_prefix
   | Int _ -> "int"
   | Int64 _ -> "int64"
   | Path _ -> "string"
@@ -5996,7 +5996,7 @@ let print_ocaml_enum_val { enum_prefix; enums } =
   pr "   */\n";
   pr "  int i, r = 0;\n";
   pr "\n";
-  pr "  i = Int_val (Field (v, 0));\n";
+  pr "  i = Int_val (v);\n";
   pr "  /* i is the index of the enum in the type\n";
   pr "   * (eg. i = 0 => enum = %s.%s).\n" enum_prefix (fst (List.hd enums));
   pr "   * Convert it to the C representation.\n";
