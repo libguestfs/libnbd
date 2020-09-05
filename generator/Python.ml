@@ -331,7 +331,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   pr "  if (!PyArg_ParseTuple (args, (char *) \"O\"";
   List.iter (
     function
-    | Bool n -> pr " \"b\""
+    | Bool n -> pr " \"p\""
     | BytesIn (n, _) -> pr " \"y*\""
     | BytesPersistIn (n, _) -> pr " \"O\""
     | BytesOut (_, count) -> pr " \"n\""
