@@ -66,6 +66,8 @@ and ocaml_ret_to_string = function
   | RCookie -> "cookie"
   | RString -> "string"
   | RUInt -> "int"
+  | REnum _ -> "int" (* XXX return enum_prefix.t instead *)
+  | RFlags _ -> "int" (* XXX return flag_prefix.t list instead *)
 
 and ocaml_optarg_to_string = function
   | OClosure { cbname; cbargs } ->
@@ -617,6 +619,8 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
    | RBool -> pr "  rv = Val_bool (r);\n"
    | RErr -> pr "  rv = Val_unit;\n"
    | RFd | RInt | RUInt -> pr "  rv = Val_int (r);\n"
+   | REnum _ -> pr "  rv = Val_int (r);\n" (* XXX Use Val_enum_prefix() *)
+   | RFlags _ -> pr "  rv = Val_int (r);\n" (* XXX Use Val_flag_prefix() *)
    | RInt64 | RCookie -> pr "  rv = caml_copy_int64 (r);\n"
    | RStaticString -> pr "  rv = caml_copy_string (r);\n"
    | RString ->

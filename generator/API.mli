@@ -78,6 +78,8 @@ and ret =
 | RString                  (** return a newly allocated string,
                                caller frees, NULL for error *)
 | RUInt                    (** return a bitmask, no error possible *)
+| REnum of enum            (** return an enum, no error possible *)
+| RFlags of flags          (** return bitmask of flags, no error possible *)
 and closure = {
   cbname : string;         (** name of callback function *)
   cbargs : cbarg list;     (** all closures return int for now *)

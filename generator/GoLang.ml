@@ -1,3 +1,4 @@
+(* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* nbd client library in userspace: generator
  * Copyright (C) 2013-2020 Red Hat Inc.
  *
@@ -95,9 +96,11 @@ let go_ret_type = function
   | RCookie -> Some "uint64"
   | RString -> Some "*string"
   (* RUInt returns (type, error) for consistency, but the error is
-   * always nil.
+   * always nil unless h is closed
    *)
   | RUInt -> Some "uint"
+  | REnum _ -> Some "uint" (* XXX return typed constant instead? *)
+  | RFlags _ -> Some "uint" (* XXX return typed constant instead? *)
 
 let go_ret_error = function
   | RErr -> None
@@ -109,6 +112,8 @@ let go_ret_error = function
   | RCookie -> Some "0"
   | RString -> Some "nil"
   | RUInt -> Some "0"
+  | REnum _ -> Some "0"
+  | RFlags _ -> Some "0"
 
 let go_ret_c_errcode = function
   | RBool -> Some "-1"
@@ -120,6 +125,8 @@ let go_ret_c_errcode = function
   | RCookie -> Some "-1"
   | RString -> Some "nil"
   | RUInt -> None
+  | REnum _ -> None
+  | RFlags _ -> None
 
 (* We need a wrapper around every function (except Close) to
  * handle errors because cgo calls are sequence points and
@@ -386,6 +393,10 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
       pr "    return &r, nil\n"
    | RUInt ->
       pr "    return uint (ret), nil\n"
+   | REnum _ ->
+      pr "    return uint (ret), nil\n" (* XXX Proper enum type? *)
+   | RFlags _ ->
+      pr "    return uint (ret), nil\n" (* XXX Proper bitmask type? *)
   );
   pr "}\n";
   pr "\n"
