@@ -22,6 +22,8 @@ open Printf
 open API
 open Utils
 
+type closure_style = Direct | AddressOf | Pointer
+
 let generate_lib_libnbd_syms () =
   generate_header HashStyle;
 
@@ -99,16 +101,17 @@ let rec name_of_arg = function
 | UInt64 n -> [n]
 
 let rec print_arg_list ?(wrap = false) ?maxcol ?handle ?types ?(parens = true)
-          args optargs =
+          ?closure_style args optargs =
   if parens then pr "(";
   if wrap then
     pr_wrap ?maxcol ','
-      (fun () -> print_arg_list' ?handle ?types args optargs)
+      (fun () -> print_arg_list' ?handle ?types ?closure_style args optargs)
   else
-    print_arg_list' ?handle ?types args optargs;
+    print_arg_list' ?handle ?types ?closure_style args optargs;
   if parens then pr ")"
 
-and print_arg_list' ?(handle = false) ?(types = true) args optargs =
+and print_arg_list' ?(handle = false) ?(types = true) ?(closure_style = Direct)
+          args optargs =
   let comma = ref false in
   if handle then (
     comma := true;
@@ -137,7 +140,11 @@ and print_arg_list' ?(handle = false) ?(types = true) args optargs =
          pr "%s" len
       | Closure { cbname; cbargs } ->
          if types then pr "nbd_%s_callback " cbname;
-         pr "%s_callback" cbname
+         let mark = match closure_style with
+           | Direct -> ""
+           | AddressOf -> "&"
+           | Pointer -> "*" in
+         pr "%s%s_callback" mark cbname
       | Enum (n, _) ->
          if types then pr "int ";
          pr "%s" n
@@ -179,19 +186,23 @@ and print_arg_list' ?(handle = false) ?(types = true) args optargs =
       match optarg with
       | OClosure { cbname; cbargs } ->
          if types then pr "nbd_%s_callback " cbname;
-         pr "%s_callback" cbname
+         let mark = match closure_style with
+           | Direct -> ""
+           | AddressOf -> "&"
+           | Pointer -> "*" in
+         pr "%s%s_callback" mark cbname
       | OFlags (n, _) ->
          if types then pr "uint32_t ";
          pr "%s" n
   ) optargs
 
-let print_call ?wrap ?maxcol name args optargs ret =
+let print_call ?wrap ?maxcol ?closure_style name args optargs ret =
   pr "%s nbd_%s " (type_of_ret ret) name;
-  print_arg_list ~handle:true ?wrap ?maxcol args optargs
+  print_arg_list ~handle:true ?wrap ?maxcol ?closure_style args optargs
 
-let print_extern ?wrap name args optargs ret =
+let print_extern ?wrap ?closure_style name args optargs ret =
   pr "extern ";
-  print_call ?wrap name args optargs ret;
+  print_call ?wrap ?closure_style name args optargs ret;
   pr ";\n"
 
 let rec print_cbarg_list ?(wrap = false) ?maxcol ?types ?(parens = true)
@@ -385,7 +396,8 @@ let generate_lib_unlocked_h () =
   pr "\n";
   List.iter (
     fun (name, { args; optargs; ret }) ->
-      print_extern ~wrap:true ("unlocked_" ^ name) args optargs ret
+    print_extern ~wrap:true ~closure_style:Pointer ("unlocked_" ^ name)
+      args optargs ret
   ) handle_calls;
   pr "\n";
   pr "#endif /* LIBNBD_UNLOCKED_H */\n"
@@ -543,7 +555,8 @@ let generate_lib_api_c () =
 
     (* Make the call. *)
     pr "  ret = nbd_unlocked_%s " name;
-    print_arg_list ~wrap:true ~types:false ~handle:true args optargs;
+    print_arg_list ~wrap:true ~types:false ~handle:true
+      ~closure_style:AddressOf args optargs;
     pr ";\n";
     pr "\n";
     if !need_out_label then
