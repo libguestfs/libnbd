@@ -31,11 +31,11 @@ let () =
   with
     NBD.Error _ -> ();
   let tls = NBD.get_tls nbd in
-  assert (tls = 0);   (* XXX Add REnum, to get NBD.TLS.DISABLE? *)
+  assert (tls = NBD.TLS.DISABLE);
   if NBD.supports_tls nbd then (
     NBD.set_tls nbd NBD.TLS.ALLOW;
     let tls = NBD.get_tls nbd in
-    assert (tls = 1);  (* XXX Add REnum *)
+    assert (tls = NBD.TLS.ALLOW);
   );
   NBD.set_request_structured_replies nbd false;
   let sr = NBD.get_request_structured_replies nbd in
@@ -46,10 +46,11 @@ let () =
   with
     NBD.Error _ -> ();
   let flags = NBD.get_handshake_flags nbd in
-  assert (flags = 3); (* XXX Add RFlags, to get NBD.HANDSHAKE_FLAG list? *)
+  assert (flags = [ NBD.HANDSHAKE_FLAG.FIXED_NEWSTYLE;
+                    NBD.HANDSHAKE_FLAG.NO_ZEROES ]);
   NBD.set_handshake_flags nbd [];
   let flags = NBD.get_handshake_flags nbd in
-  assert (flags = 0); (* XXX Add RFlags *)
+  assert (flags = []);
   NBD.set_opt_mode nbd true;
   let opt = NBD.get_opt_mode nbd in
   assert (opt = true)
