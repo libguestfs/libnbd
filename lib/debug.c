@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -48,12 +48,12 @@ nbd_unlocked_clear_debug_callback (struct nbd_handle *h)
 
 int
 nbd_unlocked_set_debug_callback (struct nbd_handle *h,
-                                 nbd_debug_callback debug_callback)
+                                 nbd_debug_callback *debug_callback)
 {
   /* This can't fail at the moment - see implementation above. */
   nbd_unlocked_clear_debug_callback (h);
 
-  h->debug_callback = debug_callback;
+  h->debug_callback = *debug_callback;
   return 0;
 }
 

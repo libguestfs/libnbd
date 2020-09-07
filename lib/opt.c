@@ -74,7 +74,7 @@ nbd_unlocked_opt_go (struct nbd_handle *h)
 {
   int err;
   nbd_completion_callback c = { .callback = go_complete, .user_data = &err };
-  int r = nbd_unlocked_aio_opt_go (h, c);
+  int r = nbd_unlocked_aio_opt_go (h, &c);
 
   if (r == -1)
     return r;
@@ -96,7 +96,7 @@ nbd_unlocked_opt_info (struct nbd_handle *h)
 {
   int err;
   nbd_completion_callback c = { .callback = go_complete, .user_data = &err };
-  int r = nbd_unlocked_aio_opt_info (h, c);
+  int r = nbd_unlocked_aio_opt_info (h, &c);
 
   if (r == -1)
     return r;
@@ -147,13 +147,13 @@ list_complete (void *opaque, int *err)
 
 /* Issue NBD_OPT_LIST and wait for the reply. */
 int
-nbd_unlocked_opt_list (struct nbd_handle *h, nbd_list_callback list)
+nbd_unlocked_opt_list (struct nbd_handle *h, nbd_list_callback *list)
 {
-  struct list_helper s = { .list = list };
+  struct list_helper s = { .list = *list };
   nbd_list_callback l = { .callback = list_visitor, .user_data = &s };
   nbd_completion_callback c = { .callback = list_complete, .user_data = &s };
 
-  if (nbd_unlocked_aio_opt_list (h, l, c) == -1)
+  if (nbd_unlocked_aio_opt_list (h, &l, &c) == -1)
     return -1;
 
   if (wait_for_option (h) == -1)
@@ -168,10 +168,10 @@ nbd_unlocked_opt_list (struct nbd_handle *h, nbd_list_callback list)
 /* Issue NBD_OPT_GO (or NBD_OPT_EXPORT_NAME) without waiting. */
 int
 nbd_unlocked_aio_opt_go (struct nbd_handle *h,
-                         nbd_completion_callback complete)
+                         nbd_completion_callback *complete)
 {
   h->opt_current = NBD_OPT_GO;
-  h->opt_cb.completion = complete;
+  h->opt_cb.completion = *complete;
 
   if (nbd_internal_run (h, cmd_issue) == -1)
     debug (h, "option queued, ignoring state machine failure");
@@ -181,7 +181,7 @@ nbd_unlocked_aio_opt_go (struct nbd_handle *h,
 /* Issue NBD_OPT_INFO without waiting. */
 int
 nbd_unlocked_aio_opt_info (struct nbd_handle *h,
-                           nbd_completion_callback complete)
+                           nbd_completion_callback *complete)
 {
   if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0) {
     set_error (ENOTSUP, "server is not using fixed newstyle protocol");
@@ -189,7 +189,7 @@ nbd_unlocked_aio_opt_info (struct nbd_handle *h,
   }
 
   h->opt_current = NBD_OPT_INFO;
-  h->opt_cb.completion = complete;
+  h->opt_cb.completion = *complete;
 
   if (nbd_internal_run (h, cmd_issue) == -1)
     debug (h, "option queued, ignoring state machine failure");
@@ -209,8 +209,8 @@ nbd_unlocked_aio_opt_abort (struct nbd_handle *h)
 
 /* Issue NBD_OPT_LIST without waiting. */
 int
-nbd_unlocked_aio_opt_list (struct nbd_handle *h, nbd_list_callback list,
-                           nbd_completion_callback complete)
+nbd_unlocked_aio_opt_list (struct nbd_handle *h, nbd_list_callback *list,
+                           nbd_completion_callback *complete)
 {
   if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0) {
     set_error (ENOTSUP, "server is not using fixed newstyle protocol");
@@ -218,8 +218,8 @@ nbd_unlocked_aio_opt_list (struct nbd_handle *h, nbd_list_callback list,
   }
 
   assert (CALLBACK_IS_NULL (h->opt_cb.fn.list));
-  h->opt_cb.fn.list = list;
-  h->opt_cb.completion = complete;
+  h->opt_cb.fn.list = *list;
+  h->opt_cb.completion = *complete;
   h->opt_current = NBD_OPT_LIST;
   if (nbd_internal_run (h, cmd_issue) == -1)
     debug (h, "option queued, ignoring state machine failure");

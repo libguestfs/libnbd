@@ -17,6 +17,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *)
 
+type closure_style = Direct | AddressOf | Pointer
+
 val generate_lib_libnbd_syms : unit -> unit
 val generate_include_libnbd_h : unit -> unit
 val generate_lib_unlocked_h : unit -> unit
@@ -27,6 +29,7 @@ val generate_docs_api_flag_links_pod : unit -> unit
 val generate_docs_nbd_pod : string -> API.call -> unit -> unit
 val print_arg_list : ?wrap:bool -> ?maxcol:int ->
                      ?handle:bool -> ?types:bool -> ?parens:bool ->
+                     ?closure_style:closure_style ->
                      API.arg list -> API.optarg list -> unit
 val print_cbarg_list : ?wrap:bool -> ?maxcol:int ->
                        ?types:bool -> ?parens:bool ->
