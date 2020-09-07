@@ -72,6 +72,7 @@ nbd_unlocked_pread_structured (struct nbd_handle *h, void *buf,
   if (cookie == -1)
     return -1;
 
+  assert (CALLBACK_IS_NULL (*chunk));
   return wait_for_command (h, cookie);
 }
 
@@ -163,6 +164,7 @@ nbd_unlocked_block_status (struct nbd_handle *h,
   if (cookie == -1)
     return -1;
 
+  assert (CALLBACK_IS_NULL (*extent));
   return wait_for_command (h, cookie);
 }
 
@@ -176,11 +178,11 @@ nbd_internal_command_common (struct nbd_handle *h,
 
   if (h->disconnect_request) {
       set_error (EINVAL, "cannot request more commands after NBD_CMD_DISC");
-      return -1;
+      goto err;
   }
   if (h->in_flight == INT_MAX) {
       set_error (ENOMEM, "too many commands already in flight");
-      return -1;
+      goto err;
   }
 
   switch (type) {
@@ -190,7 +192,7 @@ nbd_internal_command_common (struct nbd_handle *h,
     if (count > MAX_REQUEST_SIZE) {
       set_error (ERANGE, "request too large: maximum request size is %d",
                  MAX_REQUEST_SIZE);
-      return -1;
+      goto err;
     }
     break;
 
@@ -203,7 +205,7 @@ nbd_internal_command_common (struct nbd_handle *h,
     if (count > UINT32_MAX) {
       set_error (ERANGE, "request too large: maximum request size is %" PRIu32,
                  UINT32_MAX);
-      return -1;
+      goto err;
     }
     break;
   }
@@ -211,7 +213,7 @@ nbd_internal_command_common (struct nbd_handle *h,
   cmd = calloc (1, sizeof *cmd);
   if (cmd == NULL) {
     set_error (errno, "calloc");
-    return -1;
+    goto err;
   }
   cmd->flags = flags;
   cmd->type = type;
@@ -257,6 +259,17 @@ nbd_internal_command_common (struct nbd_handle *h,
   }
 
   return cmd->cookie;
+
+ err:
+  /* Since we did not queue the command, we must free the callbacks. */
+  if (cb) {
+    if (type == NBD_CMD_BLOCK_STATUS)
+      FREE_CALLBACK (cb->fn.extent);
+    if (type == NBD_CMD_READ)
+      FREE_CALLBACK (cb->fn.chunk);
+    FREE_CALLBACK (cb->completion);
+  }
+  return -1;
 }
 
 int64_t
@@ -276,6 +289,7 @@ nbd_unlocked_aio_pread (struct nbd_handle *h, void *buf,
     return -1;
   }
 
+  SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, 0, NBD_CMD_READ, offset, count,
                                       buf, &cb);
 }
@@ -301,6 +315,8 @@ nbd_unlocked_aio_pread_structured (struct nbd_handle *h, void *buf,
     return -1;
   }
 
+  SET_CALLBACK_TO_NULL (*chunk);
+  SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, flags, NBD_CMD_READ, offset, count,
                                       buf, &cb);
 }
@@ -329,6 +345,7 @@ nbd_unlocked_aio_pwrite (struct nbd_handle *h, const void *buf,
     return -1;
   }
 
+  SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, flags, NBD_CMD_WRITE, offset, count,
                                       (void *) buf, &cb);
 }
@@ -350,6 +367,7 @@ nbd_unlocked_aio_flush (struct nbd_handle *h,
     return -1;
   }
 
+  SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, 0, NBD_CMD_FLUSH, 0, 0,
                                       NULL, &cb);
 }
@@ -387,6 +405,7 @@ nbd_unlocked_aio_trim (struct nbd_handle *h,
     return -1;
   }
 
+  SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, flags, NBD_CMD_TRIM, offset, count,
                                       NULL, &cb);
 }
@@ -413,6 +432,7 @@ nbd_unlocked_aio_cache (struct nbd_handle *h,
     return -1;
   }
 
+  SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, 0, NBD_CMD_CACHE, offset, count,
                                       NULL, &cb);
 }
@@ -457,6 +477,7 @@ nbd_unlocked_aio_zero (struct nbd_handle *h,
     return -1;
   }
 
+  SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, flags, NBD_CMD_WRITE_ZEROES, offset,
                                       count, NULL, &cb);
 }
@@ -493,6 +514,8 @@ nbd_unlocked_aio_block_status (struct nbd_handle *h,
     return -1;
   }
 
+  SET_CALLBACK_TO_NULL (*extent);
+  SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, flags, NBD_CMD_BLOCK_STATUS, offset,
                                       count, NULL, &cb);
 }

@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -42,6 +42,8 @@ static unsigned debug_fn_called;
 static unsigned debug_fn_freed;
 static unsigned read_cb_called;
 static unsigned read_cb_freed;
+static unsigned block_status_cb_called;
+static unsigned block_status_cb_freed;
 static unsigned completion_cb_called;
 static unsigned completion_cb_freed;
 
@@ -72,6 +74,21 @@ static void
 read_cb_free (void *opaque)
 {
   read_cb_freed++;
+}
+
+static int
+block_status_cb (void *opaque, const char *meta, uint64_t offset,
+                 uint32_t *entries, size_t nr_entries, int *error)
+{
+  assert (!block_status_cb_freed);
+  block_status_cb_called++;
+  return 0;
+}
+
+static void
+block_status_cb_free (void *opaque)
+{
+  block_status_cb_freed++;
 }
 
 static int
@@ -167,6 +184,50 @@ main (int argc, char *argv[])
 
   assert (read_cb_freed == 1);
   assert (completion_cb_freed == 1);
+
+  /* Test command callbacks are freed if the command fails client-side,
+   * whether from calling in wrong state or because of no server support.
+   */
+  block_status_cb_called = block_status_cb_freed =
+    completion_cb_called = completion_cb_freed = 0;
+  nbd = nbd_create ();
+  if (nbd == NULL) NBD_ERROR;
+  /* Intentionally omit a call to:
+   *  nbd_add_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION);
+   */
+  cookie = nbd_aio_block_status (nbd, sizeof buf, 0,
+                                 (nbd_extent_callback) { .callback = block_status_cb,
+                                                         .free = block_status_cb_free },
+                                 (nbd_completion_callback) { .callback = completion_cb,
+                                                             .free = completion_cb_free },
+                                 0);
+  if (cookie != -1) {
+    fprintf (stderr, "%s: Expecting block_status failure\n", argv[0]);
+    exit (EXIT_FAILURE);
+  }
+  assert (block_status_cb_freed == 1);
+  assert (completion_cb_freed == 1);
+
+  block_status_cb_called = block_status_cb_freed =
+    completion_cb_called = completion_cb_freed = 0;
+
+  if (nbd_connect_command (nbd, nbdkit) == -1) NBD_ERROR;
+
+  cookie = nbd_aio_block_status (nbd, sizeof buf, 0,
+                                 (nbd_extent_callback) { .callback = block_status_cb,
+                                                         .free = block_status_cb_free },
+                                 (nbd_completion_callback) { .callback = completion_cb,
+                                                             .free = completion_cb_free },
+                                 0);
+  if (cookie != -1) {
+    fprintf (stderr, "%s: Expecting block_status failure\n", argv[0]);
+    exit (EXIT_FAILURE);
+  }
+  assert (block_status_cb_freed == 1);
+  assert (completion_cb_freed == 1);
+
+  nbd_kill_subprocess (nbd, 0);
+  nbd_close (nbd);
 
   exit (EXIT_SUCCESS);
 }

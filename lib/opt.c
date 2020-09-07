@@ -156,6 +156,7 @@ nbd_unlocked_opt_list (struct nbd_handle *h, nbd_list_callback *list)
   if (nbd_unlocked_aio_opt_list (h, &l, &c) == -1)
     return -1;
 
+  SET_CALLBACK_TO_NULL (*list);
   if (wait_for_option (h) == -1)
     return -1;
   if (s.err) {
@@ -172,6 +173,7 @@ nbd_unlocked_aio_opt_go (struct nbd_handle *h,
 {
   h->opt_current = NBD_OPT_GO;
   h->opt_cb.completion = *complete;
+  SET_CALLBACK_TO_NULL (*complete);
 
   if (nbd_internal_run (h, cmd_issue) == -1)
     debug (h, "option queued, ignoring state machine failure");
@@ -190,6 +192,7 @@ nbd_unlocked_aio_opt_info (struct nbd_handle *h,
 
   h->opt_current = NBD_OPT_INFO;
   h->opt_cb.completion = *complete;
+  SET_CALLBACK_TO_NULL (*complete);
 
   if (nbd_internal_run (h, cmd_issue) == -1)
     debug (h, "option queued, ignoring state machine failure");
@@ -219,7 +222,9 @@ nbd_unlocked_aio_opt_list (struct nbd_handle *h, nbd_list_callback *list,
 
   assert (CALLBACK_IS_NULL (h->opt_cb.fn.list));
   h->opt_cb.fn.list = *list;
+  SET_CALLBACK_TO_NULL (*list);
   h->opt_cb.completion = *complete;
+  SET_CALLBACK_TO_NULL (*complete);
   h->opt_current = NBD_OPT_LIST;
   if (nbd_internal_run (h, cmd_issue) == -1)
     debug (h, "option queued, ignoring state machine failure");

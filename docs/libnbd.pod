@@ -773,7 +773,7 @@ because you can use closures to achieve the same effect.
 
 You can associate an optional free function with callbacks.  Libnbd
 will call this function when the callback will not be called again by
-libnbd.
+libnbd, including in the case where the API fails.
 
 This can be used to free associated C<user_data>.  For example:
 
