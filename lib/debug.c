@@ -54,6 +54,7 @@ nbd_unlocked_set_debug_callback (struct nbd_handle *h,
   nbd_unlocked_clear_debug_callback (h);
 
   h->debug_callback = *debug_callback;
+  SET_CALLBACK_TO_NULL (*debug_callback);
   return 0;
 }
 

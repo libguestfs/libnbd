@@ -565,6 +565,19 @@ let generate_lib_api_c () =
       print_trace_leave ret;
       pr "\n"
     );
+    (* Finish any closures not transferred to state machine. *)
+    List.iter (
+      function
+      | Closure { cbname } ->
+         pr "  FREE_CALLBACK (%s_callback);\n" cbname
+      | _ -> ()
+    ) args;
+    List.iter (
+      function
+      | OClosure { cbname } ->
+         pr "  FREE_CALLBACK (%s_callback);\n" cbname
+      | OFlags _ -> ()
+    ) optargs;
     if is_locked then (
       pr "  if (h->public_state != get_next_state (h))\n";
       pr "    h->public_state = get_next_state (h);\n";

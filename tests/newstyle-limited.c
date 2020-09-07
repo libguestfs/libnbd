@@ -84,6 +84,17 @@ list_cb (void *opaque, const char *name, const char *description)
   exit (EXIT_FAILURE);
 }
 
+static bool list_freed = false;
+static void
+free_list_cb (void *opaque)
+{
+  if (list_freed) {
+    fprintf (stderr, "%s: list callback mistakenly freed twice", progname);
+    exit (EXIT_FAILURE);
+  }
+  list_freed = true;
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -144,8 +155,13 @@ main (int argc, char *argv[])
     fprintf (stderr, "unexpected state after negotiating\n");
     exit (EXIT_FAILURE);
   }
-  if (nbd_opt_list (nbd, (nbd_list_callback) { .callback = list_cb }) != -1) {
+  if (nbd_opt_list (nbd, (nbd_list_callback) { .callback = list_cb,
+                                               .free = free_list_cb }) != -1) {
     fprintf (stderr, "nbd_opt_list: expected failure\n");
+    exit (EXIT_FAILURE);
+  }
+  if (!list_freed) {
+    fprintf (stderr, "nbd_opt_list: list closure memory leak\n");
     exit (EXIT_FAILURE);
   }
   if (nbd_get_errno () != ENOTSUP) {
