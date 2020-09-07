@@ -75,7 +75,7 @@ let type_of_ret =
   | RStaticString -> "const char *"
   | RString -> "char *"
   | RUInt -> "unsigned"
-  | RFlags _ -> "unsigned" (* XXX uint32_t is more symmetric *)
+  | RFlags _ -> "uint32_t"
 
 let rec name_of_arg = function
 | Bool n -> [n]
