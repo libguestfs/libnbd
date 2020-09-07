@@ -66,8 +66,8 @@ and ocaml_ret_to_string = function
   | RCookie -> "cookie"
   | RString -> "string"
   | RUInt -> "int"
-  | REnum _ -> "int" (* XXX return enum_prefix.t instead *)
-  | RFlags _ -> "int" (* XXX return flag_prefix.t list instead *)
+  | REnum { enum_prefix } -> enum_prefix ^ ".t"
+  | RFlags { flag_prefix } -> flag_prefix ^ ".t list"
 
 and ocaml_optarg_to_string = function
   | OClosure { cbname; cbargs } ->
@@ -344,7 +344,34 @@ let print_ocaml_enum_val { enum_prefix; enums } =
   pr "\n";
   pr "  return r;\n";
   pr "}\n";
-  pr "\n"
+  pr "\n";
+  if List.exists (
+         function
+         | _, { ret = REnum { enum_prefix = prefix } } ->
+            (prefix = enum_prefix)
+         | _ -> false
+       ) handle_calls then (
+    pr "/* Convert int to OCaml %s.t. */\n" enum_prefix;
+    pr "static value\n";
+    pr "Val_%s (int i)\n" enum_prefix;
+    pr "{\n";
+    pr "  CAMLparam0 ();\n";
+    pr "  CAMLlocal1 (rv);\n";
+    pr "\n";
+    pr "  switch (i) {\n";
+    List.iteri (
+      fun i (enum, _) ->
+        pr "  case LIBNBD_%s_%s: rv = Val_int (%d); break;\n" enum_prefix enum i
+      ) enums;
+    pr "  default:\n";
+    pr "    rv = caml_alloc (1, 0); /* UNKNOWN of int */\n";
+    pr "    Store_field (rv, 0, Val_int (i));\n";
+    pr "  }\n";
+    pr "\n";
+    pr "  CAMLreturn (rv);\n";
+    pr "}\n";
+    pr "\n"
+  )
 
 let print_ocaml_flag_val { flag_prefix; flags } =
   pr "/* Convert OCaml %s.t list to uint32_t bitmask. */\n" flag_prefix;
@@ -385,7 +412,45 @@ let print_ocaml_flag_val { flag_prefix; flags } =
   pr "\n";
   pr "  return r;\n";
   pr "}\n";
-  pr "\n"
+  pr "\n";
+  if List.exists (
+         function
+         | _, { ret = RFlags { flag_prefix = prefix } } ->
+            (prefix = flag_prefix)
+         | _ -> false
+       ) handle_calls then (
+    pr "/* Convert uint32_t bitmask to OCaml %s.t list. */\n" flag_prefix;
+    pr "static value\n";
+    pr "Val_%s (unsigned flags)\n" flag_prefix;
+    pr "{\n";
+    pr "  CAMLparam0 ();\n";
+    pr "  CAMLlocal3 (cdr, rv, v);\n";
+    pr "  int i;\n";
+    pr "\n";
+    pr "  rv = Val_emptylist;\n";
+    pr "  for (i = 31; i >= 0; i--) {\n";
+    pr "    if (flags & (1 << i)) {\n";
+    pr "      switch (1 << i) {\n";
+    List.iteri (
+      fun i (flag, _) ->
+        pr "      case LIBNBD_%s_%s: v = Val_int (%d); break;\n" flag_prefix flag i;
+      ) flags;
+    pr "      default:\n";
+    pr "        v = caml_alloc (1, 0); /* UNKNOWN of int */\n";
+    pr "        Store_field (v, 0, Val_int (i));\n";
+    pr "      }\n";
+    pr "\n";
+    pr "      cdr = rv;\n";
+    pr "      rv = caml_alloc (2, 0);\n";
+    pr "      Store_field (rv, 0, v);\n";
+    pr "      Store_field (rv, 1, cdr);\n";
+    pr "    }\n";
+    pr "  }\n";
+    pr "\n";
+    pr "  CAMLreturn (rv);\n";
+    pr "}\n";
+    pr "\n"
+  )
 
 let print_ocaml_closure_wrapper { cbname; cbargs } =
   let argnames =
@@ -639,8 +704,8 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
    | RBool -> pr "  rv = Val_bool (r);\n"
    | RErr -> pr "  rv = Val_unit;\n"
    | RFd | RInt | RUInt -> pr "  rv = Val_int (r);\n"
-   | REnum _ -> pr "  rv = Val_int (r);\n" (* XXX Use Val_enum_prefix() *)
-   | RFlags _ -> pr "  rv = Val_int (r);\n" (* XXX Use Val_flag_prefix() *)
+   | REnum { enum_prefix } -> pr "  rv = Val_%s (r);\n" enum_prefix
+   | RFlags { flag_prefix } -> pr "  rv = Val_%s (r);\n" flag_prefix
    | RInt64 | RCookie -> pr "  rv = caml_copy_int64 (r);\n"
    | RStaticString -> pr "  rv = caml_copy_string (r);\n"
    | RString ->
