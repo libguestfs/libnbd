@@ -47,7 +47,7 @@ func Test110Defaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not get tls state: %s", err)
 	}
-	if tls != uint(TLS_DISABLE) {
+	if tls != TLS_DISABLE {
 		t.Fatalf("unexpected tls state")
 	}
 
@@ -63,8 +63,7 @@ func Test110Defaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not get handshake flags: %s", err)
 	}
-	if flags != uint(HANDSHAKE_FLAG_FIXED_NEWSTYLE |
-			 HANDSHAKE_FLAG_NO_ZEROES) {
+	if flags != HANDSHAKE_FLAG_FIXED_NEWSTYLE | HANDSHAKE_FLAG_NO_ZEROES {
 		t.Fatalf("unexpected handshake flags")
 	}
 

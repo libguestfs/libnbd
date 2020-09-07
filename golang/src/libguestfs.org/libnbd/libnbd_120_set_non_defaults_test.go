@@ -64,7 +64,7 @@ func Test120SetNonDefaults(t *testing.T) {
 		if err != nil {
 			t.Fatalf("could not get tls state: %s", err)
 		}
-		if tls != uint(TLS_ALLOW) {
+		if tls != TLS_ALLOW {
 			t.Fatalf("unexpected tls state")
 		}
 	}

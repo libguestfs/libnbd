@@ -99,8 +99,8 @@ let go_ret_type = function
    * always nil unless h is closed
    *)
   | RUInt -> Some "uint"
-  | REnum _ -> Some "uint" (* XXX return typed constant instead? *)
-  | RFlags _ -> Some "uint" (* XXX return typed constant instead? *)
+  | REnum { enum_prefix } -> Some (camel_case enum_prefix)
+  | RFlags { flag_prefix } -> Some (camel_case flag_prefix)
 
 let go_ret_error = function
   | RErr -> None
@@ -393,10 +393,10 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
       pr "    return &r, nil\n"
    | RUInt ->
       pr "    return uint (ret), nil\n"
-   | REnum _ ->
-      pr "    return uint (ret), nil\n" (* XXX Proper enum type? *)
-   | RFlags _ ->
-      pr "    return uint (ret), nil\n" (* XXX Proper bitmask type? *)
+   | REnum { enum_prefix } ->
+      pr "    return %s (ret), nil\n" (camel_case enum_prefix)
+   | RFlags { flag_prefix } ->
+      pr "    return %s (ret), nil\n" (camel_case flag_prefix)
   );
   pr "}\n";
   pr "\n"
