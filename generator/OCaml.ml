@@ -151,6 +151,7 @@ type cookie = int64
         fun (enum, _) ->
           pr "  | %s\n" enum
       ) enums;
+      pr "  | UNKNOWN of int\n";
       pr "end\n";
       pr "\n"
   ) all_enums;
@@ -162,6 +163,7 @@ type cookie = int64
         fun (flag, _) ->
           pr "  | %s\n" flag
       ) flags;
+      pr "  | UNKNOWN of int\n";
       pr "end\n";
       pr "\n"
   ) all_flags;
@@ -254,6 +256,7 @@ let () =
         fun (enum, _) ->
           pr "  | %s\n" enum
       ) enums;
+      pr "  | UNKNOWN of int\n";
       pr "end\n";
       pr "\n"
   ) all_enums;
@@ -265,6 +268,7 @@ let () =
         fun (flag, _) ->
           pr "  | %s\n" flag
       ) flags;
+      pr "  | UNKNOWN of int\n";
       pr "end\n";
       pr "\n"
   ) all_flags;
@@ -320,19 +324,23 @@ let print_ocaml_enum_val { enum_prefix; enums } =
   pr "  /* NB: No allocation in this function, don't need to use\n";
   pr "   * CAML* wrappers.\n";
   pr "   */\n";
-  pr "  int i, r = 0;\n";
+  pr "  int r = 0;\n";
   pr "\n";
-  pr "  i = Int_val (v);\n";
-  pr "  /* i is the index of the enum in the type\n";
-  pr "   * (eg. i = 0 => enum = %s.%s).\n" enum_prefix (fst (List.hd enums));
-  pr "   * Convert it to the C representation.\n";
-  pr "   */\n";
-  pr "  switch (i) {\n";
+  pr "  if (Is_long (v)) {\n";
+  pr "    /* Int_val (v) is the index of the enum in the type\n";
+  pr "     * (eg. v = 0 => enum = %s.%s).\n" enum_prefix (fst (List.hd enums));
+  pr "     * Convert it to the C representation.\n";
+  pr "     */\n";
+  pr "    switch (Int_val (v)) {\n";
   List.iteri (
     fun i (enum, _) ->
-      pr "  case %d: r = LIBNBD_%s_%s; break;\n" i enum_prefix enum
+      pr "    case %d: r = LIBNBD_%s_%s; break;\n" i enum_prefix enum
   ) enums;
+  pr "    default: abort ();\n";
+  pr "    }\n";
   pr "  }\n";
+  pr "  else\n";
+  pr "    r = Int_val (Field (v, 0)); /* UNKNOWN of int */\n";
   pr "\n";
   pr "  return r;\n";
   pr "}\n";
@@ -346,20 +354,32 @@ let print_ocaml_flag_val { flag_prefix; flags } =
   pr "  /* NB: No allocation in this function, don't need to use\n";
   pr "   * CAML* wrappers.\n";
   pr "   */\n";
-  pr "  int i;\n";
+  pr "  value i;\n";
+  pr "  unsigned bit;\n";
   pr "  uint32_t r = 0;\n";
   pr "\n";
   pr "  for (; v != Val_emptylist; v = Field (v, 1)) {\n";
-  pr "    i = Int_val (Field (v, 0));\n";
-  pr "    /* i is the index of the flag in the type\n";
+  pr "    i = Field (v, 0);\n";
+  pr "    /* i contains either the index of the flag in the type,\n";
+  pr "     * or UNKNOWN of int containing the bit position.\n";
   pr "     * (eg. i = 0 => flag = %s.%s).\n" flag_prefix (fst (List.hd flags));
   pr "     * Convert it to the C representation.\n";
   pr "     */\n";
-  pr "    switch (i) {\n";
+  pr "    if (Is_long (i)) {\n";
+  pr "      switch (Int_val (i)) {\n";
   List.iteri (
     fun i (flag, _) ->
-      pr "    case %d: r |= LIBNBD_%s_%s; break;\n" i flag_prefix flag
+      pr "      case %d: r |= LIBNBD_%s_%s; break;\n" i flag_prefix flag
   ) flags;
+  pr "      default: abort ();\n";
+  pr "      }\n";
+  pr "    }\n";
+  pr "    else {\n";
+  pr "      bit = Int_val (Field (i, 0)); /* UNKNOWN of int */\n";
+  pr "      if (bit > 31)\n";
+  pr "        caml_invalid_argument (\"bitmask value out of range\");\n";
+  pr "      else\n";
+  pr "        r |= 1 << bit;\n";
   pr "    }\n";
   pr "  }\n";
   pr "\n";
