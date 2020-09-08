@@ -644,23 +644,29 @@ return a string containing the Python errno name if one is known
 a known errno name).
 '''
 
-Error.string = property (lambda self: self.args[0])
+Error.string = property(lambda self: self.args[0])
 
-def _errno (self):
+
+def _errno(self):
     import errno
     try:
         return errno.errorcode[self.args[1]]
     except KeyError:
         return None
-Error.errno = property (_errno)
 
-Error.errnum = property (lambda self: self.args[1])
 
-def _str (self):
+Error.errno = property(_errno)
+
+Error.errnum = property(lambda self: self.args[1])
+
+
+def _str(self):
     if self.errno:
-        return (\"%%s (%%s)\" %% (self.string, self.errno))
+        return \"%%s (%%s)\" %% (self.string, self.errno)
     else:
-        return (\"%%s\" %% self.string)
+        return \"%%s\" %% self.string
+
+
 Error.__str__ = _str
 
 ";
@@ -670,7 +676,7 @@ Error.__str__ = _str
       List.iter (
         fun (enum, i) ->
           let enum = sprintf "%s_%s" enum_prefix enum in
-          pr "%-30s = %d\n" enum i
+          pr "%s = %d\n" enum i
       ) enums;
       pr "\n"
   ) all_enums;
@@ -679,50 +685,51 @@ Error.__str__ = _str
       List.iter (
         fun (flag, i) ->
           let flag = sprintf "%s_%s" flag_prefix flag in
-          pr "%-30s = %d\n" flag i
+          pr "%s = %d\n" flag i
       ) flags;
       pr "\n"
   ) all_flags;
-  List.iter (fun (n, i) -> pr "%-30s = %d\n" n i) constants;
+  List.iter (fun (n, i) -> pr "%s = %d\n" n i) constants;
   List.iter (
     fun (ns, ctxts) ->
       let ns_upper = String.uppercase_ascii ns in
-      pr "NAMESPACE_%-20s = \"%s:\"\n" ns_upper ns;
+      pr "NAMESPACE_%s = \"%s:\"\n" ns_upper ns;
       List.iter (
         fun (ctxt, consts) ->
           let ctxt_upper = String.uppercase_ascii ctxt in
-          pr "%-30s = \"%s:%s\"\n"
+          pr "%s = \"%s:%s\"\n"
              (sprintf "CONTEXT_%s_%s" ns_upper ctxt_upper) ns ctxt;
-          List.iter (fun (n, i) -> pr "%-30s = %d\n" n i) consts
+          List.iter (fun (n, i) -> pr "%s = %d\n" n i) consts
       ) ctxts;
   ) metadata_namespaces;
 
   pr "\
 
+
 class Buffer (object):
     '''Asynchronous I/O persistent buffer'''
 
-    def __init__ (self, len):
+    def __init__(self, len):
         '''allocate an uninitialized AIO buffer used for nbd.aio_pread'''
-        self._o = libnbdmod.alloc_aio_buffer (len)
+        self._o = libnbdmod.alloc_aio_buffer(len)
 
     @classmethod
-    def from_bytearray (cls, ba):
+    def from_bytearray(cls, ba):
         '''create an AIO buffer from a bytearray'''
-        o = libnbdmod.aio_buffer_from_bytearray (ba)
-        self = cls (0)
+        o = libnbdmod.aio_buffer_from_bytearray(ba)
+        self = cls(0)
         self._o = o
         return self
 
-    def to_bytearray (self):
+    def to_bytearray(self):
         '''copy an AIO buffer into a bytearray'''
-        return libnbdmod.aio_buffer_to_bytearray (self._o)
+        return libnbdmod.aio_buffer_to_bytearray(self._o)
 
-    def size (self):
+    def size(self):
         '''return the size of an AIO buffer'''
-        return libnbdmod.aio_buffer_size (self._o)
+        return libnbdmod.aio_buffer_size(self._o)
 
-    def is_zero (self, offset=0, size=-1):
+    def is_zero(self, offset=0, size=-1):
         '''
         Returns true if and only if all bytes in the buffer are zeroes.
         Note that a freshly allocated buffer is uninitialized, not zero.
@@ -734,18 +741,19 @@ class Buffer (object):
         always returns true.  If size > 0, we check the interval
         [offset..offset+size-1].
         '''
-        return libnbdmod.aio_buffer_is_zero (self._o, offset, size)
+        return libnbdmod.aio_buffer_is_zero(self._o, offset, size)
 
-class NBD (object):
+
+class NBD(object):
     '''NBD handle'''
 
-    def __init__ (self):
+    def __init__(self):
         '''create a new NBD handle'''
-        self._o = libnbdmod.create ()
+        self._o = libnbdmod.create()
 
-    def __del__ (self):
+    def __del__(self):
         '''close the NBD handle and underlying connection'''
-        libnbdmod.close (self._o)
+        libnbdmod.close(self._o)
 
 ";
 
@@ -779,29 +787,34 @@ class NBD (object):
           | OFlags (n, _) -> n, Some "0", None
         ) optargs in
       let args = args @ optargs in
-      pr "    def %s (self" name;
-      List.iter (
-        function
-        | n, None, _ -> pr ", %s" n
-        | n, Some default, _ -> pr ", %s=%s" n default
-      ) args;
+      pr "    def %s(" name;
+      pr_wrap ',' (fun () ->
+          pr "self";
+          List.iter (
+            function
+            | n, None, _ -> pr ", %s" n
+            | n, Some default, _ -> pr ", %s=%s" n default
+          ) args);
       pr "):\n";
       let longdesc = Str.global_replace py_fn_rex "C<nbd.\\1>" longdesc in
       let longdesc = Str.global_replace py_const_rex "C<" longdesc in
       let longdesc = pod2text longdesc in
       pr "        '''▶ %s\n\n%s'''\n" shortdesc (String.concat "\n" longdesc);
-      pr "        return libnbdmod.%s (self._o" name;
-      List.iter (
-        function
-        | _, _, Some getter -> pr ", %s" getter
-        | n, _, None -> pr ", %s" n
-      ) args;
+      pr "        return libnbdmod.%s(" name;
+      pr_wrap ',' (fun () ->
+          pr "self._o";
+          List.iter (
+            function
+            | _, _, Some getter -> pr ", %s" getter
+            | n, _, None -> pr ", %s" n
+          ) args);
       pr ")\n";
       pr "\n"
   ) handle_calls;
 
   (* For nbdsh. *)
   pr "\
+
 package_name = NBD().get_package_name()
 __version__ = NBD().get_version()
 
