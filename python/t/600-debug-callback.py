@@ -34,4 +34,7 @@ h.set_debug_callback(lambda *args: f(42, *args))
 h.connect_command(["nbdkit", "-s", "--exit-with-parent", "null"])
 h.shutdown()
 
+# Try to trigger garbage collection of h
+h = None
+
 print("%r" % messages)
