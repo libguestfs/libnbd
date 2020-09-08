@@ -18,7 +18,6 @@
 # This tests the nbd.Buffer is_zero method.  We can do this entirely
 # without using the NBD protocol.
 
-import os
 import nbd
 
 # Simplest case: A Buffer initialized with zeros should be zero.

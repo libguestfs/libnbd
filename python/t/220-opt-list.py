@@ -16,7 +16,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 import nbd
-import errno
 import os
 
 # Require new-enough nbdkit
@@ -32,24 +31,27 @@ h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
                     "sh", script])
 
 exports = []
+
+
 def f (user_data, name, desc):
     global exports
     assert user_data == 42
     assert desc == ""
     exports.append(name)
 
+
 # First pass: server fails NBD_OPT_LIST
 try:
     h.opt_list (lambda *args: f (42, *args))
     assert False
-except nbd.Error as ex:
+except nbd.Error:
     pass
 assert exports == []
 
 # Second pass: server advertises 'a' and 'b'
 exports = []
 assert h.opt_list (lambda *args: f (42, *args)) == 2
-assert exports == [ "a", "b" ]
+assert exports == ["a", "b"]
 
 # Third pass: server advertises empty list
 exports = []
@@ -59,6 +61,6 @@ assert exports == []
 # Final pass: server advertises 'a'
 exports = []
 assert h.opt_list (lambda *args: f (42, *args)) == 1
-assert exports == [ "a" ]
+assert exports == ["a"]
 
 h.opt_abort ()

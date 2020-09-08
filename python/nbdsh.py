@@ -15,6 +15,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
+
 # The NBD shell.
 def shell():
     import argparse
@@ -91,7 +92,7 @@ help (nbd)                          # Display documentation
     # If there are no -c or --command parameters, go interactive,
     # otherwise we run the commands and exit.
     if not args.command:
-        code.interact (banner = banner, local = locals(), exitmsg = '')
+        code.interact (banner=banner, local=locals(), exitmsg='')
     else:
         # https://stackoverflow.com/a/11754346
         d = dict (locals(), **globals())

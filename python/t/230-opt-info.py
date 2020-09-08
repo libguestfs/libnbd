@@ -16,17 +16,18 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 import nbd
-import errno
 import os
 
 script = ("%s/../tests/opt-info.sh" % os.getenv ("srcdir", "."))
 
+
 def must_fail (f, *args, **kwds):
     try:
         f (*args, **kwds)
-        assert (False)
-    except nbd.Error as ex:
+        assert False
+    except nbd.Error:
         pass
+
 
 h = nbd.NBD ()
 h.set_opt_mode (True)

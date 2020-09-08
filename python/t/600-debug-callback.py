@@ -20,11 +20,14 @@ import nbd
 h = nbd.NBD ()
 
 messages = []
+
+
 def f(id, context, msg):
     global messages
 
     assert id == 42
     messages.append (msg)
+
 
 h.set_debug_callback (lambda *args: f (42, *args))
 
