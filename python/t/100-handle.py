@@ -17,4 +17,4 @@
 
 import nbd
 
-h = nbd.NBD ()
+h = nbd.NBD()

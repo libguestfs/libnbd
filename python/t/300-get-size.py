@@ -19,9 +19,9 @@ import nbd
 
 expected = 1048576
 
-h = nbd.NBD ()
-h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v", "null",
-                    "size=%d" % expected])
-actual = h.get_size ()
+h = nbd.NBD()
+h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v", "null",
+                   "size=%d" % expected])
+actual = h.get_size()
 
 assert actual == expected

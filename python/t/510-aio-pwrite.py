@@ -19,35 +19,35 @@ import os
 
 import nbd
 
-buf = bytearray (512)
+buf = bytearray(512)
 buf[10] = 1
 buf[510] = 0x55
 buf[511] = 0xAA
 
 datafile = "510-pwrite.data"
 
-with open (datafile, "wb") as f:
-    f.truncate (512)
+with open(datafile, "wb") as f:
+    f.truncate(512)
 
-h = nbd.NBD ()
-h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
-                    "file", datafile])
+h = nbd.NBD()
+h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v",
+                   "file", datafile])
 
-buf1 = nbd.Buffer.from_bytearray (buf)
-cookie = h.aio_pwrite (buf1, 0, flags=nbd.CMD_FLAG_FUA)
-while not (h.aio_command_completed (cookie)):
-    h.poll (-1)
+buf1 = nbd.Buffer.from_bytearray(buf)
+cookie = h.aio_pwrite(buf1, 0, flags=nbd.CMD_FLAG_FUA)
+while not h.aio_command_completed(cookie):
+    h.poll(-1)
 
-buf2 = nbd.Buffer (512)
-cookie = h.aio_pread (buf2, 0)
-while not (h.aio_command_completed (cookie)):
-    h.poll (-1)
+buf2 = nbd.Buffer(512)
+cookie = h.aio_pread(buf2, 0)
+while not h.aio_command_completed(cookie):
+    h.poll(-1)
 
-assert buf == buf2.to_bytearray ()
+assert buf == buf2.to_bytearray()
 
-with open (datafile, "rb") as f:
-    content = f.read ()
+with open(datafile, "rb") as f:
+    content = f.read()
 
 assert buf == content
 
-os.unlink (datafile)
+os.unlink(datafile)

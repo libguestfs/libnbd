@@ -21,32 +21,32 @@
 import nbd
 
 # Simplest case: A Buffer initialized with zeros should be zero.
-ba = bytearray (2**20)
-buf = nbd.Buffer.from_bytearray (ba)
-assert buf.is_zero ()
+ba = bytearray(2**20)
+buf = nbd.Buffer.from_bytearray(ba)
+assert buf.is_zero()
 
 # The above buffer is 2**20 (= 1MB), slices of it should also be zero.
-for i in range (0, 7):
-    assert buf.is_zero (i * 2**17, 2**17)
+for i in range(0, 7):
+    assert buf.is_zero(i * 2**17, 2**17)
 
 # A Buffer initialized with non-zeroes should not be zero.
-ba = bytearray (b'\xff') * 2**20
-buf = nbd.Buffer.from_bytearray (ba)
-assert not buf.is_zero ()
+ba = bytearray(b'\xff') * 2**20
+buf = nbd.Buffer.from_bytearray(ba)
+assert not buf.is_zero()
 
 # Slices should not be zero.
-for i in range (0, 15):
-    assert not buf.is_zero (i * 2**16, 2**16)
+for i in range(0, 15):
+    assert not buf.is_zero(i * 2**16, 2**16)
 
 # Buffer with a block of non-zeroes and block of zeroes.
-ba = bytearray (b'\xff') * 2**20 + bytearray (2**20)
-buf = nbd.Buffer.from_bytearray (ba)
-assert not buf.is_zero ()
-assert not buf.is_zero (0, 2**20)
-assert buf.is_zero (2**20)
-assert not buf.is_zero (2**19)
-assert buf.is_zero (2**20, 2**19)
-assert not buf.is_zero (2**20-1, 1)
-assert buf.is_zero (2**20, 1)
-assert not buf.is_zero (0, 1)
-assert buf.is_zero (2**21-1, 1)
+ba = bytearray(b'\xff') * 2**20 + bytearray(2**20)
+buf = nbd.Buffer.from_bytearray(ba)
+assert not buf.is_zero()
+assert not buf.is_zero(0, 2**20)
+assert buf.is_zero(2**20)
+assert not buf.is_zero(2**19)
+assert buf.is_zero(2**20, 2**19)
+assert not buf.is_zero(2**20-1, 1)
+assert buf.is_zero(2**20, 1)
+assert not buf.is_zero(0, 1)
+assert buf.is_zero(2**21-1, 1)
