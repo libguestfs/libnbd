@@ -19,21 +19,20 @@ import nbd
 import os
 
 # Require new-enough nbdkit
-if os.system ("nbdkit sh --dump-plugin | grep -q has_list_exports=1"):
-    print ("skipping: nbdkit too old for this test")
-    exit (0)
+if os.system("nbdkit sh --dump-plugin | grep -q has_list_exports=1"):
+    print("skipping: nbdkit too old for this test")
+    exit(0)
 
-script = ("%s/../tests/opt-list.sh" % os.getenv ("srcdir", "."))
+script = "%s/../tests/opt-list.sh" % os.getenv("srcdir", ".")
 
-h = nbd.NBD ()
-h.set_opt_mode (True)
-h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
-                    "sh", script])
+h = nbd.NBD()
+h.set_opt_mode(True)
+h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v", "sh", script])
 
 exports = []
 
 
-def f (user_data, name, desc):
+def f(user_data, name, desc):
     global exports
     assert user_data == 42
     assert desc == ""
@@ -42,7 +41,7 @@ def f (user_data, name, desc):
 
 # First pass: server fails NBD_OPT_LIST
 try:
-    h.opt_list (lambda *args: f (42, *args))
+    h.opt_list(lambda *args: f(42, *args))
     assert False
 except nbd.Error:
     pass
@@ -50,17 +49,17 @@ assert exports == []
 
 # Second pass: server advertises 'a' and 'b'
 exports = []
-assert h.opt_list (lambda *args: f (42, *args)) == 2
+assert h.opt_list(lambda *args: f(42, *args)) == 2
 assert exports == ["a", "b"]
 
 # Third pass: server advertises empty list
 exports = []
-assert h.opt_list (lambda *args: f (42, *args)) == 0
+assert h.opt_list(lambda *args: f(42, *args)) == 0
 assert exports == []
 
 # Final pass: server advertises 'a'
 exports = []
-assert h.opt_list (lambda *args: f (42, *args)) == 1
+assert h.opt_list(lambda *args: f(42, *args)) == 1
 assert exports == ["a"]
 
-h.opt_abort ()
+h.opt_abort()

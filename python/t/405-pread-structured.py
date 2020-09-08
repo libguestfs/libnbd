@@ -18,9 +18,9 @@
 import nbd
 import errno
 
-h = nbd.NBD ()
-h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
-                    "pattern", "size=512"])
+h = nbd.NBD()
+h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v",
+                   "pattern", "size=512"])
 
 expected = (b'\x00\x00\x00\x00\x00\x00\x00\x00'
             + b'\x00\x00\x00\x00\x00\x00\x00\x08'
@@ -88,7 +88,7 @@ expected = (b'\x00\x00\x00\x00\x00\x00\x00\x00'
             + b'\x00\x00\x00\x00\x00\x00\x01\xf8')
 
 
-def f (user_data, buf2, offset, s, err):
+def f(user_data, buf2, offset, s, err):
     assert err.value == 0
     err.value = errno.EPROTO
     if user_data != 42:
@@ -98,22 +98,22 @@ def f (user_data, buf2, offset, s, err):
     assert s == nbd.READ_DATA
 
 
-buf = h.pread_structured (512, 0, lambda *args: f (42, *args))
+buf = h.pread_structured(512, 0, lambda *args: f(42, *args))
 
-print ("%r" % buf)
+print("%r" % buf)
 
 assert buf == expected
 
-buf = h.pread_structured (512, 0, lambda *args: f (42, *args),
-                          nbd.CMD_FLAG_DF)
+buf = h.pread_structured(512, 0, lambda *args: f(42, *args),
+                         nbd.CMD_FLAG_DF)
 
-print ("%r" % buf)
+print("%r" % buf)
 
 assert buf == expected
 
 try:
-    buf = h.pread_structured (512, 0, lambda *args: f (43, *args),
-                              nbd.CMD_FLAG_DF)
+    buf = h.pread_structured(512, 0, lambda *args: f(43, *args),
+                             nbd.CMD_FLAG_DF)
     assert False
 except nbd.Error as ex:
     assert ex.errnum == errno.EPROTO

@@ -18,15 +18,15 @@
 import nbd
 import errno
 
-h = nbd.NBD ()
-h.set_opt_mode (True)
-h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v", "null"])
-assert h.get_protocol () == "newstyle-fixed"
-assert h.get_structured_replies_negotiated ()
-h.opt_abort ()
-assert h.aio_is_closed ()
+h = nbd.NBD()
+h.set_opt_mode(True)
+h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v", "null"])
+assert h.get_protocol() == "newstyle-fixed"
+assert h.get_structured_replies_negotiated()
+h.opt_abort()
+assert h.aio_is_closed()
 try:
-    h.get_size ()
+    h.get_size()
     assert False
 except nbd.Error as ex:
     assert ex.errnum == errno.EINVAL

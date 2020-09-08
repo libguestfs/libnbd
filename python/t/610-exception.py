@@ -17,17 +17,17 @@
 
 import nbd
 
-h = nbd.NBD ()
+h = nbd.NBD()
 
 try:
     # This will always throw an exception because the handle is not
     # connected.
-    h.pread (0, 0)
+    h.pread(0, 0)
 except nbd.Error as ex:
-    print ("string = %s" % ex.string)
-    print ("errno = %s" % ex.errno)
-    print ("errnum = %d" % ex.errnum)
-    exit (0)
+    print("string = %s" % ex.string)
+    print("errno = %s" % ex.errno)
+    print("errnum = %d" % ex.errnum)
+    exit(0)
 
 # If we reach here then we didn't catch the exception above.
-exit (1)
+exit(1)

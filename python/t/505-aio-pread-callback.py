@@ -18,9 +18,9 @@
 import nbd
 import errno
 
-h = nbd.NBD ()
-h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
-                    "pattern", "size=512"])
+h = nbd.NBD()
+h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v",
+                   "pattern", "size=512"])
 
 expected = (b'\x00\x00\x00\x00\x00\x00\x00\x00'
             + b'\x00\x00\x00\x00\x00\x00\x00\x08'
@@ -88,8 +88,8 @@ expected = (b'\x00\x00\x00\x00\x00\x00\x00\x00'
             + b'\x00\x00\x00\x00\x00\x00\x01\xf8')
 
 
-def chunk (user_data, buf2, offset, s, err):
-    print ("in chunk, user_data %d" % user_data)
+def chunk(user_data, buf2, offset, s, err):
+    print("in chunk, user_data %d" % user_data)
     assert err.value == 0
     err.value = errno.EPROTO
     if user_data != 42:
@@ -99,8 +99,8 @@ def chunk (user_data, buf2, offset, s, err):
     assert s == nbd.READ_DATA
 
 
-def callback (user_data, err):
-    print ("in callback, user_data %d,%d" % user_data)
+def callback(user_data, err):
+    print("in callback, user_data %d,%d" % user_data)
     if user_data[0] == 42:
         assert err.value == 0
     else:
@@ -111,51 +111,51 @@ def callback (user_data, err):
 
 
 # First try: succeed in both callbacks
-buf = nbd.Buffer (512)
-cookie = h.aio_pread_structured (buf, 0,
-                                 lambda *args: chunk (42, *args),
-                                 lambda *args: callback ((42, 42), *args))
-while not (h.aio_command_completed (cookie)):
-    h.poll (-1)
+buf = nbd.Buffer(512)
+cookie = h.aio_pread_structured(buf, 0,
+                                lambda *args: chunk(42, *args),
+                                lambda *args: callback((42, 42), *args))
+while not h.aio_command_completed(cookie):
+    h.poll(-1)
 
-buf = buf.to_bytearray ()
+buf = buf.to_bytearray()
 
-print ("%r" % buf)
+print("%r" % buf)
 
 assert buf == expected
 
 # Second try: fail only during callback
-buf = nbd.Buffer (512)
-cookie = h.aio_pread_structured (buf, 0,
-                                 lambda *args: chunk (42, *args),
-                                 lambda *args: callback ((42, 43), *args))
+buf = nbd.Buffer(512)
+cookie = h.aio_pread_structured(buf, 0,
+                                lambda *args: chunk(42, *args),
+                                lambda *args: callback((42, 43), *args))
 try:
-    while not (h.aio_command_completed (cookie)):
-        h.poll (-1)
+    while not h.aio_command_completed(cookie):
+        h.poll(-1)
     assert False
 except nbd.Error as ex:
     assert ex.errnum == errno.ENOMEM
 
 # Third try: fail during both
-buf = nbd.Buffer (512)
-cookie = h.aio_pread_structured (buf, 0,
-                                 lambda *args: chunk (43, *args),
-                                 lambda *args: callback ((43, 43), *args))
+buf = nbd.Buffer(512)
+cookie = h.aio_pread_structured(buf, 0,
+                                lambda *args: chunk(43, *args),
+                                lambda *args: callback((43, 43), *args))
 try:
-    while not (h.aio_command_completed (cookie)):
-        h.poll (-1)
+    while not h.aio_command_completed(cookie):
+        h.poll(-1)
     assert False
 except nbd.Error as ex:
     assert ex.errnum == errno.ENOMEM
 
 # Fourth try: fail only during chunk
-buf = nbd.Buffer (512)
-cookie = h.aio_pread_structured (buf, 0,
-                                 lambda *args: chunk (43, *args),
-                                 lambda *args: callback ((43, 42), *args))
+buf = nbd.Buffer(512)
+cookie = h.aio_pread_structured(buf, 0,
+                                lambda *args: chunk(43, *args),
+                                lambda *args: callback((43, 42), *args))
 try:
-    while not (h.aio_command_completed (cookie)):
-        h.poll (-1)
+    while not h.aio_command_completed(cookie):
+        h.poll(-1)
     assert False
 except nbd.Error as ex:
     assert ex.errnum == errno.EPROTO

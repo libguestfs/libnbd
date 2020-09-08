@@ -18,66 +18,65 @@
 import nbd
 import os
 
-script = ("%s/../tests/opt-info.sh" % os.getenv ("srcdir", "."))
+script = "%s/../tests/opt-info.sh" % os.getenv("srcdir", ".")
 
 
-def must_fail (f, *args, **kwds):
+def must_fail(f, *args, **kwds):
     try:
-        f (*args, **kwds)
+        f(*args, **kwds)
         assert False
     except nbd.Error:
         pass
 
 
-h = nbd.NBD ()
-h.set_opt_mode (True)
-h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
-                    "sh", script])
-h.add_meta_context (nbd.CONTEXT_BASE_ALLOCATION)
+h = nbd.NBD()
+h.set_opt_mode(True)
+h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v", "sh", script])
+h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
 
 # No size, flags, or meta-contexts yet */
-must_fail (h.get_size)
-must_fail (h.is_read_only)
-must_fail (h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
+must_fail(h.get_size)
+must_fail(h.is_read_only)
+must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
 
 # info with no prior name gets info on ""
-h.opt_info ()
-assert h.get_size () == 0
-assert h.is_read_only () == 1
-assert h.can_meta_context (nbd.CONTEXT_BASE_ALLOCATION) == 1
+h.opt_info()
+assert h.get_size() == 0
+assert h.is_read_only() == 1
+assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) == 1
 
 # info on something not present fails, wipes out prior info
-h.set_export_name ("a")
-must_fail (h.opt_info)
-must_fail (h.get_size)
-must_fail (h.is_read_only)
-must_fail (h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
+h.set_export_name("a")
+must_fail(h.opt_info)
+must_fail(h.get_size)
+must_fail(h.is_read_only)
+must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
 
 # info for a different export
-h.set_export_name ("b")
-h.opt_info ()
-assert h.get_size () == 1
-assert h.is_read_only () == 0
-assert h.can_meta_context (nbd.CONTEXT_BASE_ALLOCATION) == 1
+h.set_export_name("b")
+h.opt_info()
+assert h.get_size() == 1
+assert h.is_read_only() == 0
+assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) == 1
 
 # go on something not present
-h.set_export_name ("a")
-must_fail (h.opt_go)
-must_fail (h.get_size)
-must_fail (h.is_read_only)
-must_fail (h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
+h.set_export_name("a")
+must_fail(h.opt_go)
+must_fail(h.get_size)
+must_fail(h.is_read_only)
+must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
 
 # go on a valid export
-h.set_export_name ("good")
-h.opt_go ()
-assert h.get_size () == 4
-assert h.is_read_only () == 1
-assert h.can_meta_context (nbd.CONTEXT_BASE_ALLOCATION) == 1
+h.set_export_name("good")
+h.opt_go()
+assert h.get_size() == 4
+assert h.is_read_only() == 1
+assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) == 1
 
 # now info is no longer valid, but does not wipe data
-must_fail (h.set_export_name, "a")
-assert h.get_export_name () == "good"
-must_fail (h.opt_info)
-assert h.get_size () == 4
+must_fail(h.set_export_name, "a")
+assert h.get_export_name() == "good"
+must_fail(h.opt_info)
+assert h.get_size() == 4
 
-h.shutdown ()
+h.shutdown()

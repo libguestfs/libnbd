@@ -17,17 +17,17 @@
 
 import nbd
 
-h = nbd.NBD ()
-h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
-                    "pattern", "size=512"])
-buf = nbd.Buffer (512)
-cookie = h.aio_pread (buf, 0)
-while not (h.aio_command_completed (cookie)):
-    h.poll (-1)
+h = nbd.NBD()
+h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v",
+                   "pattern", "size=512"])
+buf = nbd.Buffer(512)
+cookie = h.aio_pread(buf, 0)
+while not h.aio_command_completed(cookie):
+    h.poll(-1)
 
-buf = buf.to_bytearray ()
+buf = buf.to_bytearray()
 
-print ("%r" % buf)
+print("%r" % buf)
 
 assert buf == (b'\x00\x00\x00\x00\x00\x00\x00\x00'
                + b'\x00\x00\x00\x00\x00\x00\x00\x08'
