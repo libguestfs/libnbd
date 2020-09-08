@@ -177,6 +177,7 @@ let print_python_closure_wrapper { cbname; cbargs } =
        pr "  Py_DECREF (py_%s_modname);\n" n;
        pr "  if (!py_%s_mod) { PyErr_PrintEx (0); return -1; }\n" n;
        pr "  PyObject *py_%s = PyObject_CallMethod (py_%s_mod, \"c_int\", \"i\", *%s);\n" n n n;
+       pr "  Py_DECREF (py_%s_mod);\n" n;
        pr "  if (!py_%s) { PyErr_PrintEx (0); return -1; }\n" n;
     | CBString _
     | CBUInt _
@@ -263,7 +264,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   pr "  PyObject *py_h;\n";
   pr "  struct nbd_handle *h;\n";
   pr "  %s ret;\n" (C.type_of_ret ret);
-  pr "  PyObject *py_ret;\n";
+  pr "  PyObject *py_ret = NULL;\n";
   List.iter (
     function
     | Bool n -> pr "  int %s;\n" n
@@ -279,7 +280,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  struct py_aio_buffer *%s_buf;\n" n
     | Closure { cbname } ->
        pr "  struct user_data *%s_user_data = alloc_user_data ();\n" cbname;
-       pr "  if (%s_user_data == NULL) return NULL;\n" cbname;
+       pr "  if (%s_user_data == NULL) goto out;\n" cbname;
        pr "  nbd_%s_callback %s = { .callback = %s_wrapper,\n"
          cbname cbname cbname;
        pr "                         .user_data = %s_user_data,\n" cbname;
@@ -316,7 +317,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     function
     | OClosure { cbname } ->
        pr "  struct user_data *%s_user_data = alloc_user_data ();\n" cbname;
-       pr "  if (%s_user_data == NULL) return NULL;\n" cbname;
+       pr "  if (%s_user_data == NULL) goto out;\n" cbname;
        pr "  nbd_%s_callback %s = { .callback = %s_wrapper,\n"
          cbname cbname cbname;
        pr "                         .user_data = %s_user_data,\n" cbname;
@@ -382,7 +383,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | OFlags (n, _) -> pr ", &%s" n
   ) optargs;
   pr "))\n";
-  pr "    return NULL;\n";
+  pr "    goto out;\n";
 
   pr "  h = get_handle (py_h);\n";
   List.iter (
@@ -395,12 +396,13 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  %s_buf = nbd_internal_py_get_aio_buffer (%s);\n" n n
     | Closure { cbname } ->
        pr "  /* Increment refcount since pointer may be saved by libnbd. */\n";
-       pr "  Py_INCREF (%s_user_data->fn);\n" cbname;
        pr "  if (!PyCallable_Check (%s_user_data->fn)) {\n" cbname;
        pr "    PyErr_SetString (PyExc_TypeError,\n";
        pr "                     \"callback parameter %s is not callable\");\n" cbname;
-       pr "    return NULL;\n";
-       pr "  }\n"
+       pr "    %s_user_data->fn = NULL;\n" cbname;
+       pr "    goto out;\n";
+       pr "  }\n";
+       pr "  Py_INCREF (%s_user_data->fn);\n" cbname
     | Enum _ -> ()
     | Flags (n, _) -> pr "  %s_u32 = %s;\n" n n
     | Fd _ | Int _ -> ()
@@ -413,7 +415,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | String _ -> ()
     | StringList n ->
        pr "  %s = nbd_internal_py_get_string_list (py_%s);\n" n n;
-       pr "  if (!%s) { py_ret = NULL; goto out; }\n" n
+       pr "  if (!%s) goto out;\n" n
     | UInt _ -> ()
     | UInt32 n -> pr "  %s_u32 = %s;\n" n n
     | UInt64 n -> pr "  %s_u64 = %s;\n" n n
@@ -423,12 +425,13 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | OClosure { cbname } ->
        pr "  if (%s_user_data->fn != Py_None) {\n" cbname;
        pr "    /* Increment refcount since pointer may be saved by libnbd. */\n";
-       pr "    Py_INCREF (%s_user_data->fn);\n" cbname;
        pr "    if (!PyCallable_Check (%s_user_data->fn)) {\n" cbname;
        pr "      PyErr_SetString (PyExc_TypeError,\n";
        pr "                       \"callback parameter %s is not callable\");\n" cbname;
-       pr "      return NULL;\n";
+       pr "      %s_user_data->fn = NULL;\n" cbname;
+       pr "      goto out;\n";
        pr "    }\n";
+       pr "    Py_INCREF (%s_user_data->fn);\n" cbname;
        pr "  }\n";
        pr "  else\n";
        pr "    %s.callback = NULL; /* we're not going to call it */\n" cbname
@@ -447,7 +450,8 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  Py_INCREF (%s);\n" n;
        pr "  completion_user_data->buf = %s;\n" n;
     | _ -> ()
-  ) args;
+    ) args;
+  pr "\n";
 
   (* Call the underlying C function. *)
   pr "  ret = nbd_%s (h" name;
@@ -477,11 +481,20 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | OFlags (n, _) -> pr ", %s_u32" n
   ) optargs;
   pr ");\n";
+  List.iter (
+    function
+    | Closure { cbname } -> pr "  %s_user_data = NULL;\n" cbname
+    | _ -> ()
+  ) args;
+  List.iter (
+    function
+    | OClosure { cbname } -> pr "  %s_user_data = NULL;\n" cbname
+    | _ -> ()
+  ) optargs;
   if may_set_error then (
     pr "  if (ret == %s) {\n"
       (match C.errcode_of_ret ret with Some s -> s | None -> assert false);
     pr "    raise_exception ();\n";
-    pr "    py_ret = NULL;\n";
     pr "    goto out;\n";
     pr "  }\n"
   );
@@ -529,14 +542,14 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   );
 
   pr "\n";
-  if may_set_error then
-    pr " out:\n";
+  pr " out:\n";
   List.iter (
     function
     | Bool _ -> ()
     | BytesIn (n, _) -> pr "  PyBuffer_Release (&%s);\n" n
     | BytesPersistIn _ | BytesOut _ | BytesPersistOut _ -> ()
-    | Closure _ -> ()
+    | Closure { cbname } ->
+       pr "  if (%s_user_data) free_user_data (%s_user_data);\n" cbname cbname
     | Enum _ -> ()
     | Flags _ -> ()
     | Fd _ | Int _ -> ()
@@ -550,6 +563,12 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | UInt32 _ -> ()
     | UInt64 _ -> ()
   ) args;
+  List.iter (
+    function
+    | OClosure { cbname } ->
+       pr "  if (%s_user_data) free_user_data (%s_user_data);\n" cbname cbname
+    | OFlags _ -> ()
+  ) optargs;
   pr "  return py_ret;\n";
   pr "}\n";
   pr "\n"
@@ -594,10 +613,8 @@ let generate_python_methods_c () =
   pr "{\n";
   pr "  struct user_data *data = user_data;\n";
   pr "\n";
-  pr "  if (data->fn != NULL)\n";
-  pr "    Py_DECREF (data->fn);\n";
-  pr "  if (data->buf != NULL)\n";
-  pr "    Py_DECREF (data->buf);\n";
+  pr "  Py_XDECREF (data->fn);\n";
+  pr "  Py_XDECREF (data->buf);\n";
   pr "  free (data);\n";
   pr "}\n";
   pr "\n";
