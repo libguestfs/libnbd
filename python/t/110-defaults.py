@@ -19,9 +19,9 @@ import nbd
 
 h = nbd.NBD ()
 assert h.get_export_name () == ""
-assert h.get_full_info () == False
+assert h.get_full_info () is False
 assert h.get_tls () == nbd.TLS_DISABLE
-assert h.get_request_structured_replies () == True
+assert h.get_request_structured_replies () is True
 assert h.get_handshake_flags () == (nbd.HANDSHAKE_FLAG_FIXED_NEWSTYLE |
                                     nbd.HANDSHAKE_FLAG_NO_ZEROES)
-assert h.get_opt_mode () == False
+assert h.get_opt_mode () is False

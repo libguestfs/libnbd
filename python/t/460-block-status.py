@@ -27,6 +27,8 @@ h.connect_command (["nbdkit", "-s", "--exit-with-parent", "-v",
                     "sh", script])
 
 entries = []
+
+
 def f (user_data, metacontext, offset, e, err):
     global entries
     assert user_data == 42
@@ -35,19 +37,20 @@ def f (user_data, metacontext, offset, e, err):
         return
     entries = e
 
+
 h.block_status (65536, 0, lambda *args: f (42, *args))
-assert entries == [ 8192, 0,
-                    8192, 1,
+assert entries == [8192, 0,
+                   8192, 1,
                    16384, 3,
                    16384, 2,
                    16384, 0]
 
 h.block_status (1024, 32256, lambda *args: f (42, *args))
 print ("entries = %r" % entries)
-assert entries == [  512, 3,
+assert entries == [512, 3,
                    16384, 2]
 
 h.block_status (1024, 32256, lambda *args: f (42, *args),
                 nbd.CMD_FLAG_REQ_ONE)
 print ("entries = %r" % entries)
-assert entries == [  512, 3]
+assert entries == [512, 3]

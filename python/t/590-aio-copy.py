@@ -24,15 +24,17 @@ max_reads_in_flight = 16
 bytes_read = 0
 bytes_written = 0
 
+
 def asynch_copy (src, dst):
     size = src.get_size ()
 
     # This is our reading position in the source.
     soff = 0
 
+    writes = []
+
     # This callback is called when any pread from the source
     # has completed.
-    writes = []
     def read_completed (buf, offset, error):
         global bytes_read
         bytes_read += buf.size ()
@@ -94,17 +96,18 @@ def asynch_copy (src, dst):
             # The direction of each handle can change since we
             # slept in the select.
             if fd == sfd and revents & select.POLLIN and \
-               src.aio_get_direction () & nbd.AIO_DIRECTION_READ:
+                    src.aio_get_direction () & nbd.AIO_DIRECTION_READ:
                 src.aio_notify_read ()
             elif fd == sfd and revents & select.POLLOUT and \
-                 src.aio_get_direction () & nbd.AIO_DIRECTION_WRITE:
+                    src.aio_get_direction () & nbd.AIO_DIRECTION_WRITE:
                 src.aio_notify_write ()
             elif fd == dfd and revents & select.POLLIN and \
-                 dst.aio_get_direction () & nbd.AIO_DIRECTION_READ:
+                    dst.aio_get_direction () & nbd.AIO_DIRECTION_READ:
                 dst.aio_notify_read ()
             elif fd == dfd and revents & select.POLLOUT and \
-                 dst.aio_get_direction () & nbd.AIO_DIRECTION_WRITE:
+                    dst.aio_get_direction () & nbd.AIO_DIRECTION_WRITE:
                 dst.aio_notify_write ()
+
 
 src = nbd.NBD ()
 src.set_handle_name ("src")
