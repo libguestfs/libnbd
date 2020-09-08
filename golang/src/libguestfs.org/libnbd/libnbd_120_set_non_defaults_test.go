@@ -51,6 +51,18 @@ func Test120SetNonDefaults(t *testing.T) {
 		t.Fatalf("unexpected full info state")
 	}
 
+	err = h.SetTls(TLS_REQUIRE + 1)
+	if err == nil {
+		t.Fatalf("expect failure for out-of-range enum")
+	}
+	tls, err := h.GetTls()
+	if err != nil {
+		t.Fatalf("could not get tls state: %s", err)
+	}
+	if tls != TLS_DISABLE {
+		t.Fatalf("unexpected tls state")
+	}
+
 	support, err := h.SupportsTls()
 	if err != nil {
 		t.Fatalf("could not check if tls is supported: %s", err)
@@ -60,7 +72,7 @@ func Test120SetNonDefaults(t *testing.T) {
 		if err != nil {
 			t.Fatalf("could not set tls state: %s", err)
 		}
-		tls, err := h.GetTls()
+		tls, err = h.GetTls()
 		if err != nil {
 			t.Fatalf("could not get tls state: %s", err)
 		}
@@ -81,11 +93,23 @@ func Test120SetNonDefaults(t *testing.T) {
 		t.Fatalf("unexpected structured replies state")
 	}
 
+	err = h.SetHandshakeFlags(HANDSHAKE_FLAG_NO_ZEROES << 1)
+	if err == nil {
+		t.Fatalf("expect failure for out-of-range flags")
+	}
+	flags, err := h.GetHandshakeFlags()
+	if err != nil {
+		t.Fatalf("could not get handshake flags: %s", err)
+	}
+	if flags != HANDSHAKE_FLAG_FIXED_NEWSTYLE | HANDSHAKE_FLAG_NO_ZEROES {
+		t.Fatalf("unexpected handshake flags")
+	}
+
 	err = h.SetHandshakeFlags(0)
 	if err != nil {
 		t.Fatalf("could not set handshake flags: %s", err)
 	}
-	flags, err := h.GetHandshakeFlags()
+	flags, err = h.GetHandshakeFlags()
 	if err != nil {
 		t.Fatalf("could not get handshake flags: %s", err)
 	}

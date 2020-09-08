@@ -25,6 +25,11 @@ let () =
   NBD.set_full_info nbd true;
   let info = NBD.get_full_info nbd in
   assert (info = true);
+  (* XXX No way to pass out-of-range enum...
+     try NBD.set_tls nbd XXX
+   *)
+  let tls = NBD.get_tls nbd in
+  assert (tls = 0);   (* XXX Add REnum, to get NBD.TLS.DISABLE? *)
   if NBD.supports_tls nbd then (
     NBD.set_tls nbd NBD.TLS.ALLOW;
     let tls = NBD.get_tls nbd in
@@ -33,6 +38,11 @@ let () =
   NBD.set_request_structured_replies nbd false;
   let sr = NBD.get_request_structured_replies nbd in
   assert (sr = false);
+  (* XXX No way to pass out-of-range flags...
+     try NBD.set_handshake_flags nbd [ XXX ]
+   *)
+  let flags = NBD.get_handshake_flags nbd in
+  assert (flags = 3); (* XXX Add RFlags, to get NBD.HANDSHAKE_FLAG list? *)
   NBD.set_handshake_flags nbd [];
   let flags = NBD.get_handshake_flags nbd in
   assert (flags = 0); (* XXX Add RFlags *)
