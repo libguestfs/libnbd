@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2019 Red Hat Inc.
+# Copyright (C) 2013-2020 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -26,12 +26,17 @@ generator_built = \
 	libnbdmod.c \
 	methods.c \
 	methods.h \
-	nbd.py
+	nbd.py \
+	$(NULL)
 
 EXTRA_DIST = \
 	$(generator_built) \
 	nbdsh.py \
-	$(srcdir)/t/*.py
+	$(srcdir)/t/*.py \
+	pycodestyle.sh \
+	$(NULL)
+
+TESTS = pycodestyle.sh
 
 if HAVE_PYTHON
 
@@ -63,7 +68,7 @@ if HAVE_NBDKIT
 
 TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
 LOG_COMPILER = $(top_builddir)/run
-TESTS = run-python-tests
+TESTS += run-python-tests
 
 endif HAVE_NBDKIT
 
