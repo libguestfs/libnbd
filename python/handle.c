@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -91,7 +91,8 @@ free_aio_buffer (PyObject *capsule)
 {
   struct py_aio_buffer *buf = PyCapsule_GetPointer (capsule, aio_buffer_name);
 
-  free (buf->data);
+  if (buf)
+    free (buf->data);
   free (buf);
 }
 

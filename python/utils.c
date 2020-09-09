@@ -60,15 +60,24 @@ nbd_internal_py_get_string_list (PyObject *obj)
 
   for (i = 0; i < len; ++i) {
     PyObject *bytes = PyUnicode_AsUTF8String (PyList_GetItem (obj, i));
+    if (!bytes)
+      goto err;
     r[i] = strdup (PyBytes_AS_STRING (bytes));
+    Py_DECREF (bytes);
     if (r[i] == NULL) {
       PyErr_NoMemory ();
-      return NULL;
+      goto err;
     }
   }
   r[len] = NULL;
 
   return r;
+
+ err:
+  while (i--)
+    free (r[i]);
+  free (r);
+  return NULL;
 }
 
 void

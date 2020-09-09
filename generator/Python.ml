@@ -271,7 +271,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesIn (n, _) ->
        pr "  Py_buffer %s;\n" n
     | BytesOut (n, count) ->
-       pr "  char *%s;\n" n;
+       pr "  char *%s = NULL;\n" n;
        pr "  Py_ssize_t %s;\n" count
     | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) ->
@@ -279,11 +279,10 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
           n;
        pr "  struct py_aio_buffer *%s_buf;\n" n
     | Closure { cbname } ->
-       pr "  struct user_data *%s_user_data = alloc_user_data ();\n" cbname;
-       pr "  if (%s_user_data == NULL) goto out;\n" cbname;
+       pr "  struct user_data *%s_user_data = NULL;\n" cbname;
+       pr "  PyObject *py_%s_fn;\n" cbname;
        pr "  nbd_%s_callback %s = { .callback = %s_wrapper,\n"
          cbname cbname cbname;
-       pr "                         .user_data = %s_user_data,\n" cbname;
        pr "                         .free = free_user_data };\n"
     | Enum (n, _) -> pr "  int %s;\n" n
     | Flags (n, _) ->
@@ -316,11 +315,10 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   List.iter (
     function
     | OClosure { cbname } ->
-       pr "  struct user_data *%s_user_data = alloc_user_data ();\n" cbname;
-       pr "  if (%s_user_data == NULL) goto out;\n" cbname;
+       pr "  struct user_data *%s_user_data = NULL;\n" cbname;
+       pr "  PyObject *py_%s_fn;\n" cbname;
        pr "  nbd_%s_callback %s = { .callback = %s_wrapper,\n"
          cbname cbname cbname;
-       pr "                         .user_data = %s_user_data,\n" cbname;
        pr "                         .free = free_user_data };\n"
     | OFlags (n, _) ->
        pr "  uint32_t %s_u32;\n" n;
@@ -329,7 +327,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   pr "\n";
 
   (* Parse the Python parameters. *)
-  pr "  if (!PyArg_ParseTuple (args, (char *) \"O\"";
+  pr "  if (!PyArg_ParseTuple (args, \"O\"";
   List.iter (
     function
     | Bool n -> pr " \"p\""
@@ -364,7 +362,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesIn (n, _) | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) -> pr ", &%s" n
     | BytesOut (_, count) -> pr ", &%s" count
-    | Closure { cbname } -> pr ", &%s_user_data->fn" cbname
+    | Closure { cbname } -> pr ", &py_%s_fn" cbname
     | Enum (n, _) -> pr ", &%s" n
     | Flags (n, _) -> pr ", &%s" n
     | Fd n | Int n -> pr ", &%s" n
@@ -379,30 +377,57 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   List.iter (
     function
-    | OClosure { cbname } -> pr ", &%s_user_data->fn" cbname
+    | OClosure { cbname } -> pr ", &py_%s_fn" cbname
     | OFlags (n, _) -> pr ", &%s" n
   ) optargs;
   pr "))\n";
   pr "    goto out;\n";
 
   pr "  h = get_handle (py_h);\n";
+  pr "  if (!h) goto out;\n";
+  List.iter (
+    function
+    | OClosure { cbname } ->
+       pr "  %s.user_data = %s_user_data = alloc_user_data ();\n" cbname cbname;
+       pr "  if (%s_user_data == NULL) goto out;\n" cbname;
+       pr "  if (py_%s_fn != Py_None) {\n" cbname;
+       pr "    if (!PyCallable_Check (py_%s_fn)) {\n" cbname;
+       pr "      PyErr_SetString (PyExc_TypeError,\n";
+       pr "                       \"callback parameter %s is not callable\");\n" cbname;
+       pr "      goto out;\n";
+       pr "    }\n";
+       pr "    /* Increment refcount since pointer may be saved by libnbd. */\n";
+       pr "    Py_INCREF (py_%s_fn);\n" cbname;
+       pr "    %s_user_data->fn = py_%s_fn;\n" cbname cbname;
+       pr "  }\n";
+       pr "  else\n";
+       pr "    %s.callback = NULL; /* we're not going to call it */\n" cbname
+    | OFlags (n, _) -> pr "  %s_u32 = %s;\n" n n
+  ) optargs;
   List.iter (
     function
     | Bool _ -> ()
     | BytesIn _ -> ()
     | BytesOut (n, count) ->
-       pr "  %s = malloc (%s);\n" n count
+       pr "  %s = malloc (%s);\n" n count;
+       pr "  if (%s == NULL) { PyErr_NoMemory (); goto out; }\n" n
     | BytesPersistIn (n, _) | BytesPersistOut (n, _) ->
-       pr "  %s_buf = nbd_internal_py_get_aio_buffer (%s);\n" n n
+       pr "  %s_buf = nbd_internal_py_get_aio_buffer (%s);\n" n n;
+       pr "  if (!%s_buf) goto out;\n" n;
+       pr "  /* Increment refcount since buffer may be saved by libnbd. */\n";
+       pr "  Py_INCREF (%s);\n" n;
+       pr "  completion_user_data->buf = %s;\n" n
     | Closure { cbname } ->
-       pr "  /* Increment refcount since pointer may be saved by libnbd. */\n";
-       pr "  if (!PyCallable_Check (%s_user_data->fn)) {\n" cbname;
+       pr "  %s.user_data = %s_user_data = alloc_user_data ();\n" cbname cbname;
+       pr "  if (%s_user_data == NULL) goto out;\n" cbname;
+       pr "  if (!PyCallable_Check (py_%s_fn)) {\n" cbname;
        pr "    PyErr_SetString (PyExc_TypeError,\n";
        pr "                     \"callback parameter %s is not callable\");\n" cbname;
-       pr "    %s_user_data->fn = NULL;\n" cbname;
        pr "    goto out;\n";
        pr "  }\n";
-       pr "  Py_INCREF (%s_user_data->fn);\n" cbname
+       pr "  /* Increment refcount since pointer may be saved by libnbd. */\n";
+       pr "  Py_INCREF (py_%s_fn);\n" cbname;
+       pr "  %s_user_data->fn = py_%s_fn;\n" cbname cbname
     | Enum _ -> ()
     | Flags (n, _) -> pr "  %s_u32 = %s;\n" n n
     | Fd _ | Int _ -> ()
@@ -420,37 +445,6 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | UInt32 n -> pr "  %s_u32 = %s;\n" n n
     | UInt64 n -> pr "  %s_u64 = %s;\n" n n
   ) args;
-  List.iter (
-    function
-    | OClosure { cbname } ->
-       pr "  if (%s_user_data->fn != Py_None) {\n" cbname;
-       pr "    /* Increment refcount since pointer may be saved by libnbd. */\n";
-       pr "    if (!PyCallable_Check (%s_user_data->fn)) {\n" cbname;
-       pr "      PyErr_SetString (PyExc_TypeError,\n";
-       pr "                       \"callback parameter %s is not callable\");\n" cbname;
-       pr "      %s_user_data->fn = NULL;\n" cbname;
-       pr "      goto out;\n";
-       pr "    }\n";
-       pr "    Py_INCREF (%s_user_data->fn);\n" cbname;
-       pr "  }\n";
-       pr "  else\n";
-       pr "    %s.callback = NULL; /* we're not going to call it */\n" cbname
-    | OFlags (n, _) -> pr "  %s_u32 = %s;\n" n n
-  ) optargs;
-
-  (* If there is a BytesPersistIn/Out parameter then we need to
-   * increment the refcount and save the pointer into
-   * completion_callback.user_data so we can decrement the
-   * refcount on command completion.
-   *)
-  List.iter (
-    function
-    | BytesPersistIn (n, _) | BytesPersistOut (n, _) ->
-       pr "  /* Increment refcount since buffer may be saved by libnbd. */\n";
-       pr "  Py_INCREF (%s);\n" n;
-       pr "  completion_user_data->buf = %s;\n" n;
-    | _ -> ()
-    ) args;
   pr "\n";
 
   (* Call the underlying C function. *)
@@ -547,9 +541,10 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     function
     | Bool _ -> ()
     | BytesIn (n, _) -> pr "  PyBuffer_Release (&%s);\n" n
-    | BytesPersistIn _ | BytesOut _ | BytesPersistOut _ -> ()
+    | BytesOut (n, _) -> pr "  free (%s);\n" n
+    | BytesPersistIn _ | BytesPersistOut _ -> ()
     | Closure { cbname } ->
-       pr "  if (%s_user_data) free_user_data (%s_user_data);\n" cbname cbname
+       pr "  free_user_data (%s_user_data);\n" cbname
     | Enum _ -> ()
     | Flags _ -> ()
     | Fd _ | Int _ -> ()
@@ -566,7 +561,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   List.iter (
     function
     | OClosure { cbname } ->
-       pr "  if (%s_user_data) free_user_data (%s_user_data);\n" cbname cbname
+       pr "  free_user_data (%s_user_data);\n" cbname
     | OFlags _ -> ()
   ) optargs;
   pr "  return py_ret;\n";
@@ -613,9 +608,11 @@ let generate_python_methods_c () =
   pr "{\n";
   pr "  struct user_data *data = user_data;\n";
   pr "\n";
-  pr "  Py_XDECREF (data->fn);\n";
-  pr "  Py_XDECREF (data->buf);\n";
-  pr "  free (data);\n";
+  pr "  if (data) {\n";
+  pr "    Py_XDECREF (data->fn);\n";
+  pr "    Py_XDECREF (data->buf);\n";
+  pr "    free (data);\n";
+  pr "  }\n";
   pr "}\n";
   pr "\n";
 
