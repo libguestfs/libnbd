@@ -644,7 +644,7 @@ using structured replies.";
     shortdesc = "control use of handshake flags";
     longdesc = "\
 By default, libnbd tries to negotiate all possible handshake flags
-that are also supported by the server; since omitting a handshake
+that are also supported by the server, since omitting a handshake
 flag can prevent the use of other functionality such as TLS encryption
 or structured replies.  However, for integration testing, it can be
 useful to reduce the set of flags supported by the client to test that
@@ -672,8 +672,11 @@ fewer all-zero padding bytes over the connection.
 
 =back
 
-Future NBD extensions may add further flags.
-";
+Future NBD extensions may add further flags, which in turn may
+be enabled by default in newer libnbd.  As such, when attempting
+to disable only one specific bit, it is wiser to first call
+L<nbd_get_handshake_flags(3)> and modify that value, rather than
+blindly setting a constant value.";
     see_also = [Link "get_handshake_flags";
                 Link "set_request_structured_replies"];
   };
