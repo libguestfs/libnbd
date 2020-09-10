@@ -633,9 +633,9 @@ let generate_python_nbd_py () =
 Python bindings for libnbd
 
 import nbd
-h = nbd.NBD ()
-h.connect_tcp (\"localhost\", \"nbd\")
-buf = h.pread (512, 0)
+h = nbd.NBD()
+h.connect_tcp(\"localhost\", \"nbd\")
+buf = h.pread(512, 0)
 
 Read the libnbd(3) man page to find out how to use the API.
 '''
@@ -720,7 +720,7 @@ Error.__str__ = _str
   pr "\
 
 
-class Buffer (object):
+class Buffer(object):
     '''Asynchronous I/O persistent buffer'''
 
     def __init__(self, len):
@@ -767,7 +767,8 @@ class NBD(object):
 
     def __del__(self):
         '''close the NBD handle and underlying connection'''
-        libnbdmod.close(self._o)
+        if hasattr(self, '_o'):
+            libnbdmod.close(self._o)
 
 ";
 
