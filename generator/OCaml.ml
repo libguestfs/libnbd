@@ -164,6 +164,8 @@ type cookie = int64
           pr "  | %s\n" flag
       ) flags;
       pr "  | UNKNOWN of int\n";
+      pr "\n";
+      pr "  val mask : t list\n";
       pr "end\n";
       pr "\n"
   ) all_flags;
@@ -269,6 +271,13 @@ let () =
           pr "  | %s\n" flag
       ) flags;
       pr "  | UNKNOWN of int\n";
+      pr "\n";
+      pr "  let mask = [\n";
+      List.iter (
+        fun (flag, _) ->
+          pr "    %s;\n" flag
+      ) flags;
+      pr "  ]\n";
       pr "end\n";
       pr "\n"
   ) all_flags;

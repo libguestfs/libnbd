@@ -28,8 +28,7 @@ let () =
   let sr = NBD.get_request_structured_replies nbd in
   assert (sr = true);
   let flags = NBD.get_handshake_flags nbd in
-  assert (flags = [ NBD.HANDSHAKE_FLAG.FIXED_NEWSTYLE;
-                    NBD.HANDSHAKE_FLAG.NO_ZEROES ]);
+  assert (flags = NBD.HANDSHAKE_FLAG.mask);
   let opt = NBD.get_opt_mode nbd in
   assert (opt = false)
 

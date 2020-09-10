@@ -686,6 +686,8 @@ fewer all-zero padding bytes over the connection.
 
 =back
 
+For convenience, the constant C<LIBNBD_HANDSHAKE_FLAG_MASK> is
+available to describe all flags supported by this build of libnbd.
 Future NBD extensions may add further flags, which in turn may
 be enabled by default in newer libnbd.  As such, when attempting
 to disable only one specific bit, it is wiser to first call
@@ -902,7 +904,11 @@ ORed together:
 
 =item C<LIBNBD_ALLOW_TRANSPORT_VSOCK>
 
-=back";
+=back
+
+For convenience, the constant C<LIBNBD_ALLOW_TRANSPORT_MASK> is
+available to describe all transports recognized by this build of
+libnbd.  A future version of the library may add new flags.";
     see_also = [Link "connect_uri"; Link "set_uri_allow_tls"];
   };
 
@@ -1636,7 +1642,10 @@ issuing those commands before informing the server of the intent
 to disconnect.
 
 =back
-";
+
+For convenience, the constant C<LIBNBD_SHUTDOWN_MASK> is available
+to describe all shutdown flags recognized by this build of libnbd.
+A future version of the library may add new flags.";
     see_also = [Link "close"; Link "aio_disconnect"];
     example = Some "examples/reads-and-writes.c";
   };

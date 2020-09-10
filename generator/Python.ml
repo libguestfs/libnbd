@@ -696,11 +696,14 @@ Error.__str__ = _str
   ) all_enums;
   List.iter (
     fun { flag_prefix; flags } ->
+      let mask = ref 0 in
       List.iter (
         fun (flag, i) ->
           let flag = sprintf "%s_%s" flag_prefix flag in
-          pr "%s = %d\n" flag i
+          pr "%s = 0x%02x\n" flag i;
+          mask := !mask lor i
       ) flags;
+      pr "%s_MASK = 0x%02x\n" flag_prefix !mask;
       pr "\n"
   ) all_flags;
   List.iter (fun (n, i) -> pr "%s = %d\n" n i) constants;

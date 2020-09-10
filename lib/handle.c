@@ -65,12 +65,11 @@ nbd_create (void)
   h->tls_verify_peer = true;
   h->request_sr = true;
 
-  h->uri_allow_transports = (uint32_t) -1;
+  h->uri_allow_transports = LIBNBD_ALLOW_TRANSPORT_MASK;
   h->uri_allow_tls = LIBNBD_TLS_ALLOW;
   h->uri_allow_local_file = false;
 
-  h->gflags = (LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE |
-               LIBNBD_HANDSHAKE_FLAG_NO_ZEROES);
+  h->gflags = LIBNBD_HANDSHAKE_FLAG_MASK;
 
   s = getenv ("LIBNBD_DEBUG");
   h->debug = s && strcmp (s, "1") == 0;

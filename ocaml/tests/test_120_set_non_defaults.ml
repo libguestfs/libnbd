@@ -46,8 +46,7 @@ let () =
   with
     NBD.Error _ -> ();
   let flags = NBD.get_handshake_flags nbd in
-  assert (flags = [ NBD.HANDSHAKE_FLAG.FIXED_NEWSTYLE;
-                    NBD.HANDSHAKE_FLAG.NO_ZEROES ]);
+  assert (flags = NBD.HANDSHAKE_FLAG.mask);
   NBD.set_handshake_flags nbd [];
   let flags = NBD.get_handshake_flags nbd in
   assert (flags = []);

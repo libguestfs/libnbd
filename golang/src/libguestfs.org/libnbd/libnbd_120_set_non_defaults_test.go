@@ -93,7 +93,7 @@ func Test120SetNonDefaults(t *testing.T) {
 		t.Fatalf("unexpected structured replies state")
 	}
 
-	err = h.SetHandshakeFlags(HANDSHAKE_FLAG_NO_ZEROES << 1)
+	err = h.SetHandshakeFlags(HANDSHAKE_FLAG_MASK + 1)
 	if err == nil {
 		t.Fatalf("expect failure for out-of-range flags")
 	}
@@ -101,7 +101,7 @@ func Test120SetNonDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not get handshake flags: %s", err)
 	}
-	if flags != HANDSHAKE_FLAG_FIXED_NEWSTYLE | HANDSHAKE_FLAG_NO_ZEROES {
+	if flags != HANDSHAKE_FLAG_MASK {
 		t.Fatalf("unexpected handshake flags")
 	}
 

@@ -447,12 +447,16 @@ import (
 ";
   List.iter (
     fun { flag_prefix; flags } ->
-      pr "type %s uint32\n" (camel_case flag_prefix);
+      let flag_type = camel_case flag_prefix in
+      let mask = ref 0 in
+      pr "type %s uint32\n" flag_type;
       pr "const (\n";
       List.iter (
         fun (flag, v) ->
-          pr "    %s_%s = %s(%d)\n" flag_prefix flag (camel_case flag_prefix) v
+          pr "    %s_%s = %s(0x%02x)\n" flag_prefix flag flag_type v;
+          mask := !mask lor v
       ) flags;
+      pr "    %s_MASK = %s(0x%02x)\n" flag_prefix flag_type !mask;
       pr ")\n";
       pr "\n"
   ) all_flags;

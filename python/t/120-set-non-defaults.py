@@ -34,11 +34,10 @@ if h.supports_tls():
 h.set_request_structured_replies(False)
 assert h.get_request_structured_replies() is False
 try:
-    h.set_handshake_flags(nbd.HANDSHAKE_FLAG_NO_ZEROES << 1)
+    h.set_handshake_flags(nbd.HANDSHAKE_FLAG_MASK + 1)
     assert False
 except nbd.Error:
-    assert h.get_handshake_flags() == (nbd.HANDSHAKE_FLAG_NO_ZEROES |
-                                       nbd.HANDSHAKE_FLAG_FIXED_NEWSTYLE)
+    assert h.get_handshake_flags() == nbd.HANDSHAKE_FLAG_MASK
 h.set_handshake_flags(0)
 assert h.get_handshake_flags() == 0
 h.set_opt_mode(True)

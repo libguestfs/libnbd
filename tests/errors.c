@@ -86,7 +86,6 @@ main (int argc, char *argv[])
    */
   const char *cmd[] = { "nbdkit", "-s", "--exit-with-parent", "sh",
                         script, NULL };
-  int i;
 
   progname = argv[0];
 
@@ -147,15 +146,13 @@ main (int argc, char *argv[])
   }
 
   /* Attempt to set a bitmask with an unknown bit. */
-  i = LIBNBD_HANDSHAKE_FLAG_NO_ZEROES << 1;
-  if (nbd_set_handshake_flags (nbd, i) != -1) {
+  if (nbd_set_handshake_flags (nbd, LIBNBD_HANDSHAKE_FLAG_MASK + 1) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_set_handshake_flags did not reject invalid bitmask\n",
              argv[0]);
     exit (EXIT_FAILURE);
   }
-  i = LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE | LIBNBD_HANDSHAKE_FLAG_NO_ZEROES;
-  if (nbd_get_handshake_flags (nbd) != i) {
+  if (nbd_get_handshake_flags (nbd) != LIBNBD_HANDSHAKE_FLAG_MASK) {
     fprintf (stderr, "%s: test failed: "
              "nbd_get_handshake_flags not left at default value\n",
              argv[0]);
@@ -247,7 +244,7 @@ main (int argc, char *argv[])
   check (EINVAL, "nbd_pread: ");
 
   /* Use unknown command flags */
-  if (nbd_pread (nbd, buf, 1, 0, -1) != -1) {
+  if (nbd_pread (nbd, buf, 1, 0, LIBNBD_CMD_FLAG_MASK + 1) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_pread did not fail with bogus flags\n",
              argv[0]);

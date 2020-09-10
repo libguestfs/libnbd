@@ -520,6 +520,13 @@ To get the size of the export in bytes, use L<nbd_get_size(3)>:
 You can read and write data from the NBD server using L<nbd_pread(3)>
 and L<nbd_pwrite(3)> or their asynchronous equivalents.
 
+All data commands support a C<flags> argument (mandatory in C, but
+optional in languages where it can default to 0).  For convenience,
+the constant C<LIBNBD_CMD_FLAG_MASK> is defined with the set of flags
+currently recognized by libnbd, where future NBD protocol extensions
+may result in additional flags being supported; but in general,
+specific data commands only accept a subset of known flags.
+
 Some servers also support:
 
 =over 4

@@ -349,11 +349,15 @@ let generate_include_libnbd_h () =
   ) all_enums;
   List.iter (
     fun { flag_prefix; flags } ->
+      let mask = ref 0 in
       List.iter (
         fun (flag, i) ->
           let flag = sprintf "LIBNBD_%s_%s" flag_prefix flag in
-          pr "#define %-40s %d\n" flag i
+          pr "#define %-40s 0x%02x\n" flag i;
+          mask := !mask lor i
       ) flags;
+      let flag = sprintf "LIBNBD_%s_MASK" flag_prefix in
+      pr "#define %-40s 0x%02x\n" flag !mask;
       pr "\n"
   ) all_flags;
   List.iter (
@@ -490,13 +494,12 @@ let generate_lib_api_c () =
     );
 
     (* Check parameters are valid. *)
-    let print_flags_check n { flag_prefix; flags } =
+    let print_flags_check n { flag_prefix } =
       let value = match errcode with
         | Some value -> value
         | None -> assert false in
-      let mask = List.fold_left (lor) 0 (List.map snd flags) in
-      pr "  if (unlikely ((%s & ~%d) != 0)) {\n" n mask;
-      pr "    set_error (EINVAL, \"%%s: invalid value for flag: %%d\",\n";
+      pr "  if (unlikely ((%s & ~LIBNBD_%s_MASK) != 0)) {\n" n flag_prefix;
+      pr "    set_error (EINVAL, \"%%s: invalid value for flag: 0x%%x\",\n";
       pr "               \"%s\", %s);\n" n n;
       pr "    ret = %s;\n" value;
       pr "    goto out;\n";

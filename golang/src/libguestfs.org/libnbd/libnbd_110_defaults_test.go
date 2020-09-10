@@ -63,7 +63,7 @@ func Test110Defaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not get handshake flags: %s", err)
 	}
-	if flags != HANDSHAKE_FLAG_FIXED_NEWSTYLE | HANDSHAKE_FLAG_NO_ZEROES {
+	if flags != HANDSHAKE_FLAG_MASK {
 		t.Fatalf("unexpected handshake flags")
 	}
 
