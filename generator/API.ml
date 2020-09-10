@@ -1605,9 +1605,8 @@ client's point of view has no advantage over abruptly closing
 the connection (see L<nbd_close(3)>).
 
 This function works whether or not the handle is ready for
-transmission of commands, and as such does not take a C<flags>
-parameter. If more fine-grained control is needed, see
-L<nbd_aio_disconnect(3)>.
+transmission of commands. If more fine-grained control is
+needed, see L<nbd_aio_disconnect(3)>.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).";
