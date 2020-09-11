@@ -103,10 +103,11 @@ func asynch_copy(t *testing.T, src *Libnbd, dst *Libnbd) {
 				n = size - soff
 			}
 			buf := MakeAioBuffer(uint(n))
+			soff_copy := soff
 			var optargs AioPreadOptargs
 			optargs.CompletionCallbackSet = true
 			optargs.CompletionCallback = func(*int) int {
-				return read_completed(buf, soff)
+				return read_completed(buf, soff_copy)
 			}
 			src.AioPread(buf, soff, &optargs)
 			soff += n
