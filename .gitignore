@@ -179,6 +179,7 @@ Makefile.in
 /tests/read-only-flag
 /tests/read-write-flag
 /tests/server-death
+/tests/shutdown-flags
 /tests/synch-parallel
 /tests/synch-parallel-tls
 /tests/version

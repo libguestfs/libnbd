@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,15 +23,29 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <assert.h>
 
 #include "internal.h"
 
 int
 nbd_unlocked_shutdown (struct nbd_handle *h, uint32_t flags)
 {
-  if (flags != 0) {
+  if ((flags & ~LIBNBD_SHUTDOWN_ABANDON_PENDING) != 0) {
     set_error (EINVAL, "invalid flag: %" PRIu32, flags);
     return -1;
+  }
+
+  /* If ABANDON_PENDING, abort any commands that have not yet had any
+   * bytes sent to the server, so NBD_CMD_DISC becomes next in line.
+   */
+  if (flags & LIBNBD_SHUTDOWN_ABANDON_PENDING) {
+    struct command **cmd = &h->cmds_to_issue;
+    if (!nbd_internal_is_state_ready (get_next_state (h))) {
+      assert (*cmd);
+      h->cmds_to_issue_tail = *cmd;
+      cmd = &(*cmd)->next;
+    }
+    nbd_internal_abort_commands (h, cmd);
   }
 
   if (!h->disconnect_request &&

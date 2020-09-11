@@ -142,6 +142,7 @@ if HAVE_NBDKIT
 check_PROGRAMS += \
 	errors \
 	server-death \
+	shutdown-flags \
 	get-size \
 	read-only-flag \
 	read-write-flag \
@@ -180,6 +181,7 @@ check_PROGRAMS += \
 TESTS += \
 	errors \
 	server-death \
+	shutdown-flags \
 	get-size \
 	read-only-flag \
 	read-write-flag \
@@ -224,6 +226,11 @@ server_death_SOURCES = server-death.c
 server_death_CPPFLAGS = -I$(top_srcdir)/include
 server_death_CFLAGS = $(WARNINGS_CFLAGS)
 server_death_LDADD = $(top_builddir)/lib/libnbd.la
+
+shutdown_flags_SOURCES = shutdown-flags.c
+shutdown_flags_CPPFLAGS = -I$(top_srcdir)/include
+shutdown_flags_CFLAGS = $(WARNINGS_CFLAGS)
+shutdown_flags_LDADD = $(top_builddir)/lib/libnbd.la
 
 get_size_SOURCES = get-size.c
 get_size_CPPFLAGS = -I$(top_srcdir)/include

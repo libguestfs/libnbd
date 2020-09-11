@@ -187,7 +187,15 @@ let allow_transport_flags = {
     "VSOCK", 1 lsl 2;
   ]
 }
-let all_flags = [ cmd_flags; handshake_flags; allow_transport_flags ]
+let shutdown_flags = {
+  default_flags with
+  flag_prefix = "SHUTDOWN";
+  flags = [
+    "ABANDON_PENDING", 1 lsl 16;
+  ]
+}
+let all_flags = [ cmd_flags; handshake_flags; allow_transport_flags;
+                  shutdown_flags ]
 
 let default_call = { args = []; optargs = []; ret = RErr;
                      shortdesc = ""; longdesc = ""; example = None;
@@ -1601,7 +1609,7 @@ L<nbd_can_fua(3)>).";
 
   "shutdown", {
     default_call with
-    args = []; optargs = [ OFlags ("flags", cmd_flags) ]; ret = RErr;
+    args = []; optargs = [ OFlags ("flags", shutdown_flags) ]; ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
@@ -1614,8 +1622,21 @@ This function works whether or not the handle is ready for
 transmission of commands. If more fine-grained control is
 needed, see L<nbd_aio_disconnect(3)>.
 
-The C<flags> parameter must be C<0> for now (it exists for future NBD
-protocol extensions).";
+The C<flags> argument is a bitmask, including zero or more of the
+following shutdown flags:
+
+=over 4
+
+=item C<LIBNBD_SHUTDOWN_ABANDON_PENDING> = 0x10000
+
+If there are any pending requests which have not yet been sent to
+the server (see L<nbd_aio_in_flight(3)>), abandon them without
+sending them to the server, rather than the usual practice of
+issuing those commands before informing the server of the intent
+to disconnect.
+
+=back
+";
     see_also = [Link "close"; Link "aio_disconnect"];
     example = Some "examples/reads-and-writes.c";
   };

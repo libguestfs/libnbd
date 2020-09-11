@@ -435,6 +435,8 @@ extern int64_t nbd_internal_command_common (struct nbd_handle *h,
 struct socket *nbd_internal_socket_create (int fd);
 
 /* states.c */
+extern void nbd_internal_abort_commands (struct nbd_handle *h,
+                                         struct command **list);
 extern int nbd_internal_run (struct nbd_handle *h, enum external_event ev);
 extern const char *nbd_internal_state_short_string (enum state state);
 extern enum state_group nbd_internal_state_group (enum state state);

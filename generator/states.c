@@ -122,8 +122,8 @@ abort_option (struct nbd_handle *h)
 }
 
 /* Forcefully fail any remaining in-flight commands in list */
-static void
-abort_commands (struct nbd_handle *h, struct command **list)
+void
+nbd_internal_abort_commands (struct nbd_handle *h, struct command **list)
 {
   struct command *next, *cmd;
 
@@ -179,8 +179,8 @@ STATE_MACHINE {
   /* The caller should have used set_error() before reaching here */
   assert (nbd_get_error ());
   abort_option (h);
-  abort_commands (h, &h->cmds_to_issue);
-  abort_commands (h, &h->cmds_in_flight);
+  nbd_internal_abort_commands (h, &h->cmds_to_issue);
+  nbd_internal_abort_commands (h, &h->cmds_in_flight);
   h->in_flight = 0;
   if (h->sock) {
     h->sock->ops->close (h->sock);
@@ -190,8 +190,8 @@ STATE_MACHINE {
 
  CLOSED:
   abort_option (h);
-  abort_commands (h, &h->cmds_to_issue);
-  abort_commands (h, &h->cmds_in_flight);
+  nbd_internal_abort_commands (h, &h->cmds_to_issue);
+  nbd_internal_abort_commands (h, &h->cmds_in_flight);
   h->in_flight = 0;
   if (h->sock) {
     h->sock->ops->close (h->sock);
