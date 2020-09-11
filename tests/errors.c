@@ -134,6 +134,7 @@ main (int argc, char *argv[])
   if (dprintf (script_fd, "case $1 in\n"
                "  get_size) echo 128m || exit 1 ;;\n"
                "  thread_model) echo serialize_all_requests; exit 0 ;;\n"
+               "  # XXX require 512-alignment, with new enough nbdkit\n"
                "  pread) printf 'ENOMEM ' >&2; exit 1 ;;\n"
                "  can_write) exit 0 ;;\n"
                "  pwrite)\n"
@@ -190,7 +191,7 @@ main (int argc, char *argv[])
 
 
   /* Issue a connected command when not connected. */
-  if (nbd_pread (nbd, buf, 1, 0, 0) != -1) {
+  if (nbd_pread (nbd, buf, 512, 0, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_pread did not fail on non-connected handle\n",
              argv[0]);
@@ -269,7 +270,7 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if (nbd_aio_pread (nbd, buf, 1, -1, NBD_NULL_COMPLETION, 0) != -1) {
+  if (nbd_aio_pread (nbd, buf, 512, -1, NBD_NULL_COMPLETION, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_aio_pread did not fail with bogus offset\n",
              argv[0]);
@@ -283,7 +284,7 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
   check_server_fail (nbd,
-                     nbd_aio_pread (nbd, buf, 1, -1, NBD_NULL_COMPLETION, 0),
+                     nbd_aio_pread (nbd, buf, 512, -1, NBD_NULL_COMPLETION, 0),
                      "nbd_aio_pread with bogus offset", EINVAL);
 
   /* Use in-range unknown command flags, client-side */
@@ -292,7 +293,7 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if (nbd_aio_pread (nbd, buf, 1, 0, NBD_NULL_COMPLETION,
+  if (nbd_aio_pread (nbd, buf, 512, 0, NBD_NULL_COMPLETION,
                      LIBNBD_CMD_FLAG_MASK + 1) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_aio_pread did not fail with bogus flags\n",
@@ -306,11 +307,11 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  check_server_fail (nbd, nbd_aio_pread (nbd, buf, 1, 0, NBD_NULL_COMPLETION,
+  check_server_fail (nbd, nbd_aio_pread (nbd, buf, 512, 0, NBD_NULL_COMPLETION,
                                          LIBNBD_CMD_FLAG_MASK + 1),
                      "nbd_aio_pread with bogus flag", EINVAL);
   /* Use out-of-range unknown command flags, client-side */
-  if (nbd_aio_pread (nbd, buf, 1, 0, NBD_NULL_COMPLETION, 0x10000) != -1) {
+  if (nbd_aio_pread (nbd, buf, 512, 0, NBD_NULL_COMPLETION, 0x10000) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_aio_pread did not fail with bogus flags\n",
              argv[0]);
@@ -389,6 +390,34 @@ main (int argc, char *argv[])
                      nbd_aio_pread (nbd, buf, 0, 0, NBD_NULL_COMPLETION, 0),
                      "zero-size nbd_aio_pread", EINVAL);
 
+  /* XXX nbdkit does not yet have a way to test STRICT_ALIGN */
+  if (nbd_get_block_size (nbd, LIBNBD_SIZE_MINIMUM) > 1) {
+    /* Send an unaligned read, client-side */
+    strict = nbd_get_strict_mode (nbd) | LIBNBD_STRICT_ALIGN;
+    if (nbd_set_strict_mode (nbd, strict) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    if (nbd_aio_pread (nbd, buf, 1, 1, NBD_NULL_COMPLETION, 0) != -1) {
+      fprintf (stderr, "%s: test failed: "
+               "unaligned nbd_aio_pread did not fail\n",
+               argv[0]);
+      exit (EXIT_FAILURE);
+    }
+    check (EINVAL, "nbd_aio_pread: ");
+    /* Send an unaligned read, server-side */
+    strict &= ~LIBNBD_STRICT_ALIGN;
+    if (nbd_set_strict_mode (nbd, strict) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    check_server_fail (nbd,
+                       nbd_aio_pread (nbd, buf, 1, 1, NBD_NULL_COMPLETION, 0),
+                       "unaligned nbd_aio_pread", EINVAL);
+  }
+  else
+    fprintf (stderr, "skipping alignment tests, nbdkit too old\n");
+
   /* Queue up two write commands so large that we block on POLLIN (the
    * first might not block when under load, such as valgrind, but the
    * second definitely will, since the nbdkit sh plugin reads only one
@@ -443,7 +472,7 @@ main (int argc, char *argv[])
   }
   else
     fprintf (stderr, "%s: shutdown completed successfully\n", argv[0]);
-  if (nbd_pread (nbd, buf, 1, 0, 0) != -1) {
+  if (nbd_pread (nbd, buf, 512, 0, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_pread did not fail on non-connected handle\n",
              argv[0]);

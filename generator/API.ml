@@ -196,6 +196,7 @@ let strict_flags = {
     "FLAGS",          1 lsl 1;
     "BOUNDS",         1 lsl 2;
     "ZERO_SIZE",      1 lsl 3;
+    "ALIGN",          1 lsl 4;
   ]
 }
 let allow_transport_flags = {
@@ -793,6 +794,14 @@ relies on the server to detect out-of-bounds requests.
 If set, this flag rejects client requests with length 0.  If clear,
 this permits zero-length requests to the server, which may produce
 undefined results.
+
+=item C<LIBNBD_STRICT_ALIGN> = 5
+
+If set, and the server provided minimum block sizes (see
+L<nbd_get_block_size(3)>, this flag rejects client requests that
+do not have length and offset aligned to the server's minimum
+requirements.  If clear, unaligned requests are sent to the server,
+where it is up to the server whether to honor or reject the request.
 
 =back
 
@@ -1563,7 +1572,9 @@ to fail with C<EINVAL>.  The image size will generally also be a
 multiple of this value (if not, the final few bytes are inaccessible
 while obeying alignment constraints).  If zero, it is safest to
 assume a minimum block size of 512, although many servers support
-a minimum block size of 1.
+a minimum block size of 1.  If the server provides a constraint,
+then libnbd defaults to honoring that constraint client-side unless
+C<LIBNBD_STRICT_ALIGN> is cleared in C<nbd_set_strict_mode(3)>.
 
 =item C<LIBNBD_SIZE_PREFERRED> = 1
 
