@@ -168,10 +168,11 @@ nbd_unlocked_block_status (struct nbd_handle *h,
   return wait_for_command (h, cookie);
 }
 
+/* count_err represents the errno to return if bounds check fail */
 int64_t
 nbd_internal_command_common (struct nbd_handle *h,
                              uint16_t flags, uint16_t type,
-                             uint64_t offset, uint64_t count,
+                             uint64_t offset, uint64_t count, int count_err,
                              void *data, struct command_cb *cb)
 {
   struct command *cmd;
@@ -183,6 +184,19 @@ nbd_internal_command_common (struct nbd_handle *h,
   if (h->in_flight == INT_MAX) {
       set_error (ENOMEM, "too many commands already in flight");
       goto err;
+  }
+
+  if (count_err) {
+    if ((h->strict & LIBNBD_STRICT_ZERO_SIZE) && count == 0) {
+      set_error (EINVAL, "count cannot be 0");
+      goto err;
+    }
+
+    if ((h->strict & LIBNBD_STRICT_BOUNDS) &&
+        (offset > h->exportsize || count > h->exportsize - offset)) {
+      set_error (count_err, "request out of bounds");
+      return -1;
+    }
   }
 
   switch (type) {
@@ -282,7 +296,7 @@ nbd_unlocked_aio_pread (struct nbd_handle *h, void *buf,
 
   SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, flags, NBD_CMD_READ, offset, count,
-                                      buf, &cb);
+                                      EINVAL, buf, &cb);
 }
 
 int64_t
@@ -306,7 +320,7 @@ nbd_unlocked_aio_pread_structured (struct nbd_handle *h, void *buf,
   SET_CALLBACK_TO_NULL (*chunk);
   SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, flags, NBD_CMD_READ, offset, count,
-                                      buf, &cb);
+                                      EINVAL, buf, &cb);
 }
 
 int64_t
@@ -332,7 +346,7 @@ nbd_unlocked_aio_pwrite (struct nbd_handle *h, const void *buf,
 
   SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, flags, NBD_CMD_WRITE, offset, count,
-                                      (void *) buf, &cb);
+                                      ENOSPC, (void *) buf, &cb);
 }
 
 int64_t
@@ -351,7 +365,7 @@ nbd_unlocked_aio_flush (struct nbd_handle *h,
 
   SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, flags, NBD_CMD_FLUSH, 0, 0,
-                                      NULL, &cb);
+                                      0, NULL, &cb);
 }
 
 int64_t
@@ -379,14 +393,9 @@ nbd_unlocked_aio_trim (struct nbd_handle *h,
     }
   }
 
-  if (count == 0) {             /* NBD protocol forbids this. */
-    set_error (EINVAL, "count cannot be 0");
-    return -1;
-  }
-
   SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, flags, NBD_CMD_TRIM, offset, count,
-                                      NULL, &cb);
+                                      ENOSPC, NULL, &cb);
 }
 
 int64_t
@@ -410,7 +419,7 @@ nbd_unlocked_aio_cache (struct nbd_handle *h,
 
   SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, flags, NBD_CMD_CACHE, offset, count,
-                                      NULL, &cb);
+                                      EINVAL, NULL, &cb);
 }
 
 int64_t
@@ -444,14 +453,9 @@ nbd_unlocked_aio_zero (struct nbd_handle *h,
     }
   }
 
-  if (count == 0) {             /* NBD protocol forbids this. */
-    set_error (EINVAL, "count cannot be 0");
-    return -1;
-  }
-
   SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, flags, NBD_CMD_WRITE_ZEROES, offset,
-                                      count, NULL, &cb);
+                                      count, ENOSPC, NULL, &cb);
 }
 
 int64_t
@@ -478,13 +482,8 @@ nbd_unlocked_aio_block_status (struct nbd_handle *h,
     }
   }
 
-  if (count == 0) {             /* NBD protocol forbids this. */
-    set_error (EINVAL, "count cannot be 0");
-    return -1;
-  }
-
   SET_CALLBACK_TO_NULL (*extent);
   SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, flags, NBD_CMD_BLOCK_STATUS, offset,
-                                      count, NULL, &cb);
+                                      count, EINVAL, NULL, &cb);
 }

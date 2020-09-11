@@ -263,14 +263,28 @@ main (int argc, char *argv[])
   }
   check (EINVAL, "nbd_aio_command_completed: ");
 
-  /* Read from an invalid offset */
-  if (nbd_pread (nbd, buf, 1, -1, 0) != -1) {
+  /* Read from an invalid offset, client-side */
+  strict = nbd_get_strict_mode (nbd) | LIBNBD_STRICT_BOUNDS;
+  if (nbd_set_strict_mode (nbd, strict) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_aio_pread (nbd, buf, 1, -1, NBD_NULL_COMPLETION, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
-             "nbd_pread did not fail with bogus offset\n",
+             "nbd_aio_pread did not fail with bogus offset\n",
              argv[0]);
     exit (EXIT_FAILURE);
   }
-  check (EINVAL, "nbd_pread: ");
+  check (EINVAL, "nbd_aio_pread: ");
+  /* Read from an invalid offset, server-side */
+  strict &= ~LIBNBD_STRICT_BOUNDS;
+  if (nbd_set_strict_mode (nbd, strict) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  check_server_fail (nbd,
+                     nbd_aio_pread (nbd, buf, 1, -1, NBD_NULL_COMPLETION, 0),
+                     "nbd_aio_pread with bogus offset", EINVAL);
 
   /* Use in-range unknown command flags, client-side */
   strict = nbd_get_strict_mode (nbd) | LIBNBD_STRICT_FLAGS;
@@ -351,6 +365,29 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
   check (ENOMEM, "nbd_pread: ");
+
+  /* Send a zero-sized read, client-side */
+  strict = nbd_get_strict_mode (nbd) | LIBNBD_STRICT_ZERO_SIZE;
+  if (nbd_set_strict_mode (nbd, strict) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_aio_pread (nbd, buf, 0, 0, NBD_NULL_COMPLETION, 0) != -1) {
+    fprintf (stderr, "%s: test failed: "
+             "zero-size nbd_aio_pread did not fail\n",
+             argv[0]);
+    exit (EXIT_FAILURE);
+  }
+  check (EINVAL, "nbd_aio_pread: ");
+  /* Send a zero-sized read, server-side */
+  strict &= ~LIBNBD_STRICT_ZERO_SIZE;
+  if (nbd_set_strict_mode (nbd, strict) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  check_server_fail (nbd,
+                     nbd_aio_pread (nbd, buf, 0, 0, NBD_NULL_COMPLETION, 0),
+                     "zero-size nbd_aio_pread", EINVAL);
 
   /* Queue up two write commands so large that we block on POLLIN (the
    * first might not block when under load, such as valgrind, but the

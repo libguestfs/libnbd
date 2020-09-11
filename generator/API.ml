@@ -194,6 +194,8 @@ let strict_flags = {
   flags = [
     "COMMANDS",       1 lsl 0;
     "FLAGS",          1 lsl 1;
+    "BOUNDS",         1 lsl 2;
+    "ZERO_SIZE",      1 lsl 3;
   ]
 }
 let allow_transport_flags = {
@@ -779,6 +781,18 @@ instead.
 Note that the NBD protocol only supports 16 bits of command flags,
 even though the libnbd API uses C<uint32_t>; bits outside of the
 range permitted by the protocol are always a client-side error.
+
+=item C<LIBNBD_STRICT_BOUNDS> = 3
+
+If set, this flag rejects client requests that would exceed the export
+bounds without sending any traffic to the server.  If clear, this flag
+relies on the server to detect out-of-bounds requests.
+
+=item C<LIBNBD_STRICT_ZERO_SIZE> = 4
+
+If set, this flag rejects client requests with length 0.  If clear,
+this permits zero-length requests to the server, which may produce
+undefined results.
 
 =back
 
