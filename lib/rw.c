@@ -295,10 +295,12 @@ nbd_unlocked_aio_pread_structured (struct nbd_handle *h, void *buf,
   struct command_cb cb = { .fn.chunk = *chunk,
                            .completion = *completion };
 
-  if ((flags & LIBNBD_CMD_FLAG_DF) != 0 &&
-      nbd_unlocked_can_df (h) != 1) {
-    set_error (EINVAL, "server does not support the DF flag");
-    return -1;
+  if (h->strict & LIBNBD_STRICT_COMMANDS) {
+    if ((flags & LIBNBD_CMD_FLAG_DF) != 0 &&
+        nbd_unlocked_can_df (h) != 1) {
+      set_error (EINVAL, "server does not support the DF flag");
+      return -1;
+    }
   }
 
   SET_CALLBACK_TO_NULL (*chunk);
@@ -315,15 +317,17 @@ nbd_unlocked_aio_pwrite (struct nbd_handle *h, const void *buf,
 {
   struct command_cb cb = { .completion = *completion };
 
-  if (nbd_unlocked_is_read_only (h) == 1) {
-    set_error (EPERM, "server does not support write operations");
-    return -1;
-  }
+  if (h->strict & LIBNBD_STRICT_COMMANDS) {
+    if (nbd_unlocked_is_read_only (h) == 1) {
+      set_error (EPERM, "server does not support write operations");
+      return -1;
+    }
 
-  if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
-      nbd_unlocked_can_fua (h) != 1) {
-    set_error (EINVAL, "server does not support the FUA flag");
-    return -1;
+    if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
+        nbd_unlocked_can_fua (h) != 1) {
+      set_error (EINVAL, "server does not support the FUA flag");
+      return -1;
+    }
   }
 
   SET_CALLBACK_TO_NULL (*completion);
@@ -338,9 +342,11 @@ nbd_unlocked_aio_flush (struct nbd_handle *h,
 {
   struct command_cb cb = { .completion = *completion };
 
-  if (nbd_unlocked_can_flush (h) != 1) {
-    set_error (EINVAL, "server does not support flush operations");
-    return -1;
+  if (h->strict & LIBNBD_STRICT_COMMANDS) {
+    if (nbd_unlocked_can_flush (h) != 1) {
+      set_error (EINVAL, "server does not support flush operations");
+      return -1;
+    }
   }
 
   SET_CALLBACK_TO_NULL (*completion);
@@ -356,19 +362,21 @@ nbd_unlocked_aio_trim (struct nbd_handle *h,
 {
   struct command_cb cb = { .completion = *completion };
 
-  if (nbd_unlocked_can_trim (h) != 1) {
-    set_error (EINVAL, "server does not support trim operations");
-    return -1;
-  }
-  if (nbd_unlocked_is_read_only (h) == 1) {
-    set_error (EPERM, "server does not support write operations");
-    return -1;
-  }
+  if (h->strict & LIBNBD_STRICT_COMMANDS) {
+    if (nbd_unlocked_can_trim (h) != 1) {
+      set_error (EINVAL, "server does not support trim operations");
+      return -1;
+    }
+    if (nbd_unlocked_is_read_only (h) == 1) {
+      set_error (EPERM, "server does not support write operations");
+      return -1;
+    }
 
-  if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
-      nbd_unlocked_can_fua (h) != 1) {
-    set_error (EINVAL, "server does not support the FUA flag");
-    return -1;
+    if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
+        nbd_unlocked_can_fua (h) != 1) {
+      set_error (EINVAL, "server does not support the FUA flag");
+      return -1;
+    }
   }
 
   if (count == 0) {             /* NBD protocol forbids this. */
@@ -389,13 +397,15 @@ nbd_unlocked_aio_cache (struct nbd_handle *h,
 {
   struct command_cb cb = { .completion = *completion };
 
-  /* Actually according to the NBD protocol document, servers do exist
-   * that support NBD_CMD_CACHE but don't advertise the
-   * NBD_FLAG_SEND_CACHE bit, but we ignore those.
-   */
-  if (nbd_unlocked_can_cache (h) != 1) {
-    set_error (EINVAL, "server does not support cache operations");
-    return -1;
+  if (h->strict & LIBNBD_STRICT_COMMANDS) {
+    /* Actually according to the NBD protocol document, servers do exist
+     * that support NBD_CMD_CACHE but don't advertise the
+     * NBD_FLAG_SEND_CACHE bit, but we ignore those.
+     */
+    if (nbd_unlocked_can_cache (h) != 1) {
+      set_error (EINVAL, "server does not support cache operations");
+      return -1;
+    }
   }
 
   SET_CALLBACK_TO_NULL (*completion);
@@ -411,25 +421,27 @@ nbd_unlocked_aio_zero (struct nbd_handle *h,
 {
   struct command_cb cb = { .completion = *completion };
 
-  if (nbd_unlocked_can_zero (h) != 1) {
-    set_error (EINVAL, "server does not support zero operations");
-    return -1;
-  }
-  if (nbd_unlocked_is_read_only (h) == 1) {
-    set_error (EPERM, "server does not support write operations");
-    return -1;
-  }
+  if (h->strict & LIBNBD_STRICT_COMMANDS) {
+    if (nbd_unlocked_can_zero (h) != 1) {
+      set_error (EINVAL, "server does not support zero operations");
+      return -1;
+    }
+    if (nbd_unlocked_is_read_only (h) == 1) {
+      set_error (EPERM, "server does not support write operations");
+      return -1;
+    }
 
-  if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
-      nbd_unlocked_can_fua (h) != 1) {
-    set_error (EINVAL, "server does not support the FUA flag");
-    return -1;
-  }
+    if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
+        nbd_unlocked_can_fua (h) != 1) {
+      set_error (EINVAL, "server does not support the FUA flag");
+      return -1;
+    }
 
-  if ((flags & LIBNBD_CMD_FLAG_FAST_ZERO) != 0 &&
-      nbd_unlocked_can_fast_zero (h) != 1) {
-    set_error (EINVAL, "server does not support the fast zero flag");
-    return -1;
+    if ((flags & LIBNBD_CMD_FLAG_FAST_ZERO) != 0 &&
+        nbd_unlocked_can_fast_zero (h) != 1) {
+      set_error (EINVAL, "server does not support the fast zero flag");
+      return -1;
+    }
   }
 
   if (count == 0) {             /* NBD protocol forbids this. */
@@ -452,16 +464,18 @@ nbd_unlocked_aio_block_status (struct nbd_handle *h,
   struct command_cb cb = { .fn.extent = *extent,
                            .completion = *completion };
 
-  if (!h->structured_replies) {
-    set_error (ENOTSUP, "server does not support structured replies");
-    return -1;
-  }
+  if (h->strict & LIBNBD_STRICT_COMMANDS) {
+    if (!h->structured_replies) {
+      set_error (ENOTSUP, "server does not support structured replies");
+      return -1;
+    }
 
-  if (h->meta_contexts == NULL) {
-    set_error (ENOTSUP, "did not negotiate any metadata contexts, "
-               "either you did not call nbd_add_meta_context before "
-               "connecting or the server does not support it");
-    return -1;
+    if (h->meta_contexts == NULL) {
+      set_error (ENOTSUP, "did not negotiate any metadata contexts, "
+                 "either you did not call nbd_add_meta_context before "
+                 "connecting or the server does not support it");
+      return -1;
+    }
   }
 
   if (count == 0) {             /* NBD protocol forbids this. */

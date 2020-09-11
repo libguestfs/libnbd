@@ -148,6 +148,9 @@ struct nbd_handle {
   bool debug;
   nbd_debug_callback debug_callback;
 
+  /* How strict to be. */
+  uint32_t strict;
+
   /* State machine.
    *
    * The actual current state is ‘state’.  ‘public_state’ is updated

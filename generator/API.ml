@@ -103,6 +103,13 @@ and link =
 | ExternalLink of string * int
 | URLLink of string
 
+let strict_call_description = "\n
+By default, libnbd will reject attempts to use this function with
+parameters that are likely to result in server failure, such as
+requesting an unknown command flag.  The L<nbd_set_strict_mode(3)>
+function can be used to alter which scenarios should await a server
+reply rather than failing fast."
+
 let non_blocking_test_call_description = "\n
 This call does not block, because it returns data that is saved in
 the handle from the NBD protocol handshake."
@@ -176,7 +183,14 @@ let handshake_flags = {
   flags = [
     "FIXED_NEWSTYLE", 1 lsl 0;
     "NO_ZEROES",      1 lsl 1;
-    ]
+  ]
+}
+let strict_flags = {
+  default_flags with
+  flag_prefix = "STRICT";
+  flags = [
+    "COMMANDS",       1 lsl 0;
+  ]
 }
 let allow_transport_flags = {
   default_flags with
@@ -194,8 +208,8 @@ let shutdown_flags = {
     "ABANDON_PENDING", 1 lsl 16;
   ]
 }
-let all_flags = [ cmd_flags; handshake_flags; allow_transport_flags;
-                  shutdown_flags ]
+let all_flags = [ cmd_flags; handshake_flags; strict_flags;
+                  allow_transport_flags; shutdown_flags ]
 
 let default_call = { args = []; optargs = []; ret = RErr;
                      shortdesc = ""; longdesc = ""; example = None;
@@ -617,7 +631,7 @@ for integration testing, it can be useful to clear this flag
 rather than find a way to alter the server to fail the negotiation
 request.";
     see_also = [Link "get_request_structured_replies";
-                Link "set_handshake_flags";
+                Link "set_handshake_flags"; Link "set_strict_mode";
                 Link "get_structured_replies_negotiated";
                 Link "can_meta_context"; Link "can_df"];
   };
@@ -713,8 +727,60 @@ protocol defines new handshake flags, then the return value from
 a newer library version may include bits that were undefined at
 the time of compilation.";
     see_also = [Link "set_handshake_flags";
-                Link "get_protocol";
+                Link "get_protocol"; Link "set_strict_mode";
                 Link "aio_is_created"; Link "aio_is_ready"];
+  };
+
+  "set_strict_mode", {
+    default_call with
+    args = [ Flags ("flags", strict_flags) ]; ret = RErr;
+    shortdesc = "control how strictly to follow NBD protocol";
+    longdesc = "\
+By default, libnbd tries to detect requests that would trigger
+undefined behavior in the NBD protocol, and rejects them client
+side without causing any network traffic, rather than risking
+undefined server behavior.  However, for integration testing, it
+can be handy to relax the strictness of libnbd, to coerce it into
+sending such requests over the network for testing the robustness
+of the server in dealing with such traffic.
+
+The C<flags> argument is a bitmask, including zero or more of the
+following strictness flags:
+
+=over 4
+
+=item C<LIBNBD_STRICT_COMMANDS> = 1
+
+If set, this flag rejects client requests that do not comply with the
+set of advertised server flags (for example, attempting a write on
+a read-only server, or attempting to use C<LIBNBD_CMD_FLAG_FUA> when
+L<nbd_can_fua(3)> returned false).  If clear, this flag relies on the
+server to reject unexpected commands.
+
+=back
+
+For convenience, the constant C<LIBNBD_STRICT_MASK> is available to
+describe all strictness flags supported by this build of libnbd.
+Future versions of libnbd may add further flags, which are likely
+to be enabled by default for additional client-side filtering.  As
+such, when attempting to relax only one specific bit while keeping
+remaining checks at the client side, it is wiser to first call
+L<nbd_get_strict_mode(3)> and modify that value, rather than
+blindly setting a constant value.";
+    see_also = [Link "get_strict_mode"; Link "set_handshake_flags"];
+  };
+
+  "get_strict_mode", {
+    default_call with
+    args = []; ret = RFlags strict_flags;
+    may_set_error = false;
+    shortdesc = "see which strictness flags are in effect";
+    longdesc = "\
+Return flags indicating which protocol strictness items are being
+enforced locally by libnbd rather than the server.  The return value
+from a newer library version may include bits that were undefined at
+the time of compilation.";
+    see_also = [Link "set_strict_mode"];
   };
 
   "set_opt_mode", {
@@ -1588,7 +1654,8 @@ The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_DF> meaning that the server should not reply with
 more than one fragment (if that is supported - some servers cannot do
 this, see L<nbd_can_df(3)>). Libnbd does not validate that the server
-actually obeys the flag.";
+actually obeys the flag."
+^ strict_call_description;
     see_also = [Link "can_df"; Link "pread";
                 Link "aio_pread_structured"; Link "get_block_size"];
   };
@@ -1605,15 +1672,18 @@ Issue a write command to the NBD server, writing the data in
 C<buf> to the range starting at C<offset> and ending at
 C<offset> + C<count> - 1.  NBD can only write all or nothing
 using this call.  The call returns when the command has been
-acknowledged by the server, or there is an error.
+acknowledged by the server, or there is an error.  Note this will
+generally return an error if L<nbd_is_read_only(3)> is true.
 
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
-L<nbd_can_fua(3)>).";
+L<nbd_can_fua(3)>)."
+^ strict_call_description;
     see_also = [Link "can_fua"; Link "is_read_only";
-                Link "aio_pwrite"; Link "get_block_size"];
+                Link "aio_pwrite"; Link "get_block_size";
+                Link "set_strict_mode"];
     example = Some "examples/reads-and-writes.c";
   };
 
@@ -1664,11 +1734,13 @@ A future version of the library may add new flags.";
 Issue the flush command to the NBD server.  The function should
 return when all write commands which have completed have been
 committed to permanent storage on the server.  Note this will
-return an error if L<nbd_can_flush(3)> is false.
+generally return an error if L<nbd_can_flush(3)> is false.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
-protocol extensions).";
-    see_also = [Link "can_flush"; Link "aio_flush"];
+protocol extensions)."
+^ strict_call_description;
+    see_also = [Link "can_flush"; Link "aio_flush";
+                Link "set_strict_mode"];
   };
 
   "trim", {
@@ -1683,15 +1755,17 @@ Issue a trim command to the NBD server, which if supported
 by the server causes a hole to be punched in the backing
 store starting at C<offset> and ending at C<offset> + C<count> - 1.
 The call returns when the command has been acknowledged by the server,
-or there is an error.
+or there is an error.  Note this will generally return an error
+if L<nbd_can_trim(3)> is false or L<nbd_is_read_only(3)> is true.
 
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
 (if that is supported - some servers cannot do this, see
-L<nbd_can_fua(3)>).";
-    see_also = [Link "can_fua"; Link "can_trim";
-                Link "aio_trim"];
+L<nbd_can_fua(3)>)."
+^ strict_call_description;
+    see_also = [Link "can_fua"; Link "can_trim"; Link "is_read_only";
+                Link "aio_trim"; Link "set_strict_mode"];
   };
 
   "cache", {
@@ -1706,12 +1780,14 @@ Issue the cache (prefetch) command to the NBD server, which
 if supported by the server causes data to be prefetched
 into faster storage by the server, speeding up a subsequent
 L<nbd_pread(3)> call.  The server can also silently ignore
-this command.  Note this will return an error if
+this command.  Note this will generally return an error if
 L<nbd_can_cache(3)> is false.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
-protocol extensions).";
-    see_also = [Link "can_cache"; Link "aio_cache"];
+protocol extensions)."
+^ strict_call_description;
+    see_also = [Link "can_cache"; Link "aio_cache";
+                Link "set_strict_mode"];
   };
 
   "zero", {
@@ -1727,7 +1803,8 @@ Issue a write zeroes command to the NBD server, which if supported
 by the server causes a zeroes to be written efficiently
 starting at C<offset> and ending at C<offset> + C<count> - 1.
 The call returns when the command has been acknowledged by the server,
-or there is an error.
+or there is an error.  Note this will generally return an error if
+L<nbd_can_zero(3)> is false or L<nbd_is_read_only(3)> is true.
 
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
@@ -1738,9 +1815,11 @@ the server should favor writing actual allocated zeroes over
 punching a hole, and/or C<LIBNBD_CMD_FLAG_FAST_ZERO> meaning
 that the server must fail quickly if writing zeroes is no
 faster than a normal write (if that is supported - some servers
-cannot do this, see L<nbd_can_fast_zero(3)>).";
-    see_also = [Link "can_fua"; Link "can_zero";
-                Link "can_fast_zero"; Link "aio_zero"];
+cannot do this, see L<nbd_can_fast_zero(3)>)."
+^ strict_call_description;
+    see_also = [Link "can_fua"; Link "can_zero"; Link "is_read_only";
+                Link "can_fast_zero"; Link "aio_zero";
+                Link "set_strict_mode"];
   };
 
   "block_status", {
@@ -1799,9 +1878,10 @@ The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_REQ_ONE> meaning that the server should
 return only one extent per metadata context where that extent
 does not exceed C<count> bytes; however, libnbd does not
-validate that the server obeyed the flag.";
+validate that the server obeyed the flag."
+^ strict_call_description;
     see_also = [Link "add_meta_context"; Link "can_meta_context";
-                Link "aio_block_status"];
+                Link "aio_block_status"; Link "set_strict_mode"];
   };
 
   "poll", {
@@ -2074,7 +2154,8 @@ To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
-Other parameters behave as documented in L<nbd_pread_structured(3)>.";
+Other parameters behave as documented in L<nbd_pread_structured(3)>."
+^ strict_call_description;
     see_also = [SectionLink "Issuing asynchronous commands";
                 Link "aio_pread"; Link "pread_structured"];
   };
@@ -2095,9 +2176,10 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Note that you must ensure C<buf> is valid until the command has
-completed.  Other parameters behave as documented in L<nbd_pwrite(3)>.";
+completed.  Other parameters behave as documented in L<nbd_pwrite(3)>."
+^ strict_call_description;
     see_also = [SectionLink "Issuing asynchronous commands";
-                Link "is_read_only"; Link "pwrite"];
+                Link "is_read_only"; Link "pwrite"; Link "set_strict_mode"];
   };
 
   "aio_disconnect", {
@@ -2139,9 +2221,10 @@ To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
-Other parameters behave as documented in L<nbd_flush(3)>.";
+Other parameters behave as documented in L<nbd_flush(3)>."
+^ strict_call_description;
     see_also = [SectionLink "Issuing asynchronous commands";
-                Link "can_flush"; Link "flush"];
+                Link "can_flush"; Link "flush"; Link "set_strict_mode"];
   };
 
   "aio_trim", {
@@ -2159,9 +2242,10 @@ To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
-Other parameters behave as documented in L<nbd_trim(3)>.";
+Other parameters behave as documented in L<nbd_trim(3)>."
+^ strict_call_description;
     see_also = [SectionLink "Issuing asynchronous commands";
-                Link "can_trim"; Link "trim"];
+                Link "can_trim"; Link "trim"; Link "set_strict_mode"];
   };
 
   "aio_cache", {
@@ -2179,9 +2263,10 @@ To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
-Other parameters behave as documented in L<nbd_cache(3)>.";
+Other parameters behave as documented in L<nbd_cache(3)>."
+^ strict_call_description;
     see_also = [SectionLink "Issuing asynchronous commands";
-                Link "can_cache"; Link "cache"];
+                Link "can_cache"; Link "cache"; Link "set_strict_mode"];
   };
 
   "aio_zero", {
@@ -2200,10 +2285,11 @@ To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
-Other parameters behave as documented in L<nbd_zero(3)>.";
+Other parameters behave as documented in L<nbd_zero(3)>."
+^ strict_call_description;
     see_also = [SectionLink "Issuing asynchronous commands";
                 Link "can_zero"; Link "can_fast_zero";
-                Link "zero"];
+                Link "zero"; Link "set_strict_mode"];
   };
 
   "aio_block_status", {
@@ -2221,9 +2307,11 @@ To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
-Other parameters behave as documented in L<nbd_block_status(3)>.";
+Other parameters behave as documented in L<nbd_block_status(3)>."
+^ strict_call_description;
     see_also = [SectionLink "Issuing asynchronous commands";
-                Link "can_meta_context"; Link "block_status"];
+                Link "can_meta_context"; Link "block_status";
+                Link "set_strict_mode"];
   };
 
   "aio_get_fd", {
@@ -2669,6 +2757,10 @@ let first_version = [
   "aio_opt_abort", (1, 4);
   "aio_opt_list", (1, 4);
   "aio_opt_info", (1, 4);
+
+  (* Added in 1.5.x development cycle, will be stable and supported in 1.6. *)
+  "set_strict_mode", (1, 6);
+  "get_strict_mode", (1, 6);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

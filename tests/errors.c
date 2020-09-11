@@ -42,8 +42,8 @@ check (int experr, const char *prefix)
   const char *msg = nbd_get_error ();
   int errnum = nbd_get_errno ();
 
-  printf ("error: \"%s\"\n", msg);
-  printf ("errno: %d (%s)\n", errnum, strerror (errnum));
+  fprintf (stderr, "error: \"%s\"\n", msg);
+  fprintf (stderr, "errno: %d (%s)\n", errnum, strerror (errnum));
   if (strncmp (msg, prefix, strlen (prefix)) != 0) {
     fprintf (stderr, "%s: test failed: missing context prefix: %s\n",
              progname, msg);
@@ -75,6 +75,34 @@ cleanup (void)
   }
 }
 
+static void
+check_server_fail (struct nbd_handle *h, int64_t cookie,
+                   const char *cmd, int experr)
+{
+  int r;
+
+  if (cookie == -1) {
+    fprintf (stderr, "%s: test failed: %s not sent to server\n",
+             progname, cmd);
+    exit (EXIT_FAILURE);
+  }
+
+  while ((r = nbd_aio_command_completed (h, cookie)) == 0) {
+    if (nbd_poll (h, -1) == -1) {
+      fprintf (stderr, "%s: test failed: poll failed while awaiting %s: %s\n",
+               progname, cmd, nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+  }
+
+  if (r != -1) {
+    fprintf (stderr, "%s: test failed: %s did not fail at server\n",
+             progname, cmd);
+    exit (EXIT_FAILURE);
+  }
+  check (experr, "nbd_aio_command_completed: ");
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -84,8 +112,9 @@ main (int argc, char *argv[])
    * which delays responding to writes until a witness file no longer
    * exists.
    */
-  const char *cmd[] = { "nbdkit", "-s", "--exit-with-parent", "sh",
+  const char *cmd[] = { "nbdkit", "-s", "-v", "--exit-with-parent", "sh",
                         script, NULL };
+  uint32_t strict;
 
   progname = argv[0];
 
@@ -269,14 +298,27 @@ main (int argc, char *argv[])
   }
   check (ERANGE, "nbd_aio_pwrite: ");
 
-  /* Use unadvertised command */
-  if (nbd_trim (nbd, 512, 0, 0) != -1) {
+  /* Use unadvertised command, client-side */
+  strict = nbd_get_strict_mode (nbd) | LIBNBD_STRICT_COMMANDS;
+  if (nbd_set_strict_mode (nbd, strict) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_aio_trim (nbd, 512, 0, NBD_NULL_COMPLETION, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
-             "unpermitted nbd_trim did not fail\n",
+             "unpermitted nbd_aio_trim did not fail\n",
              argv[0]);
     exit (EXIT_FAILURE);
   }
-  check (EINVAL, "nbd_trim: ");
+  check (EINVAL, "nbd_aio_trim: ");
+  /* Use unadvertised command, server-side */
+  strict &= ~LIBNBD_STRICT_COMMANDS;
+  if (nbd_set_strict_mode (nbd, strict) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  check_server_fail (nbd, nbd_aio_trim (nbd, 512, 0, NBD_NULL_COMPLETION, 0),
+                     "unadvertised nbd_aio_trim", EINVAL);
 
   /* Send a read that the nbdkit sh plugin will fail. */
   if (nbd_pread (nbd, buf, 512, 0, 0) != -1) {

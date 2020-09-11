@@ -74,6 +74,8 @@ nbd_create (void)
   s = getenv ("LIBNBD_DEBUG");
   h->debug = s && strcmp (s, "1") == 0;
 
+  h->strict = LIBNBD_STRICT_MASK;
+
   h->public_state = STATE_START;
   h->state = STATE_START;
   h->pid = -1;
@@ -347,6 +349,20 @@ uint32_t
 nbd_unlocked_get_handshake_flags (struct nbd_handle *h)
 {
   return h->gflags;
+}
+
+int
+nbd_unlocked_set_strict_mode (struct nbd_handle *h, uint32_t flags)
+{
+  h->strict = flags;
+  return 0;
+}
+
+/* NB: may_set_error = false. */
+uint32_t
+nbd_unlocked_get_strict_mode (struct nbd_handle *h)
+{
+  return h->strict;
 }
 
 const char *

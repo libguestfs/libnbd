@@ -527,6 +527,11 @@ currently recognized by libnbd, where future NBD protocol extensions
 may result in additional flags being supported; but in general,
 specific data commands only accept a subset of known flags.
 
+Libnbd defaults to performing some client-side sanity checking in each
+of its data commands; for example, attempts to write to a server that
+has advertised a read-only connection are rejected.  It is possible to
+override aspects of this checking by using L<nbd_set_strict_mode(3)>.
+
 Some servers also support:
 
 =over 4
@@ -620,7 +625,10 @@ disk contents do not match either of the two writes.
 
 Each request is identified by a unique 64 bit cookie (assigned by
 libnbd), allowing libnbd and callers to match replies to requests.
-Replies may arrive out of order.
+Replies may arrive out of order.  A request that is rejected
+client-side for failing a sanity check (such as attempting to write to
+a read-only server, see L<nbd_set_strict_mode(3)>) will fail rather
+than returning a cookie, although closure cleanup is still performed.
 
 Although in theory you can have an indefinite number of requests in
 flight at the same time, in practice it's a good idea to limit them to
