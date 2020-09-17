@@ -320,7 +320,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  nbd_%s_callback %s = { .callback = %s_wrapper,\n"
          cbname cbname cbname;
        pr "                         .free = free_user_data };\n"
-    | OFlags (n, _) ->
+    | OFlags (n, _, _) ->
        pr "  uint32_t %s_u32;\n" n;
        pr "  unsigned int %s; /* really uint32_t */\n" n
   ) optargs;
@@ -378,7 +378,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   List.iter (
     function
     | OClosure { cbname } -> pr ", &py_%s_fn" cbname
-    | OFlags (n, _) -> pr ", &%s" n
+    | OFlags (n, _, _) -> pr ", &%s" n
   ) optargs;
   pr "))\n";
   pr "    goto out;\n";
@@ -402,7 +402,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  }\n";
        pr "  else\n";
        pr "    %s.callback = NULL; /* we're not going to call it */\n" cbname
-    | OFlags (n, _) -> pr "  %s_u32 = %s;\n" n n
+    | OFlags (n, _, _) -> pr "  %s_u32 = %s;\n" n n
   ) optargs;
   List.iter (
     function
@@ -472,7 +472,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   List.iter (
     function
     | OClosure { cbname } -> pr ", %s" cbname
-    | OFlags (n, _) -> pr ", %s_u32" n
+    | OFlags (n, _, _) -> pr ", %s_u32" n
   ) optargs;
   pr ");\n";
   List.iter (
@@ -802,7 +802,7 @@ class NBD(object):
         List.map (
           function
           | OClosure { cbname } -> cbname, Some "None", None
-          | OFlags (n, _) -> n, Some "0", None
+          | OFlags (n, _, _) -> n, Some "0", None
         ) optargs in
       let args = args @ optargs in
       pr "    def %s(" name;

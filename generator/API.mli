@@ -65,7 +65,8 @@ and arg =
 | UInt64 of string         (** 64 bit unsigned int *)
 and optarg =
 | OClosure of closure      (** optional closure *)
-| OFlags of string * flags (** optional flags, uint32_t in C *)
+| OFlags of string * flags * string list option (** optional flags, uint32_t
+                                                    in C, and valid subset *)
 and ret =
 | RBool                    (** return a boolean, or error *)
 | RStaticString            (** return a static string (must be located in

@@ -280,15 +280,6 @@ nbd_unlocked_aio_pread (struct nbd_handle *h, void *buf,
 {
   struct command_cb cb = { .completion = *completion };
 
-  /* We could silently accept flag DF, but it really only makes sense
-   * with callbacks, because otherwise there is no observable change
-   * except that the server may fail where it would otherwise succeed.
-   */
-  if (flags != 0) {
-    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
-    return -1;
-  }
-
   SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, 0, NBD_CMD_READ, offset, count,
                                       buf, &cb);
@@ -303,11 +294,6 @@ nbd_unlocked_aio_pread_structured (struct nbd_handle *h, void *buf,
 {
   struct command_cb cb = { .fn.chunk = *chunk,
                            .completion = *completion };
-
-  if ((flags & ~LIBNBD_CMD_FLAG_DF) != 0) {
-    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
-    return -1;
-  }
 
   if ((flags & LIBNBD_CMD_FLAG_DF) != 0 &&
       nbd_unlocked_can_df (h) != 1) {
@@ -334,11 +320,6 @@ nbd_unlocked_aio_pwrite (struct nbd_handle *h, const void *buf,
     return -1;
   }
 
-  if ((flags & ~LIBNBD_CMD_FLAG_FUA) != 0) {
-    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
-    return -1;
-  }
-
   if ((flags & LIBNBD_CMD_FLAG_FUA) != 0 &&
       nbd_unlocked_can_fua (h) != 1) {
     set_error (EINVAL, "server does not support the FUA flag");
@@ -362,11 +343,6 @@ nbd_unlocked_aio_flush (struct nbd_handle *h,
     return -1;
   }
 
-  if (flags != 0) {
-    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
-    return -1;
-  }
-
   SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, 0, NBD_CMD_FLUSH, 0, 0,
                                       NULL, &cb);
@@ -386,11 +362,6 @@ nbd_unlocked_aio_trim (struct nbd_handle *h,
   }
   if (nbd_unlocked_is_read_only (h) == 1) {
     set_error (EPERM, "server does not support write operations");
-    return -1;
-  }
-
-  if ((flags & ~LIBNBD_CMD_FLAG_FUA) != 0) {
-    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
     return -1;
   }
 
@@ -427,11 +398,6 @@ nbd_unlocked_aio_cache (struct nbd_handle *h,
     return -1;
   }
 
-  if (flags != 0) {
-    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
-    return -1;
-  }
-
   SET_CALLBACK_TO_NULL (*completion);
   return nbd_internal_command_common (h, 0, NBD_CMD_CACHE, offset, count,
                                       NULL, &cb);
@@ -451,12 +417,6 @@ nbd_unlocked_aio_zero (struct nbd_handle *h,
   }
   if (nbd_unlocked_is_read_only (h) == 1) {
     set_error (EPERM, "server does not support write operations");
-    return -1;
-  }
-
-  if ((flags & ~(LIBNBD_CMD_FLAG_FUA | LIBNBD_CMD_FLAG_NO_HOLE |
-                 LIBNBD_CMD_FLAG_FAST_ZERO)) != 0) {
-    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
     return -1;
   }
 
@@ -501,11 +461,6 @@ nbd_unlocked_aio_block_status (struct nbd_handle *h,
     set_error (ENOTSUP, "did not negotiate any metadata contexts, "
                "either you did not call nbd_add_meta_context before "
                "connecting or the server does not support it");
-    return -1;
-  }
-
-  if ((flags & ~LIBNBD_CMD_FLAG_REQ_ONE) != 0) {
-    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
     return -1;
   }
 

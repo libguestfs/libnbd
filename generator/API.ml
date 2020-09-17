@@ -55,7 +55,7 @@ and arg =
 | UInt64 of string
 and optarg =
 | OClosure of closure
-| OFlags of string * flags
+| OFlags of string * flags * string list option
 and ret =
 | RBool
 | RStaticString
@@ -1492,7 +1492,11 @@ Future NBD extensions may result in additional C<size_type> values.
   "pread", {
     default_call with
     args = [ BytesOut ("buf", "count"); UInt64 "offset" ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    (* We could silently accept flag DF, but it really only makes sense
+     * with callbacks, because otherwise there is no observable change
+     * except that the server may fail where it would otherwise succeed.
+     *)
+    optargs = [ OFlags ("flags", cmd_flags, Some []) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
@@ -1516,7 +1520,7 @@ protocol extensions).";
     default_call with
     args = [ BytesOut ("buf", "count"); UInt64 "offset";
              Closure chunk_closure ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    optargs = [ OFlags ("flags", cmd_flags, Some ["DF"]) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
@@ -1592,7 +1596,7 @@ actually obeys the flag.";
   "pwrite", {
     default_call with
     args = [ BytesIn ("buf", "count"); UInt64 "offset" ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    optargs = [ OFlags ("flags", cmd_flags, Some ["FUA"]) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "write to the NBD server";
@@ -1615,7 +1619,8 @@ L<nbd_can_fua(3)>).";
 
   "shutdown", {
     default_call with
-    args = []; optargs = [ OFlags ("flags", shutdown_flags) ]; ret = RErr;
+    args = []; optargs = [ OFlags ("flags", shutdown_flags, None) ];
+    ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
@@ -1652,7 +1657,7 @@ A future version of the library may add new flags.";
 
   "flush", {
     default_call with
-    args = []; optargs = [ OFlags ("flags", cmd_flags) ]; ret = RErr;
+    args = []; optargs = [ OFlags ("flags", cmd_flags, Some []) ]; ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send flush command to the NBD server";
     longdesc = "\
@@ -1669,7 +1674,7 @@ protocol extensions).";
   "trim", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    optargs = [ OFlags ("flags", cmd_flags, Some ["FUA"]) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send trim command to the NBD server";
@@ -1692,7 +1697,7 @@ L<nbd_can_fua(3)>).";
   "cache", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    optargs = [ OFlags ("flags", cmd_flags, Some []) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send cache (prefetch) command to the NBD server";
@@ -1712,7 +1717,8 @@ protocol extensions).";
   "zero", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    optargs = [ OFlags ("flags", cmd_flags,
+                        Some ["FUA"; "NO_HOLE"; "FAST_ZERO"]) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send write zeroes command to the NBD server";
@@ -1740,7 +1746,7 @@ cannot do this, see L<nbd_can_fast_zero(3)>).";
   "block_status", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Closure extent_closure ];
-    optargs = [ OFlags ("flags", cmd_flags) ];
+    optargs = [ OFlags ("flags", cmd_flags, Some ["REQ_ONE"]) ];
     ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "send block status command to the NBD server";
@@ -2033,7 +2039,8 @@ callback.";
   "aio_pread", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset" ];
-    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
+    optargs = [ OClosure completion_closure;
+                OFlags ("flags", cmd_flags, Some []) ];
     ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
@@ -2055,7 +2062,8 @@ completed.  Other parameters behave as documented in L<nbd_pread(3)>.";
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset";
              Closure chunk_closure ];
-    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
+    optargs = [ OClosure completion_closure;
+                OFlags ("flags", cmd_flags, Some ["DF"]) ];
     ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "read from the NBD server";
@@ -2074,7 +2082,8 @@ Other parameters behave as documented in L<nbd_pread_structured(3)>.";
   "aio_pwrite", {
     default_call with
     args = [ BytesPersistIn ("buf", "count"); UInt64 "offset" ];
-    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
+    optargs = [ OClosure completion_closure;
+                OFlags ("flags", cmd_flags, Some ["FUA"]) ];
     ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "write to the NBD server";
@@ -2093,7 +2102,7 @@ completed.  Other parameters behave as documented in L<nbd_pwrite(3)>.";
 
   "aio_disconnect", {
     default_call with
-    args = []; optargs = [ OFlags ("flags", cmd_flags) ]; ret = RErr;
+    args = []; optargs = [ OFlags ("flags", cmd_flags, Some []) ]; ret = RErr;
     permitted_states = [ Connected ];
     shortdesc = "disconnect from the NBD server";
     longdesc = "\
@@ -2118,7 +2127,8 @@ however, L<nbd_shutdown(3)> will call this function if appropriate.";
   "aio_flush", {
     default_call with
     args = [];
-    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
+    optargs = [ OClosure completion_closure;
+                OFlags ("flags", cmd_flags, Some []) ];
     ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "send flush command to the NBD server";
@@ -2137,7 +2147,8 @@ Other parameters behave as documented in L<nbd_flush(3)>.";
   "aio_trim", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
-    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
+    optargs = [ OClosure completion_closure;
+                OFlags ("flags", cmd_flags, Some ["FUA"]) ];
     ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "send trim command to the NBD server";
@@ -2156,7 +2167,8 @@ Other parameters behave as documented in L<nbd_trim(3)>.";
   "aio_cache", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
-    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
+    optargs = [ OClosure completion_closure;
+                OFlags ("flags", cmd_flags, Some []) ];
     ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "send cache (prefetch) command to the NBD server";
@@ -2175,7 +2187,9 @@ Other parameters behave as documented in L<nbd_cache(3)>.";
   "aio_zero", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset" ];
-    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
+    optargs = [ OClosure completion_closure;
+                OFlags ("flags", cmd_flags,
+                        Some ["FUA"; "NO_HOLE"; "FAST_ZERO"]) ];
     ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "send write zeroes command to the NBD server";
@@ -2195,7 +2209,8 @@ Other parameters behave as documented in L<nbd_zero(3)>.";
   "aio_block_status", {
     default_call with
     args = [ UInt64 "count"; UInt64 "offset"; Closure extent_closure ];
-    optargs = [ OClosure completion_closure; OFlags ("flags", cmd_flags) ];
+    optargs = [ OClosure completion_closure;
+                OFlags ("flags", cmd_flags, Some ["REQ_ONE"]) ];
     ret = RCookie;
     permitted_states = [ Connected ];
     shortdesc = "send block status command to the NBD server";

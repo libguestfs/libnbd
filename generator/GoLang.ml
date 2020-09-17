@@ -83,7 +83,7 @@ let go_arg_type = function
 
 let go_name_of_optarg = function
   | OClosure { cbname } -> sprintf "%sCallback" (camel_case cbname)
-  | OFlags (n, _) -> String.capitalize_ascii n
+  | OFlags (n, _, _) -> String.capitalize_ascii n
 
 let go_ret_type = function
   (* RErr returns only the error, with no return value. *)
@@ -202,7 +202,7 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
         pr "  %s " fname;
         (match optarg with
          | OClosure { cbname } -> pr "%sCallback" (camel_case cbname)
-         | OFlags (_, {flag_prefix}) -> pr "%s" (camel_case flag_prefix)
+         | OFlags (_, {flag_prefix}, _) -> pr "%s" (camel_case flag_prefix)
         );
         pr "\n"
     ) optargs;
@@ -298,7 +298,7 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
       function
       | OClosure { cbname } -> pr "    var c_%s C.nbd_%s_callback\n"
                                  cbname cbname
-      | OFlags (n, _) -> pr "    var c_%s C.uint32_t\n" n
+      | OFlags (n, _, _) -> pr "    var c_%s C.uint32_t\n" n
     ) optargs;
     pr "    if optargs != nil {\n";
     List.iter (
@@ -312,7 +312,7 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
                cbname cbname;
              pr "            c_%s.user_data = unsafe.Pointer (C.long_to_vp (C.long (registerCallbackId (optargs.%s))))\n"
                cbname (go_name_of_optarg optarg)
-          | OFlags (n, _) ->
+          | OFlags (n, _, _) ->
              pr "            c_%s = C.uint32_t (optargs.%s)\n"
                n (go_name_of_optarg optarg);
          );
@@ -346,7 +346,7 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
   List.iter (
     function
     | OClosure { cbname} -> pr ", c_%s" cbname
-    | OFlags (n, _) -> pr ", c_%s" n
+    | OFlags (n, _, _) -> pr ", c_%s" n
   ) optargs;
   pr ")\n";
 

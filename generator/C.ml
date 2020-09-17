@@ -191,7 +191,7 @@ and print_arg_list' ?(handle = false) ?(types = true) ?(closure_style = Direct)
            | AddressOf -> "&"
            | Pointer -> "*" in
          pr "%s%s_callback" mark cbname
-      | OFlags (n, _) ->
+      | OFlags (n, _, _) ->
          if types then pr "uint32_t ";
          pr "%s" n
   ) optargs
@@ -494,11 +494,21 @@ let generate_lib_api_c () =
     );
 
     (* Check parameters are valid. *)
-    let print_flags_check n { flag_prefix } =
+    let print_flags_check n { flag_prefix; flags } subset =
       let value = match errcode with
         | Some value -> value
         | None -> assert false in
-      pr "  if (unlikely ((%s & ~LIBNBD_%s_MASK) != 0)) {\n" n flag_prefix;
+      let mask = match subset with
+        | Some [] -> "0"
+        | Some subset ->
+           let v = ref 0 in
+           List.iter (
+             fun (flag, i) ->
+               if List.mem flag subset then v := !v lor i
+           ) flags;
+           sprintf "0x%x" !v
+        | None -> "LIBNBD_" ^ flag_prefix ^ "_MASK" in
+      pr "  if (unlikely ((%s & ~%s) != 0)) {\n" n mask;
       pr "    set_error (EINVAL, \"%%s: invalid value for flag: 0x%%x\",\n";
       pr "               \"%s\", %s);\n" n n;
       pr "    ret = %s;\n" value;
@@ -536,7 +546,7 @@ let generate_lib_api_c () =
          pr "  }\n";
          need_out_label := true
       | Flags (n, flags) ->
-         print_flags_check n flags
+         print_flags_check n flags None
       | String n ->
          let value = match errcode with
            | Some value -> value
@@ -552,8 +562,8 @@ let generate_lib_api_c () =
     List.iter (
       function
       | OClosure _ -> ()
-      | OFlags (n, flags) ->
-         print_flags_check n flags
+      | OFlags (n, flags, subset) ->
+         print_flags_check n flags subset
     ) optargs;
 
     (* Make the call. *)
@@ -635,7 +645,7 @@ let generate_lib_api_c () =
     List.iter (
       function
       | OClosure { cbname } -> pr " %s=%%s" cbname
-      | OFlags (n, _) -> pr " %s=0x%%x" n
+      | OFlags (n, _, _) -> pr " %s=0x%%x" n
     ) optargs;
     pr "\"";
     List.iter (
@@ -660,7 +670,7 @@ let generate_lib_api_c () =
       function
       | OClosure { cbname } ->
          pr ", CALLBACK_IS_NULL (%s_callback) ? \"<fun>\" : \"NULL\"" cbname
-      | OFlags (n, _) -> pr ", %s" n
+      | OFlags (n, _, _) -> pr ", %s" n
     ) optargs;
     pr ");\n";
     List.iter (

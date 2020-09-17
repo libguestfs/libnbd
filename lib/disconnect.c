@@ -30,11 +30,6 @@
 int
 nbd_unlocked_shutdown (struct nbd_handle *h, uint32_t flags)
 {
-  if ((flags & ~LIBNBD_SHUTDOWN_ABANDON_PENDING) != 0) {
-    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
-    return -1;
-  }
-
   /* If ABANDON_PENDING, abort any commands that have not yet had any
    * bytes sent to the server, so NBD_CMD_DISC becomes next in line.
    */
@@ -68,11 +63,6 @@ int
 nbd_unlocked_aio_disconnect (struct nbd_handle *h, uint32_t flags)
 {
   int64_t id;
-
-  if (flags != 0) {
-    set_error (EINVAL, "invalid flag: %" PRIu32, flags);
-    return -1;
-  }
 
   id = nbd_internal_command_common (h, 0, NBD_CMD_DISC, 0, 0, NULL, NULL);
   if (id == -1)

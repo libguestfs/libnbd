@@ -72,7 +72,7 @@ and ocaml_ret_to_string = function
 and ocaml_optarg_to_string = function
   | OClosure { cbname; cbargs } ->
      sprintf "?%s:(%s)" cbname (ocaml_closuredecl_to_string cbargs)
-  | OFlags (n, { flag_prefix }) -> sprintf "?%s:%s.t list" n flag_prefix
+  | OFlags (n, { flag_prefix }, _) -> sprintf "?%s:%s.t list" n flag_prefix
 
 and ocaml_closuredecl_to_string cbargs =
   let cbargs = List.map ocaml_cbarg_to_string cbargs in
@@ -112,7 +112,7 @@ let ocaml_name_of_arg = function
 
 let ocaml_name_of_optarg = function
   | OClosure { cbname } -> cbname
-  | OFlags (n, _) -> n
+  | OFlags (n, _, _) -> n
 
 let num_params args optargs =
   List.length optargs + 1 (* handle *) + List.length args
@@ -614,7 +614,7 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
        pr "  }\n";
        pr "  %s_callback.user_data = %s_user_data;\n" cbname cbname;
        pr "  %s_callback.free = free_user_data;\n" cbname;
-    | OFlags (n, { flag_prefix }) ->
+    | OFlags (n, { flag_prefix }, _) ->
        pr "  uint32_t %s;\n" n;
        pr "  if (%sv != Val_int (0)) /* Some [ list of %s.t ] */\n"
          n flag_prefix;
