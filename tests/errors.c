@@ -272,14 +272,37 @@ main (int argc, char *argv[])
   }
   check (EINVAL, "nbd_pread: ");
 
-  /* Use unknown command flags */
-  if (nbd_pread (nbd, buf, 1, 0, LIBNBD_CMD_FLAG_MASK + 1) != -1) {
+  /* Use in-range unknown command flags, client-side */
+  strict = nbd_get_strict_mode (nbd) | LIBNBD_STRICT_FLAGS;
+  if (nbd_set_strict_mode (nbd, strict) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_aio_pread (nbd, buf, 1, 0, NBD_NULL_COMPLETION,
+                     LIBNBD_CMD_FLAG_MASK + 1) != -1) {
     fprintf (stderr, "%s: test failed: "
-             "nbd_pread did not fail with bogus flags\n",
+             "nbd_aio_pread did not fail with bogus flags\n",
              argv[0]);
     exit (EXIT_FAILURE);
   }
-  check (EINVAL, "nbd_pread: ");
+  check (EINVAL, "nbd_aio_pread: ");
+  /* Use in-range unknown command flags, server-side */
+  strict &= ~LIBNBD_STRICT_FLAGS;
+  if (nbd_set_strict_mode (nbd, strict) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  check_server_fail (nbd, nbd_aio_pread (nbd, buf, 1, 0, NBD_NULL_COMPLETION,
+                                         LIBNBD_CMD_FLAG_MASK + 1),
+                     "nbd_aio_pread with bogus flag", EINVAL);
+  /* Use out-of-range unknown command flags, client-side */
+  if (nbd_aio_pread (nbd, buf, 1, 0, NBD_NULL_COMPLETION, 0x10000) != -1) {
+    fprintf (stderr, "%s: test failed: "
+             "nbd_aio_pread did not fail with bogus flags\n",
+             argv[0]);
+    exit (EXIT_FAILURE);
+  }
+  check (EINVAL, "nbd_aio_pread: ");
 
   /* Check that oversized requests are rejected */
   if (nbd_pread (nbd, buf, MAXSIZE, 0, 0) != -1) {

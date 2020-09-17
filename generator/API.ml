@@ -171,7 +171,7 @@ let default_flags = { flag_prefix = ""; guard = None; flags = [];
 let cmd_flags = {
   default_flags with
   flag_prefix = "CMD_FLAG";
-  guard = Some "flags > UINT16_MAX";
+  guard = Some "((h->strict & LIBNBD_STRICT_FLAGS) || flags > UINT16_MAX)";
   flags = [
     "FUA",       1 lsl 0;
     "NO_HOLE",   1 lsl 1;
@@ -193,6 +193,7 @@ let strict_flags = {
   flag_prefix = "STRICT";
   flags = [
     "COMMANDS",       1 lsl 0;
+    "FLAGS",          1 lsl 1;
   ]
 }
 let allow_transport_flags = {
@@ -759,6 +760,25 @@ set of advertised server flags (for example, attempting a write on
 a read-only server, or attempting to use C<LIBNBD_CMD_FLAG_FUA> when
 L<nbd_can_fua(3)> returned false).  If clear, this flag relies on the
 server to reject unexpected commands.
+
+=item C<LIBNBD_STRICT_FLAGS> = 2
+
+If set, this flag rejects client requests that attempt to set a
+command flag not recognized by libnbd (those outside of
+C<LIBNBD_CMD_FLAG_MASK>), or a flag not normally associated with
+a command (such as using C<LIBNBD_CMD_FLAG_FUA> on a read command).
+If clear, all flags are sent on to the server, even if sending such
+a flag may cause the server to change its reply in a manner that
+confuses libnbd, perhaps causing deadlock or ending the connection.
+
+Flags that are known by libnbd as associated with a given command
+(such as C<LIBNBD_CMD_FLAG_DF> for L<nbd_pread_structured(3)> gated
+by L<nbd_can_df(3)>) are controlled by C<LIBNBD_STRICT_COMMANDS>
+instead.
+
+Note that the NBD protocol only supports 16 bits of command flags,
+even though the libnbd API uses C<uint32_t>; bits outside of the
+range permitted by the protocol are always a client-side error.
 
 =back
 
@@ -1579,9 +1599,10 @@ required into the server's replies, or if you want to use
 C<LIBNBD_CMD_FLAG_DF>.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
-protocol extensions).";
+protocol extensions)."
+^ strict_call_description;
     see_also = [Link "aio_pread"; Link "pread_structured";
-                Link "get_block_size"];
+                Link "get_block_size"; Link "set_strict_mode"];
     example = Some "examples/fetch-first-sector.c";
   };
 
@@ -1660,7 +1681,8 @@ this, see L<nbd_can_df(3)>). Libnbd does not validate that the server
 actually obeys the flag."
 ^ strict_call_description;
     see_also = [Link "can_df"; Link "pread";
-                Link "aio_pread_structured"; Link "get_block_size"];
+                Link "aio_pread_structured"; Link "get_block_size";
+                Link "set_strict_mode"];
   };
 
   "pwrite", {
@@ -2135,10 +2157,12 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Note that you must ensure C<buf> is valid until the command has
-completed.  Other parameters behave as documented in L<nbd_pread(3)>.";
+completed.  Other parameters behave as documented in L<nbd_pread(3)>."
+^ strict_call_description;
     example = Some "examples/aio-connect-read.c";
     see_also = [SectionLink "Issuing asynchronous commands";
-                Link "aio_pread_structured"; Link "pread"];
+                Link "aio_pread_structured"; Link "pread";
+                Link "set_strict_mode"];
   };
 
   "aio_pread_structured", {
@@ -2160,7 +2184,8 @@ as described in L<libnbd(3)/Completion callbacks>.
 Other parameters behave as documented in L<nbd_pread_structured(3)>."
 ^ strict_call_description;
     see_also = [SectionLink "Issuing asynchronous commands";
-                Link "aio_pread"; Link "pread_structured"];
+                Link "aio_pread"; Link "pread_structured";
+                Link "set_strict_mode"];
   };
 
   "aio_pwrite", {
