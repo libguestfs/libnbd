@@ -87,7 +87,8 @@ and enum = {
 }
 and flags = {
   flag_prefix : string;
-  flags : (string * int) list
+  flags : (string * int) list;
+  _unused : unit
 }
 and permitted_state =
 | Created
@@ -156,7 +157,10 @@ let block_size_enum = {
 let all_enums = [ tls_enum; block_size_enum ]
 
 (* Flags. See also Constants below. *)
+let default_flags = { flag_prefix = ""; flags = []; _unused = () }
+
 let cmd_flags = {
+  default_flags with
   flag_prefix = "CMD_FLAG";
   flags = [
     "FUA",       1 lsl 0;
@@ -167,6 +171,7 @@ let cmd_flags = {
   ]
 }
 let handshake_flags = {
+  default_flags with
   flag_prefix = "HANDSHAKE_FLAG";
   flags = [
     "FIXED_NEWSTYLE", 1 lsl 0;
@@ -174,6 +179,7 @@ let handshake_flags = {
     ]
 }
 let allow_transport_flags = {
+  default_flags with
   flag_prefix = "ALLOW_TRANSPORT";
   flags = [
     "TCP",   1 lsl 0;
