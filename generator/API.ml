@@ -444,7 +444,7 @@ test whether this is the case with L<nbd_supports_tls(3)>.";
 
   "get_tls", {
     default_call with
-    args = []; ret = REnum (tls_enum);
+    args = []; ret = REnum tls_enum;
     may_set_error = false;
     shortdesc = "get the TLS request setting";
     longdesc = "\
@@ -683,7 +683,7 @@ blindly setting a constant value.";
 
   "get_handshake_flags", {
     default_call with
-    args = []; ret = RFlags (handshake_flags);
+    args = []; ret = RFlags handshake_flags;
     may_set_error = false;
     shortdesc = "see which handshake flags are supported";
     longdesc = "\
