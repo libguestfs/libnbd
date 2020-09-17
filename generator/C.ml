@@ -494,7 +494,7 @@ let generate_lib_api_c () =
     );
 
     (* Check parameters are valid. *)
-    let print_flags_check n { flag_prefix; flags } subset =
+    let print_flags_check n { flag_prefix; flags; guard } subset =
       let value = match errcode with
         | Some value -> value
         | None -> assert false in
@@ -508,7 +508,10 @@ let generate_lib_api_c () =
            ) flags;
            sprintf "0x%x" !v
         | None -> "LIBNBD_" ^ flag_prefix ^ "_MASK" in
-      pr "  if (unlikely ((%s & ~%s) != 0)) {\n" n mask;
+      let guard = match guard with
+        | Some value -> " && " ^ value
+        | None -> "" in
+      pr "  if (unlikely ((%s & ~%s) != 0)%s) {\n" n mask guard;
       pr "    set_error (EINVAL, \"%%s: invalid value for flag: 0x%%x\",\n";
       pr "               \"%s\", %s);\n" n n;
       pr "    ret = %s;\n" value;

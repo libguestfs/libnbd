@@ -281,7 +281,7 @@ nbd_unlocked_aio_pread (struct nbd_handle *h, void *buf,
   struct command_cb cb = { .completion = *completion };
 
   SET_CALLBACK_TO_NULL (*completion);
-  return nbd_internal_command_common (h, 0, NBD_CMD_READ, offset, count,
+  return nbd_internal_command_common (h, flags, NBD_CMD_READ, offset, count,
                                       buf, &cb);
 }
 
@@ -350,7 +350,7 @@ nbd_unlocked_aio_flush (struct nbd_handle *h,
   }
 
   SET_CALLBACK_TO_NULL (*completion);
-  return nbd_internal_command_common (h, 0, NBD_CMD_FLUSH, 0, 0,
+  return nbd_internal_command_common (h, flags, NBD_CMD_FLUSH, 0, 0,
                                       NULL, &cb);
 }
 
@@ -409,7 +409,7 @@ nbd_unlocked_aio_cache (struct nbd_handle *h,
   }
 
   SET_CALLBACK_TO_NULL (*completion);
-  return nbd_internal_command_common (h, 0, NBD_CMD_CACHE, offset, count,
+  return nbd_internal_command_common (h, flags, NBD_CMD_CACHE, offset, count,
                                       NULL, &cb);
 }
 

@@ -87,6 +87,7 @@ and enum = {
 }
 and flags = {
   flag_prefix : string;
+  guard : string option;
   flags : (string * int) list;
   _unused : unit
 }
@@ -164,11 +165,13 @@ let block_size_enum = {
 let all_enums = [ tls_enum; block_size_enum ]
 
 (* Flags. See also Constants below. *)
-let default_flags = { flag_prefix = ""; flags = []; _unused = () }
+let default_flags = { flag_prefix = ""; guard = None; flags = [];
+                      _unused = () }
 
 let cmd_flags = {
   default_flags with
   flag_prefix = "CMD_FLAG";
+  guard = Some "flags > UINT16_MAX";
   flags = [
     "FUA",       1 lsl 0;
     "NO_HOLE",   1 lsl 1;

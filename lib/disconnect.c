@@ -64,7 +64,7 @@ nbd_unlocked_aio_disconnect (struct nbd_handle *h, uint32_t flags)
 {
   int64_t id;
 
-  id = nbd_internal_command_common (h, 0, NBD_CMD_DISC, 0, 0, NULL, NULL);
+  id = nbd_internal_command_common (h, flags, NBD_CMD_DISC, 0, 0, NULL, NULL);
   if (id == -1)
     return -1;
   h->disconnect_request = true;
