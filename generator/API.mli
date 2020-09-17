@@ -99,7 +99,8 @@ and enum = {
 }
 and flags = {
   flag_prefix : string;    (** prefix of each flag name *)
-  flags : (string * int) list (** flag names and their values in C *)
+  flags : (string * int) list; (** flag names and their values in C *)
+  _unused : unit           (** silence warning 23 when using 'defaults with' *)
 }
 and permitted_state =
 | Created                  (** can be called in the START state *)
