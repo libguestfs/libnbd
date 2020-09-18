@@ -12,11 +12,11 @@ nbdsh - network block device (NBD) shell
  The ‘nbd’ module has already been imported and there
  is an open NBD handle called ‘h’.
  
- nbd> h.connect_command (["nbdkit", "-s", "memory", "1G"])
- nbd> h.get_size ()
+ nbd> h.connect_command(["nbdkit", "-s", "memory", "1G"])
+ nbd> h.get_size()
  1073741824
  nbd> buf = b"hello, world"
- nbd> h.pwrite (buf, 0, 0)
+ nbd> h.pwrite(buf, 0, 0)
  nbd> exit()
 
 =head1 DESCRIPTION
@@ -26,7 +26,7 @@ Device (NBD) servers.
 
 For documentation about the libnbd API please open the shell and type:
 
- help (nbd)
+ help(nbd)
 
 =head1 EXAMPLES
 
@@ -36,7 +36,7 @@ The I<-u> option connects to an NBD URI.  The I<-c> option lets
 you execute single Python statements from the command line.  Combining
 these two options lets you print the size in bytes of an NBD export:
 
- $ nbdsh -u nbd://localhost -c 'print (h.get_size ())'
+ $ nbdsh -u nbd://localhost -c 'print(h.get_size())'
  1073741824
 
 =head2 Hexdump the boot sector of an NBD export
@@ -83,7 +83,7 @@ Read standard input and execute it as a command.
 =item B<--connect> URI
 
 Connect to the given L<NBD URI|https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>.
-This is equivalent to the S<C<h.connect_uri (URI)>> command in the shell.
+This is equivalent to the S<C<h.connect_uri(URI)>> command in the shell.
 
 =item B<-V>
 
@@ -108,4 +108,4 @@ Richard W.M. Jones
 
 =head1 COPYRIGHT
 
-Copyright (C) 2019 Red Hat Inc.
+Copyright (C) 2019-2020 Red Hat Inc.
