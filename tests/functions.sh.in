@@ -1,7 +1,7 @@
 # nbdkit
 # Common functions used by the tests.
 # @configure_input@
-# Copyright (C) 2017-2019 Red Hat Inc.
+# Copyright (C) 2017-2020 Red Hat Inc.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -31,6 +31,9 @@
 # OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
+# Various variables defined by autoconf that test scripts might want
+# to use.
+
 # cleanup_fn f [args]
 #
 # A generic trap handling function.  This runs the function or command
@@ -43,16 +46,17 @@ cleanup_fn ()
 
 _run_cleanup_hooks ()
 {
-    status=$?
+    local _status=$? _i
+
     set +e
     trap '' INT QUIT TERM EXIT ERR
-    echo $0: run cleanup hooks: exit code $status
+    echo $0: run cleanup hooks: exit code $_status
 
-    for (( i = 0; i < ${#_cleanup_hook[@]}; ++i )); do
-        ${_cleanup_hook[i]}
+    for (( _i = 0; _i < ${#_cleanup_hook[@]}; ++_i )); do
+        ${_cleanup_hook[_i]}
     done
 
-    exit $status
+    exit $_status
 }
 trap _run_cleanup_hooks INT QUIT TERM EXIT ERR
 
