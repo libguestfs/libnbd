@@ -23,4 +23,6 @@ set -x
 
 requires flake8 --version
 
-flake8 nbd.py nbdsh.py t/*.py
+d="$abs_top_srcdir"/python
+test -f "$d"/nbd.py
+flake8 "$d"/nbd.py "$d"/nbdsh.py "$d"/t/*.py
