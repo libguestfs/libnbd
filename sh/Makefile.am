@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2019 Red Hat Inc.
+# Copyright (C) 2013-2020 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -22,6 +22,7 @@ EXTRA_DIST = \
 	examples/LICENSE-FOR-EXAMPLES \
 	examples/hexdump.sh \
 	test-context.sh \
+	test-error.sh \
 	test-help.sh \
 	test-pattern.sh \
 	test-version.sh \
@@ -49,6 +50,7 @@ LOG_COMPILER = $(top_builddir)/run
 TESTS = \
 	test-help.sh \
 	test-version.sh \
+	test-error.sh \
 	$(NULL)
 
 if HAVE_NBDKIT
