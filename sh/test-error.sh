@@ -40,6 +40,27 @@ nbdsh -u 'nbd+unix:///?socket=/nosuchsock' >$out 2>$err && fail=1
 test ! -s $out
 cat $err
 grep Traceback $err && fail=1
-grep '^nbdsh: unable to connect to uri.*nosuchsock' test-error.err
+grep '^nbdsh: unable to connect to uri.*nosuchsock' $err
+
+# Triggering nbd.Error non-interactively (via -c) prints the error. The
+# output includes the python trace when debugging is enabled (which is
+# the default for our testsuite, when using ./run).
+nbdsh -c 'h.is_read_only()' >$out 2>$err && fail=1
+test ! -s $out
+cat $err
+grep Traceback $err
+grep 'in is_read_only' $err
+grep '^nbd\.Error: nbd_is_read_only: ' $err
+
+# Override ./run's default to show that without debug, the error is succinct.
+nbdsh -c '
+import os
+os.environ["LIBNBD_DEBUG"] = "0"
+h.is_read_only()
+' >$out 2>$err && fail=1
+test ! -s $out
+cat $err
+grep Traceback $err && fail=1
+grep '^nbdsh: command line script failed: nbd_is_read_only: ' $err
 
 exit $fail
