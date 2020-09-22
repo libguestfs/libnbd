@@ -90,8 +90,8 @@ help(nbd)                          # Display documentation
         try:
             h.connect_uri(args.uri)
         except nbd.Error as ex:
-            print("Unable to connect to uri '%s': %s" % (args.uri, ex.string),
-                  file=sys.stderr)
+            print("nbdsh: unable to connect to uri '%s': %s" %
+                  (args.uri, ex.string), file=sys.stderr)
             sys.exit(1)
     # If there are no -c or --command parameters, go interactive,
     # otherwise we run the commands and exit.
