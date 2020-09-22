@@ -16,6 +16,10 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 
+import os
+import traceback
+
+
 # The NBD shell.
 def shell():
     import argparse
@@ -100,8 +104,16 @@ help(nbd)                          # Display documentation
     else:
         # https://stackoverflow.com/a/11754346
         d = dict(locals(), **globals())
-        for c in args.command:
-            if c != '-':
-                exec(c, d, d)
+        try:
+            for c in args.command:
+                if c != '-':
+                    exec(c, d, d)
+                else:
+                    exec(sys.stdin.read(), d, d)
+        except nbd.Error as ex:
+            if os.environ.get("LIBNBD_DEBUG", "0") == "1":
+                traceback.print_exc()
             else:
-                exec(sys.stdin.read(), d, d)
+                print("nbdsh: command line script failed: %s" % ex.string,
+                      file=sys.stderr)
+            sys.exit(1)
