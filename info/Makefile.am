@@ -32,8 +32,6 @@ TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
 LOG_COMPILER = $(top_builddir)/run
 TESTS =
 
-bin_PROGRAMS = nbdinfo
-
 nbdinfo_SOURCES = nbdinfo.c
 nbdinfo_CPPFLAGS = -I$(top_srcdir)/include
 nbdinfo_CFLAGS = \
@@ -42,6 +40,11 @@ nbdinfo_CFLAGS = \
 nbdinfo_LDADD = \
 	$(top_builddir)/lib/libnbd.la \
 	$(NULL)
+
+# This program depends on URI support; no point in installing it otherwise
+if HAVE_LIBXML2
+
+bin_PROGRAMS = nbdinfo
 
 if HAVE_POD
 
@@ -55,8 +58,6 @@ nbdinfo.1: nbdinfo.pod $(top_builddir)/podwrapper.pl
 	    $<
 
 endif HAVE_POD
-
-if HAVE_LIBXML2
 
 TESTS += \
 	info-list.sh \
