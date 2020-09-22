@@ -16,7 +16,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 
-import os
 import traceback
 
 
@@ -111,7 +110,7 @@ help(nbd)                          # Display documentation
                 else:
                     exec(sys.stdin.read(), d, d)
         except nbd.Error as ex:
-            if os.environ.get("LIBNBD_DEBUG", "0") == "1":
+            if nbd.NBD().get_debug():
                 traceback.print_exc()
             else:
                 print("nbdsh: command line script failed: %s" % ex.string,
