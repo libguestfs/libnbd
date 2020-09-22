@@ -1,5 +1,5 @@
 # NBD client library in userspace
-# Copyright (C) 2013-2019 Red Hat Inc.
+# Copyright (C) 2013-2020 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -87,7 +87,12 @@ help(nbd)                          # Display documentation
     if args.base_allocation:
         h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
     if args.uri is not None:
-        h.connect_uri(args.uri)
+        try:
+            h.connect_uri(args.uri)
+        except nbd.Error as ex:
+            print("Unable to connect to uri '%s': %s" % (args.uri, ex.string),
+                  file=sys.stderr)
+            sys.exit(1)
     # If there are no -c or --command parameters, go interactive,
     # otherwise we run the commands and exit.
     if not args.command:
