@@ -28,18 +28,19 @@ EXTRA_DIST = \
 	nbdcopy.pod \
 	$(NULL)
 
-if HAVE_LIBXML2
-
 TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
 LOG_COMPILER = $(top_builddir)/run
 TESTS =
-
-bin_PROGRAMS = nbdcopy
 
 nbdcopy_SOURCES = nbdcopy.c
 nbdcopy_CPPFLAGS = -I$(top_srcdir)/include
 nbdcopy_CFLAGS = $(WARNINGS_CFLAGS)
 nbdcopy_LDADD = $(top_builddir)/lib/libnbd.la
+
+# This program depends on URI support; no point in installing it otherwise
+if HAVE_LIBXML2
+
+bin_PROGRAMS = nbdcopy
 
 if HAVE_POD
 

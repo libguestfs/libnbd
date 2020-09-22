@@ -24,7 +24,12 @@ EXTRA_DIST = \
 
 if HAVE_BASH_COMPLETION
 
-dist_bashcomp_DATA = nbdcopy nbdfuse nbdinfo nbdsh
+dist_bashcomp_DATA = nbdfuse nbdsh
+
+if HAVE_LIBXML2
+dist_bashcomp_DATA += nbdcopy nbdinfo
+endif HAVE_LIBXML2
+
 
 nbdcopy: nbdsh
 	rm -f $@
