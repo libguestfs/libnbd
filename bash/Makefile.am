@@ -33,15 +33,15 @@ endif HAVE_LIBXML2
 
 nbdcopy: nbdsh
 	rm -f $@
-	$(LN_S) nbdsh $@
+	$(LN_S) $(srcdir)/nbdsh $@
 
 nbdfuse: nbdsh
 	rm -f $@
-	$(LN_S) nbdsh $@
+	$(LN_S) $(srcdir)/nbdsh $@
 
 nbdinfo: nbdsh
 	rm -f $@
-	$(LN_S) nbdsh $@
+	$(LN_S) $(srcdir)/nbdsh $@
 
 CLEANFILES += nbdcopy nbdfuse nbdinfo
 
