@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2020 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,8 @@
 
 #include <libnbd.h>
 
+#define BOGUS_CONTEXT "x-libnbd:nosuch"
+
 static int check_extent (void *data,
                          const char *metacontext,
                          uint64_t offset,
@@ -43,6 +45,7 @@ main (int argc, char *argv[])
   int id;
   int r;
   const char *s;
+  char *tmp;
 
   snprintf (plugin_path, sizeof plugin_path, "%s/meta-base-allocation.sh",
             getenv ("srcdir") ? : ".");
@@ -58,6 +61,18 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  /* No contexts requested by default */
+  if ((r = nbd_get_nr_meta_contexts (nbd)) != 0) {
+    fprintf (stderr, "unexpected number of contexts: %d\n", r);
+    exit (EXIT_FAILURE);
+  }
+
+  /* Clearing an empty list is not fatal */
+  if (nbd_clear_meta_contexts (nbd) != 0) {
+    fprintf (stderr, "unable to clear requested contexts\n");
+    exit (EXIT_FAILURE);
+  }
+
   /* Negotiate metadata context "base:allocation" with the server.
    * This is supported in nbdkit >= 1.12.
    */
@@ -69,10 +84,27 @@ main (int argc, char *argv[])
   /* Also request negotiation of a bogus context, which should not
    * fail here nor affect block status later.
    */
-  if (nbd_add_meta_context (nbd, "x-libnbd:nosuch") == -1) {
+  if (nbd_add_meta_context (nbd, BOGUS_CONTEXT) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+
+  /* Test that we can read back what we have requested */
+  if ((r = nbd_get_nr_meta_contexts (nbd)) != 2) {
+    fprintf (stderr, "unexpected number of contexts: %d\n", r);
+    exit (EXIT_FAILURE);
+  }
+  tmp = nbd_get_meta_context (nbd, 1);
+  if (tmp == NULL) {
+    fprintf (stderr, "unable to read back requested context 1: %s\n",
+             nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (strcmp (tmp, BOGUS_CONTEXT) != 0) {
+    fprintf (stderr, "read back wrong context: %s\n", tmp);
+    exit (EXIT_FAILURE);
+  }
+  free (tmp);
 
   if (nbd_connect_command (nbd, args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
@@ -92,7 +124,7 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  switch (nbd_can_meta_context (nbd, "x-libnbd:nosuch")) {
+  switch (nbd_can_meta_context (nbd, BOGUS_CONTEXT)) {
   case -1:
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);

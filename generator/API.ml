@@ -978,7 +978,10 @@ this is whether blocks of data are allocated, zero or sparse).
 
 This call adds one metadata context to the list to be negotiated.
 You can call it as many times as needed.  The list is initially
-empty when the handle is created.
+empty when the handle is created; you can check the contents of
+the list with L<nbd_get_nr_meta_contexts(3)> and
+L<nbd_get_meta_context(3)>, or clear it with
+L<nbd_clear_meta_contexts(3)>.
 
 The NBD protocol limits meta context names to 4096 bytes, but
 servers may not support the full length.  The encoding of meta
@@ -995,9 +998,73 @@ C<LIBNBD_CONTEXT_> for some well-known contexts, but you are free
 to pass in other contexts.
 
 Other metadata contexts are server-specific, but include
-C<\"qemu:dirty-bitmap:...\"> for qemu-nbd
-(see qemu-nbd I<-B> option).";
-    see_also = [Link "block_status"];
+C<\"qemu:dirty-bitmap:...\"> and C<\"qemu:allocation-depth\"> for
+qemu-nbd (see qemu-nbd I<-B> and I<-A> options).";
+    see_also = [Link "block_status"; Link "can_meta_context";
+                Link "get_nr_meta_contexts"; Link "get_meta_context";
+                Link "clear_meta_contexts"];
+  };
+
+  "get_nr_meta_contexts", {
+    default_call with
+    args = []; ret = RSizeT;
+    shortdesc = "return the current number of requested meta contexts";
+    longdesc = "\
+During connection libnbd can negotiate zero or more metadata
+contexts with the server.  Metadata contexts are features (such
+as C<\"base:allocation\">) which describe information returned
+by the L<nbd_block_status(3)> command (for C<\"base:allocation\">
+this is whether blocks of data are allocated, zero or sparse).
+
+This command returns how many meta contexts have been added to
+the list to request from the server via L<nbd_add_meta_context(3)>.
+The server is not obligated to honor all of the requests; to see
+what it actually supports, see L<nbd_can_meta_context(3)>.";
+    see_also = [Link "block_status"; Link "can_meta_context";
+                Link "add_meta_context"; Link "get_meta_context";
+                Link "clear_meta_contexts"];
+  };
+
+  "get_meta_context", {
+    default_call with
+    args = [ SizeT "i" ]; ret = RString;
+    shortdesc = "return the i'th meta context request";
+    longdesc = "\
+During connection libnbd can negotiate zero or more metadata
+contexts with the server.  Metadata contexts are features (such
+as C<\"base:allocation\">) which describe information returned
+by the L<nbd_block_status(3)> command (for C<\"base:allocation\">
+this is whether blocks of data are allocated, zero or sparse).
+
+This command returns the i'th meta context request, as added by
+L<nbd_add_meta_context(3)>, and bounded by
+L<nbd_get_nr_meta_contexts(3)>.";
+    see_also = [Link "block_status"; Link "can_meta_context";
+                Link "add_meta_context"; Link "get_nr_meta_contexts";
+                Link "clear_meta_contexts"];
+  };
+
+  "clear_meta_contexts", {
+    default_call with
+    args = []; ret = RErr;
+    permitted_states = [ Created; Negotiating ];
+    shortdesc = "reset the list of requested meta contexts";
+    longdesc = "\
+During connection libnbd can negotiate zero or more metadata
+contexts with the server.  Metadata contexts are features (such
+as C<\"base:allocation\">) which describe information returned
+by the L<nbd_block_status(3)> command (for C<\"base:allocation\">
+this is whether blocks of data are allocated, zero or sparse).
+
+This command resets the list of meta contexts to request back to
+an empty list, for re-population by further use of
+L<nbd_add_meta_context(3)>.  It is primarily useful when option
+negotiation mode is selected (see L<nbd_set_opt_mode(3)>), for
+altering the list of attempted contexts between subsequent export
+queries.";
+    see_also = [Link "block_status"; Link "can_meta_context";
+                Link "add_meta_context"; Link "get_nr_meta_contexts";
+                Link "get_meta_context"; Link "set_opt_mode"];
   };
 
   "set_uri_allow_transports", {
@@ -2818,6 +2885,9 @@ let first_version = [
   (* Added in 1.5.x development cycle, will be stable and supported in 1.6. *)
   "set_strict_mode", (1, 6);
   "get_strict_mode", (1, 6);
+  "get_nr_meta_contexts", (1, 6);
+  "get_meta_context", (1, 6);
+  "clear_meta_contexts", (1, 6);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

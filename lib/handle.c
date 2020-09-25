@@ -313,6 +313,38 @@ nbd_unlocked_add_meta_context (struct nbd_handle *h, const char *name)
   return 0;
 }
 
+ssize_t
+nbd_unlocked_get_nr_meta_contexts (struct nbd_handle *h)
+{
+  return nbd_internal_string_list_length (h->request_meta_contexts);
+}
+
+char *
+nbd_unlocked_get_meta_context (struct nbd_handle *h, size_t i)
+{
+  size_t len = nbd_internal_string_list_length (h->request_meta_contexts);
+  char *ret;
+
+  if (i >= len) {
+    set_error (EINVAL, "meta context request out of range");
+    return NULL;
+  }
+
+  ret = strdup (h->request_meta_contexts[i]);
+  if (ret == NULL)
+    set_error (errno, "strdup");
+
+  return ret;
+}
+
+int
+nbd_unlocked_clear_meta_contexts (struct nbd_handle *h)
+{
+  nbd_internal_free_string_list (h->request_meta_contexts);
+  h->request_meta_contexts = NULL;
+  return 0;
+}
+
 int
 nbd_unlocked_set_request_structured_replies (struct nbd_handle *h,
                                              bool request)
