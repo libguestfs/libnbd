@@ -42,11 +42,15 @@ command such as this (with the same output as above):
 
  $ nbdinfo "nbd+unix:///?socket=/tmp/unixsock"
 
+=head2 Size
+
 To display only the size in bytes of the NBD export (useful for
 scripting) use the I<--size> parameter:
 
  $ nbdinfo --size nbd://localhost
  1048576
+
+=head2 JSON output
 
 To display the output as JSON (eg. for scripting with L<jq(1)>) add
 the I<--json> parameter:
@@ -76,6 +80,8 @@ the I<--json> parameter:
      }
    ]
  }
+
+=head2 List all exports
 
 To list all the exports available on an NBD server use the I<--list>
 (I<-L>) option.
