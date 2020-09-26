@@ -654,8 +654,8 @@ extent_description (const char *metacontext, uint32_t type)
   if (strcmp (metacontext, "base:allocation") == 0) {
     switch (type) {
     case 0: return "allocated";
-    case 1: return "zero";
-    case 2: return "hole";
+    case 1: return "hole";
+    case 2: return "zero";
     case 3: return "hole,zero";
     }
   }
