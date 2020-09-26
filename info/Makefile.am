@@ -22,6 +22,7 @@ EXTRA_DIST = \
 	info-list-json.sh \
 	info-json.sh \
 	info-oldstyle.sh \
+	info-null.sh \
 	info-size.sh \
 	info-text.sh \
 	info-description.sh \
@@ -64,6 +65,7 @@ TESTS += \
 	info-list-json.sh \
 	info-json.sh \
 	info-oldstyle.sh \
+	info-null.sh \
 	info-size.sh \
 	info-text.sh \
 	info-description.sh \
