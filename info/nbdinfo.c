@@ -34,6 +34,7 @@
 static bool list_all = false;
 static bool probe_content, content_flag, no_content_flag;
 static bool json_output = false;
+static const char *map = NULL;
 static bool size_only = false;
 
 static struct export_list {
@@ -49,6 +50,10 @@ static void list_one_export (struct nbd_handle *nbd, const char *desc,
 static void list_all_exports (struct nbd_handle *nbd1, const char *uri);
 static void print_json_string (const char *);
 static char *get_content (struct nbd_handle *, int64_t size);
+static int extent_callback (void *user_data, const char *metacontext,
+                            uint64_t offset,
+                            uint32_t *entries, size_t nr_entries,
+                            int *error);
 
 static void __attribute__((noreturn))
 usage (FILE *fp, int exitcode)
@@ -60,6 +65,7 @@ usage (FILE *fp, int exitcode)
 "    nbdinfo nbd://localhost\n"
 "    nbdinfo \"nbd+unix:///?socket=/tmp/unixsock\"\n"
 "    nbdinfo --size nbd://example.com\n"
+"    nbdinfo --map nbd://example.com\n"
 "    nbdinfo --json nbd://example.com\n"
 "    nbdinfo --list nbd://example.com\n"
 "\n"
@@ -85,6 +91,7 @@ main (int argc, char *argv[])
     CONTENT_OPTION,
     NO_CONTENT_OPTION,
     JSON_OPTION,
+    MAP_OPTION,
     SIZE_OPTION,
   };
   const char *short_options = "LV";
@@ -95,6 +102,7 @@ main (int argc, char *argv[])
     { "json",               no_argument,       NULL, JSON_OPTION },
     { "list",               no_argument,       NULL, 'L' },
     { "long-options",       no_argument,       NULL, LONG_OPTIONS },
+    { "map",                optional_argument, NULL, MAP_OPTION },
     { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
     { "size",               no_argument,       NULL, SIZE_OPTION },
     { "version",            no_argument,       NULL, 'V' },
@@ -143,6 +151,10 @@ main (int argc, char *argv[])
       no_content_flag = true;
       break;
 
+    case MAP_OPTION:
+      map = optarg ? optarg : "base:allocation";
+      break;
+
     case SIZE_OPTION:
       size_only = true;
       break;
@@ -164,10 +176,11 @@ main (int argc, char *argv[])
   if (argc - optind != 1)
     usage (stderr, EXIT_FAILURE);
 
-  /* You can combine certain options. */
-  if (list_all && size_only) {
-    fprintf (stderr, "%s: you cannot use %s and %s together.\n",
-             argv[0], "--list", "--size");
+  /* You cannot combine certain options. */
+  if (!!list_all + !!map + !!size_only > 1) {
+    fprintf (stderr,
+             "%s: you cannot use --list, --map and --size together.\n",
+             argv[0]);
     exit (EXIT_FAILURE);
   }
   if (content_flag && no_content_flag) {
@@ -182,6 +195,8 @@ main (int argc, char *argv[])
     probe_content = true;
   if (no_content_flag)
     probe_content = false;
+  if (map)
+    probe_content = false;
 
   /* Open the NBD side. */
   nbd = nbd_create ();
@@ -191,11 +206,13 @@ main (int argc, char *argv[])
   }
   nbd_set_uri_allow_local_file (nbd, true); /* Allow ?tls-psk-file. */
 
-  /* If using --list then we need opt mode in the handle. */
+  /* Set optional modes in the handle. */
   if (list_all)
     nbd_set_opt_mode (nbd, true);
-  if (!size_only)
+  if (!map && !size_only)
     nbd_set_full_info (nbd, true);
+  if (map)
+    nbd_add_meta_context (nbd, map);
 
   if (nbd_connect_uri (nbd, argv[optind]) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
@@ -224,6 +241,44 @@ main (int argc, char *argv[])
     }
 
     printf ("%" PRIi64 "\n", size);
+  }
+  else if (map) {
+    uint64_t offset, prev_offset;
+
+    /* Did we get the requested map? */
+    if (!nbd_can_meta_context (nbd, map)) {
+      fprintf (stderr,
+               "%s: --map: server does not support metadata context \"%s\"\n",
+               argv[0], map);
+      exit (EXIT_FAILURE);
+    }
+
+    size = nbd_get_size (nbd);
+    if (size == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+
+    if (json_output) printf ("[\n");
+    for (offset = 0; offset < size;) {
+      prev_offset = offset;
+      if (nbd_block_status (nbd, size - offset, offset,
+                            (nbd_extent_callback) { .callback = extent_callback,
+                                                    .user_data = &offset },
+                            0) == -1) {
+        fprintf (stderr, "%s\n", nbd_get_error ());
+        exit (EXIT_FAILURE);
+      }
+      /* We expect extent_callback to increment the offset.  If it did
+       * not then probably the server is not returning any extents.
+       */
+      if (offset <= prev_offset) {
+        fprintf (stderr, "%s: --map: server did not return any extents\n",
+                 argv[0]);
+        exit (EXIT_FAILURE);
+      }
+    }
+    if (json_output) printf ("\n]\n");
   }
   else {
     /* Print per-connection fields. */
@@ -590,4 +645,75 @@ get_content (struct nbd_handle *nbd, int64_t size)
     pclose (fp);
   free (cmd);
   return ret;                   /* caller frees */
+}
+
+/* Callback handling --map. */
+static const char *
+extent_description (const char *metacontext, uint32_t type)
+{
+  if (strcmp (metacontext, "base:allocation") == 0) {
+    switch (type) {
+    case 0: return "allocated";
+    case 1: return "zero";
+    case 2: return "hole";
+    case 3: return "hole,zero";
+    }
+  }
+  else if (strcmp (metacontext, "qemu:dirty-bitmap") == 0) {
+    switch (type) {
+    case 0: return "clean";
+    case 1: return "dirty";
+    }
+  }
+
+  return NULL;   /* Don't know - description field will be omitted. */
+}
+
+static int
+extent_callback (void *user_data, const char *metacontext,
+                 uint64_t offset,
+                 uint32_t *entries, size_t nr_entries,
+                 int *error)
+{
+  size_t i;
+  uint64_t *ret_offset = user_data;
+  static bool comma = false;
+
+  if (strcmp (metacontext, map) != 0)
+    return 0;
+
+  /* Print the entries received. */
+  for (i = 0; i < nr_entries; i += 2) {
+    const char *descr = extent_description (map, entries[i+1]);
+
+    if (!json_output) {
+      printf ("%10" PRIu64 "  "
+              "%10" PRIu32 "  "
+              "%3" PRIu32,
+              offset, entries[i], entries[i+1]);
+      if (descr)
+        printf ("  %s", descr);
+      printf ("\n");
+    }
+    else {
+      if (comma)
+        printf (",\n");
+
+      printf ("{ \"offset\": %" PRIu64 ", "
+              "\"length\": %" PRIu32 ", "
+              "\"type\": %" PRIu32,
+              offset, entries[i], entries[i+1]);
+      if (descr) {
+        printf (", \"description\": ");
+        print_json_string (descr);
+      }
+      printf ("}");
+      comma = true;
+    }
+
+    offset += entries[i];
+  }
+
+  *ret_offset = offset;
+  return 0;
 }

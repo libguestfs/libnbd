@@ -4,7 +4,7 @@ nbdinfo - display information and metadata about NBD servers and exports
 
 =head1 SYNOPSIS
 
- nbdinfo [--json] [--size] NBD-URI
+ nbdinfo [--json] [--map] [--size] NBD-URI
 
  nbdinfo -L|--list NBD-URI
 
@@ -81,6 +81,38 @@ the I<--json> parameter:
    ]
  }
 
+=head2 Map
+
+To show a map of which areas of the disk are allocated and sparse, use
+the I<--map> option:
+
+ $ nbdinfo --map nbd://localhost/
+       0  1048576  0  allocated
+ 1048576  1048576  3  hole,zero
+
+The fields are: start, size, type, description (optional).
+
+The type field is an integer showing the raw value from the NBD
+protocol.  For some maps nbdinfo knows how to translate the type into
+a printable description.
+
+To get parseable JSON output, add I<--json>:
+
+ $ nbdinfo --map --json nbd://localhost/
+ [{ "offset": 0, "length": 1048576,
+    "type": 0, "description": "allocated" },
+  { "offset": 1048576, "length": 1048576,
+    "type": 3, "description": "hole,zero" }]
+
+By default this shows the C<"base:allocation"> map, but you can show
+other maps too:
+
+ $ nbdinfo --map=qemu:dirty-bitmap nbd://localhost/
+ 0  1048576  1  dirty
+
+For more information on NBD maps, see I<Metadata querying> in the NBD
+protocol.
+
 =head2 List all exports
 
 To list all the exports available on an NBD server use the I<--list>
@@ -120,6 +152,15 @@ use I<--list --content>.
 =item B<--json>
 
 The output is displayed in JSON format.
+
+=item B<--map>
+
+=item B<--map=>MAP
+
+Display the map (usually whether parts of the disk are allocated or
+sparse) of the given export.  This displays the C<"base:allocation">
+map by default, you can choose a different map with the optional
+parameter.
 
 =item B<-L>
 

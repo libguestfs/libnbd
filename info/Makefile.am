@@ -26,6 +26,8 @@ EXTRA_DIST = \
 	info-size.sh \
 	info-text.sh \
 	info-description.sh \
+	info-map-base-allocation.sh \
+	info-map-base-allocation-json.sh \
 	nbdinfo.pod \
 	$(NULL)
 
@@ -69,6 +71,8 @@ TESTS += \
 	info-size.sh \
 	info-text.sh \
 	info-description.sh \
+	info-map-base-allocation.sh \
+	info-map-base-allocation-json.sh \
 	$(NULL)
 
 check-valgrind:
