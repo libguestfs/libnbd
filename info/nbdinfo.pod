@@ -12,18 +12,6 @@ nbdinfo - display information and metadata about NBD servers and exports
 
  nbdinfo --version
 
-=head1 EXAMPLES
-
- nbdinfo nbd://localhost
-
- nbdinfo "nbd+unix:///?socket=/tmp/unixsock"
-
- nbdinfo --size nbd://example.com
-
- nbdinfo --json nbd://example.com
-
- nbdinfo --list nbd://example.com
-
 =head1 DESCRIPTION
 
 nbdinfo displays information and metadata about an NBD server.  The
@@ -48,6 +36,11 @@ L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>):
          block_size_minimum: 1
          block_size_preferred: 4096
          block_size_maximum: 33554432
+
+For an NBD server on a local Unix domain socket you would use a
+command such as this (with the same output as above):
+
+ $ nbdinfo "nbd+unix:///?socket=/tmp/unixsock"
 
 To display only the size in bytes of the NBD export (useful for
 scripting) use the I<--size> parameter:
