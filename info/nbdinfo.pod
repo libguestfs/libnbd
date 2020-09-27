@@ -107,7 +107,7 @@ To get parseable JSON output, add I<--json>:
 By default this shows the C<"base:allocation"> map, but you can show
 other maps too:
 
- $ nbdinfo --map=qemu:dirty-bitmap nbd://localhost/
+ $ nbdinfo --map=qemu:dirty-bitmap:bitmap nbd://localhost/
  0  1048576  1  dirty
 
 For more information on NBD maps, see I<Metadata querying> in the NBD

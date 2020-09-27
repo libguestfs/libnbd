@@ -659,7 +659,7 @@ extent_description (const char *metacontext, uint32_t type)
     case 3: return "hole,zero";
     }
   }
-  else if (strcmp (metacontext, "qemu:dirty-bitmap") == 0) {
+  else if (strncmp (metacontext, "qemu:dirty-bitmap:", 18) == 0) {
     switch (type) {
     case 0: return "clean";
     case 1: return "dirty";

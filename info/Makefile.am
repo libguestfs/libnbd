@@ -28,6 +28,7 @@ EXTRA_DIST = \
 	info-description.sh \
 	info-map-base-allocation.sh \
 	info-map-base-allocation-json.sh \
+	info-map-qemu-dirty-bitmap.sh \
 	nbdinfo.pod \
 	$(NULL)
 
@@ -73,6 +74,7 @@ TESTS += \
 	info-description.sh \
 	info-map-base-allocation.sh \
 	info-map-base-allocation-json.sh \
+	info-map-qemu-dirty-bitmap.sh \
 	$(NULL)
 
 check-valgrind:
