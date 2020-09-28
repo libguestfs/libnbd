@@ -13,6 +13,17 @@ NBD resize extension.
 
 TLS should properly shut down the session (calling gnutls_bye).
 
+Potential deadlock with nbd_add_meta_context: if a client sends enough
+requests to the server that it blocks while writing, but the server
+replies to requests as they come in rather than waiting for the end of
+the client request, then the server can likewise block in writing
+replies that libnbd is not yet reading.  Not an issue for existing
+servers that don't have enough contexts to reply with enough data to
+fill buffers, but could be an issue with qemu-nbd if it is taught to
+exports many dirty bitmaps simultaneously.  Revamping the
+states-newstyle-meta-context.c state machine to let libnbd handle
+NBD_REP_META_CONTEXT while still writing queries could be hairy.
+
 Performance: Chart it over various buffer sizes and threads, as that
   should make it easier to identify systematic issues.
 

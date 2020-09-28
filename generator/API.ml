@@ -144,8 +144,13 @@ let list_closure = {
   cbname = "list";
   cbargs = [ CBString "name"; CBString "description" ]
 }
+let context_closure = {
+  cbname = "context";
+  cbargs = [ CBString "name" ]
+}
 let all_closures = [ chunk_closure; completion_closure;
-                     debug_closure; extent_closure; list_closure ]
+                     debug_closure; extent_closure; list_closure;
+                     context_closure ]
 
 (* Enums. *)
 let tls_enum = {
@@ -854,7 +859,7 @@ to end the connection without finishing negotiation.";
     example = Some "examples/list-exports.c";
     see_also = [Link "get_opt_mode"; Link "aio_is_negotiating";
                 Link "opt_abort"; Link "opt_go"; Link "opt_list";
-                Link "opt_info"];
+                Link "opt_info"; Link "opt_list_meta_context"];
   };
 
   "get_opt_mode", {
@@ -962,6 +967,56 @@ understood, the server might fail the request even when a
 corresponding L<nbd_opt_go(3)> would succeed.";
     see_also = [Link "set_opt_mode"; Link "aio_opt_info"; Link "opt_go";
                 Link "set_export_name"];
+  };
+
+  "opt_list_meta_context", {
+    default_call with
+    args = [ Closure context_closure ]; ret = RInt;
+    permitted_states = [ Negotiating ];
+    shortdesc = "request the server to list available meta contexts";
+    longdesc = "\
+Request that the server list available meta contexts associated with
+the export previously specified by the most recent
+L<nbd_set_export_name(3)> or L<nbd_connect_uri(3)>.  This can only be
+used if L<nbd_set_opt_mode(3)> enabled option mode.
+
+The NBD protocol allows a client to decide how many queries to ask
+the server.  Rather than taking that list of queries as a parameter
+to this function, libnbd reuses the current list of requested meta
+contexts as set by L<nbd_add_meta_context(3)>; you can use
+L<nbd_clear_meta_contexts(3)> to set up a different list of queries.
+When the list is empty, a server will typically reply with all
+contexts that it supports; when the list is non-empty, the server
+will reply only with supported contexts that match the client's
+request.  Note that a reply by the server might be encoded to
+represent several feasible contexts within one string, rather than
+multiple strings per actual context name that would actually succeed
+during L<nbd_opt_go(3)>; so it is still necessary to use
+L<nbd_can_meta_context(3)> after connecting to see which contexts
+are actually supported.
+
+The C<context> function is called once per server reply, with any
+C<user_data> passed to this function, and with C<name> supplied by
+the server.  Remember that it is not safe to call
+L<nbd_add_meta_context(3)> from within the context of the
+callback function; rather, your code must copy any C<name> needed for
+later use after this function completes.  At present, the return value
+of the callback is ignored, although a return of -1 should be avoided.
+
+For convenience, when this function succeeds, it returns the number
+of replies returned by the server.
+
+Not all servers understand this request, and even when it is understood,
+the server might intentionally send an empty list because it does not
+support the requested context, or may encounter a failure after
+delivering partial results.  Thus, this function may succeed even when
+no contexts are reported, or may fail but have a non-empty list.  Likewise,
+the NBD protocol does not specify an upper bound for the number of
+replies that might be advertised, so client code should be aware that
+a server may send a lengthy list.";
+    see_also = [Link "set_opt_mode"; Link "aio_opt_list_meta_context";
+                Link "add_meta_context"; Link "clear_meta_contexts";
+                Link "opt_go"; Link "set_export_name"];
   };
 
   "add_meta_context", {
@@ -2237,6 +2292,29 @@ callback.";
     see_also = [Link "set_opt_mode"; Link "opt_info"; Link "is_read_only"];
   };
 
+  "aio_opt_list_meta_context", {
+    default_call with
+    args = [ Closure context_closure ]; ret = RInt;
+    optargs = [ OClosure completion_closure ];
+    permitted_states = [ Negotiating ];
+    shortdesc = "request the server to list available meta contexts";
+    longdesc = "\
+Request that the server list available meta contexts associated with
+the export previously specified by the most recent
+L<nbd_set_export_name(3)> or L<nbd_connect_uri(3)>.  This can only be
+used if L<nbd_set_opt_mode(3)> enabled option mode.
+
+To determine when the request completes, wait for
+L<nbd_aio_is_connecting(3)> to return false.  Or supply the optional
+C<completion_callback> which will be invoked as described in
+L<libnbd(3)/Completion callbacks>, except that it is automatically
+retired regardless of return value.  Note that detecting whether the
+server returns an error (as is done by the return value of the
+synchronous counterpart) is only possible with a completion
+callback.";
+    see_also = [Link "set_opt_mode"; Link "opt_list_meta_context"];
+  };
+
   "aio_pread", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset" ];
@@ -2888,6 +2966,8 @@ let first_version = [
   "get_nr_meta_contexts", (1, 6);
   "get_meta_context", (1, 6);
   "clear_meta_contexts", (1, 6);
+  "opt_list_meta_context", (1, 6);
+  "aio_opt_list_meta_context", (1, 6);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

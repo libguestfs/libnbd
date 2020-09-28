@@ -32,6 +32,8 @@ nbd_internal_free_option (struct nbd_handle *h)
 {
   if (h->opt_current == NBD_OPT_LIST)
     FREE_CALLBACK (h->opt_cb.fn.list);
+  else if (h->opt_current == NBD_OPT_LIST_META_CONTEXT)
+    FREE_CALLBACK (h->opt_cb.fn.context);
   FREE_CALLBACK (h->opt_cb.completion);
 }
 
@@ -166,6 +168,51 @@ nbd_unlocked_opt_list (struct nbd_handle *h, nbd_list_callback *list)
   return s.count;
 }
 
+struct context_helper {
+  int count;
+  nbd_context_callback context;
+  int err;
+};
+static int
+context_visitor (void *opaque, const char *name)
+{
+  struct context_helper *h = opaque;
+  if (h->count < INT_MAX)
+    h->count++;
+  CALL_CALLBACK (h->context, name);
+  return 0;
+}
+static int
+context_complete (void *opaque, int *err)
+{
+  struct context_helper *h = opaque;
+  h->err = *err;
+  FREE_CALLBACK (h->context);
+  return 0;
+}
+
+/* Issue NBD_OPT_LIST_META_CONTEXT and wait for the reply. */
+int
+nbd_unlocked_opt_list_meta_context (struct nbd_handle *h,
+                                    nbd_context_callback *context)
+{
+  struct context_helper s = { .context = *context };
+  nbd_context_callback l = { .callback = context_visitor, .user_data = &s };
+  nbd_completion_callback c = { .callback = context_complete, .user_data = &s };
+
+  if (nbd_unlocked_aio_opt_list_meta_context (h, &l, &c) == -1)
+    return -1;
+
+  SET_CALLBACK_TO_NULL (*context);
+  if (wait_for_option (h) == -1)
+    return -1;
+  if (s.err) {
+    set_error (s.err, "server replied with error to list meta context request");
+    return -1;
+  }
+  return s.count;
+}
+
 /* Issue NBD_OPT_GO (or NBD_OPT_EXPORT_NAME) without waiting. */
 int
 nbd_unlocked_aio_opt_go (struct nbd_handle *h,
@@ -226,6 +273,32 @@ nbd_unlocked_aio_opt_list (struct nbd_handle *h, nbd_list_callback *list,
   h->opt_cb.completion = *complete;
   SET_CALLBACK_TO_NULL (*complete);
   h->opt_current = NBD_OPT_LIST;
+  if (nbd_internal_run (h, cmd_issue) == -1)
+    debug (h, "option queued, ignoring state machine failure");
+  return 0;
+}
+
+/* Issue NBD_OPT_LIST_META_CONTEXT without waiting. */
+int
+nbd_unlocked_aio_opt_list_meta_context (struct nbd_handle *h,
+                                        nbd_context_callback *context,
+                                        nbd_completion_callback *complete)
+{
+  if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0) {
+    set_error (ENOTSUP, "server is not using fixed newstyle protocol");
+    return -1;
+  }
+  if (!h->structured_replies) {
+    set_error (ENOTSUP, "server lacks structured replies");
+    return -1;
+  }
+
+  assert (CALLBACK_IS_NULL (h->opt_cb.fn.context));
+  h->opt_cb.fn.context = *context;
+  SET_CALLBACK_TO_NULL (*context);
+  h->opt_cb.completion = *complete;
+  SET_CALLBACK_TO_NULL (*complete);
+  h->opt_current = NBD_OPT_LIST_META_CONTEXT;
   if (nbd_internal_run (h, cmd_issue) == -1)
     debug (h, "option queued, ignoring state machine failure");
   return 0;

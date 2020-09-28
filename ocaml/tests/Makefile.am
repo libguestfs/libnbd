@@ -28,6 +28,7 @@ EXTRA_DIST = \
 	test_210_opt_abort.ml \
 	test_220_opt_list.ml \
 	test_230_opt_info.ml \
+	test_240_opt_list_meta.ml \
 	test_300_get_size.ml \
 	test_400_pread.ml \
 	test_405_pread_structured.ml \
@@ -53,6 +54,7 @@ tests_bc = \
 	test_210_opt_abort.bc \
 	test_220_opt_list.bc \
 	test_230_opt_info.bc \
+	test_240_opt_list_meta.bc \
 	test_300_get_size.bc \
 	test_400_pread.bc \
 	test_405_pread_structured.bc \
@@ -75,6 +77,7 @@ tests_opt = \
 	test_210_opt_abort.opt \
 	test_220_opt_list.opt \
 	test_230_opt_info.opt \
+	test_240_opt_list_meta.opt \
 	test_300_get_size.opt \
 	test_400_pread.opt \
 	test_405_pread_structured.opt \

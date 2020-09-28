@@ -21,18 +21,28 @@
 STATE_MACHINE {
  NEWSTYLE.OPT_META_CONTEXT.START:
   size_t i, nr_queries;
-  uint32_t len;
+  uint32_t len, opt;
 
   /* If the server doesn't support SRs then we must skip this group.
    * Also we skip the group if the client didn't request any metadata
-   * contexts.
+   * contexts, when doing SET (but an empty LIST is okay).
    */
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
   nbd_internal_reset_size_and_flags (h);
-  if (!h->structured_replies ||
-      nbd_internal_string_list_length (h->request_meta_contexts) == 0) {
-    SET_NEXT_STATE (%^OPT_GO.START);
-    return 0;
+  if (h->opt_current == NBD_OPT_LIST_META_CONTEXT) {
+    assert (h->opt_mode);
+    assert (h->structured_replies);
+    assert (CALLBACK_IS_NOT_NULL (h->opt_cb.fn.context));
+    opt = h->opt_current;
+  }
+  else {
+    assert (CALLBACK_IS_NULL (h->opt_cb.fn.context));
+    opt = NBD_OPT_SET_META_CONTEXT;
+    if (!h->structured_replies ||
+        nbd_internal_string_list_length (h->request_meta_contexts) == 0) {
+      SET_NEXT_STATE (%^OPT_GO.START);
+      return 0;
+    }
   }
 
   assert (h->meta_contexts == NULL);
@@ -44,7 +54,7 @@ STATE_MACHINE {
     len += 4 /* length of query */ + strlen (h->request_meta_contexts[i]);
 
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
-  h->sbuf.option.option = htobe32 (NBD_OPT_SET_META_CONTEXT);
+  h->sbuf.option.option = htobe32 (opt);
   h->sbuf.option.optlen = htobe32 (len);
   h->wbuf = &h->sbuf;
   h->wlen = sizeof (h->sbuf.option);
@@ -98,7 +108,8 @@ STATE_MACHINE {
   return 0;
 
  NEWSTYLE.OPT_META_CONTEXT.PREPARE_NEXT_QUERY:
-  const char *query = h->request_meta_contexts[h->querynum];
+  const char *query = !h->request_meta_contexts ? NULL
+    : h->request_meta_contexts[h->querynum];
 
   if (query == NULL) { /* end of list of requested meta contexts */
     SET_NEXT_STATE (%PREPARE_FOR_REPLY);
@@ -140,10 +151,17 @@ STATE_MACHINE {
   return 0;
 
  NEWSTYLE.OPT_META_CONTEXT.RECV_REPLY:
+  uint32_t opt;
+
+  if (h->opt_current == NBD_OPT_LIST_META_CONTEXT)
+    opt = h->opt_current;
+  else
+    opt = NBD_OPT_SET_META_CONTEXT;
+
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
-    if (prepare_for_reply_payload (h, NBD_OPT_SET_META_CONTEXT) == -1) {
+    if (prepare_for_reply_payload (h, opt) == -1) {
       SET_NEXT_STATE (%.DEAD);
       return 0;
     }
@@ -163,12 +181,25 @@ STATE_MACHINE {
   uint32_t len;
   const size_t maxpayload = sizeof h->sbuf.or.payload.context;
   struct meta_context *meta_context;
+  uint32_t opt;
+  int err = 0;
+
+  if (h->opt_current == NBD_OPT_LIST_META_CONTEXT)
+    opt = h->opt_current;
+  else
+    opt = NBD_OPT_SET_META_CONTEXT;
 
   reply = be32toh (h->sbuf.or.option_reply.reply);
   len = be32toh (h->sbuf.or.option_reply.replylen);
   switch (reply) {
   case NBD_REP_ACK:           /* End of list of replies. */
-    SET_NEXT_STATE (%^OPT_GO.START);
+    if (opt == NBD_OPT_LIST_META_CONTEXT) {
+      SET_NEXT_STATE (%.NEGOTIATING);
+      CALL_CALLBACK (h->opt_cb.completion, &err);
+      nbd_internal_free_option (h);
+    }
+    else
+      SET_NEXT_STATE (%^OPT_GO.START);
     break;
   case NBD_REP_META_CONTEXT:  /* A context. */
     if (len > maxpayload)
@@ -194,21 +225,41 @@ STATE_MACHINE {
       }
       debug (h, "negotiated %s with context ID %" PRIu32,
              meta_context->name, meta_context->context_id);
-      meta_context->next = h->meta_contexts;
-      h->meta_contexts = meta_context;
+      if (opt == NBD_OPT_LIST_META_CONTEXT) {
+        CALL_CALLBACK (h->opt_cb.fn.context, meta_context->name);
+        free (meta_context->name);
+        free (meta_context);
+      }
+      else {
+        meta_context->next = h->meta_contexts;
+        h->meta_contexts = meta_context;
+      }
     }
     SET_NEXT_STATE (%PREPARE_FOR_REPLY);
     break;
   default:
-    /* Anything else is an error, ignore it */
+    /* Anything else is an error, ignore it for SET, report it for LIST */
     if (handle_reply_error (h) == -1) {
       SET_NEXT_STATE (%.DEAD);
       return 0;
     }
 
-    debug (h, "handshake: unexpected error from "
-           "NBD_OPT_SET_META_CONTEXT (%" PRIu32 ")", reply);
-    SET_NEXT_STATE (%^OPT_GO.START);
+    if (opt == NBD_OPT_LIST_META_CONTEXT) {
+      /* XXX Should we decode specific expected errors, like
+       * REP_ERR_UNKNOWN to ENOENT or REP_ERR_TOO_BIG to ERANGE?
+       */
+      err = ENOTSUP;
+      set_error (err, "unexpected response, possibly the server does not "
+                 "support listing contexts");
+      CALL_CALLBACK (h->opt_cb.completion, &err);
+      nbd_internal_free_option (h);
+      SET_NEXT_STATE (%.NEGOTIATING);
+    }
+    else {
+      debug (h, "handshake: unexpected error from "
+             "NBD_OPT_SET_META_CONTEXT (%" PRIu32 ")", reply);
+      SET_NEXT_STATE (%^OPT_GO.START);
+    }
     break;
   }
   return 0;

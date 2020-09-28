@@ -77,6 +77,7 @@ struct command_cb {
     nbd_extent_callback extent;
     nbd_chunk_callback chunk;
     nbd_list_callback list;
+    nbd_context_callback context;
   } fn;
   nbd_completion_callback completion;
 };

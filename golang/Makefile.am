@@ -36,6 +36,7 @@ source_files = \
 	src/$(pkg)/libnbd_210_opt_abort_test.go \
 	src/$(pkg)/libnbd_220_opt_list_test.go \
 	src/$(pkg)/libnbd_230_opt_info_test.go \
+	src/$(pkg)/libnbd_240_opt_list_meta_test.go \
 	src/$(pkg)/libnbd_300_get_size_test.go \
 	src/$(pkg)/libnbd_400_pread_test.go \
 	src/$(pkg)/libnbd_405_pread_structured_test.go \

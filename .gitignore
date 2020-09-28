@@ -175,6 +175,7 @@ Makefile.in
 /tests/opt-abort
 /tests/opt-info
 /tests/opt-list
+/tests/opt-list-meta
 /tests/pki/
 /tests/read-only-flag
 /tests/read-write-flag

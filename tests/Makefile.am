@@ -38,6 +38,7 @@ EXTRA_DIST = \
 	meta-base-allocation.sh \
 	opt-info.sh \
 	opt-list.sh \
+	opt-list-meta.sh \
 	synch-parallel.sh \
 	synch-parallel-tls.sh \
 	$(NULL)
@@ -169,6 +170,7 @@ check_PROGRAMS += \
 	opt-abort \
 	opt-list \
 	opt-info \
+	opt-list-meta \
 	connect-unix \
 	connect-tcp \
 	aio-parallel \
@@ -208,6 +210,7 @@ TESTS += \
 	opt-abort \
 	opt-list \
 	opt-info \
+	opt-list-meta \
 	connect-unix \
 	connect-tcp \
 	aio-parallel.sh \
@@ -408,6 +411,13 @@ opt_info_CPPFLAGS = \
 	$(NULL)
 opt_info_CFLAGS = $(WARNINGS_CFLAGS)
 opt_info_LDADD = $(top_builddir)/lib/libnbd.la
+
+opt_list_meta_SOURCES = opt-list-meta.c
+opt_list_meta_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	$(NULL)
+opt_list_meta_CFLAGS = $(WARNINGS_CFLAGS)
+opt_list_meta_LDADD = $(top_builddir)/lib/libnbd.la
 
 connect_unix_SOURCES = connect-unix.c
 connect_unix_CPPFLAGS = -I$(top_srcdir)/include
