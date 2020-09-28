@@ -16,10 +16,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* State machine for negotiating NBD_OPT_SET_META_CONTEXT. */
+/* State machine for negotiating NBD_OPT_SET/LIST_META_CONTEXT. */
 
 STATE_MACHINE {
- NEWSTYLE.OPT_SET_META_CONTEXT.START:
+ NEWSTYLE.OPT_META_CONTEXT.START:
   size_t i, nr_queries;
   uint32_t len;
 
@@ -52,7 +52,7 @@ STATE_MACHINE {
   SET_NEXT_STATE (%SEND);
   return 0;
 
- NEWSTYLE.OPT_SET_META_CONTEXT.SEND:
+ NEWSTYLE.OPT_META_CONTEXT.SEND:
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
@@ -64,7 +64,7 @@ STATE_MACHINE {
   }
   return 0;
 
- NEWSTYLE.OPT_SET_META_CONTEXT.SEND_EXPORTNAMELEN:
+ NEWSTYLE.OPT_META_CONTEXT.SEND_EXPORTNAMELEN:
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
@@ -75,7 +75,7 @@ STATE_MACHINE {
   }
   return 0;
 
- NEWSTYLE.OPT_SET_META_CONTEXT.SEND_EXPORTNAME:
+ NEWSTYLE.OPT_META_CONTEXT.SEND_EXPORTNAME:
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
@@ -88,7 +88,7 @@ STATE_MACHINE {
   }
   return 0;
 
- NEWSTYLE.OPT_SET_META_CONTEXT.SEND_NRQUERIES:
+ NEWSTYLE.OPT_META_CONTEXT.SEND_NRQUERIES:
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
@@ -97,7 +97,7 @@ STATE_MACHINE {
   }
   return 0;
 
- NEWSTYLE.OPT_SET_META_CONTEXT.PREPARE_NEXT_QUERY:
+ NEWSTYLE.OPT_META_CONTEXT.PREPARE_NEXT_QUERY:
   const char *query = h->request_meta_contexts[h->querynum];
 
   if (query == NULL) { /* end of list of requested meta contexts */
@@ -112,7 +112,7 @@ STATE_MACHINE {
   SET_NEXT_STATE (%SEND_QUERYLEN);
   return 0;
 
- NEWSTYLE.OPT_SET_META_CONTEXT.SEND_QUERYLEN:
+ NEWSTYLE.OPT_META_CONTEXT.SEND_QUERYLEN:
   const char *query = h->request_meta_contexts[h->querynum];
 
   switch (send_from_wbuf (h)) {
@@ -124,7 +124,7 @@ STATE_MACHINE {
   }
   return 0;
 
- NEWSTYLE.OPT_SET_META_CONTEXT.SEND_QUERY:
+ NEWSTYLE.OPT_META_CONTEXT.SEND_QUERY:
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
@@ -133,13 +133,13 @@ STATE_MACHINE {
   }
   return 0;
 
- NEWSTYLE.OPT_SET_META_CONTEXT.PREPARE_FOR_REPLY:
+ NEWSTYLE.OPT_META_CONTEXT.PREPARE_FOR_REPLY:
   h->rbuf = &h->sbuf.or.option_reply;
   h->rlen = sizeof h->sbuf.or.option_reply;
   SET_NEXT_STATE (%RECV_REPLY);
   return 0;
 
- NEWSTYLE.OPT_SET_META_CONTEXT.RECV_REPLY:
+ NEWSTYLE.OPT_META_CONTEXT.RECV_REPLY:
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
@@ -151,14 +151,14 @@ STATE_MACHINE {
   }
   return 0;
 
- NEWSTYLE.OPT_SET_META_CONTEXT.RECV_REPLY_PAYLOAD:
+ NEWSTYLE.OPT_META_CONTEXT.RECV_REPLY_PAYLOAD:
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:  SET_NEXT_STATE (%CHECK_REPLY);
   }
   return 0;
 
- NEWSTYLE.OPT_SET_META_CONTEXT.CHECK_REPLY:
+ NEWSTYLE.OPT_META_CONTEXT.CHECK_REPLY:
   uint32_t reply;
   uint32_t len;
   const size_t maxpayload = sizeof h->sbuf.or.payload.context;

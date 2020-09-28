@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2019 Red Hat Inc.
+# Copyright (C) 2013-2020 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,7 @@ states_code = \
 	states-newstyle-opt-export-name.c \
 	states-newstyle-opt-list.c \
 	states-newstyle-opt-go.c \
-	states-newstyle-opt-set-meta-context.c \
+	states-newstyle-opt-meta-context.c \
 	states-newstyle-opt-starttls.c \
 	states-newstyle-opt-structured-reply.c \
 	states-newstyle.c \

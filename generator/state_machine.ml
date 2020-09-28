@@ -283,7 +283,7 @@ and newstyle_state_machine = [
    *)
   Group ("OPT_STARTTLS", newstyle_opt_starttls_state_machine);
   Group ("OPT_STRUCTURED_REPLY", newstyle_opt_structured_reply_state_machine);
-  Group ("OPT_SET_META_CONTEXT", newstyle_opt_set_meta_context_state_machine);
+  Group ("OPT_META_CONTEXT", newstyle_opt_meta_context_state_machine);
   Group ("OPT_GO", newstyle_opt_go_state_machine);
   Group ("OPT_EXPORT_NAME", newstyle_opt_export_name_state_machine);
 
@@ -453,8 +453,8 @@ and newstyle_opt_structured_reply_state_machine = [
   };
 ]
 
-(* Fixed newstyle NBD_OPT_SET_META_CONTEXT option. *)
-and newstyle_opt_set_meta_context_state_machine = [
+(* Fixed newstyle NBD_OPT_SET/LIST_META_CONTEXT option. *)
+and newstyle_opt_meta_context_state_machine = [
   State {
     default_state with
     name = "START";
