@@ -57,6 +57,9 @@ nbd_internal_string_list_length (char **argv)
 {
   size_t ret;
 
+  if (argv == NULL)
+    return 0;
+
   for (ret = 0; argv[ret] != NULL; ++ret)
     ;
   return ret;

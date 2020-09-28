@@ -30,7 +30,6 @@ STATE_MACHINE {
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
   nbd_internal_reset_size_and_flags (h);
   if (!h->structured_replies ||
-      h->request_meta_contexts == NULL ||
       nbd_internal_string_list_length (h->request_meta_contexts) == 0) {
     SET_NEXT_STATE (%^OPT_GO.START);
     return 0;
