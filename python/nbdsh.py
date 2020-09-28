@@ -38,6 +38,10 @@ def shell():
                         help='request the "base:allocation" meta context')
     long_options.append("--base-allocation")
 
+    parser.add_argument('--opt-mode', action='store_true',
+                        help='request opt mode during connection')
+    long_options.append("--opt-mode")
+
     parser.add_argument('-u', '--uri', help="connect to NBD URI")
     short_options.append("-u")
     long_options.append("--uri")
@@ -89,6 +93,8 @@ help(nbd)                          # Display documentation
 
     if args.base_allocation:
         h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
+    if args.opt_mode:
+        h.set_opt_mode(True)
     if args.uri is not None:
         try:
             h.connect_uri(args.uri)

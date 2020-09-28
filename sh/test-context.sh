@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2019 Red Hat Inc.
+# Copyright (C) 2019-2020 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -27,6 +27,19 @@ output=$(nbdkit -U - null --run 'nbdsh \
     -u "nbd+unix://?socket=$unixsocket" \
     -c "print(h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION))"')
 if test "x$output" != xFalse; then
+    echo "$0: unexpected output: $output"
+    fail=1
+fi
+
+# Use of -c to request context is too late with -u
+output=$(nbdkit -U - null --run 'nbdsh -c "
+try:
+    h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
+    assert(False)
+except nbd.Error:
+    print(\"okay\")
+" -u "nbd+unix://?socket=$unixsocket"')
+if test "x$output" != xokay; then
     echo "$0: unexpected output: $output"
     fail=1
 fi
@@ -60,6 +73,34 @@ if [[ $(nbdkit --help) =~ --no-sr ]]; then
     fi
 else
     echo "$0: nbdkit lacks --no-sr"
+fi
+
+# Test interaction with opt mode
+output=$(nbdkit -U - null --run 'nbdsh \
+    -u "nbd+unix://?socket=$unixsocket" --opt-mode --base-allocation \
+    -c "
+try:
+    h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
+    assert(False)
+except nbd.Error:
+    pass
+" \
+    -c "h.opt_go()" \
+    -c "print(h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION))"')
+if test "x$output" != xTrue; then
+    echo "$0: unexpected output: $output"
+    fail=1
+fi
+
+# And with --opt-mode, we can get away without --base-allocation
+output=$(nbdkit -U - null --run 'nbdsh \
+    -u "nbd+unix://?socket=$unixsocket" --opt-mode \
+    -c "h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)" \
+    -c "h.opt_go()" \
+    -c "print(h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION))"')
+if test "x$output" != xTrue; then
+    echo "$0: unexpected output: $output"
+    fail=1
 fi
 
 exit $fail

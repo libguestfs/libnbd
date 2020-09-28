@@ -60,8 +60,10 @@ Display brief command line help and exit.
 
 Request the use of the "base:allocation" meta context, which is the
 most common context used with L<nbd_block_status(3)>.  This is
-equivalent to calling S<C<h.set_meta_context
-(nbd.CONTEXT_BASE_ALLOCATION)>> in the shell prior to connecting.
+equivalent to calling
+S<C<h.set_meta_context(nbd.CONTEXT_BASE_ALLOCATION)>> in the shell
+prior to connecting, and works even when combined with C<--uri> (while
+attempting the same with C<-c> would be too late).
 
 =item B<-c> 'COMMAND ...'
 
@@ -69,6 +71,15 @@ equivalent to calling S<C<h.set_meta_context
 
 Instead of starting an interactive shell, run a command.  This option
 can be specified multiple times in order to run multiple commands.
+
+=item B<--opt-mode>
+
+Request that option mode be enabled, which gives fine-grained control
+over option negotiation after initially contacting the server but
+prior to actually using the export.  This is equivalent to calling
+S<C<h.set_opt_mode(True)>> in the shell prior to connecting, and works
+even when combined with C<--uri> (while attempting the same with C<-c>
+would be too late).
 
 =item B<-c ->
 
@@ -84,6 +95,12 @@ Read standard input and execute it as a command.
 
 Connect to the given L<NBD URI|https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>.
 This is equivalent to the S<C<h.connect_uri(URI)>> command in the shell.
+
+Note that the connection is created prior to processing any C<-c>
+commands, which prevents the use of configuration commands such as
+S<C<h.add_meta_context(>NAMEC<)>> from the command line when mixed
+with this option.  The options C<--opt-mode> and C<--base-allocation>
+can be used to make this situation easier to manage.
 
 =item B<-V>
 
