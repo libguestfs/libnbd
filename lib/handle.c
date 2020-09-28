@@ -297,8 +297,7 @@ nbd_unlocked_add_meta_context (struct nbd_handle *h, const char *name)
     set_error (errno, "strdup");
     return -1;
   }
-  len = h->request_meta_contexts == NULL ? 0
-    : nbd_internal_string_list_length (h->request_meta_contexts);
+  len = nbd_internal_string_list_length (h->request_meta_contexts);
   list = realloc (h->request_meta_contexts,
                   sizeof (char *) * (len+2 /* + new entry + NULL */));
   if (list == NULL) {
