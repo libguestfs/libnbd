@@ -25,7 +25,7 @@ requires nbdkit --exit-with-parent --version
 requires dd --version
 
 pidfile=copy-stdin-to-nbd.pid
-sock=`mktemp -u`
+sock=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
 cleanup_fn rm -f $pidfile $sock
 
 nbdkit --exit-with-parent -f -v -P $pidfile -U $sock memory size=10M &

@@ -22,8 +22,8 @@
 requires nbdkit --exit-with-parent --version
 requires nbdsh -c 'exit(not h.supports_uri())'
 
-sock=`mktemp -u /tmp/nbdsh.XXXXXX`
-pidfile=test-dump.pid
+sock=$(mktemp -u /tmp/libnbd-test-nbdsh.XXXXXX)
+pidfile=test-pattern.pid
 cleanup_fn rm -f $sock $pidfile
 nbdkit -v -P $pidfile --exit-with-parent -U $sock pattern size=1m &
 

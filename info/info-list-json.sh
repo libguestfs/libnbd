@@ -29,7 +29,7 @@ requires jq --version
 img=info-list-json.img
 out=info-list-json.out
 pid=info-list-json.pid
-sock=`mktemp -u`
+sock=$(mktemp -u /tmp/libnbd-test-info.XXXXXX)
 cleanup_fn rm -f $img $out $pid $sock
 rm -f $img $out $pid $sock
 

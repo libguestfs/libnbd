@@ -53,7 +53,7 @@ EOF
 qemu-io -f qcow2 -c 'w 64k 64k' -c 'w -z 512k 64k' $f
 
 # We have to run qemu-nbd and attempt to clean it up afterwards.
-sock=`mktemp -u`
+sock=$(mktemp -u /tmp/libnbd-test-info.XXXXXX)
 pid=info-map-qemu-dirty-bitmap.pid
 cleanup_fn rm -f $sock $pid
 rm -f $sock $pid

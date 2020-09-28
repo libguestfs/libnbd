@@ -26,7 +26,7 @@ requires stat --version
 
 file=copy-nbd-to-file.file
 pidfile=copy-nbd-to-file.pid
-sock=`mktemp -u`
+sock=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
 cleanup_fn rm -f $file $pidfile $sock
 
 nbdkit --exit-with-parent -f -v -P $pidfile -U $sock pattern size=10M &

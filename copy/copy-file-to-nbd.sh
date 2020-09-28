@@ -26,7 +26,7 @@ requires truncate --version
 
 file=copy-file-to-nbd.file
 pidfile=copy-file-to-nbd.pid
-sock=`mktemp -u`
+sock=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
 cleanup_fn rm -f $file $pidfile $sock
 
 nbdkit --exit-with-parent -f -v -P $pidfile -U $sock memory size=10M &

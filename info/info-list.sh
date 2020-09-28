@@ -29,7 +29,7 @@ requires truncate --version
 img=info-list.img
 out=info-list.out
 pid=info-list.pid
-sock=`mktemp -u`
+sock=$(mktemp -u /tmp/libnbd-test-info.XXXXXX)
 cleanup_fn rm -f $img $out $pid $sock
 rm -f $img $out $pid $sock
 
