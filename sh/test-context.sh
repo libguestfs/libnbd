@@ -25,7 +25,7 @@ requires nbdsh -c 'exit(not h.supports_uri())'
 # Without --base-allocation, no meta context is requested
 output=$(nbdkit -U - null --run 'nbdsh \
     -u "nbd+unix://?socket=$unixsocket" \
-    -c "print (h.can_meta_context (nbd.CONTEXT_BASE_ALLOCATION))"')
+    -c "print(h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION))"')
 if test "x$output" != xFalse; then
     echo "$0: unexpected output: $output"
     fail=1
@@ -34,7 +34,7 @@ fi
 # With --base-allocation (and a server that supports it), meta context works.
 output=$(nbdkit -U - null --run 'nbdsh \
     --base-allocation --uri "nbd+unix://?socket=$unixsocket" \
-    --command "print (h.can_meta_context (nbd.CONTEXT_BASE_ALLOCATION))"')
+    --command "print(h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION))"')
 if test "x$output" != xTrue; then
     echo "$0: unexpected output: $output"
     fail=1
@@ -43,7 +43,7 @@ fi
 # Again, but with --b after -u, and with abbreviated option names
 output=$(nbdkit -U - null --run 'nbdsh \
     -u "nbd+unix://?socket=$unixsocket" --b \
-    -c "print (h.can_meta_context (nbd.CONTEXT_BASE_ALLOCATION))"')
+    -c "print(h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION))"')
 if test "x$output" != xTrue; then
     echo "$0: unexpected output: $output"
     fail=1
@@ -53,7 +53,7 @@ if [[ $(nbdkit --help) =~ --no-sr ]]; then
     # meta context depends on server cooperation
     output=$(nbdkit -U - --no-sr null --run 'nbdsh \
       -u "nbd+unix://?socket=$unixsocket" --base-allocation \
-      -c "print (h.can_meta_context (nbd.CONTEXT_BASE_ALLOCATION))"')
+      -c "print(h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION))"')
     if test "x$output" != xFalse; then
         echo "$0: unexpected output: $output"
         fail=1
