@@ -57,6 +57,7 @@ and arg =
 | Int of string            (** small int *)
 | Int64 of string          (** 64 bit signed int *)
 | Path of string           (** filename or path *)
+| SizeT of string          (** like size_t, for counting array elements *)
 | SockAddrAndLen of string * string (** struct sockaddr * + socklen_t *)
 | String of string         (** string, cannot be NULL *)
 | StringList of string     (** argv-style NULL-terminated array of strings *)

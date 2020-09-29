@@ -50,6 +50,7 @@ and ocaml_arg_to_string = function
   | Int64 _ -> "int64"
   | Path _ -> "string"
   | SockAddrAndLen _ -> "string" (* XXX not impl *)
+  | SizeT _ -> "int" (* OCaml int type is always sufficient for counting *)
   | String _ -> "string"
   | StringList _ -> "string list"
   | UInt _ -> "int"
@@ -103,6 +104,7 @@ let ocaml_name_of_arg = function
   | Int n -> n
   | Int64 n -> n
   | Path n -> n
+  | SizeT n -> n
   | SockAddrAndLen (n, len) -> n
   | String n -> n
   | StringList n -> n
@@ -666,6 +668,8 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
        pr "  int64_t %s = Int64_val (%sv);\n" n n
     | Path n | String n ->
        pr "  const char *%s = String_val (%sv);\n" n n
+    | SizeT n ->
+       pr "  size_t %s = Int_val (%sv);\n" n n
     | SockAddrAndLen (n, len) ->
        pr "  const struct sockaddr *%s;\n" n;
        pr "  socklen_t %s;\n" len;
@@ -738,6 +742,7 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
     | Int _
     | Int64 _
     | Path _
+    | SizeT _
     | String _
     | SockAddrAndLen _
     | UInt _

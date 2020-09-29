@@ -54,6 +54,7 @@ let go_name_of_arg = function
   | Int n -> n
   | Int64 n -> n
   | Path n -> n
+  | SizeT n -> n
   | SockAddrAndLen (n, len) -> n
   | String n -> n
   | StringList n -> n
@@ -74,6 +75,7 @@ let go_arg_type = function
   | Int _ -> "int"
   | Int64 _ -> "int64"
   | Path _ -> "string"
+  | SizeT _ -> "int"
   | SockAddrAndLen _ -> "string"
   | String _ -> "string"
   | StringList _ -> "[]string"
@@ -276,6 +278,8 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
     | Path n ->
        pr "    c_%s := C.CString (%s)\n" n n;
        pr "    defer C.free (unsafe.Pointer (c_%s))\n" n
+    | SizeT n ->
+       pr "    c_%s := C.size_t (%s)\n" n n
     | SockAddrAndLen (n, len) ->
        pr "    panic (\"SockAddrAndLen not supported\")\n";
        pr "    var c_%s *C.struct_sockaddr\n" n;
@@ -336,6 +340,7 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
     | Int n -> pr ", c_%s" n
     | Int64 n -> pr ", c_%s" n
     | Path n -> pr ", c_%s" n
+    | SizeT n -> pr ", c_%s" n
     | SockAddrAndLen (n, len) -> pr ", c_%s, c_%s" n len
     | String n -> pr ", c_%s" n
     | StringList n -> pr ", &c_%s[0]" n
