@@ -96,6 +96,7 @@ let go_ret_type = function
   | RInt -> Some "uint"
   | RInt64 -> Some "uint64"
   | RCookie -> Some "uint64"
+  | RSizeT -> Some "int"
   | RString -> Some "*string"
   (* RUInt returns (type, error) for consistency, but the error is
    * always nil unless h is closed
@@ -107,28 +108,16 @@ let go_ret_type = function
 let go_ret_error = function
   | RErr -> None
   | RBool -> Some "false"
-  | RStaticString -> Some "nil"
-  | RFd -> Some "0"
-  | RInt -> Some "0"
-  | RInt64 -> Some "0"
-  | RCookie -> Some "0"
-  | RString -> Some "nil"
-  | RUInt -> Some "0"
-  | REnum _ -> Some "0"
-  | RFlags _ -> Some "0"
+  | RStaticString | RString -> Some "nil"
+  | RFd | RInt | RInt64 | RCookie | RSizeT | RUInt
+  | REnum _ | RFlags _ -> Some "0"
 
 let go_ret_c_errcode = function
   | RBool -> Some "-1"
   | RStaticString -> Some "nil"
-  | RErr -> Some "-1"
-  | RFd -> Some "-1"
-  | RInt -> Some "-1"
-  | RInt64 -> Some "-1"
-  | RCookie -> Some "-1"
+  | RErr | RFd | RInt | RInt64 | RCookie | RSizeT -> Some "-1"
   | RString -> Some "nil"
-  | RUInt -> None
-  | REnum _ -> None
-  | RFlags _ -> None
+  | RUInt | REnum _ | RFlags _ -> None
 
 (* We need a wrapper around every function (except Close) to
  * handle errors because cgo calls are sequence points and
@@ -392,6 +381,8 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
       pr "    return uint64 (ret), nil\n"
    | RCookie ->
       pr "    return uint64 (ret), nil\n"
+   | RSizeT ->
+      pr "    return int (ret), nil\n"
    | RString ->
       pr "    r := C.GoString (ret)\n";
       pr "    C.free (unsafe.Pointer (ret))\n";

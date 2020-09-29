@@ -77,6 +77,7 @@ and ret =
 | RInt                     (** return a small int, -1 = error *)
 | RInt64                   (** 64 bit int, -1 = error *)
 | RCookie                  (** 64 bit command cookie (>= 1), -1 = error *)
+| RSizeT                   (** return a count like ssize_t, -1 = error *)
 | RString                  (** return a newly allocated string,
                                caller frees, NULL for error *)
 | RUInt                    (** return a bitmask, no error possible *)
