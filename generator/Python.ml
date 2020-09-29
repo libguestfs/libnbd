@@ -295,6 +295,8 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Path n ->
        pr "  PyObject *py_%s = NULL;\n" n;
        pr "  char *%s = NULL;\n" n
+    | SizeT n ->
+       pr "  Py_ssize_t %s;\n" n
     | SockAddrAndLen (n, _) ->
        pr "  /* XXX Complicated - Python uses a tuple of different\n";
        pr "   * lengths for the different socket types.\n";
@@ -341,6 +343,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Fd n | Int n -> pr " \"i\""
     | Int64 n -> pr " \"L\""
     | Path n -> pr " \"O&\""
+    | SizeT n -> pr " \"n\""
     | SockAddrAndLen (n, _) -> pr " \"O\""
     | String n -> pr " \"s\""
     | StringList n -> pr " \"O\""
@@ -365,8 +368,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Closure { cbname } -> pr ", &py_%s_fn" cbname
     | Enum (n, _) -> pr ", &%s" n
     | Flags (n, _) -> pr ", &%s" n
-    | Fd n | Int n -> pr ", &%s" n
-    | Int64 n -> pr ", &%s" n
+    | Fd n | Int n | SizeT n | Int64 n -> pr ", &%s" n
     | Path n -> pr ", PyUnicode_FSConverter, &py_%s" n
     | SockAddrAndLen (n, _) -> pr ", &%s" n
     | String n -> pr ", &%s" n
@@ -435,6 +437,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Path n ->
        pr "  %s = PyBytes_AS_STRING (py_%s);\n" n n;
        pr "  assert (%s != NULL);\n" n
+    | SizeT n -> ()
     | SockAddrAndLen _ ->
        pr "  abort (); /* XXX SockAddrAndLen not implemented */\n";
     | String _ -> ()
@@ -462,6 +465,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Fd n | Int n -> pr ", %s" n
     | Int64 n -> pr ", %s_i64" n
     | Path n -> pr ", %s" n
+    | SizeT n -> pr ", (size_t)%s" n
     | SockAddrAndLen (n, _) -> pr ", /* XXX */ (void *) %s, 0" n
     | String n -> pr ", %s" n
     | StringList n -> pr ", %s" n
@@ -510,6 +514,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Int64 _
     | Path _
     | SockAddrAndLen _
+    | SizeT _
     | String _
     | StringList _
     | UInt _
@@ -551,6 +556,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Int64 _ -> ()
     | Path n ->
        pr "  Py_XDECREF (py_%s);\n" n
+    | SizeT _ -> ()
     | SockAddrAndLen _ -> ()
     | String n -> ()
     | StringList n -> pr "  nbd_internal_py_free_string_list (%s);\n" n
@@ -788,6 +794,7 @@ class NBD(object):
           | Fd n | Int n -> n, None, None
           | Int64 n -> n, None, None
           | Path n -> n, None, None
+          | SizeT n -> n, None, None
           | SockAddrAndLen (n, _) -> n, None, None
           | String n -> n, None, None
           | StringList n -> n, None, None

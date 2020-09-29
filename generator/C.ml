@@ -93,6 +93,7 @@ let rec name_of_arg = function
 | Int n -> [n]
 | Int64 n -> [n]
 | Path n -> [n]
+| SizeT n -> [n]
 | SockAddrAndLen (n, len) -> [n; len]
 | String n -> [n]
 | StringList n -> [n]
@@ -156,6 +157,9 @@ and print_arg_list' ?(handle = false) ?(types = true) ?(closure_style = Direct)
          pr "%s" n
       | Int64 n ->
          if types then pr "int64_t ";
+         pr "%s" n
+      | SizeT n ->
+         if types then pr "size_t ";
          pr "%s" n
       | Path n
       | String n ->
@@ -605,7 +609,8 @@ let generate_lib_api_c () =
          pr "        nbd_internal_printable_string_list (%s);\n" n
       | BytesOut _ | BytesPersistOut _
       | Bool _ | Closure _ | Enum _ | Flags _ | Fd _ | Int _
-      | Int64 _ | SockAddrAndLen _ | UInt _ | UInt32 _ | UInt64 _ -> ()
+      | Int64 _ | SizeT _
+      | SockAddrAndLen _ | UInt _ | UInt32 _ | UInt64 _ -> ()
     ) args;
     pr "    debug (h, \"enter:";
     List.iter (
@@ -621,6 +626,7 @@ let generate_lib_api_c () =
       | Flags (n, _) -> pr " %s=0x%%x" n
       | Fd n | Int n -> pr " %s=%%d" n
       | Int64 n -> pr " %s=%%\" PRIi64 \"" n
+      | SizeT n -> pr " %s=%%zu" n
       | SockAddrAndLen (n, len) -> pr " %s=<sockaddr> %s=%%d" n len
       | Path n
       | String n -> pr " %s=%%s" n
@@ -646,8 +652,7 @@ let generate_lib_api_c () =
       | Closure { cbname } -> ()
       | Enum (n, _) -> pr ", %s" n
       | Flags (n, _) -> pr ", %s" n
-      | Fd n | Int n -> pr ", %s" n
-      | Int64 n -> pr ", %s" n
+      | Fd n | Int n | Int64 n | SizeT n -> pr ", %s" n
       | SockAddrAndLen (_, len) -> pr ", (int) %s" len
       | Path n | String n | StringList n ->
          pr ", %s_printable ? %s_printable : \"\"" n n
@@ -670,7 +675,8 @@ let generate_lib_api_c () =
          pr "    free (%s_printable);\n" n
       | BytesOut _ | BytesPersistOut _
       | Bool _ | Closure _ | Enum _ | Flags _ | Fd _ | Int _
-      | Int64 _ | SockAddrAndLen _ | UInt _ | UInt32 _ | UInt64 _ -> ()
+      | Int64 _ | SizeT _
+      | SockAddrAndLen _ | UInt _ | UInt32 _ | UInt64 _ -> ()
     ) args;
     pr "  }\n"
   (* Print the trace when we leave a call with debugging enabled. *)

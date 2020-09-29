@@ -47,6 +47,7 @@ and arg =
 | Int of string
 | Int64 of string
 | Path of string
+| SizeT of string
 | SockAddrAndLen of string * string
 | String of string
 | StringList of string
