@@ -65,6 +65,7 @@ and ret =
 | RInt
 | RInt64
 | RCookie
+| RSizeT
 | RString
 | RUInt
 | REnum of enum

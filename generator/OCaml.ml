@@ -65,6 +65,7 @@ and ocaml_ret_to_string = function
   | RInt -> "int"
   | RInt64 -> "int64"
   | RCookie -> "cookie"
+  | RSizeT -> "int"
   | RString -> "string"
   | RUInt -> "int"
   | REnum { enum_prefix } -> enum_prefix ^ ".t"
@@ -707,7 +708,7 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
   (match ret with
    | RBool -> pr "  rv = Val_bool (r);\n"
    | RErr -> pr "  rv = Val_unit;\n"
-   | RFd | RInt | RUInt -> pr "  rv = Val_int (r);\n"
+   | RFd | RInt | RSizeT | RUInt -> pr "  rv = Val_int (r);\n"
    | REnum { enum_prefix } -> pr "  rv = Val_%s (r);\n" enum_prefix
    | RFlags { flag_prefix } -> pr "  rv = Val_%s (r);\n" flag_prefix
    | RInt64 | RCookie -> pr "  rv = caml_copy_int64 (r);\n"

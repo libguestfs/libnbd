@@ -66,7 +66,7 @@ let generate_lib_libnbd_syms () =
 
 let errcode_of_ret =
   function
-  | RBool | RErr | RFd | RInt | RInt64 | RCookie -> Some "-1"
+  | RBool | RErr | RFd | RInt | RInt64 | RCookie | RSizeT -> Some "-1"
   | RStaticString | RString -> Some "NULL"
   | RUInt | REnum _ | RFlags _ -> None (* errors not possible *)
 
@@ -74,6 +74,7 @@ let type_of_ret =
   function
   | RBool | RErr | RFd | RInt | REnum _ -> "int"
   | RInt64 | RCookie -> "int64_t"
+  | RSizeT -> "ssize_t"
   | RStaticString -> "const char *"
   | RString -> "char *"
   | RUInt -> "unsigned"
@@ -696,13 +697,14 @@ let generate_lib_api_c () =
         pr "      char *ret_printable =\n";
         pr "          nbd_internal_printable_string (ret);\n"
      | RBool | RErr | RFd | RInt
-     | RInt64 | RCookie
+     | RInt64 | RCookie | RSizeT
      | RUInt | REnum _ | RFlags _ -> ()
     );
     pr "      debug (h, \"leave: ret=\" ";
     (match ret with
      | RBool | RErr | RFd | RInt | REnum _ -> pr "\"%%d\", ret"
      | RInt64 | RCookie -> pr "\"%%\" PRIi64 \"\", ret"
+     | RSizeT -> pr "\"%%zd\", ret"
      | RStaticString | RString ->
         pr "\"%%s\", ret_printable ? ret_printable : \"\""
      | RUInt | RFlags _ -> pr "\"%%u\", ret"
@@ -711,7 +713,7 @@ let generate_lib_api_c () =
     (match ret with
      | RStaticString | RString -> pr "      free (ret_printable);\n"
      | RBool | RErr | RFd | RInt
-     | RInt64 | RCookie
+     | RInt64 | RCookie | RSizeT
      | RUInt | REnum _ | RFlags _ -> ()
     );
     pr "    }\n";
@@ -853,6 +855,8 @@ let generate_docs_nbd_pod name { args; optargs; ret;
       pr "This call returns the 64 bit cookie of the command.\n";
       pr "The cookie is E<ge> C<1>.\n";
       pr "Cookies are unique (per libnbd handle, not globally).\n"
+   | RSizeT ->
+      pr "This call returns an integer size E<ge> C<0>.\n";
    | RString ->
       pr "This call returns a string.  The caller must free the\n";
       pr "returned string to avoid a memory leak.\n";
