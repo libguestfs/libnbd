@@ -23,7 +23,7 @@ EXTRA_DIST = \
 	structured-read.sh \
 	$(NULL)
 
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
+TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 QEMU_STORAGE_DAEMON=$(QEMU_STORAGE_DAEMON)
 LOG_COMPILER = $(top_builddir)/run
 check_PROGRAMS =
 TESTS =
@@ -173,6 +173,15 @@ structured_read_CFLAGS = $(WARNINGS_CFLAGS)
 structured_read_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_QEMU_NBD
+
+# We treat qemu-storage-daemon as effectively the same as qemu-nbd
+# since they use the same code, but there is a single test to make
+# sure we can use it.  It was too complicated to extend interop.c to
+# support q-s-d (since it doesn't support stdin/stdio or systemd
+# socket activation) so there is a unique script to test it.
+if HAVE_QEMU_STORAGE_DAEMON
+TESTS += interop-qemu-storage-daemon.sh
+endif HAVE_QEMU_STORAGE_DAEMON
 
 if HAVE_NBDKIT
 
