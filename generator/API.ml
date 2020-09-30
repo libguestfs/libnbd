@@ -920,12 +920,14 @@ of exports that were advertised by the server.
 
 Not all servers understand this request, and even when it is understood,
 the server might intentionally send an empty list to avoid being an
-information leak or may encounter a failure after delivering partial
-results.  Thus, this function may succeed even when no exports
-are reported, or may fail but have a non-empty list.  Likewise,
-the NBD protocol does not specify an upper bound for the number of
-exports that might be advertised, so client code should be aware that
-a server may send a lengthy list.
+information leak, may encounter a failure after delivering partial
+results, or may refuse to answer more than one query per connection
+in the interest of avoiding negotiation that does not resolve.  Thus,
+this function may succeed even when no exports are reported, or may
+fail but have a non-empty list.  Likewise, the NBD protocol does not
+specify an upper bound for the number of exports that might be
+advertised, so client code should be aware that a server may send a
+lengthy list.
 
 For L<nbd-server(1)> you will need to allow clients to make
 list requests by adding C<allowlist=true> to the C<[generic]>

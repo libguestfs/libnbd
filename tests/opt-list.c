@@ -90,13 +90,38 @@ check (void *user_data, const char *name, const char *description)
   return 0;
 }
 
+static struct nbd_handle*
+prepare (int i)
+{
+  char mode[] = "mode=X";
+  char *args[] = { "nbdkit", "-s", "--exit-with-parent", "-v",
+                   "sh", SCRIPT, mode, NULL };
+  struct nbd_handle *nbd;
+
+  /* Get into negotiating state. */
+  mode[5] = '0' + i;
+  nbd = nbd_create ();
+  if (nbd == NULL ||
+      nbd_set_opt_mode (nbd, true) == -1 ||
+      nbd_connect_command (nbd, args) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  return nbd;
+}
+
+static void
+cleanup (struct nbd_handle *nbd)
+{
+  nbd_opt_abort (nbd);
+  nbd_close (nbd);
+}
+
 int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
   int64_t r;
-  char *args[] = { "nbdkit", "-s", "--exit-with-parent", "-v",
-                   "sh", SCRIPT, NULL };
   struct progress p;
 
   /* Quick check that nbdkit is new enough */
@@ -105,16 +130,8 @@ main (int argc, char *argv[])
     exit (77);
   }
 
-  /* Get into negotiating state. */
-  nbd = nbd_create ();
-  if (nbd == NULL ||
-      nbd_set_opt_mode (nbd, true) == -1 ||
-      nbd_connect_command (nbd, args) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
   /* First pass: server fails NBD_OPT_LIST. */
+  nbd = prepare (0);
   p = (struct progress) { .id = 0 };
   r = nbd_opt_list (nbd, (nbd_list_callback) { .callback = check,
                                                .user_data = &p});
@@ -126,8 +143,10 @@ main (int argc, char *argv[])
     fprintf (stderr, "callback called unexpectedly\n");
     exit (EXIT_FAILURE);
   }
+  cleanup (nbd);
 
   /* Second pass: server advertises 'a' and 'b'. */
+  nbd = prepare (1);
   p = (struct progress) { .id = 1 };
   r = nbd_opt_list (nbd, (nbd_list_callback) { .callback = check,
                                                .user_data = &p});
@@ -140,8 +159,10 @@ main (int argc, char *argv[])
              r);
     exit (EXIT_FAILURE);
   }
+  cleanup (nbd);
 
   /* Third pass: server advertises empty list. */
+  nbd = prepare (2);
   p = (struct progress) { .id = 2 };
   r = nbd_opt_list (nbd, (nbd_list_callback) { .callback = check,
                                                .user_data = &p});
@@ -154,8 +175,10 @@ main (int argc, char *argv[])
              r);
     exit (EXIT_FAILURE);
   }
+  cleanup (nbd);
 
   /* Final pass: server advertises 'a'. */
+  nbd = prepare (3);
   p = (struct progress) { .id = 3 };
   r = nbd_opt_list (nbd, (nbd_list_callback) { .callback = check,
                                                .user_data = &p});
@@ -168,8 +191,7 @@ main (int argc, char *argv[])
              r);
     exit (EXIT_FAILURE);
   }
+  cleanup (nbd);
 
-  nbd_opt_abort (nbd);
-  nbd_close (nbd);
   exit (EXIT_SUCCESS);
 }
