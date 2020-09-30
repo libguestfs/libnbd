@@ -174,6 +174,32 @@ structured_read_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_QEMU_NBD
 
+# We treat qemu-storage-daemon as effectively the same as qemu-nbd
+# since they use the same code, but there is a single test to make
+# sure we can use it.
+if HAVE_QEMU_STORAGE_DAEMON
+
+check_PROGRAMS += interop-qemu-storage-daemon
+TESTS += interop-qemu-storage-daemon
+
+interop_qemu_storage_daemon_SOURCES = interop.c
+interop_qemu_storage_daemon_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/common/utils \
+	-DUNIXSOCKET=\"`mktemp -u /tmp/libnbd-interop-qsd.XXXXXX`\" \
+	-DSERVER=\"$(QEMU_STORAGE_DAEMON)\" \
+	-DSERVER_PARAM_VARS='char blockdev[256], nbd_server[256]; snprintf (blockdev, sizeof blockdev, "raw,file.driver=file,file.filename=%s,node-name=disk0", tmpfile); snprintf (nbd_server, sizeof nbd_server, "addr.type=unix,addr.path=%s", UNIXSOCKET);' \
+	-DSERVER_PARAMS='"--blockdev", blockdev, "--nbd-server", nbd_server, "--export", "nbd,node-name=disk0,id=nbd0,name=/"' \
+	-DEXPORT_NAME='"/"' \
+	$(NULL)
+interop_qemu_storage_daemon_CFLAGS = $(WARNINGS_CFLAGS)
+interop_qemu_storage_daemon_LDADD = \
+	$(top_builddir)/common/utils/libutils.la \
+	$(top_builddir)/lib/libnbd.la \
+	$(NULL)
+
+endif HAVE_QEMU_STORAGE_DAEMON
+
 if HAVE_NBDKIT
 
 check_PROGRAMS += \

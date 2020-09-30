@@ -94,6 +94,7 @@ Makefile.in
 /interop/interop-qemu-nbd
 /interop/interop-qemu-nbd-tls-certs
 /interop/interop-qemu-nbd-tls-psk
+/interop/interop-qemu-storage-daemon
 /interop/list-exports-nbd-server
 /interop/list-exports-qemu-nbd
 /interop/socket-activation-nbdkit
