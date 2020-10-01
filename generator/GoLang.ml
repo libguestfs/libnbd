@@ -96,7 +96,7 @@ let go_ret_type = function
   | RInt -> Some "uint"
   | RInt64 -> Some "uint64"
   | RCookie -> Some "uint64"
-  | RSizeT -> Some "int"
+  | RSizeT -> Some "uint"
   | RString -> Some "*string"
   (* RUInt returns (type, error) for consistency, but the error is
    * always nil unless h is closed
@@ -382,7 +382,7 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
    | RCookie ->
       pr "    return uint64 (ret), nil\n"
    | RSizeT ->
-      pr "    return int (ret), nil\n"
+      pr "    return uint (ret), nil\n"
    | RString ->
       pr "    r := C.GoString (ret)\n";
       pr "    C.free (unsafe.Pointer (ret))\n";
