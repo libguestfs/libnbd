@@ -33,3 +33,5 @@ jq . < $out
 test $( jq -r '.protocol' < $out ) != "newstyle"
 test $( jq -r '.exports[0]."export-size"' < $out ) != "null"
 test $( jq -r '.exports[0].is_read_only' < $out ) = "true"
+test $( jq -r '.exports[0].contexts[] | select(. == "base:allocation")' \
+	   < $out ) = "base:allocation"

@@ -38,6 +38,8 @@ jq . < $out
 grep '"export-name": "hello"' $out
 grep '"description": "world"' $out
 grep '"export-size": 1048576' $out
+test $( jq -r '.exports[0].contexts[] | select(. == "base:allocation")' \
+	   < $out ) = "base:allocation"
 
 # ...and again with the export name included
 nbdkit -U - -e hello --filter=exportname memory 1M \
@@ -49,3 +51,5 @@ jq . < $out
 grep '"export-name": "hello"' $out
 grep '"description": "world"' $out
 grep '"export-size": 1048576' $out
+test $( jq -r '.exports[0].contexts[] | select(. == "base:allocation")' \
+	   < $out ) = "base:allocation"

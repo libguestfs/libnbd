@@ -37,12 +37,18 @@ static bool json_output = false;
 static const char *map = NULL;
 static bool size_only = false;
 
+struct context_list {
+  char *name;
+  struct context_list *next;
+};
+
 static struct export_list {
   size_t len;
   char **names;
   char **descs;
 } export_list;
 
+static int collect_context (void *opaque, const char *name);
 static int collect_export (void *opaque, const char *name,
                            const char *desc);
 static void list_one_export (struct nbd_handle *nbd, const char *desc,
@@ -207,10 +213,10 @@ main (int argc, char *argv[])
   nbd_set_uri_allow_local_file (nbd, true); /* Allow ?tls-psk-file. */
 
   /* Set optional modes in the handle. */
-  if (list_all)
+  if (!map && !size_only) {
     nbd_set_opt_mode (nbd, true);
-  if (!map && !size_only)
     nbd_set_full_info (nbd, true);
+  }
   if (map)
     nbd_add_meta_context (nbd, map);
 
@@ -320,8 +326,30 @@ main (int argc, char *argv[])
   }
   free (export_list.names);
   free (export_list.descs);
+  nbd_opt_abort (nbd);
+  nbd_shutdown (nbd, 0);
   nbd_close (nbd);
   exit (EXIT_SUCCESS);
+}
+
+static int
+collect_context (void *opaque, const char *name)
+{
+  struct context_list **head = opaque;
+  struct context_list *next = malloc (sizeof *next);
+
+  if (!next) {
+    perror ("malloc");
+    exit (EXIT_FAILURE);
+  }
+  next->name = strdup (name);
+  if (!next->name) {
+    perror ("strdup");
+    exit (EXIT_FAILURE);
+  }
+  next->next = *head;
+  *head = next;
+  return 0;
 }
 
 static int
@@ -368,8 +396,19 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
   int can_cache, can_df, can_fast_zero, can_flush, can_fua,
     can_multi_conn, can_trim, can_zero;
   int64_t block_minimum, block_preferred, block_maximum;
+  struct context_list *contexts = NULL;
+  bool show_context = false;
 
-  /* Collect the metadata we are going to display. */
+  /* Collect the metadata we are going to display. If opt_info works,
+   * great; if not (such as for legacy newstyle), we have to go all
+   * the way with opt_go.
+   */
+  if (nbd_aio_is_negotiating (nbd) &&
+      nbd_opt_info (nbd) == -1 &&
+      nbd_opt_go (nbd) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
   size = nbd_get_size (nbd);
   if (size == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
@@ -387,7 +426,6 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
   /* Get description if list didn't already give us one */
   if (!desc)
     desc = export_desc = nbd_get_export_description (nbd);
-  content = get_content (nbd, size);
   is_rotational = nbd_is_rotational (nbd);
   is_read_only = nbd_is_read_only (nbd);
   can_cache = nbd_can_cache (nbd);
@@ -401,6 +439,12 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
   block_minimum = nbd_get_block_size (nbd, LIBNBD_SIZE_MINIMUM);
   block_preferred = nbd_get_block_size (nbd, LIBNBD_SIZE_PREFERRED);
   block_maximum = nbd_get_block_size (nbd, LIBNBD_SIZE_MAXIMUM);
+  if (nbd_opt_list_meta_context (nbd, (nbd_context_callback) {
+        .callback = collect_context, .user_data = &contexts}) != -1)
+    show_context = true;
+
+  /* Get content last, as it moves the connection out of negotiating */
+  content = get_content (nbd, size);
 
   if (!json_output) {
     printf ("export=");
@@ -412,6 +456,11 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
     printf ("\texport-size: %" PRIi64 "\n", size);
     if (content)
       printf ("\tcontent: %s\n", content);
+    if (show_context) {
+      printf ("\tcontexts:\n");
+      for (struct context_list *next = contexts; next; next = next->next)
+        printf ("\t\t%s\n", next->name);
+    }
     if (is_rotational >= 0)
       printf ("\t%s: %s\n", "is_rotational", is_rotational ? "true" : "false");
     if (is_read_only >= 0)
@@ -458,6 +507,18 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
       printf ("\t\"content\": ");
       print_json_string (content);
       printf (",\n");
+    }
+
+    if (show_context) {
+      printf ("\t\"contexts\": [\n");
+      for (struct context_list *next = contexts; next; next = next->next) {
+        printf ("\t\t");
+        print_json_string (next->name);
+        if (next->next)
+          putchar(',');
+        putchar('\n');
+      }
+      printf ("\t],\n");
     }
 
     if (is_rotational >= 0)
@@ -508,6 +569,12 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
       printf ("\t},\n");
   }
 
+  while (contexts) {
+    struct context_list *next = contexts->next;
+    free (contexts->name);
+    free (contexts);
+    contexts = next;
+  }
   free (content);
   free (export_name);
   free (export_desc);
@@ -534,17 +601,16 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
       }
       nbd_set_uri_allow_local_file (nbd2, true); /* Allow ?tls-psk-file. */
       nbd_set_opt_mode (nbd2, true);
+      nbd_set_full_info (nbd2, true);
 
       if (nbd_connect_uri (nbd2, uri) == -1 ||
-          nbd_set_export_name (nbd2, name) == -1 ||
-          nbd_opt_go (nbd2) == -1) {
+          nbd_set_export_name (nbd2, name) == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         exit (EXIT_FAILURE);
       }
     }
     else { /* ! probe_content */
-      if (nbd_set_export_name (nbd1, name) == -1 ||
-          nbd_opt_info (nbd1) == -1) {
+      if (nbd_set_export_name (nbd1, name) == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         exit (EXIT_FAILURE);
       }
@@ -555,8 +621,10 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
     list_one_export (nbd2, export_list.descs[i], i == 0,
                      i + 1 == export_list.len);
 
-    if (probe_content)
+    if (probe_content) {
+      nbd_shutdown (nbd2, 0);
       nbd_close (nbd2);
+    }
   }
 }
 
@@ -587,6 +655,9 @@ print_json_string (const char *s)
  * If file(1) doesn't work just return NULL because this is
  * best-effort.  This function will exit with an error on things which
  * shouldn't fail, such as out of memory or creating local files.
+ *
+ * Must be called late, and only once per connection, as this kicks
+ * the connection from negotiating to ready.
  */
 static char *
 get_content (struct nbd_handle *nbd, int64_t size)
@@ -602,6 +673,12 @@ get_content (struct nbd_handle *nbd, int64_t size)
 
   if (!probe_content)
     return NULL;
+
+  if (nbd_aio_is_negotiating (nbd) &&
+      nbd_opt_go (nbd) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
 
   /* Write the first part of the NBD export to a temporary file. */
   fd = mkstemp (template);
