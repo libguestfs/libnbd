@@ -26,6 +26,7 @@ info_sh_files = \
 	info-size.sh \
 	info-text.sh \
 	info-description.sh \
+	info-description-qemu.sh \
 	info-map-base-allocation.sh \
 	info-map-base-allocation-json.sh \
 	info-map-qemu-dirty-bitmap.sh \

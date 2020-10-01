@@ -21,15 +21,34 @@
 set -e
 set -x
 
-requires nbdkit --filter=exportname memory --version
+requires qemu-nbd --version
+requires bash -c 'qemu-nbd --help | grep pid-file'
+requires truncate --version
 
-out=info-description.out
-cleanup_fn rm -f $out
-rm -f $out
+img=info-description-qemu.img
+out=info-description-qemu.out
+pid=info-description-qemu.pid
+sock=$(mktemp -u /tmp/libnbd-test-info.XXXXXX)
+cleanup_fn rm -f $img $out $pid $sock
+rm -f $img $out $pid $sock
 
-nbdkit -U - --filter=exportname memory 1M \
-       default-export=hello exportdesc=fixed:world \
-       --run '$VG nbdinfo "$uri"' > $out
+truncate -s 1M $img
+qemu-nbd -f raw -t --socket=$sock --pid-file=$pid -x "hello" -D "world" $img &
+cleanup_fn kill $!
+
+# Wait for qemu-nbd to start up.
+for i in {1..60}; do
+    if test -f $pid; then
+        break
+    fi
+    sleep 1
+done
+if ! test -f $pid; then
+    echo "$0: qemu-nbd did not start up"
+    exit 1
+fi
+
+$VG nbdinfo "nbd+unix:///hello?socket=$sock" > $out
 cat $out
 
 grep 'export="hello":' $out
