@@ -35,8 +35,12 @@ nbdfuse:
  - Could be made multithreaded for improved performance.
 
 nbdinfo:
- - info-list.sh and info-list-json.sh tests should use nbdkit + --run
-   when nbdkit supports listing exports.
+ - 'nbdinfo --map' needs --offset and --length parameters for mapping
+   just a subset of the image
+ - 'nbdinfo --map=context1 --map=context2' visiting two contexts in
+   lock-step would be nice
+ - 'nbdinfo --map' should consider probing all available contexts
+   rather than just base:allocation
 
 Suggested API improvements:
   general:

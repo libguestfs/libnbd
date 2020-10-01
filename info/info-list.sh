@@ -21,36 +21,17 @@
 set -e
 set -x
 
-# XXX Use nbdkit + --run when available, see TODO.
-requires qemu-nbd --version
-requires bash -c 'qemu-nbd --help | grep pid-file'
-requires truncate --version
+requires nbdkit --filter=exportname memory --version
 
-img=info-list.img
 out=info-list.out
-pid=info-list.pid
-sock=$(mktemp -u /tmp/libnbd-test-info.XXXXXX)
-cleanup_fn rm -f $img $out $pid $sock
-rm -f $img $out $pid $sock
-
-truncate -s 1M $img
-qemu-nbd -t --socket=$sock --pid-file=$pid -x "hello" -D "world" $img &
-cleanup_fn kill $!
-
-# Wait for qemu-nbd to start up.
-for i in {1..60}; do
-    if test -f $pid; then
-        break
-    fi
-    sleep 1
-done
-if ! test -f $pid; then
-    echo "$0: qemu-nbd did not start up"
-    exit 1
-fi
+cleanup_fn rm -f $out
+rm -f $out
 
 # Test twice, once with an export name not on the list,...
-$VG nbdinfo "nbd+unix://?socket=$sock" --list > $out
+nbdkit -U - -e nosuch --filter=exportname memory 1M \
+       exportname=hello exportname=goodbye \
+       exportname-strict=true exportname-list=explicit exportdesc=fixed:world \
+       --run '$VG nbdinfo --list "$uri"' > $out
 cat $out
 
 grep 'export="hello":' $out
@@ -58,7 +39,10 @@ grep 'description: world' $out
 grep 'export-size: 1048576' $out
 
 # ...and again with the export name included
-$VG nbdinfo "nbd+unix:///hello?socket=$sock" --list > $out
+nbdkit -U - -e hello --filter=exportname memory 1M \
+       exportname=hello exportname=goodbye \
+       exportname-strict=true exportname-list=explicit exportdesc=fixed:world \
+       --run '$VG nbdinfo --list "$uri"' > $out
 cat $out
 
 grep 'export="hello":' $out

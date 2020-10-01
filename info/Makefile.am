@@ -20,6 +20,8 @@ include $(top_srcdir)/subdir-rules.mk
 info_sh_files = \
 	info-list.sh \
 	info-list-json.sh \
+	info-list-qemu.sh \
+	info-list-json-qemu.sh \
 	info-json.sh \
 	info-oldstyle.sh \
 	info-null.sh \
