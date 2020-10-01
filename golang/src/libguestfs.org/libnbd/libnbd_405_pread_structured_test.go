@@ -25,7 +25,11 @@ import "testing"
 
 var expected405 = make([]byte, 512)
 
-func psf(buf2 []byte, offset uint64, status uint, error *int) int {
+func psf(user_data int, buf2 []byte, offset uint64, status uint,
+         error *int) int {
+	if user_data != 42 {
+		panic("expected user_data == 42")
+	}
 	if *error != 0 {
 		panic("expected *error == 0")
 	}
@@ -63,7 +67,11 @@ func Test405PReadStructured(t *testing.T) {
 	}
 
 	buf := make([]byte, 512)
-	err = h.PreadStructured(buf, 0, psf, nil)
+	err = h.PreadStructured(buf, 0,
+	      			func(buf2 []byte, offset uint64, status uint,
+				     error *int) int {
+				     return psf(42, buf2, offset, status, error)
+				}, nil)
 	if err != nil {
 		t.Fatalf("%s", err)
 	}
@@ -74,7 +82,10 @@ func Test405PReadStructured(t *testing.T) {
 	var optargs PreadStructuredOptargs
 	optargs.FlagsSet = true
 	optargs.Flags = CMD_FLAG_DF
-	err = h.PreadStructured(buf, 0, psf, &optargs)
+	wrap := func(buf2 []byte, offset uint64, status uint, error *int) int {
+		return psf(42, buf2, offset, status, error)
+	}
+	err = h.PreadStructured(buf, 0, wrap, &optargs)
 	if err != nil {
 		t.Fatalf("%s", err)
 	}
