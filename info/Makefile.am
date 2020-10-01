@@ -17,7 +17,7 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
-EXTRA_DIST = \
+info_sh_files = \
 	info-list.sh \
 	info-list-json.sh \
 	info-json.sh \
@@ -29,6 +29,10 @@ EXTRA_DIST = \
 	info-map-base-allocation.sh \
 	info-map-base-allocation-json.sh \
 	info-map-qemu-dirty-bitmap.sh \
+	$(NULL)
+
+EXTRA_DIST = \
+	$(info_sh_files) \
 	nbdinfo.pod \
 	$(NULL)
 
@@ -63,19 +67,7 @@ nbdinfo.1: nbdinfo.pod $(top_builddir)/podwrapper.pl
 
 endif HAVE_POD
 
-TESTS += \
-	info-list.sh \
-	info-list-json.sh \
-	info-json.sh \
-	info-oldstyle.sh \
-	info-null.sh \
-	info-size.sh \
-	info-text.sh \
-	info-description.sh \
-	info-map-base-allocation.sh \
-	info-map-base-allocation-json.sh \
-	info-map-qemu-dirty-bitmap.sh \
-	$(NULL)
+TESTS += $(info_sh_files)
 
 check-valgrind:
 	LIBNBD_VALGRIND=1 $(MAKE) check
