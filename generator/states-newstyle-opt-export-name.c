@@ -61,6 +61,7 @@ STATE_MACHINE {
  NEWSTYLE.OPT_EXPORT_NAME.CHECK_REPLY:
   uint64_t exportsize;
   uint16_t eflags;
+  int err = 0;
 
   exportsize = be64toh (h->sbuf.export_name_reply.exportsize);
   eflags = be16toh (h->sbuf.export_name_reply.eflags);
@@ -69,6 +70,8 @@ STATE_MACHINE {
     return 0;
   }
   SET_NEXT_STATE (%^FINISHED);
+  CALL_CALLBACK (h->opt_cb.completion, &err);
+  nbd_internal_free_option (h);
   return 0;
 
 } /* END STATE MACHINE */

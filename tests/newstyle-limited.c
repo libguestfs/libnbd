@@ -251,6 +251,59 @@ main (int argc, char *argv[])
              argv[0], r, SIZE);
     exit (EXIT_FAILURE);
   }
+  nbd_close (nbd);
+
+  /* Repeat a working connection, but with explicit nbd_opt_go. */
+  nbd = nbd_create ();
+  if (nbd == NULL ||
+      nbd_set_export_name (nbd, "a") == -1 ||
+      nbd_set_opt_mode (nbd, true) == -1 ||
+      nbd_add_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION) == -1 ||
+      nbd_connect_command (nbd, args) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  if (nbd_aio_is_negotiating (nbd) != true) {
+    fprintf (stderr, "unexpected state after connection\n");
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_opt_go (nbd) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_aio_is_ready (nbd) != true) {
+    fprintf (stderr, "unexpected state after opt_go\n");
+    exit (EXIT_FAILURE);
+  }
+  s = nbd_get_protocol (nbd);
+  if (strcmp (s, "newstyle") != 0) {
+    fprintf (stderr,
+             "incorrect protocol \"%s\", expected \"newstyle\"\n", s);
+    exit (EXIT_FAILURE);
+  }
+  if ((r = nbd_get_structured_replies_negotiated (nbd)) != 0) {
+    fprintf (stderr,
+             "incorrect structured replies %" PRId64 ", expected 0\n", r);
+    exit (EXIT_FAILURE);
+  }
+  if ((r = nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION)) != 0) {
+    fprintf (stderr,
+             "incorrect meta context %" PRId64 ", expected 0\n", r);
+    exit (EXIT_FAILURE);
+  }
+
+  if ((r = nbd_get_size (nbd)) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  if (r != SIZE) {
+    fprintf (stderr, "%s: test failed: incorrect size, "
+             "actual %" PRIi64 ", expected %d",
+             argv[0], r, SIZE);
+    exit (EXIT_FAILURE);
+  }
 
   /* Plain I/O */
   if (nbd_pwrite (nbd, wbuf, sizeof wbuf, 2 * sizeof wbuf, 0) == -1) {
