@@ -117,6 +117,15 @@ Makefile.in
 /missing
 /ocaml/.depend
 /ocaml/META
+/ocaml/NBD.3
+/ocaml/NBD.ALLOW_TRANSPORT.3
+/ocaml/NBD.Buffer.3
+/ocaml/NBD.CMD_FLAG.3
+/ocaml/NBD.HANDSHAKE_FLAG.3
+/ocaml/NBD.SHUTDOWN.3
+/ocaml/NBD.SIZE.3
+/ocaml/NBD.STRICT.3
+/ocaml/NBD.TLS.3
 /ocaml/NBD.ml
 /ocaml/NBD.mli
 /ocaml/examples/*.bc
@@ -125,6 +134,7 @@ Makefile.in
 /ocaml/libnbd-ocaml.3
 /ocaml/libnbdocaml.a
 /ocaml/nbd-c.c
+/ocaml/stamp-manpages
 /ocaml/stamp-mlnbd
 /ocaml/tests/*.bc
 /ocaml/tests/*.opt

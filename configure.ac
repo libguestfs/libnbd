@@ -289,6 +289,8 @@ AM_CONDITIONAL([HAVE_OCAML],
 AM_CONDITIONAL([HAVE_OCAMLOPT],
     [test "x$OCAMLOPT" != "xno" && test "x$OCAMLFIND" != "xno" && \
      test "x$enable_ocaml" = "xyes"])
+AM_CONDITIONAL([HAVE_OCAMLDOC],
+    [test "x$OCAMLDOC" != "xno" && test "x$enable_ocaml" = "xyes"])
 
 dnl Check if OCaml has caml_alloc_custom_mem (added late 2018).
 AS_IF([test "x$OCAMLC" != "xno" && test "x$OCAMLFIND" != "xno" && \
