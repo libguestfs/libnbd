@@ -31,6 +31,7 @@
 
 #include <libnbd.h>
 
+static const char *progname;
 static bool list_all = false;
 static bool probe_content, content_flag, no_content_flag;
 static bool json_output = false;
@@ -121,6 +122,8 @@ main (int argc, char *argv[])
   const char *protocol;
   int tls_negotiated;
 
+  progname = argv[0];
+
   for (;;) {
     c = getopt_long (argc, argv, short_options, long_options, NULL);
     if (c == -1)
@@ -186,12 +189,12 @@ main (int argc, char *argv[])
   if (!!list_all + !!map + !!size_only > 1) {
     fprintf (stderr,
              "%s: you cannot use --list, --map and --size together.\n",
-             argv[0]);
+             progname);
     exit (EXIT_FAILURE);
   }
   if (content_flag && no_content_flag) {
     fprintf (stderr, "%s: you cannot use %s and %s together.\n",
-             argv[0], "--content", "--no-content");
+             progname, "--content", "--no-content");
     exit (EXIT_FAILURE);
   }
 
@@ -207,7 +210,7 @@ main (int argc, char *argv[])
   /* Open the NBD side. */
   nbd = nbd_create ();
   if (nbd == NULL) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
+    fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
   nbd_set_uri_allow_local_file (nbd, true); /* Allow ?tls-psk-file. */
@@ -221,14 +224,14 @@ main (int argc, char *argv[])
     nbd_add_meta_context (nbd, map);
 
   if (nbd_connect_uri (nbd, argv[optind]) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
+    fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   if (list_all) {
     if (nbd_opt_list (nbd, (nbd_list_callback) {
           .callback = collect_export, .user_data = &export_list}) == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
+      fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
     if (probe_content)
@@ -242,7 +245,7 @@ main (int argc, char *argv[])
   if (size_only) {
     size = nbd_get_size (nbd);
     if (size == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
+      fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
 
@@ -255,13 +258,13 @@ main (int argc, char *argv[])
     if (!nbd_can_meta_context (nbd, map)) {
       fprintf (stderr,
                "%s: --map: server does not support metadata context \"%s\"\n",
-               argv[0], map);
+               progname, map);
       exit (EXIT_FAILURE);
     }
 
     size = nbd_get_size (nbd);
     if (size == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
+      fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
 
@@ -272,7 +275,7 @@ main (int argc, char *argv[])
                             (nbd_extent_callback) { .callback = extent_callback,
                                                     .user_data = &offset },
                             0) == -1) {
-        fprintf (stderr, "%s\n", nbd_get_error ());
+        fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
         exit (EXIT_FAILURE);
       }
       /* We expect extent_callback to increment the offset.  If it did
@@ -280,7 +283,7 @@ main (int argc, char *argv[])
        */
       if (offset <= prev_offset) {
         fprintf (stderr, "%s: --map: server did not return any extents\n",
-                 argv[0]);
+                 progname);
         exit (EXIT_FAILURE);
       }
     }
@@ -406,12 +409,12 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
   if (nbd_aio_is_negotiating (nbd) &&
       nbd_opt_info (nbd) == -1 &&
       nbd_opt_go (nbd) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
+    fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
   size = nbd_get_size (nbd);
   if (size == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
+    fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
@@ -420,7 +423,7 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
   if (export_name == NULL)
     export_name = nbd_get_export_name (nbd);
   if (export_name == NULL) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
+    fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
   /* Get description if list didn't already give us one */
@@ -596,7 +599,7 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
       /* Connect to the original URI, but using opt mode to alter the export. */
       nbd2 = nbd_create ();
       if (nbd2 == NULL) {
-        fprintf (stderr, "%s\n", nbd_get_error ());
+        fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
         exit (EXIT_FAILURE);
       }
       nbd_set_uri_allow_local_file (nbd2, true); /* Allow ?tls-psk-file. */
@@ -605,13 +608,13 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
 
       if (nbd_connect_uri (nbd2, uri) == -1 ||
           nbd_set_export_name (nbd2, name) == -1) {
-        fprintf (stderr, "%s\n", nbd_get_error ());
+        fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
         exit (EXIT_FAILURE);
       }
     }
     else { /* ! probe_content */
       if (nbd_set_export_name (nbd1, name) == -1) {
-        fprintf (stderr, "%s\n", nbd_get_error ());
+        fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
         exit (EXIT_FAILURE);
       }
       nbd2 = nbd1;
@@ -676,7 +679,7 @@ get_content (struct nbd_handle *nbd, int64_t size)
 
   if (nbd_aio_is_negotiating (nbd) &&
       nbd_opt_go (nbd) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
+    fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
