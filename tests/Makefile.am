@@ -38,7 +38,6 @@ EXTRA_DIST = \
 	meta-base-allocation.sh \
 	opt-info.sh \
 	opt-list.sh \
-	opt-list-meta.sh \
 	synch-parallel.sh \
 	synch-parallel-tls.sh \
 	$(NULL)
