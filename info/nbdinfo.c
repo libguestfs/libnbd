@@ -32,6 +32,7 @@
 #include <libnbd.h>
 
 static const char *progname;
+static FILE *fp;
 static bool list_all = false;
 static bool probe_content, content_flag, no_content_flag;
 static bool json_output = false;
@@ -121,6 +122,8 @@ main (int argc, char *argv[])
   int64_t size;
   const char *protocol;
   int tls_negotiated;
+  char *output = NULL;
+  size_t output_len = 0;
 
   progname = argv[0];
 
@@ -207,6 +210,17 @@ main (int argc, char *argv[])
   if (map)
     probe_content = false;
 
+  /* Try to write output atomically.  We spool output into a
+   * memstream, pointed to by fp, and write it all at once at the end.
+   * On error nothing should be printed on stdout.
+   */
+  fp = open_memstream (&output, &output_len);
+  if (fp == NULL) {
+    fprintf (stderr, "%s: ", progname);
+    perror ("open_memstream");
+    exit (EXIT_FAILURE);
+  }
+
   /* Open the NBD side. */
   nbd = nbd_create ();
   if (nbd == NULL) {
@@ -250,7 +264,7 @@ main (int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
 
-    printf ("%" PRIi64 "\n", size);
+    fprintf (fp, "%" PRIi64 "\n", size);
   }
   else if (map) {               /* --map (!list_all) */
     uint64_t offset, prev_offset;
@@ -269,7 +283,7 @@ main (int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
 
-    if (json_output) printf ("[\n");
+    if (json_output) fprintf (fp, "[\n");
     for (offset = 0; offset < size;) {
       prev_offset = offset;
       if (nbd_block_status (nbd, size - offset, offset,
@@ -288,7 +302,7 @@ main (int argc, char *argv[])
         exit (EXIT_FAILURE);
       }
     }
-    if (json_output) printf ("\n]\n");
+    if (json_output) fprintf (fp, "\n]\n");
   }
   else {                        /* not --size or --map */
     /* Print per-connection fields. */
@@ -297,22 +311,22 @@ main (int argc, char *argv[])
 
     if (!json_output) {
       if (protocol) {
-        printf ("protocol: %s", protocol);
+        fprintf (fp, "protocol: %s", protocol);
         if (tls_negotiated >= 0)
-          printf (" %s TLS", tls_negotiated ? "with" : "without");
-        printf ("\n");
+          fprintf (fp, " %s TLS", tls_negotiated ? "with" : "without");
+        fprintf (fp, "\n");
       }
     }
     else {
-      printf ("{\n");
+      fprintf (fp, "{\n");
       if (protocol) {
-        printf ("\"protocol\": ");
+        fprintf (fp, "\"protocol\": ");
         print_json_string (protocol);
-        printf (",\n");
+        fprintf (fp, ",\n");
       }
 
       if (tls_negotiated >= 0)
-        printf ("\"TLS\": %s,\n", tls_negotiated ? "true" : "false");
+        fprintf (fp, "\"TLS\": %s,\n", tls_negotiated ? "true" : "false");
     }
 
     if (!list_all)
@@ -321,7 +335,7 @@ main (int argc, char *argv[])
       list_all_exports (nbd, argv[optind]);
 
     if (json_output)
-      printf ("}\n");
+      fprintf (fp, "}\n");
   }
 
   for (i = 0; i < export_list.len; i++) {
@@ -333,6 +347,19 @@ main (int argc, char *argv[])
   nbd_opt_abort (nbd);
   nbd_shutdown (nbd, 0);
   nbd_close (nbd);
+
+  /* Close the output stream and copy it to the real stdout. */
+  if (fclose (fp) == EOF) {
+    fprintf (stderr, "%s: ", progname);
+    perror ("fclose");
+    exit (EXIT_FAILURE);
+  }
+  if (puts (output) == EOF) {
+    fprintf (stderr, "%s: ", progname);
+    perror ("puts");
+    exit (EXIT_FAILURE);
+  }
+
   exit (EXIT_SUCCESS);
 }
 
@@ -451,126 +478,133 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
   content = get_content (nbd, size);
 
   if (!json_output) {
-    printf ("export=");
+    fprintf (fp, "export=");
     /* Might as well use the JSON function to get an escaped string here ... */
     print_json_string (export_name);
-    printf (":\n");
+    fprintf (fp, ":\n");
     if (desc && *desc)
-      printf ("\tdescription: %s\n", desc);
-    printf ("\texport-size: %" PRIi64 "\n", size);
+      fprintf (fp, "\tdescription: %s\n", desc);
+    fprintf (fp, "\texport-size: %" PRIi64 "\n", size);
     if (content)
-      printf ("\tcontent: %s\n", content);
+      fprintf (fp, "\tcontent: %s\n", content);
     if (show_context) {
-      printf ("\tcontexts:\n");
+      fprintf (fp, "\tcontexts:\n");
       for (struct context_list *next = contexts; next; next = next->next)
-        printf ("\t\t%s\n", next->name);
+        fprintf (fp, "\t\t%s\n", next->name);
     }
     if (is_rotational >= 0)
-      printf ("\t%s: %s\n", "is_rotational", is_rotational ? "true" : "false");
+      fprintf (fp, "\t%s: %s\n", "is_rotational",
+               is_rotational ? "true" : "false");
     if (is_read_only >= 0)
-      printf ("\t%s: %s\n", "is_read_only", is_read_only ? "true" : "false");
+      fprintf (fp, "\t%s: %s\n", "is_read_only",
+               is_read_only ? "true" : "false");
     if (can_cache >= 0)
-      printf ("\t%s: %s\n", "can_cache", can_cache ? "true" : "false");
+      fprintf (fp, "\t%s: %s\n", "can_cache", can_cache ? "true" : "false");
     if (can_df >= 0)
-      printf ("\t%s: %s\n", "can_df", can_df ? "true" : "false");
+      fprintf (fp, "\t%s: %s\n", "can_df", can_df ? "true" : "false");
     if (can_fast_zero >= 0)
-      printf ("\t%s: %s\n", "can_fast_zero", can_fast_zero ? "true" : "false");
+      fprintf (fp, "\t%s: %s\n", "can_fast_zero",
+               can_fast_zero ? "true" : "false");
     if (can_flush >= 0)
-      printf ("\t%s: %s\n", "can_flush", can_flush ? "true" : "false");
+      fprintf (fp, "\t%s: %s\n", "can_flush", can_flush ? "true" : "false");
     if (can_fua >= 0)
-      printf ("\t%s: %s\n", "can_fua", can_fua ? "true" : "false");
+      fprintf (fp, "\t%s: %s\n", "can_fua", can_fua ? "true" : "false");
     if (can_multi_conn >= 0)
-      printf ("\t%s: %s\n", "can_multi_conn", can_multi_conn ? "true" : "false");
+      fprintf (fp, "\t%s: %s\n", "can_multi_conn",
+               can_multi_conn ? "true" : "false");
     if (can_trim >= 0)
-      printf ("\t%s: %s\n", "can_trim", can_trim ? "true" : "false");
+      fprintf (fp, "\t%s: %s\n", "can_trim", can_trim ? "true" : "false");
     if (can_zero >= 0)
-      printf ("\t%s: %s\n", "can_zero", can_zero ? "true" : "false");
+      fprintf (fp, "\t%s: %s\n", "can_zero", can_zero ? "true" : "false");
     if (block_minimum > 0)
-      printf ("\t%s: %" PRId64 "\n", "block_size_minimum", block_minimum);
+      fprintf (fp, "\t%s: %" PRId64 "\n", "block_size_minimum", block_minimum);
     if (block_preferred > 0)
-      printf ("\t%s: %" PRId64 "\n", "block_size_preferred", block_preferred);
+      fprintf (fp, "\t%s: %" PRId64 "\n", "block_size_preferred",
+               block_preferred);
     if (block_maximum > 0)
-      printf ("\t%s: %" PRId64 "\n", "block_size_maximum", block_maximum);
+      fprintf (fp, "\t%s: %" PRId64 "\n", "block_size_maximum", block_maximum);
   }
   else {
     if (first)
-      printf ("\"exports\": [\n");
-    printf ("\t{\n");
+      fprintf (fp, "\"exports\": [\n");
+    fprintf (fp, "\t{\n");
 
-    printf ("\t\"export-name\": ");
+    fprintf (fp, "\t\"export-name\": ");
     print_json_string (export_name);
-    printf (",\n");
+    fprintf (fp, ",\n");
 
     if (desc && *desc) {
-      printf ("\t\"description\": ");
+      fprintf (fp, "\t\"description\": ");
       print_json_string (desc);
-      printf (",\n");
+      fprintf (fp, ",\n");
     }
 
     if (content) {
-      printf ("\t\"content\": ");
+      fprintf (fp, "\t\"content\": ");
       print_json_string (content);
-      printf (",\n");
+      fprintf (fp, ",\n");
     }
 
     if (show_context) {
-      printf ("\t\"contexts\": [\n");
+      fprintf (fp, "\t\"contexts\": [\n");
       for (struct context_list *next = contexts; next; next = next->next) {
-        printf ("\t\t");
+        fprintf (fp, "\t\t");
         print_json_string (next->name);
         if (next->next)
-          putchar(',');
-        putchar('\n');
+          fputc (',', fp);
+        fputc ('\n', fp);
       }
-      printf ("\t],\n");
+      fprintf (fp, "\t],\n");
     }
 
     if (is_rotational >= 0)
-      printf ("\t\"%s\": %s,\n",
+      fprintf (fp, "\t\"%s\": %s,\n",
               "is_rotational", is_rotational ? "true" : "false");
     if (is_read_only >= 0)
-      printf ("\t\"%s\": %s,\n",
+      fprintf (fp, "\t\"%s\": %s,\n",
               "is_read_only", is_read_only ? "true" : "false");
     if (can_cache >= 0)
-      printf ("\t\"%s\": %s,\n",
+      fprintf (fp, "\t\"%s\": %s,\n",
               "can_cache", can_cache ? "true" : "false");
     if (can_df >= 0)
-      printf ("\t\"%s\": %s,\n",
+      fprintf (fp, "\t\"%s\": %s,\n",
               "can_df", can_df ? "true" : "false");
     if (can_fast_zero >= 0)
-      printf ("\t\"%s\": %s,\n",
+      fprintf (fp, "\t\"%s\": %s,\n",
               "can_fast_zero", can_fast_zero ? "true" : "false");
     if (can_flush >= 0)
-      printf ("\t\"%s\": %s,\n",
+      fprintf (fp, "\t\"%s\": %s,\n",
               "can_flush", can_flush ? "true" : "false");
     if (can_fua >= 0)
-      printf ("\t\"%s\": %s,\n",
+      fprintf (fp, "\t\"%s\": %s,\n",
               "can_fua", can_fua ? "true" : "false");
     if (can_multi_conn >= 0)
-      printf ("\t\"%s\": %s,\n",
+      fprintf (fp, "\t\"%s\": %s,\n",
               "can_multi_conn", can_multi_conn ? "true" : "false");
     if (can_trim >= 0)
-      printf ("\t\"%s\": %s,\n",
+      fprintf (fp, "\t\"%s\": %s,\n",
               "can_trim", can_trim ? "true" : "false");
     if (can_zero >= 0)
-      printf ("\t\"%s\": %s,\n",
+      fprintf (fp, "\t\"%s\": %s,\n",
               "can_zero", can_zero ? "true" : "false");
 
     if (block_minimum > 0)
-      printf ("\t\"%s\": %" PRId64 ",\n", "block_size_minimum", block_minimum);
+      fprintf (fp, "\t\"%s\": %" PRId64 ",\n", "block_size_minimum",
+               block_minimum);
     if (block_preferred > 0)
-      printf ("\t\"%s\": %" PRId64 ",\n", "block_size_preferred",
+      fprintf (fp, "\t\"%s\": %" PRId64 ",\n", "block_size_preferred",
               block_preferred);
     if (block_maximum > 0)
-      printf ("\t\"%s\": %" PRId64 ",\n", "block_size_maximum", block_maximum);
+      fprintf (fp, "\t\"%s\": %" PRId64 ",\n", "block_size_maximum",
+               block_maximum);
 
     /* Put this one at the end because of the stupid comma thing in JSON. */
-    printf ("\t\"export-size\": %" PRIi64 "\n", size);
+    fprintf (fp, "\t\"export-size\": %" PRIi64 "\n", size);
 
     if (last)
-      printf ("\t} ]\n");
+      fprintf (fp, "\t} ]\n");
     else
-      printf ("\t},\n");
+      fprintf (fp, "\t},\n");
   }
 
   while (contexts) {
@@ -590,7 +624,7 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
   size_t i;
 
   if (export_list.len == 0 && json_output)
-    printf ("\"exports\": []\n");
+    fprintf (fp, "\"exports\": []\n");
 
   for (i = 0; i < export_list.len; ++i) {
     const char *name = export_list.names[i];
@@ -635,22 +669,22 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
 static void
 print_json_string (const char *s)
 {
-  putc ('"', stdout);
+  fputc ('"', fp);
   for (; *s; s++) {
     switch (*s) {
     case '\\':
     case '"':
-      putc ('\\', stdout);
-      putc (*s, stdout);
+      fputc ('\\', fp);
+      fputc (*s, fp);
       break;
     default:
       if (*s < ' ')
-        printf ("\\u%04x", *s);
+        fprintf (fp, "\\u%04x", *s);
       else
-        putc (*s, stdout);
+        fputc (*s, fp);
     }
   }
-  putc ('"', stdout);
+  fputc ('"', fp);
 }
 
 /* Run the file(1) command on the first part of the export and save
@@ -768,27 +802,27 @@ extent_callback (void *user_data, const char *metacontext,
     const char *descr = extent_description (map, entries[i+1]);
 
     if (!json_output) {
-      printf ("%10" PRIu64 "  "
-              "%10" PRIu32 "  "
-              "%3" PRIu32,
-              offset, entries[i], entries[i+1]);
+      fprintf (fp, "%10" PRIu64 "  "
+               "%10" PRIu32 "  "
+               "%3" PRIu32,
+               offset, entries[i], entries[i+1]);
       if (descr)
-        printf ("  %s", descr);
-      printf ("\n");
+        fprintf (fp, "  %s", descr);
+      fprintf (fp, "\n");
     }
     else {
       if (comma)
-        printf (",\n");
+        fprintf (fp, ",\n");
 
-      printf ("{ \"offset\": %" PRIu64 ", "
-              "\"length\": %" PRIu32 ", "
-              "\"type\": %" PRIu32,
-              offset, entries[i], entries[i+1]);
+      fprintf (fp, "{ \"offset\": %" PRIu64 ", "
+               "\"length\": %" PRIu32 ", "
+               "\"type\": %" PRIu32,
+               offset, entries[i], entries[i+1]);
       if (descr) {
-        printf (", \"description\": ");
+        fprintf (fp, ", \"description\": ");
         print_json_string (descr);
       }
-      printf ("}");
+      fprintf (fp, "}");
       comma = true;
     }
 

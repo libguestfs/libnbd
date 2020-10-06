@@ -32,6 +32,7 @@ info_sh_files = \
 	info-map-base-allocation.sh \
 	info-map-base-allocation-json.sh \
 	info-map-qemu-dirty-bitmap.sh \
+	info-atomic-output.sh \
 	$(NULL)
 
 EXTRA_DIST = \
