@@ -223,12 +223,13 @@ main (int argc, char *argv[])
   if (map)
     nbd_add_meta_context (nbd, map);
 
+  /* Connect to the server. */
   if (nbd_connect_uri (nbd, argv[optind]) == -1) {
     fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
-  if (list_all) {
+  if (list_all) {               /* --list */
     if (nbd_opt_list (nbd, (nbd_list_callback) {
           .callback = collect_export, .user_data = &export_list}) == -1) {
       fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
@@ -242,7 +243,7 @@ main (int argc, char *argv[])
       nbd_opt_abort (nbd);
   }
 
-  if (size_only) {
+  if (size_only) {              /* --size (!list_all) */
     size = nbd_get_size (nbd);
     if (size == -1) {
       fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
@@ -251,7 +252,7 @@ main (int argc, char *argv[])
 
     printf ("%" PRIi64 "\n", size);
   }
-  else if (map) {
+  else if (map) {               /* --map (!list_all) */
     uint64_t offset, prev_offset;
 
     /* Did we get the requested map? */
@@ -289,7 +290,7 @@ main (int argc, char *argv[])
     }
     if (json_output) printf ("\n]\n");
   }
-  else {
+  else {                        /* not --size or --map */
     /* Print per-connection fields. */
     protocol = nbd_get_protocol (nbd);
     tls_negotiated = nbd_get_tls_negotiated (nbd);
