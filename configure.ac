@@ -414,6 +414,9 @@ AS_IF([test "x$enable_golang" != "xno"],[
         AS_IF([$GOLANG run $srcdir/golang/config-test.go 2>&AS_MESSAGE_LOG_FD],[
             AC_MSG_RESULT([yes])
 
+            # Print the version to help with debugging.
+            $GOLANG version
+
             # Substitute some golang environment.
             GOOS=`$GOLANG env GOOS`
             GOARCH=`$GOLANG env GOARCH`
