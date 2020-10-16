@@ -784,6 +784,13 @@ extent_description (const char *metacontext, uint32_t type)
     case 1: return "dirty";
     }
   }
+  else if (strcmp (metacontext, "qemu:allocation-depth") == 0) {
+    switch (type & 3) {
+    case 0: return "unallocated";
+    case 1: return "local";
+    case 2: return "backing";
+    }
+  }
 
   return NULL;   /* Don't know - description field will be omitted. */
 }
