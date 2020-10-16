@@ -31,6 +31,8 @@
 
 #include <libnbd.h>
 
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
 static const char *progname;
 static FILE *fp;
 static bool list_all = false;
@@ -267,7 +269,7 @@ main (int argc, char *argv[])
     fprintf (fp, "%" PRIi64 "\n", size);
   }
   else if (map) {               /* --map (!list_all) */
-    uint64_t offset, prev_offset;
+    uint64_t offset, prev_offset, align, max_len;
 
     /* Did we get the requested map? */
     if (!nbd_can_meta_context (nbd, map)) {
@@ -276,6 +278,8 @@ main (int argc, char *argv[])
                progname, map);
       exit (EXIT_FAILURE);
     }
+    align = nbd_get_block_size (nbd, LIBNBD_SIZE_MINIMUM) ?: 512;
+    max_len = UINT32_MAX - align + 1;
 
     size = nbd_get_size (nbd);
     if (size == -1) {
@@ -286,7 +290,7 @@ main (int argc, char *argv[])
     if (json_output) fprintf (fp, "[\n");
     for (offset = 0; offset < size;) {
       prev_offset = offset;
-      if (nbd_block_status (nbd, size - offset, offset,
+      if (nbd_block_status (nbd, MIN (size - offset, max_len), offset,
                             (nbd_extent_callback) { .callback = extent_callback,
                                                     .user_data = &offset },
                             0) == -1) {
