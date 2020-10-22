@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2019 Red Hat Inc.
+# Copyright (C) 2019-2020 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -40,7 +40,7 @@ cleanup_fn rm -f $files
 # Create file with intentionally different written areas vs. dirty areas
 qemu-img create -f qcow2 dirty-bitmap.qcow2 1M
 qemu-io -f qcow2 -c 'w 0 64k' dirty-bitmap.qcow2
-cat <<'EOF' | qemu-kvm -nodefaults -nographic -qmp stdio
+cat <<'EOF' | qemu-kvm -machine none,accel=tcg -nodefaults -nographic -qmp stdio
 {'execute':'qmp_capabilities'}
 {'execute':'blockdev-add','arguments':{'node-name':'n','driver':'qcow2','file':{'driver':'file','filename':'dirty-bitmap.qcow2'}}}
 {'execute':'block-dirty-bitmap-add','arguments':{'node':'n','name':'bitmap0','persistent':true}}
