@@ -22,31 +22,26 @@ set -e
 set -x
 
 requires nbdkit --version
-requires nbdsh --version
 requires jq --version
 
 out=info-base-allocation-json.out
 cleanup_fn rm -f $out
 rm -f $out
 
-# Note the memory plugin uses a 32K page size, and extents
-# are always aligned with this.
-nbdkit -U - memory 1M --run '
-    nbdsh -u "$uri" \
-          -c "h.pwrite(b\"\\x01\"*131072, 0)" \
-          -c "h.pwrite(b\"\\x02\"*131072, 320*1024)" &&
-    $VG nbdinfo --map --json "$uri"
-' > $out
+# The sparse allocator used by nbdkit-data-plugin uses a 32K page
+# size, and extents are always aligned with this.
+nbdkit -U - data data='1 @131072 2' size=1M \
+       --run '$VG nbdinfo --map --json "$uri"' > $out
 
 cat $out
 jq < $out
 
 test $( jq -r '.[0].offset' < $out ) -eq 0
-test $( jq -r '.[0].length' < $out ) -eq 131072
+test $( jq -r '.[0].length' < $out ) -eq 32768
 test $( jq -r '.[0].type' < $out ) -eq 0
 test $( jq -r '.[0].description' < $out ) = "allocated"
 
-test $( jq -r '.[3].offset' < $out ) -eq 458752
-test $( jq -r '.[3].length' < $out ) -eq 589824
+test $( jq -r '.[3].offset' < $out ) -eq 163840
+test $( jq -r '.[3].length' < $out ) -eq 884736
 test $( jq -r '.[3].type' < $out ) -eq 3
 test $( jq -r '.[3].description' < $out ) = "hole,zero"

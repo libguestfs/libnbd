@@ -22,28 +22,23 @@ set -e
 set -x
 
 requires nbdkit --version
-requires nbdsh --version
 requires tr --version
 
 out=info-base-allocation-large.out
 cleanup_fn rm -f $out
 rm -f $out
 
-# Note the memory plugin uses a 32K page size, and extents
-# are always aligned with this.
-nbdkit -U - memory 6G --run '
-    nbdsh -u "$uri" \
-          -c "h.pwrite(b\"\\x01\"*131072, 0)" \
-          -c "h.pwrite(b\"\\x02\"*131072, 320*1024)" &&
-    $VG nbdinfo --map "$uri"
-' > $out
+# The sparse allocator used by nbdkit-data-plugin uses a 32K page
+# size, and extents are always aligned with this.
+nbdkit -U - data data='1 @131072 2' size=6G \
+       --run '$VG nbdinfo --map "$uri"' > $out
 
 cat $out
 
-if [ "$(tr -s ' ' < $out)" != " 0 131072 0 allocated
- 131072 196608 3 hole,zero
- 327680 131072 0 allocated
- 458752 4294508544 3 hole,zero
+if [ "$(tr -s ' ' < $out)" != " 0 32768 0 allocated
+ 32768 98304 3 hole,zero
+ 131072 32768 0 allocated
+ 163840 4294803456 3 hole,zero
 4294967296 2147483648 3 hole,zero" ]; then
     echo "$0: unexpected output from nbdinfo --map"
     exit 1
