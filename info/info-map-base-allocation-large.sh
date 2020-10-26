@@ -25,7 +25,7 @@ requires nbdkit --version
 requires nbdsh --version
 requires tr --version
 
-out=info-base-allocation.out
+out=info-base-allocation-large.out
 cleanup_fn rm -f $out
 rm -f $out
 
