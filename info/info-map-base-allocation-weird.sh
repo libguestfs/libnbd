@@ -22,25 +22,30 @@ set -e
 set -x
 
 requires nbdkit --version
+requires nbdkit sh --version
 requires tr --version
 
-out=info-base-allocation-large.out
+out=info-base-allocation-weird.out
 cleanup_fn rm -f $out
 rm -f $out
 
-# The sparse allocator used by nbdkit-data-plugin uses a 32K page
-# size, and extents are always aligned with this.
-nbdkit -U - data data='1 @131072 2 @6442450944 3' size=8G \
-       --run '$VG nbdinfo --map "$uri"' > $out
+# This is a "weird" server that returns extents that are all 1 byte.
+nbdkit -U - sh - \
+       --run '$VG nbdinfo --map "$uri"' > $out <<'EOF'
+case "$1" in
+  get_size) echo 32 ;;
+  pread) dd if=/dev/zero count=$3 iflag=count_bytes ;;
+  can_extents) exit 0 ;;
+  extents) echo $4 1 `[ $4 -ge 16 ] && [ $4 -le 19 ]; echo $?`;;
+  *) exit 2 ;;
+esac
+EOF
 
 cat $out
 
-if [ "$(tr -s ' ' < $out)" != " 0 32768 0 allocated
- 32768 98304 3 hole,zero
- 131072 32768 0 allocated
- 163840 6442287104 3 hole,zero
-6442450944 32768 0 allocated
-6442483712 2147450880 3 hole,zero" ]; then
+if [ "$(tr -s ' ' < $out)" != " 0 16 1 hole
+ 16 4 0 allocated
+ 20 12 1 hole" ]; then
     echo "$0: unexpected output from nbdinfo --map"
     exit 1
 fi

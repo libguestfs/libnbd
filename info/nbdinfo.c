@@ -749,6 +749,9 @@ get_content (struct nbd_handle *nbd, int64_t size)
 }
 
 /* Callback handling --map. */
+static void print_one_extent (uint64_t offset, uint64_t len, uint32_t type);
+static char *extent_description (const char *metacontext, uint32_t type);
+
 static int
 extent_callback (void *user_data, const char *metacontext,
                  uint64_t offset,
@@ -771,6 +774,80 @@ extent_callback (void *user_data, const char *metacontext,
     }
   }
   return 0;
+}
+
+static void
+print_extents (uint32_vector *entries)
+{
+  size_t i, j;
+  uint64_t offset = 0;          /* end of last extent printed + 1 */
+  size_t last = 0;              /* last entry printed + 2 */
+
+  if (json_output) fprintf (fp, "[\n");
+
+  for (i = 0; i < entries->size; i += 2) {
+    uint32_t type = entries->ptr[last+1];
+
+    /* If we're coalescing and the current type is different from the
+     * previous one then we should print everything up to this entry.
+     */
+    if (last != i && entries->ptr[i+1] != type) {
+      uint64_t len;
+
+      /* Calculate the length of the coalesced extent. */
+      for (j = last, len = 0; j < i; j += 2)
+        len += entries->ptr[j];
+      print_one_extent (offset, len, type);
+      offset += len;
+      last = i;
+    }
+  }
+
+  /* Print the last extent if there is one. */
+  if (last != i) {
+    uint32_t type = entries->ptr[last+1];
+    uint64_t len;
+
+    for (j = last, len = 0; j < i; j += 2)
+      len += entries->ptr[j];
+    print_one_extent (offset, len, type);
+  }
+
+  if (json_output) fprintf (fp, "\n]\n");
+}
+
+static void
+print_one_extent (uint64_t offset, uint64_t len, uint32_t type)
+{
+  static bool comma = false;
+  char *descr = extent_description (map, type);
+
+  if (!json_output) {
+    fprintf (fp, "%10" PRIu64 "  "
+             "%10" PRIu64 "  "
+             "%3" PRIu32,
+             offset, len, type);
+    if (descr)
+      fprintf (fp, "  %s", descr);
+    fprintf (fp, "\n");
+  }
+  else {
+    if (comma)
+      fprintf (fp, ",\n");
+
+    fprintf (fp, "{ \"offset\": %" PRIu64 ", "
+             "\"length\": %" PRIu64 ", "
+             "\"type\": %" PRIu32,
+             offset, len, type);
+    if (descr) {
+      fprintf (fp, ", \"description\": ");
+      print_json_string (descr);
+    }
+    fprintf (fp, "}");
+    comma = true;
+  }
+
+  free (descr);
 }
 
 static char *
@@ -806,48 +883,4 @@ extent_description (const char *metacontext, uint32_t type)
   }
 
   return NULL;   /* Don't know - description field will be omitted. */
-}
-
-static void
-print_extents (uint32_vector *entries)
-{
-  uint64_t offset = 0;
-  size_t i;
-  bool comma = false;
-
-  if (json_output) fprintf (fp, "[\n");
-
-  for (i = 0; i < entries->size; i += 2) {
-    char *descr = extent_description (map, entries->ptr[i+1]);
-
-    if (!json_output) {
-      fprintf (fp, "%10" PRIu64 "  "
-               "%10" PRIu32 "  "
-               "%3" PRIu32,
-               offset, entries->ptr[i], entries->ptr[i+1]);
-      if (descr)
-        fprintf (fp, "  %s", descr);
-      fprintf (fp, "\n");
-    }
-    else {
-      if (comma)
-        fprintf (fp, ",\n");
-
-      fprintf (fp, "{ \"offset\": %" PRIu64 ", "
-               "\"length\": %" PRIu32 ", "
-               "\"type\": %" PRIu32,
-               offset, entries->ptr[i], entries->ptr[i+1]);
-      if (descr) {
-        fprintf (fp, ", \"description\": ");
-        print_json_string (descr);
-      }
-      fprintf (fp, "}");
-      comma = true;
-    }
-
-    free (descr);
-    offset += entries->ptr[i];
-  }
-
-  if (json_output) fprintf (fp, "\n]\n");
 }

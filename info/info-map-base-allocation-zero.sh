@@ -22,25 +22,16 @@ set -e
 set -x
 
 requires nbdkit --version
-requires tr --version
 
-out=info-base-allocation-large.out
+out=info-base-allocation-zero.out
 cleanup_fn rm -f $out
 rm -f $out
 
-# The sparse allocator used by nbdkit-data-plugin uses a 32K page
-# size, and extents are always aligned with this.
-nbdkit -U - data data='1 @131072 2 @6442450944 3' size=8G \
-       --run '$VG nbdinfo --map "$uri"' > $out
+nbdkit -U - null --run '$VG nbdinfo --map "$uri"' > $out
 
 cat $out
 
-if [ "$(tr -s ' ' < $out)" != " 0 32768 0 allocated
- 32768 98304 3 hole,zero
- 131072 32768 0 allocated
- 163840 6442287104 3 hole,zero
-6442450944 32768 0 allocated
-6442483712 2147450880 3 hole,zero" ]; then
+if [ "$(cat $out)" != "" ]; then
     echo "$0: unexpected output from nbdinfo --map"
     exit 1
 fi

@@ -32,6 +32,8 @@ info_sh_files = \
 	info-map-base-allocation.sh \
 	info-map-base-allocation-json.sh \
 	info-map-base-allocation-large.sh \
+	info-map-base-allocation-weird.sh \
+	info-map-base-allocation-zero.sh \
 	info-map-qemu-dirty-bitmap.sh \
 	info-map-qemu-allocation-depth.sh \
 	info-atomic-output.sh \
