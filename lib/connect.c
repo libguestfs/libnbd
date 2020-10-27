@@ -249,17 +249,10 @@ nbd_unlocked_aio_connect_socket (struct nbd_handle *h, int sock)
 int
 nbd_unlocked_aio_connect_command (struct nbd_handle *h, char **argv)
 {
-  char **copy;
-
-  copy = nbd_internal_copy_string_list (argv);
-  if (!copy) {
-    set_error (errno, "copy_string_list");
+  if (nbd_internal_set_argv (&h->argv, argv) == -1) {
+    set_error (errno, "realloc");
     return -1;
   }
-
-  if (h->argv)
-    nbd_internal_free_string_list (h->argv);
-  h->argv = copy;
 
   return nbd_internal_run (h, cmd_connect_command);
 }
@@ -268,17 +261,10 @@ int
 nbd_unlocked_aio_connect_systemd_socket_activation (struct nbd_handle *h,
                                                     char **argv)
 {
-  char **copy;
-
-  copy = nbd_internal_copy_string_list (argv);
-  if (!copy) {
-    set_error (errno, "copy_string_list");
+  if (nbd_internal_set_argv (&h->argv, argv) == -1) {
+    set_error (errno, "realloc");
     return -1;
   }
-
-  if (h->argv)
-    nbd_internal_free_string_list (h->argv);
-  h->argv = copy;
 
   return nbd_internal_run (h, cmd_connect_sa);
 }

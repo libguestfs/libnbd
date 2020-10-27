@@ -23,8 +23,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <unistd.h>
+#include <errno.h>
+#include <assert.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
@@ -44,69 +45,66 @@ extern char **environ;
  * variables.  env[0] is "LISTEN_PID=..." which is filled in by
  * CONNECT_SA.START, and env[1] is "LISTEN_FDS=1".
  */
-static char **
-prepare_socket_activation_environment (void)
+static int
+prepare_socket_activation_environment (string_vector *env)
 {
-  char **env = NULL;
-  char *p0 = NULL, *p1 = NULL;
-  size_t i, len;
-  void *vp;
+  char *p;
+  size_t i;
 
-  p0 = strdup ("LISTEN_PID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-  if (p0 == NULL)
-    goto err;
-  p1 = strdup ("LISTEN_FDS=1");
-  if (p1 == NULL)
-    goto err;
-
-  /* Copy the current environment. */
-  env = nbd_internal_copy_string_list (environ);
-  if (env == NULL)
-    goto err;
+  assert (env->size == 0);
 
   /* Reserve slots env[0] and env[1]. */
-  len = nbd_internal_string_list_length (env);
-  vp = realloc (env,
-                sizeof (char *) * (len + 3)); /* include final NULL entry */
-  if (vp == NULL)
+  p = strdup ("LISTEN_PID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+  if (p == NULL)
     goto err;
-  env = vp;
-  memmove (&env[2], &env[0], sizeof (char *) * (len + 1));
+  if (string_vector_append (env, p) == -1) {
+    free (p);
+    goto err;
+  }
+  p = strdup ("LISTEN_FDS=1");
+  if (p == NULL)
+    goto err;
+  if (string_vector_append (env, p) == -1) {
+    free (p);
+    goto err;
+  }
 
-  env[0] = p0;          /* Code below assumes env[0] is LISTEN_PID. */
-  env[1] = p1;
-
-  /* Remove any existing LISTEN_PID or LISTEN_FDS instances. */
-  for (i = 2; env[i] != NULL; ++i) {
-    if (strncmp (env[i], "LISTEN_PID=", PREFIX_LENGTH) == 0 ||
-        strncmp (env[i], "LISTEN_FDS=", PREFIX_LENGTH) == 0) {
-      memmove (&env[i], &env[i+1],
-               sizeof (char *) * (nbd_internal_string_list_length (&env[i])));
-      i--;
+  /* Append the current environment, but remove LISTEN_PID, LISTEN_FDS. */
+  for (i = 0; environ[i] != NULL; ++i) {
+    if (strncmp (environ[i], "LISTEN_PID=", PREFIX_LENGTH) != 0 &&
+        strncmp (environ[i], "LISTEN_FDS=", PREFIX_LENGTH) != 0) {
+      char *copy = strdup (environ[i]);
+      if (copy == NULL)
+        goto err;
+      if (string_vector_append (env, copy) == -1) {
+        free (copy);
+        goto err;
+      }
     }
   }
 
-  return env;
+  /* The environ must be NULL-terminated. */
+  if (string_vector_append (env, NULL) == -1)
+    goto err;
+
+  return 0;
 
  err:
   set_error (errno, "malloc");
-  nbd_internal_free_string_list (env);
-  free (p0);
-  free (p1);
-  return NULL;
+  return -1;
 }
 
 STATE_MACHINE {
  CONNECT_SA.START:
   int s;
   struct sockaddr_un addr;
-  char **env;
+  string_vector env = empty_vector;
   pid_t pid;
   int flags;
 
   assert (!h->sock);
-  assert (h->argv);
-  assert (h->argv[0]);
+  assert (h->argv.ptr);
+  assert (h->argv.ptr[0]);
 
   /* Use /tmp instead of TMPDIR because we must ensure the path is
    * short enough to store in the sockaddr_un.  On some platforms this
@@ -156,8 +154,7 @@ STATE_MACHINE {
     return 0;
   }
 
-  env = prepare_socket_activation_environment ();
-  if (!env) {
+  if (prepare_socket_activation_environment (&env) == -1) {
     SET_NEXT_STATE (%.DEAD);
     close (s);
     return 0;
@@ -168,7 +165,8 @@ STATE_MACHINE {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "fork");
     close (s);
-    nbd_internal_free_string_list (env);
+    string_vector_iter (&env, (void *) free);
+    free (env.ptr);
     return 0;
   }
   if (pid == 0) {         /* child - run command */
@@ -195,14 +193,14 @@ STATE_MACHINE {
     char buf[32];
     const char *v =
       nbd_internal_fork_safe_itoa ((long) getpid (), buf, sizeof buf);
-    strcpy (&env[0][PREFIX_LENGTH], v);
+    strcpy (&env.ptr[0][PREFIX_LENGTH], v);
 
     /* Restore SIGPIPE back to SIG_DFL. */
     signal (SIGPIPE, SIG_DFL);
 
-    environ = env;
-    execvp (h->argv[0], h->argv);
-    nbd_internal_fork_safe_perror (h->argv[0]);
+    environ = env.ptr;
+    execvp (h->argv.ptr[0], h->argv.ptr);
+    nbd_internal_fork_safe_perror (h->argv.ptr[0]);
     if (errno == ENOENT)
       _exit (127);
     else
@@ -211,7 +209,8 @@ STATE_MACHINE {
 
   /* Parent. */
   close (s);
-  nbd_internal_free_string_list (env);
+  string_vector_iter (&env, (void *) free);
+  free (env.ptr);
   h->pid = pid;
 
   h->connaddrlen = sizeof addr;

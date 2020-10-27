@@ -40,6 +40,7 @@
 #include "byte-swapping.h"
 #include "states.h"
 #include "unlocked.h"
+#include "vector.h"
 
 /* Define unlikely macro, but only for GCC.  These are used to move
  * debug and error handling code out of hot paths, making the hot path
@@ -82,6 +83,8 @@ struct command_cb {
   nbd_completion_callback completion;
 };
 
+DEFINE_VECTOR_TYPE (string_vector, char *)
+
 struct nbd_handle {
   /* Unique name assigned to this handle for debug messages
    * (to avoid having to print actual pointers).
@@ -102,7 +105,7 @@ struct nbd_handle {
 
   /* Desired metadata contexts. */
   bool request_sr;
-  char **request_meta_contexts;
+  string_vector request_meta_contexts;
 
   /* Allowed in URIs, see lib/uri.c. */
   uint32_t uri_allow_transports;
@@ -249,7 +252,7 @@ struct nbd_handle {
    * the subprocess so we can wait on it when the connection is
    * closed.
    */
-  char **argv;
+  string_vector argv;
   pid_t pid;
 
   /* When using systemd socket activation, this directory and socket
@@ -454,9 +457,7 @@ extern int nbd_internal_aio_get_direction (enum state state);
 
 /* utils.c */
 extern void nbd_internal_hexdump (const void *data, size_t len, FILE *fp);
-extern size_t nbd_internal_string_list_length (char **argv);
-extern char **nbd_internal_copy_string_list (char **argv);
-extern void nbd_internal_free_string_list (char **argv);
+extern int nbd_internal_set_argv (string_vector *v, char **argv);
 extern const char *nbd_internal_fork_safe_itoa (long v, char *buf, size_t len);
 extern void nbd_internal_fork_safe_perror (const char *s);
 extern char *nbd_internal_printable_buffer (const void *buf, size_t count);

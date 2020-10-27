@@ -27,6 +27,7 @@
 #include <assert.h>
 
 #include "internal.h"
+#include "vector.h"
 
 #ifdef HAVE_LIBXML2
 
@@ -47,23 +48,24 @@ struct uri_query {
   char *value;
 };
 
+DEFINE_VECTOR_TYPE (uri_query_list, struct uri_query)
+
 /* Parse the query_raw substring of a URI into a list of decoded queries.
- * Return the length of the list, or -1 on error.
+ * Return 0 on success or -1 on error.
  */
 static int
-parse_uri_queries (const char *query_raw, struct uri_query **list)
+parse_uri_queries (const char *query_raw, uri_query_list *list)
 {
   /* Borrows from libvirt's viruri.c:virURIParseParams() */
   const char *end, *eq;
   const char *query = query_raw;
-  int nqueries = 0;
-  struct uri_query *tmp;
+  size_t i;
 
   if (!query || !*query)
     return 0;
 
   while (*query) {
-    char *name = NULL, *value = NULL;
+    struct uri_query q = {0};
 
     /* Find the next separator, or end of the string. */
     end = strchr (query, '&');
@@ -83,14 +85,14 @@ parse_uri_queries (const char *query_raw, struct uri_query **list)
       /* If there is no '=' character, then we have just "name"
        * and consistent with CGI.pm we assume value is "".
        */
-      name = xmlURIUnescapeString (query, end - query, NULL);
-      if (!name) goto error;
+      q.name = xmlURIUnescapeString (query, end - query, NULL);
+      if (!q.name) goto error;
     } else if (eq+1 == end) {
       /* Or if we have "name=" here (works around annoying
        * problem when calling xmlURIUnescapeString with len = 0).
        */
-      name = xmlURIUnescapeString (query, eq - query, NULL);
-      if (!name) goto error;
+      q.name = xmlURIUnescapeString (query, eq - query, NULL);
+      if (!q.name) goto error;
     } else if (query == eq) {
       /* If the '=' character is at the beginning then we have
        * "=value" and consistent with CGI.pm we _ignore_ this.
@@ -98,50 +100,43 @@ parse_uri_queries (const char *query_raw, struct uri_query **list)
       goto next;
     } else {
       /* Otherwise it's "name=value". */
-      name = xmlURIUnescapeString (query, eq - query, NULL);
-      if (!name)
+      q.name = xmlURIUnescapeString (query, eq - query, NULL);
+      if (!q.name)
         goto error;
-      value = xmlURIUnescapeString (eq+1, end - (eq+1), NULL);
-      if (!value) {
-        free (name);
+      q.value = xmlURIUnescapeString (eq+1, end - (eq+1), NULL);
+      if (!q.value) {
+        free (q.name);
         goto error;
       }
     }
-    if (!value) {
-      value = strdup ("");
-      if (!value) {
-        free (name);
+    if (!q.value) {
+      q.value = strdup ("");
+      if (!q.value) {
+        free (q.name);
         goto error;
       }
     }
 
-    /* Append to the parameter set. */
-    tmp = realloc (*list, sizeof (*tmp) * (nqueries + 1));
-    if (tmp == NULL) {
-      free (name);
-      free (value);
+    /* Append to the list of queries. */
+    if (uri_query_list_append (list, q) == -1) {
+      free (q.name);
+      free (q.value);
       goto error;
     }
-    *list = tmp;
-    tmp[nqueries].name = name;
-    tmp[nqueries].value = value;
-    nqueries++;
 
   next:
     query = end;
     if (*query) query++; /* skip '&' separator */
   }
 
-  return nqueries;
+  return 0;
 
 error:
-  tmp = *list;
-  while (nqueries-- > 0) {
-    free (tmp[nqueries].name);
-    free (tmp[nqueries].value);
+  for (i = 0; i < list->size; ++list) {
+    free (list->ptr[i].name);
+    free (list->ptr[i].value);
   }
-  free (tmp);
-  *list = NULL;
+  uri_query_list_reset (list);
   return -1;
 }
 
@@ -151,8 +146,7 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   xmlURIPtr uri = NULL;
   enum { tcp, unix_sock, vsock } transport;
   bool tls, socket_required;
-  struct uri_query *queries = NULL;
-  int nqueries = -1;
+  uri_query_list queries = empty_vector;
   int i, r;
   int ret = -1;
   const char *unixsocket = NULL;
@@ -164,8 +158,7 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
     set_error (EINVAL, "unable to parse URI: %s", raw_uri);
     goto cleanup;
   }
-  nqueries = parse_uri_queries (uri->query_raw, &queries);
-  if (nqueries == -1) {
+  if (parse_uri_queries (uri->query_raw, &queries) == -1) {
     set_error (EINVAL, "unable to parse URI queries: %s", uri->query_raw);
     goto cleanup;
   }
@@ -235,9 +228,9 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   }
 
   /* Parse the socket parameter. */
-  for (i = 0; i < nqueries; i++) {
-    if (strcmp (queries[i].name, "socket") == 0)
-      unixsocket = queries[i].value;
+  for (i = 0; i < queries.size; i++) {
+    if (strcmp (queries.ptr[i].name, "socket") == 0)
+      unixsocket = queries.ptr[i].value;
   }
 
   if (socket_required && !unixsocket) {
@@ -257,15 +250,15 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
     goto cleanup;
 
   /* Look for some tls-* parameters.  XXX More to come. */
-  for (i = 0; i < nqueries; i++) {
-    if (strcmp (queries[i].name, "tls-psk-file") == 0) {
+  for (i = 0; i < queries.size; i++) {
+    if (strcmp (queries.ptr[i].name, "tls-psk-file") == 0) {
       if (! h->uri_allow_local_file) {
         set_error (EPERM,
                    "local file access (tls-psk-file) is not allowed, "
                    "call nbd_set_uri_allow_local_file to enable this");
         goto cleanup;
       }
-      if (nbd_unlocked_set_tls_psk_file (h, queries[i].value) == -1)
+      if (nbd_unlocked_set_tls_psk_file (h, queries.ptr[i].value) == -1)
         goto cleanup;
     }
   }
@@ -333,11 +326,11 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   ret = 0;
 
 cleanup:
-  while (nqueries-- > 0) {
-    free (queries[nqueries].name);
-    free (queries[nqueries].value);
+  for (i = 0; i < queries.size; ++i) {
+    free (queries.ptr[i].name);
+    free (queries.ptr[i].value);
   }
-  free (queries);
+  free (queries.ptr);
   xmlFreeURI (uri);
   return ret;
 }

@@ -20,7 +20,7 @@
 
 STATE_MACHINE {
  NEWSTYLE.OPT_META_CONTEXT.START:
-  size_t i, nr_queries;
+  size_t i;
   uint32_t len, opt;
 
   /* If the server doesn't support SRs then we must skip this group.
@@ -38,8 +38,7 @@ STATE_MACHINE {
   else {
     assert (CALLBACK_IS_NULL (h->opt_cb.fn.context));
     opt = NBD_OPT_SET_META_CONTEXT;
-    if (!h->structured_replies ||
-        nbd_internal_string_list_length (h->request_meta_contexts) == 0) {
+    if (!h->structured_replies || h->request_meta_contexts.size == 0) {
       SET_NEXT_STATE (%^OPT_GO.START);
       return 0;
     }
@@ -49,9 +48,8 @@ STATE_MACHINE {
 
   /* Calculate the length of the option request data. */
   len = 4 /* exportname len */ + strlen (h->export_name) + 4 /* nr queries */;
-  nr_queries = nbd_internal_string_list_length (h->request_meta_contexts);
-  for (i = 0; i < nr_queries; ++i)
-    len += 4 /* length of query */ + strlen (h->request_meta_contexts[i]);
+  for (i = 0; i < h->request_meta_contexts.size; ++i)
+    len += 4 /* length of query */ + strlen (h->request_meta_contexts.ptr[i]);
 
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (opt);
@@ -89,8 +87,7 @@ STATE_MACHINE {
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
-    h->sbuf.nrqueries =
-      htobe32 (nbd_internal_string_list_length (h->request_meta_contexts));
+    h->sbuf.nrqueries = htobe32 (h->request_meta_contexts.size);
     h->wbuf = &h->sbuf;
     h->wlen = sizeof h->sbuf.nrqueries;
     h->wflags = MSG_MORE;
@@ -108,13 +105,12 @@ STATE_MACHINE {
   return 0;
 
  NEWSTYLE.OPT_META_CONTEXT.PREPARE_NEXT_QUERY:
-  const char *query = !h->request_meta_contexts ? NULL
-    : h->request_meta_contexts[h->querynum];
-
-  if (query == NULL) { /* end of list of requested meta contexts */
+  if (h->querynum >= h->request_meta_contexts.size) {
+    /* end of list of requested meta contexts */
     SET_NEXT_STATE (%PREPARE_FOR_REPLY);
     return 0;
   }
+  const char *query = h->request_meta_contexts.ptr[h->querynum];
 
   h->sbuf.len = htobe32 (strlen (query));
   h->wbuf = &h->sbuf.len;
@@ -124,7 +120,7 @@ STATE_MACHINE {
   return 0;
 
  NEWSTYLE.OPT_META_CONTEXT.SEND_QUERYLEN:
-  const char *query = h->request_meta_contexts[h->querynum];
+  const char *query = h->request_meta_contexts.ptr[h->querynum];
 
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;

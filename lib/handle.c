@@ -129,7 +129,8 @@ nbd_close (struct nbd_handle *h)
   free_cmd_list (h->cmds_to_issue);
   free_cmd_list (h->cmds_in_flight);
   free_cmd_list (h->cmds_done);
-  nbd_internal_free_string_list (h->argv);
+  string_vector_iter (&h->argv, (void *) free);
+  free (h->argv.ptr);
   if (h->sa_sockpath) {
     if (h->pid > 0)
       kill (h->pid, SIGTERM);
@@ -153,7 +154,8 @@ nbd_close (struct nbd_handle *h)
   free (h->tls_certificates);
   free (h->tls_username);
   free (h->tls_psk_file);
-  nbd_internal_free_string_list (h->request_meta_contexts);
+  string_vector_iter (&h->request_meta_contexts, (void *) free);
+  free (h->request_meta_contexts.ptr);
   free (h->hname);
   pthread_mutex_destroy (&h->lock);
   free (h);
@@ -285,8 +287,6 @@ int
 nbd_unlocked_add_meta_context (struct nbd_handle *h, const char *name)
 {
   char *copy;
-  size_t len;
-  char **list;
 
   if (strnlen (name, NBD_MAX_STRING + 1) > NBD_MAX_STRING) {
     set_error (ENAMETOOLONG, "meta context name too long for NBD protocol");
@@ -298,17 +298,12 @@ nbd_unlocked_add_meta_context (struct nbd_handle *h, const char *name)
     set_error (errno, "strdup");
     return -1;
   }
-  len = nbd_internal_string_list_length (h->request_meta_contexts);
-  list = realloc (h->request_meta_contexts,
-                  sizeof (char *) * (len+2 /* + new entry + NULL */));
-  if (list == NULL) {
+
+  if (string_vector_append (&h->request_meta_contexts, copy) == -1) {
     free (copy);
     set_error (errno, "realloc");
     return -1;
   }
-  h->request_meta_contexts = list;
-  list[len] = copy;
-  list[len+1] = NULL;
 
   return 0;
 }
@@ -316,21 +311,20 @@ nbd_unlocked_add_meta_context (struct nbd_handle *h, const char *name)
 ssize_t
 nbd_unlocked_get_nr_meta_contexts (struct nbd_handle *h)
 {
-  return nbd_internal_string_list_length (h->request_meta_contexts);
+  return h->request_meta_contexts.size;
 }
 
 char *
 nbd_unlocked_get_meta_context (struct nbd_handle *h, size_t i)
 {
-  size_t len = nbd_internal_string_list_length (h->request_meta_contexts);
   char *ret;
 
-  if (i >= len) {
+  if (i >= h->request_meta_contexts.size) {
     set_error (EINVAL, "meta context request out of range");
     return NULL;
   }
 
-  ret = strdup (h->request_meta_contexts[i]);
+  ret = strdup (h->request_meta_contexts.ptr[i]);
   if (ret == NULL)
     set_error (errno, "strdup");
 
@@ -340,8 +334,8 @@ nbd_unlocked_get_meta_context (struct nbd_handle *h, size_t i)
 int
 nbd_unlocked_clear_meta_contexts (struct nbd_handle *h)
 {
-  nbd_internal_free_string_list (h->request_meta_contexts);
-  h->request_meta_contexts = NULL;
+  string_vector_iter (&h->request_meta_contexts, (void *) free);
+  string_vector_reset (&h->request_meta_contexts);
   return 0;
 }
 

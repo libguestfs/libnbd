@@ -210,8 +210,8 @@ STATE_MACHINE {
   int flags;
 
   assert (!h->sock);
-  assert (h->argv);
-  assert (h->argv[0]);
+  assert (h->argv.ptr);
+  assert (h->argv.ptr[0]);
   if (socketpair (AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0, sv) == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "socketpair");
@@ -237,8 +237,8 @@ STATE_MACHINE {
     /* Restore SIGPIPE back to SIG_DFL. */
     signal (SIGPIPE, SIG_DFL);
 
-    execvp (h->argv[0], h->argv);
-    nbd_internal_fork_safe_perror (h->argv[0]);
+    execvp (h->argv.ptr[0], h->argv.ptr);
+    nbd_internal_fork_safe_perror (h->argv.ptr[0]);
     if (errno == ENOENT)
       _exit (127);
     else

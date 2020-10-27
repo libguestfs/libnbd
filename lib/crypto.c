@@ -31,6 +31,7 @@
 #endif
 
 #include "internal.h"
+#include "vector.h"
 
 int
 nbd_unlocked_set_tls (struct nbd_handle *h, int tls)
@@ -107,11 +108,13 @@ nbd_unlocked_set_tls_username (struct nbd_handle *h, const char *username)
   return 0;
 }
 
+DEFINE_VECTOR_TYPE (string, char)
+
 char *
 nbd_unlocked_get_tls_username (struct nbd_handle *h)
 {
   char *s, *ret;
-  size_t len;
+  string str = empty_vector;
 
   if (h->tls_username) {
     ret = strdup (h->tls_username);
@@ -137,31 +140,22 @@ nbd_unlocked_get_tls_username (struct nbd_handle *h)
     return ret;
   }
 
-  len = 16;
-  ret = NULL;
-  while (ret == NULL) {
-    char *oldret = ret;
-
-    ret = realloc (oldret, len);
-    if (ret == NULL) {
-      set_error (errno, "realloc");
-      free (oldret);
+  for (;;) {
+    if (getlogin_r (str.ptr, str.alloc) == 0) {
+      return str.ptr;
+    }
+    else if (errno != ERANGE) {
+      set_error (errno, "getlogin_r");
+      free (str.ptr);
       return NULL;
     }
-
-    if (getlogin_r (ret, len) != 0) {
-      if (errno == ERANGE) {
-        /* Try again with a larger buffer. */
-        len *= 2;
-        continue;
-      }
-      set_error (errno, "getlogin_r");
-      free (ret);
+    /* Try again with a larger buffer. */
+    if (string_reserve (&str, str.alloc == 0 ? 16 : str.alloc * 2) == -1) {
+      set_error (errno, "realloc");
+      free (str.ptr);
       return NULL;
     }
   }
-
-  return ret;
 }
 
 int

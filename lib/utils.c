@@ -52,55 +52,25 @@ nbd_internal_hexdump (const void *data, size_t len, FILE *fp)
   }
 }
 
-size_t
-nbd_internal_string_list_length (char **argv)
-{
-  size_t ret;
-
-  if (argv == NULL)
-    return 0;
-
-  for (ret = 0; argv[ret] != NULL; ++ret)
-    ;
-  return ret;
-}
-
-char **
-nbd_internal_copy_string_list (char **argv)
-{
-  size_t i, j, n;
-  char **ret;
-
-  n = nbd_internal_string_list_length (argv);
-  ret = calloc (n+1, sizeof (char *));
-  if (!ret)
-    return NULL;
-
-  for (i = 0; i < n; ++i) {
-    ret[i] = strdup (argv[i]);
-    if (ret[i] == NULL) {
-      for (j = 0; j < i; ++j)
-        free (ret[j]);
-      free (ret);
-      return NULL;
-    }
-  }
-  ret[n] = NULL;
-
-  return ret;
-}
-
-void
-nbd_internal_free_string_list (char **argv)
+/* Replace the string_vector with a deep copy of argv (including final NULL). */
+int
+nbd_internal_set_argv (string_vector *v, char **argv)
 {
   size_t i;
 
-  if (!argv)
-    return;
+  string_vector_reset (v);
 
-  for (i = 0; argv[i] != NULL; ++i)
-    free (argv[i]);
-  free (argv);
+  for (i = 0; argv[i] != NULL; ++i) {
+    char *copy = strdup (argv[i]);
+    if (copy == NULL)
+      return -1;
+    if (string_vector_append (v, copy) == -1) {
+      free (copy);
+      return -1;
+    }
+  }
+
+  return string_vector_append (v, NULL);
 }
 
 /* Like sprintf ("%ld", v), but safe to use between fork and exec.  Do
