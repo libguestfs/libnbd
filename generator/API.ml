@@ -1398,13 +1398,17 @@ has been made.";
     permitted_states = [ Created ];
     shortdesc = "connect directly to a connected socket";
     longdesc = "\
-Pass a connected socket (file descriptor) which libnbd will
-talk to.  The program is responsible for connecting this
-somehow to an NBD server.  Once the socket is passed to
-libnbd it is the responsibility of libnbd.  Libnbd may
-read and write to it, set it to non-blocking, etc., and
-will finally close it when the handle is closed.  The
-program must no longer use the socket.";
+Pass a connected socket C<sock> through which libnbd will talk
+to the NBD server.
+
+The caller is responsible for creating and connecting this
+socket by some method, before passing it to libnbd.
+
+If this call returns without error then socket ownership
+is passed to libnbd.  Libnbd will close the socket when the
+handle is closed.  The caller must not use the socket in any way.";
+    see_also = [Link "connect_command";
+                ExternalLink ("socket", 7)];
   };
 
   "connect_command", {
