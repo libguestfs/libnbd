@@ -28,6 +28,7 @@
 #include <getopt.h>
 #include <limits.h>
 #include <errno.h>
+#include <assert.h>
 
 #include <libnbd.h>
 
@@ -52,6 +53,8 @@ struct export {
 DEFINE_VECTOR_TYPE (exports, struct export)
 static exports export_list = empty_vector;
 
+DEFINE_VECTOR_TYPE (uint32_vector, uint32_t)
+
 static int collect_context (void *opaque, const char *name);
 static int collect_export (void *opaque, const char *name,
                            const char *desc);
@@ -64,6 +67,7 @@ static int extent_callback (void *user_data, const char *metacontext,
                             uint64_t offset,
                             uint32_t *entries, size_t nr_entries,
                             int *error);
+static void print_extents (uint32_vector *entries);
 
 static void __attribute__((noreturn))
 usage (FILE *fp, int exitcode)
@@ -269,7 +273,9 @@ main (int argc, char *argv[])
     fprintf (fp, "%" PRIi64 "\n", size);
   }
   else if (map) {               /* --map (!list_all) */
-    uint64_t offset, prev_offset, align, max_len;
+    uint32_vector entries = empty_vector;
+    uint64_t offset, align, max_len;
+    size_t prev_entries_size;
 
     /* Did we get the requested map? */
     if (!nbd_can_meta_context (nbd, map)) {
@@ -287,26 +293,28 @@ main (int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
 
-    if (json_output) fprintf (fp, "[\n");
     for (offset = 0; offset < size;) {
-      prev_offset = offset;
+      prev_entries_size = entries.size;
       if (nbd_block_status (nbd, MIN (size - offset, max_len), offset,
                             (nbd_extent_callback) { .callback = extent_callback,
-                                                    .user_data = &offset },
+                                                    .user_data = &entries },
                             0) == -1) {
         fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
         exit (EXIT_FAILURE);
       }
-      /* We expect extent_callback to increment the offset.  If it did
-       * not then probably the server is not returning any extents.
-       */
-      if (offset <= prev_offset) {
+      /* We expect extent_callback to add at least one extent to entries. */
+      if (prev_entries_size == entries.size) {
         fprintf (stderr, "%s: --map: server did not return any extents\n",
                  progname);
         exit (EXIT_FAILURE);
       }
+      assert ((entries.size & 1) == 0);
+      for (i = prev_entries_size; i < entries.size; i += 2)
+        offset += entries.ptr[i];
     }
-    if (json_output) fprintf (fp, "\n]\n");
+
+    print_extents (&entries);
+    free (entries.ptr);
   }
   else {                        /* not --size or --map */
     /* Print per-connection fields. */
@@ -741,6 +749,30 @@ get_content (struct nbd_handle *nbd, int64_t size)
 }
 
 /* Callback handling --map. */
+static int
+extent_callback (void *user_data, const char *metacontext,
+                 uint64_t offset,
+                 uint32_t *entries, size_t nr_entries,
+                 int *error)
+{
+  uint32_vector *list = user_data;
+  size_t i;
+
+  if (strcmp (metacontext, map) != 0)
+    return 0;
+
+  /* Just append the entries we got to the list.  They are printed in
+   * print_extents below.
+   */
+  for (i = 0; i < nr_entries; ++i) {
+    if (uint32_vector_append (list, entries[i]) == -1) {
+      perror ("realloc");
+      exit (EXIT_FAILURE);
+    }
+  }
+  return 0;
+}
+
 static char *
 extent_description (const char *metacontext, uint32_t type)
 {
@@ -776,28 +808,23 @@ extent_description (const char *metacontext, uint32_t type)
   return NULL;   /* Don't know - description field will be omitted. */
 }
 
-static int
-extent_callback (void *user_data, const char *metacontext,
-                 uint64_t offset,
-                 uint32_t *entries, size_t nr_entries,
-                 int *error)
+static void
+print_extents (uint32_vector *entries)
 {
+  uint64_t offset = 0;
   size_t i;
-  uint64_t *ret_offset = user_data;
-  static bool comma = false;
+  bool comma = false;
 
-  if (strcmp (metacontext, map) != 0)
-    return 0;
+  if (json_output) fprintf (fp, "[\n");
 
-  /* Print the entries received. */
-  for (i = 0; i < nr_entries; i += 2) {
-    char *descr = extent_description (map, entries[i+1]);
+  for (i = 0; i < entries->size; i += 2) {
+    char *descr = extent_description (map, entries->ptr[i+1]);
 
     if (!json_output) {
       fprintf (fp, "%10" PRIu64 "  "
                "%10" PRIu32 "  "
                "%3" PRIu32,
-               offset, entries[i], entries[i+1]);
+               offset, entries->ptr[i], entries->ptr[i+1]);
       if (descr)
         fprintf (fp, "  %s", descr);
       fprintf (fp, "\n");
@@ -809,7 +836,7 @@ extent_callback (void *user_data, const char *metacontext,
       fprintf (fp, "{ \"offset\": %" PRIu64 ", "
                "\"length\": %" PRIu32 ", "
                "\"type\": %" PRIu32,
-               offset, entries[i], entries[i+1]);
+               offset, entries->ptr[i], entries->ptr[i+1]);
       if (descr) {
         fprintf (fp, ", \"description\": ");
         print_json_string (descr);
@@ -819,9 +846,8 @@ extent_callback (void *user_data, const char *metacontext,
     }
 
     free (descr);
-    offset += entries[i];
+    offset += entries->ptr[i];
   }
 
-  *ret_offset = offset;
-  return 0;
+  if (json_output) fprintf (fp, "\n]\n");
 }
