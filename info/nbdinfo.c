@@ -767,28 +767,30 @@ get_content (struct nbd_handle *nbd, int64_t size)
 }
 
 /* Callback handling --map. */
-static const char *
+static char *
 extent_description (const char *metacontext, uint32_t type)
 {
+  char *ret;
+
   if (strcmp (metacontext, "base:allocation") == 0) {
     switch (type) {
-    case 0: return "allocated";
-    case 1: return "hole";
-    case 2: return "zero";
-    case 3: return "hole,zero";
+    case 0: return strdup ("allocated");
+    case 1: return strdup ("hole");
+    case 2: return strdup ("zero");
+    case 3: return strdup ("hole,zero");
     }
   }
   else if (strncmp (metacontext, "qemu:dirty-bitmap:", 18) == 0) {
     switch (type) {
-    case 0: return "clean";
-    case 1: return "dirty";
+    case 0: return strdup ("clean");
+    case 1: return strdup ("dirty");
     }
   }
   else if (strcmp (metacontext, "qemu:allocation-depth") == 0) {
-    switch (type & 3) {
-    case 0: return "unallocated";
-    case 1: return "local";
-    case 2: return "backing";
+    switch (type) {
+    case 0: return strdup ("unallocated");
+    case 1: return strdup ("local");
+    default: asprintf (&ret, "backing depth %u", type); return ret;
     }
   }
 
@@ -810,7 +812,7 @@ extent_callback (void *user_data, const char *metacontext,
 
   /* Print the entries received. */
   for (i = 0; i < nr_entries; i += 2) {
-    const char *descr = extent_description (map, entries[i+1]);
+    char *descr = extent_description (map, entries[i+1]);
 
     if (!json_output) {
       fprintf (fp, "%10" PRIu64 "  "
@@ -837,6 +839,7 @@ extent_callback (void *user_data, const char *metacontext,
       comma = true;
     }
 
+    free (descr);
     offset += entries[i];
   }
 
