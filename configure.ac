@@ -450,6 +450,7 @@ AC_CONFIG_FILES([sh/nbdsh],
 AC_CONFIG_FILES([Makefile
                  bash/Makefile
                  common/include/Makefile
+                 common/utils/Makefile
                  copy/Makefile
                  docs/Makefile
                  examples/Makefile

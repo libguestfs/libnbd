@@ -31,6 +31,7 @@ SUBDIRS = \
 	generator \
 	include \
 	common/include \
+	common/utils \
 	lib \
 	docs \
 	examples \
