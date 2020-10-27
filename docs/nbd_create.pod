@@ -10,38 +10,19 @@ handles and fetch errors
  struct nbd_handle *nbd;
 
  struct nbd_handle *nbd_create (void);
+
  void nbd_close (struct nbd_handle *nbd);
+
  const char *nbd_get_error (void);
+
  int nbd_get_errno (void);
-
-=head1 EXAMPLE
-
- #include <libnbd.h>
-
- main ()
- { 
-   struct nbd_handle *nbd;
- 
-   nbd = nbd_create ();
-   if (nbd == NULL) {
-     fprintf (stderr, "%s\n", nbd_get_error ());
-     nbd_close (nbd);
-     exit (EXIT_FAILURE);
-   }
-   nbd_close (nbd);
-   exit (EXIT_SUCCESS);
- }
-
- cc prog.c -o prog -lnbd
-or:
- cc prog.c -o prog `pkg-config libnbd --cflags --libs`
 
 =head1 DESCRIPTION
 
-=head2 Create and close handles
-
 B<struct nbd_handle> is an opaque structure which describes an NBD
 client handle and the connection to an NBD server.
+
+=head2 Creating a libnbd handle
 
 B<nbd_create> creates a new handle.  It returns a pointer to the
 opaque handle structure.
@@ -49,18 +30,21 @@ opaque handle structure.
 On error this returns C<NULL>.  See L<libnbd(3)/ERROR HANDLING>
 for how to get further details of the error.
 
-B<nbd_close> closes the handle and frees any associated resources.
+=head2 Closing a handle
+
+B<nbd_close> closes the handle, closing and freeing any associated
+resources.
+
 The final status of any command that has not been retired (whether by
 L<nbd_aio_command_completed(3)> or by a low-level completion callback
-returning C<1>) is lost.  This function is not safe to call while any
-other thread is still using any C<nbd_*> API on the same handle.  This
-function can block in the case where we wait for a subprocess (eg. one
-created with L<nbd_connect_command(3)>).
+returning C<1>) is lost.
+
+This function is not safe to call while any other thread is still
+using any C<nbd_*> API on the same handle.  This function can block in
+the case where we wait for a subprocess (eg. one created with
+L<nbd_connect_command(3)>).
 
 =head2 Getting the latest error message in the thread
-
-See L<libnbd(3)/ERROR HANDLING> for more discussion of how
-error handling works in libnbd.
 
 B<nbd_get_error> returns the most recent error message in the current
 thread.  The error message is only valid if called immediately after
@@ -77,6 +61,31 @@ thread.  Not all errors have corresponding errnos, so even if there
 has been an error this may return C<0>.  Error codes are the standard
 ones from C<E<lt>errno.hE<gt>>.
 
+See L<libnbd(3)/ERROR HANDLING> for more discussion of how error
+handling works in libnbd.
+
+=head1 EXAMPLE
+
+ #include <libnbd.h>
+
+ main ()
+ {
+   struct nbd_handle *nbd;
+ 
+   nbd = nbd_create ();
+   if (nbd == NULL) {
+     fprintf (stderr, "%s\n", nbd_get_error ());
+     nbd_close (nbd);
+     exit (EXIT_FAILURE);
+   }
+   nbd_close (nbd);
+   exit (EXIT_SUCCESS);
+ }
+
+=head1 VERSION
+
+These functions were all present in libnbd 1.0.
+
 =head1 SEE ALSO
 
 L<libnbd(3)>.
@@ -89,4 +98,4 @@ Richard W.M. Jones
 
 =head1 COPYRIGHT
 
-Copyright (C) 2019 Red Hat Inc.
+Copyright (C) 2019-2020 Red Hat Inc.
