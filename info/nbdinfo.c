@@ -31,7 +31,11 @@
 
 #include <libnbd.h>
 
+#include "vector.h"
+
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
+
+DEFINE_VECTOR_TYPE (string_vector, char *)
 
 static const char *progname;
 static FILE *fp;
@@ -41,16 +45,12 @@ static bool json_output = false;
 static const char *map = NULL;
 static bool size_only = false;
 
-struct context_list {
+struct export {
   char *name;
-  struct context_list *next;
+  char *desc;
 };
-
-static struct export_list {
-  size_t len;
-  char **names;
-  char **descs;
-} export_list;
+DEFINE_VECTOR_TYPE (exports, struct export)
+static exports export_list = empty_vector;
 
 static int collect_context (void *opaque, const char *name);
 static int collect_export (void *opaque, const char *name,
@@ -246,8 +246,8 @@ main (int argc, char *argv[])
   }
 
   if (list_all) {               /* --list */
-    if (nbd_opt_list (nbd, (nbd_list_callback) {
-          .callback = collect_export, .user_data = &export_list}) == -1) {
+    if (nbd_opt_list (nbd,
+                      (nbd_list_callback) {.callback = collect_export}) == -1) {
       fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
@@ -342,12 +342,11 @@ main (int argc, char *argv[])
       fprintf (fp, "}\n");
   }
 
-  for (i = 0; i < export_list.len; i++) {
-    free (export_list.names[i]);
-    free (export_list.descs[i]);
+  for (i = 0; i < export_list.size; ++i) {
+    free (export_list.ptr[i].name);
+    free (export_list.ptr[i].desc);
   }
-  free (export_list.names);
-  free (export_list.descs);
+  free (export_list.ptr);
   nbd_opt_abort (nbd);
   nbd_shutdown (nbd, 0);
   nbd_close (nbd);
@@ -370,52 +369,30 @@ main (int argc, char *argv[])
 static int
 collect_context (void *opaque, const char *name)
 {
-  struct context_list **head = opaque;
-  struct context_list *next = malloc (sizeof *next);
+  string_vector *contexts = opaque;
+  char *copy;
 
-  if (!next) {
+  copy = strdup (name);
+  if (copy == NULL || string_vector_append (contexts, copy) == -1) {
     perror ("malloc");
     exit (EXIT_FAILURE);
   }
-  next->name = strdup (name);
-  if (!next->name) {
-    perror ("strdup");
-    exit (EXIT_FAILURE);
-  }
-  next->next = *head;
-  *head = next;
   return 0;
 }
 
 static int
 collect_export (void *opaque, const char *name, const char *desc)
 {
-  struct export_list *l = opaque;
-  char **names, **descs;
+  struct export e;
 
-  names = realloc (l->names, (l->len + 1) * sizeof name);
-  descs = realloc (l->descs, (l->len + 1) * sizeof desc);
-  if (!names || !descs) {
-    perror ("realloc");
+  e.name = strdup (name);
+  e.desc = strdup (desc);
+  if (e.name == NULL || e.desc == NULL ||
+      exports_append (&export_list, e) == -1) {
+    perror ("malloc");
     exit (EXIT_FAILURE);
   }
-  l->names = names;
-  l->descs = descs;
-  l->names[l->len] = strdup (name);
-  if (!l->names[l->len]) {
-    perror ("strdup");
-    exit (EXIT_FAILURE);
-  }
-  if (*desc) {
-    l->descs[l->len] = strdup (desc);
-    if (!l->descs[l->len]) {
-      perror ("strdup");
-      exit (EXIT_FAILURE);
-    }
-  }
-  else
-    l->descs[l->len] = NULL;
-  l->len++;
+
   return 0;
 }
 
@@ -423,7 +400,7 @@ static void
 list_one_export (struct nbd_handle *nbd, const char *desc,
                  bool first, bool last)
 {
-  int64_t size;
+  int64_t i, size;
   char *export_name = NULL;
   char *export_desc = NULL;
   char *content = NULL;
@@ -431,7 +408,7 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
   int can_cache, can_df, can_fast_zero, can_flush, can_fua,
     can_multi_conn, can_trim, can_zero;
   int64_t block_minimum, block_preferred, block_maximum;
-  struct context_list *contexts = NULL;
+  string_vector contexts = empty_vector;
   bool show_context = false;
 
   /* Collect the metadata we are going to display. If opt_info works,
@@ -474,8 +451,9 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
   block_minimum = nbd_get_block_size (nbd, LIBNBD_SIZE_MINIMUM);
   block_preferred = nbd_get_block_size (nbd, LIBNBD_SIZE_PREFERRED);
   block_maximum = nbd_get_block_size (nbd, LIBNBD_SIZE_MAXIMUM);
-  if (nbd_opt_list_meta_context (nbd, (nbd_context_callback) {
-        .callback = collect_context, .user_data = &contexts}) != -1)
+  if (nbd_opt_list_meta_context (nbd,
+             (nbd_context_callback) {.callback = collect_context,
+                                       .user_data = &contexts}) != -1)
     show_context = true;
 
   /* Get content last, as it moves the connection out of negotiating */
@@ -493,8 +471,8 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
       fprintf (fp, "\tcontent: %s\n", content);
     if (show_context) {
       fprintf (fp, "\tcontexts:\n");
-      for (struct context_list *next = contexts; next; next = next->next)
-        fprintf (fp, "\t\t%s\n", next->name);
+      for (i = 0; i < contexts.size; ++i)
+        fprintf (fp, "\t\t%s\n", contexts.ptr[i]);
     }
     if (is_rotational >= 0)
       fprintf (fp, "\t%s: %s\n", "is_rotational",
@@ -551,10 +529,10 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
 
     if (show_context) {
       fprintf (fp, "\t\"contexts\": [\n");
-      for (struct context_list *next = contexts; next; next = next->next) {
+      for (i = 0; i < contexts.size; ++i) {
         fprintf (fp, "\t\t");
-        print_json_string (next->name);
-        if (next->next)
+        print_json_string (contexts.ptr[i]);
+        if (i+1 != contexts.size)
           fputc (',', fp);
         fputc ('\n', fp);
       }
@@ -611,12 +589,8 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
       fprintf (fp, "\t},\n");
   }
 
-  while (contexts) {
-    struct context_list *next = contexts->next;
-    free (contexts->name);
-    free (contexts);
-    contexts = next;
-  }
+  string_vector_iter (&contexts, (void *) free);
+  free (contexts.ptr);
   free (content);
   free (export_name);
   free (export_desc);
@@ -627,11 +601,11 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
 {
   size_t i;
 
-  if (export_list.len == 0 && json_output)
+  if (export_list.size == 0 && json_output)
     fprintf (fp, "\"exports\": []\n");
 
-  for (i = 0; i < export_list.len; ++i) {
-    const char *name = export_list.names[i];
+  for (i = 0; i < export_list.size; ++i) {
+    const char *name = export_list.ptr[i].name;
     struct nbd_handle *nbd2;
 
     if (probe_content) {
@@ -660,8 +634,8 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
     }
 
     /* List the metadata of this export. */
-    list_one_export (nbd2, export_list.descs[i], i == 0,
-                     i + 1 == export_list.len);
+    list_one_export (nbd2, export_list.ptr[i].desc, i == 0,
+                     i + 1 == export_list.size);
 
     if (probe_content) {
       nbd_shutdown (nbd2, 0);

@@ -47,11 +47,15 @@ LOG_COMPILER = $(top_builddir)/run
 TESTS =
 
 nbdinfo_SOURCES = nbdinfo.c
-nbdinfo_CPPFLAGS = -I$(top_srcdir)/include
+nbdinfo_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/common/utils \
+	$(NULL)
 nbdinfo_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
 	$(NULL)
 nbdinfo_LDADD = \
+	$(top_builddir)/common/utils/libutils.la \
 	$(top_builddir)/lib/libnbd.la \
 	$(NULL)
 
