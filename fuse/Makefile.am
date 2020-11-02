@@ -50,6 +50,7 @@ nbdfuse.1: nbdfuse.pod $(top_builddir)/podwrapper.pl
 endif HAVE_POD
 
 TESTS += \
+	test-file-mode.sh \
 	test-nbdkit.sh \
 	test-qcow2.sh \
 	$(NULL)

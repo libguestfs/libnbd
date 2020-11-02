@@ -49,6 +49,7 @@
 
 static struct nbd_handle *nbd;
 static bool readonly;
+static bool file_mode = false;
 static char *mountpoint, *filename;
 static const char *pidfile;
 static char *fuse_options;
@@ -131,6 +132,16 @@ is_directory (const char *path)
   if (stat (path, &statbuf) == -1)
     return false;
   return S_ISDIR (statbuf.st_mode);
+}
+
+static bool
+is_regular_file (const char *path)
+{
+  struct stat statbuf;
+
+  if (stat (path, &statbuf) == -1)
+    return false;
+  return S_ISREG (statbuf.st_mode);
 }
 
 int
@@ -233,21 +244,36 @@ main (int argc, char *argv[])
   if (argc - optind < 2)
     usage (stderr, EXIT_FAILURE);
 
-  /* Parse and check the mountpoint.  It might be MOUNTPOINT or
-   * MOUNTPOINT/FILENAME.  In either case MOUNTPOINT must be an
-   * existing directory.
+  /* Parse and check the mountpoint.  It might be MOUNTPOINT (file),
+   * MOUNTPOINT (directory), or MOUNTPOINT/FILENAME.
    */
   s = argv[optind++];
-  if (is_directory (s)) {
+  if (is_regular_file (s)) {    /* MOUNTPOINT (file) */
+    const char *p;
+
+    file_mode = true;
     mountpoint = strdup (s);
-    filename = strdup ("nbd");
-    if (mountpoint == NULL || filename == NULL) {
+    if (mountpoint == NULL) {
     strdup_error:
       perror ("strdup");
       exit (EXIT_FAILURE);
     }
+    p = strrchr (s, '/');
+    if (!p)
+      filename = strdup (s);
+    else {
+      if (strlen (p+1) == 0) goto mp_error; /* probably can't happen */
+      filename = strdup (p+1);
+    }
+    if (!filename) goto strdup_error;
   }
-  else {
+  else if (is_directory (s)) {  /* MOUNTPOINT/nbd */
+    mountpoint = strdup (s);
+    filename = strdup ("nbd");
+    if (mountpoint == NULL || filename == NULL)
+      goto strdup_error;
+  }
+  else {                        /* MOUNTPOINT/FILENAME */
     const char *p = strrchr (s, '/');
 
     if (p == NULL) {
@@ -535,16 +561,16 @@ nbdfuse_getattr (const char *path, struct stat *statbuf)
   statbuf->st_uid = geteuid ();
   statbuf->st_gid = getegid ();
 
-  if (strcmp (path, "/") == 0) {
-    /* getattr "/" */
-    statbuf->st_mode = S_IFDIR | (mode & 0111);
-    statbuf->st_nlink = 2;
-  }
-  else if (path[0] == '/' && strcmp (path+1, filename) == 0) {
+  if (file_mode || (path[0] == '/' && strcmp (path+1, filename) == 0)) {
     /* getattr "/filename" */
     statbuf->st_mode = S_IFREG | mode;
     statbuf->st_nlink = 1;
     statbuf->st_size = size;
+  }
+  else if (strcmp (path, "/") == 0) {
+    /* getattr "/" */
+    statbuf->st_mode = S_IFDIR | (mode & 0111);
+    statbuf->st_nlink = 2;
   }
   else
     return -ENOENT;
@@ -574,7 +600,7 @@ nbdfuse_readdir (const char *path, void *buf,
 static int
 nbdfuse_open (const char *path, struct fuse_file_info *fi)
 {
-  if (path[0] != '/' || strcmp (path+1, filename) != 0)
+  if (!file_mode && (path[0] != '/' || strcmp (path+1, filename) != 0))
     return -ENOENT;
 
   if (readonly && (fi->flags & O_ACCMODE) != O_RDONLY)
@@ -588,7 +614,7 @@ nbdfuse_read (const char *path, char *buf,
               size_t count, off_t offset,
               struct fuse_file_info *fi)
 {
-  if (path[0] != '/' || strcmp (path+1, filename) != 0)
+  if (!file_mode && (path[0] != '/' || strcmp (path+1, filename) != 0))
     return -ENOENT;
 
   if (offset >= size)
@@ -614,7 +640,7 @@ nbdfuse_write (const char *path, const char *buf,
   if (readonly)
     return -EACCES;
 
-  if (path[0] != '/' || strcmp (path+1, filename) != 0)
+  if (!file_mode && (path[0] != '/' || strcmp (path+1, filename) != 0))
     return -ENOENT;
 
   if (offset >= size)

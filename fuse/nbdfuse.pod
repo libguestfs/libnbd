@@ -31,6 +31,10 @@ virtual file called F<FILENAME> (defaulting to F<nbd>).  Reads and
 writes to the virtual file or device are turned into reads and writes
 to the NBD device.
 
+In nbdkit E<ge> 1.24 you can also create a "naked" mountpoint by
+mounting over any regular file called F<MOUNTPOINT> (the existing
+contents of the file do not matter).
+
 The NBD server itself can be local or remote.  The server can be
 specified as an NBD URI (like C<nbd://localhost>) or in various other
 ways (see L</MODES>).
