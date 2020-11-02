@@ -790,7 +790,12 @@ extent_description (const char *metacontext, uint32_t type)
     switch (type) {
     case 0: return strdup ("unallocated");
     case 1: return strdup ("local");
-    default: asprintf (&ret, "backing depth %u", type); return ret;
+    default:
+      if (asprintf (&ret, "backing depth %u", type) == -1) {
+        perror ("asprintf");
+        exit (EXIT_FAILURE);
+      }
+      return ret;
     }
   }
 
