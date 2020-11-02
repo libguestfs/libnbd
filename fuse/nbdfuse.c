@@ -436,7 +436,7 @@ main (int argc, char *argv[])
   ch = fuse_mount (mountpoint, &fuse_args);
   if (ch == NULL) {
     fprintf (stderr,
-             "%s: fuse_mount failed: see error messages above", argv[0]);
+             "%s: fuse_mount failed: see error messages above\n", argv[0]);
     exit (EXIT_FAILURE);
   }
 
