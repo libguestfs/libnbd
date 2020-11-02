@@ -19,6 +19,7 @@ include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
 	nbdfuse.pod \
+	test-file-mode.sh \
 	test-nbdkit.sh \
 	test-qcow2.sh \
 	$(NULL)
