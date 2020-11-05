@@ -22,7 +22,9 @@ EXTRA_DIST = \
 	copy-file-to-nbd.sh \
 	copy-nbd-to-block.sh \
 	copy-nbd-to-file.sh \
+	copy-nbd-to-nbd.sh \
 	copy-nbd-to-small-block-error.sh \
+	copy-nbd-to-small-nbd-error.sh \
 	copy-nbd-to-stdout.sh \
 	copy-stdin-to-nbd.sh \
 	nbdcopy.pod \
@@ -32,7 +34,12 @@ TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
 LOG_COMPILER = $(top_builddir)/run
 TESTS =
 
-nbdcopy_SOURCES = nbdcopy.c
+nbdcopy_SOURCES = \
+	nbdcopy.c \
+	nbdcopy.h \
+	progress.c \
+	synch-copying.c \
+	$(NULL)
 nbdcopy_CPPFLAGS = -I$(top_srcdir)/include
 nbdcopy_CFLAGS = $(WARNINGS_CFLAGS)
 nbdcopy_LDADD = $(top_builddir)/lib/libnbd.la
@@ -63,6 +70,8 @@ ROOT_TESTS = \
 TESTS += \
 	copy-file-to-nbd.sh \
 	copy-nbd-to-file.sh \
+	copy-nbd-to-nbd.sh \
+	copy-nbd-to-small-nbd-error.sh \
 	copy-stdin-to-nbd.sh \
 	copy-nbd-to-stdout.sh \
 	$(ROOT_TESTS) \

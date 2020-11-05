@@ -21,39 +21,43 @@
 set -e
 set -x
 
-requires_root
 requires nbdkit --exit-with-parent --version
-requires nbd-client --version
-# /dev/nbd0 must not be in use.
-requires_not nbd-client -c /dev/nbd0
+requires stat --version
 
-pidfile1=copy-nbd-to-small-block-error.pid
-pidfile2=copy-nbd-to-small-block-error.pid
+pidfile1=copy-nbd-to-nbd-error.pid1
+pidfile2=copy-nbd-to-nbd-error.pid2
 sock1=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
 sock2=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
 cleanup_fn rm -f $pidfile1 $pidfile2 $sock1 $sock2
-cleanup_fn nbd-client -d /dev/nbd0
 
-nbdkit --exit-with-parent -f -v -P $pidfile1 -U $sock1 pattern 10M &
-nbdkit --exit-with-parent -f -v -P $pidfile2 -U $sock2 memory 5M &
-# Wait for the pidfiles to appear.
+nbdkit --exit-with-parent -f -v -P $pidfile1 -U $sock1 pattern size=10M &
+# Wait for the pidfile to appear.
 for i in {1..60}; do
-    if test -f $pidfile1 && test -f $pidfile2; then
+    if test -f $pidfile1; then
         break
     fi
     sleep 1
 done
-if ! test -f $pidfile1 || ! test -f $pidfile2; then
+if ! test -f $pidfile1; then
     echo "$0: nbdkit did not start up"
     exit 1
 fi
 
-nbd-client -unix $sock2 /dev/nbd0 -b 512
+# Since this is too small, we expect nbdcopy below to give an error.
+nbdkit --exit-with-parent -f -v -P $pidfile2 -U $sock2 memory size=1M &
+# Wait for the pidfile to appear.
+for i in {1..60}; do
+    if test -f $pidfile2; then
+        break
+    fi
+    sleep 1
+done
+if ! test -f $pidfile2; then
+    echo "$0: nbdkit did not start up"
+    exit 1
+fi
 
-# The source is larger than the destination device so we expect this
-# test to fail.  In the log you should see:
-#   nbdcopy: error: destination size is smaller than source size
-if nbdcopy "nbd+unix:///?socket=$sock1" /dev/nbd0; then
+if nbdcopy "nbd+unix:///?socket=$sock1" "nbd+unix:///?socket=$sock2"; then
     echo "$0: expected this test to fail"
     exit 1
 fi

@@ -4,9 +4,9 @@ nbdcopy - copy to and from an NBD server
 
 =head1 SYNOPSIS
 
- nbdcopy [-p] -|FILE|DEVICE NBD-URI
+ nbdcopy [-p] SOURCE DESTINATION
 
- nbdcopy [-p] NBD-URI -|FILE|DEVICE
+ SOURCE, DESTINATION := - | FILE | DEVICE | NBD-URI
 
  nbdcopy --help
 
@@ -22,11 +22,13 @@ nbdcopy - copy to and from an NBD server
 
  cat disk1 disk2 | nbdcopy - "nbd+unix:///?socket=/tmp/unixsock"
 
+ nbdcopy nbd://server1 nbd://server2
+
 =head1 DESCRIPTION
 
 nbdcopy copies to and from an NBD server.  It can upload a local file
 to an NBD server, or download the contents of an NBD server to a local
-file, device or stdin/stdout.
+file, device or stdin/stdout.  It can also copy between NBD servers.
 
 The local file can be a file, a block device (eg. C</dev/cdrom>), or
 C<-> which means stream in from stdin or stream out to stdout.  The
