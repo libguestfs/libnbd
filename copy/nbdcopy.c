@@ -84,7 +84,6 @@ main (int argc, char *argv[])
   };
   int c;
   size_t i;
-  const char *src_arg, *dst_arg;
 
   for (;;) {
     c = getopt_long (argc, argv, short_options, long_options, NULL);
@@ -127,10 +126,10 @@ main (int argc, char *argv[])
   if (argc - optind != 2)
     usage (stderr, EXIT_FAILURE);
 
-  src_arg = argv[optind];
-  dst_arg = argv[optind+1];
-  src.t = is_nbd_uri (src_arg) ? NBD : LOCAL;
-  dst.t = is_nbd_uri (dst_arg) ? NBD : LOCAL;
+  src.name = argv[optind];
+  dst.name = argv[optind+1];
+  src.t = is_nbd_uri (src.name) ? NBD : LOCAL;
+  dst.t = is_nbd_uri (dst.name) ? NBD : LOCAL;
 
   /* Prevent copying between local files or devices.  It's unlikely
    * this program will ever be better than highly tuned utilities like
@@ -145,9 +144,8 @@ main (int argc, char *argv[])
   }
 
   /* Set up the source side. */
-  src.name = src_arg;
   if (src.t == LOCAL) {
-    src.u.local.fd = open_local (argv[0], src_arg, false, &src);
+    src.u.local.fd = open_local (argv[0], src.name, false, &src);
   }
   else {
     src.u.nbd = nbd_create ();
@@ -156,16 +154,15 @@ main (int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
     nbd_set_uri_allow_local_file (src.u.nbd, true); /* Allow ?tls-psk-file. */
-    if (nbd_connect_uri (src.u.nbd, src_arg) == -1) {
-      fprintf (stderr, "%s: %s: %s\n", argv[0], src_arg, nbd_get_error ());
+    if (nbd_connect_uri (src.u.nbd, src.name) == -1) {
+      fprintf (stderr, "%s: %s: %s\n", argv[0], src.name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
   }
 
   /* Set up the destination side. */
-  dst.name = dst_arg;
   if (dst.t == LOCAL) {
-    dst.u.local.fd = open_local (argv[0], dst_arg, true /* writing */, &dst);
+    dst.u.local.fd = open_local (argv[0], dst.name, true /* writing */, &dst);
   }
   else {
     dst.u.nbd = nbd_create ();
@@ -174,8 +171,8 @@ main (int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
     nbd_set_uri_allow_local_file (dst.u.nbd, true); /* Allow ?tls-psk-file. */
-    if (nbd_connect_uri (dst.u.nbd, dst_arg) == -1) {
-      fprintf (stderr, "%s: %s: %s\n", argv[0], dst_arg, nbd_get_error ());
+    if (nbd_connect_uri (dst.u.nbd, dst.name) == -1) {
+      fprintf (stderr, "%s: %s: %s\n", argv[0], dst.name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
     /* Obviously this is not going to work if the server is
@@ -184,7 +181,7 @@ main (int argc, char *argv[])
     if (nbd_is_read_only (dst.u.nbd)) {
       fprintf (stderr, "%s: %s: "
                "this NBD server is read-only, cannot write to it\n",
-               argv[0], dst_arg);
+               argv[0], dst.name);
       exit (EXIT_FAILURE);
     }
   }
@@ -196,7 +193,7 @@ main (int argc, char *argv[])
   if (src.t == NBD) {
     src.size = nbd_get_size (src.u.nbd);
     if (src.size == -1) {
-      fprintf (stderr, "%s: %s: %s\n", argv[0], src_arg, nbd_get_error ());
+      fprintf (stderr, "%s: %s: %s\n", argv[0], src.name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
   }
@@ -216,7 +213,7 @@ main (int argc, char *argv[])
   else if (dst.t == NBD) {
     dst.size = nbd_get_size (dst.u.nbd);
     if (dst.size == -1) {
-      fprintf (stderr, "%s: %s: %s\n", argv[0], dst_arg, nbd_get_error ());
+      fprintf (stderr, "%s: %s: %s\n", argv[0], dst.name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
   }
@@ -237,13 +234,13 @@ main (int argc, char *argv[])
   /* Shut down the source side. */
   if (src.t == LOCAL) {
     if (close (src.u.local.fd) == -1) {
-      fprintf (stderr, "%s: %s: close: %m\n", argv[0], src_arg);
+      fprintf (stderr, "%s: %s: close: %m\n", argv[0], src.name);
       exit (EXIT_FAILURE);
     }
   }
   else {
     if (nbd_shutdown (src.u.nbd, 0) == -1) {
-      fprintf (stderr, "%s: %s: %s\n", argv[0], src_arg, nbd_get_error ());
+      fprintf (stderr, "%s: %s: %s\n", argv[0], src.name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
     nbd_close (src.u.nbd);
@@ -252,13 +249,13 @@ main (int argc, char *argv[])
   /* Shut down the destination side. */
   if (dst.t == LOCAL) {
     if (close (dst.u.local.fd) == -1) {
-      fprintf (stderr, "%s: %s: close: %m\n", argv[0], dst_arg);
+      fprintf (stderr, "%s: %s: close: %m\n", argv[0], dst.name);
       exit (EXIT_FAILURE);
     }
   }
   else {
     if (nbd_shutdown (dst.u.nbd, 0) == -1) {
-      fprintf (stderr, "%s: %s: %s\n", argv[0], dst_arg, nbd_get_error ());
+      fprintf (stderr, "%s: %s: %s\n", argv[0], dst.name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
     nbd_close (dst.u.nbd);
