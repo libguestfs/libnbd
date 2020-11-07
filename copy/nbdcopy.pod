@@ -14,15 +14,31 @@ nbdcopy - copy to and from an NBD server
 
 =head1 EXAMPLES
 
- nbdcopy nbd://example.com local.img
+=head2 nbdcopy nbd://example.com local.img
 
- nbdcopy nbd://example.com - | file -
+This copies everything from the NBD server at C<example.com> to a
+local file called F<local.img>.
 
- nbdcopy -p /dev/sdX nbd://example.com
+=head2 nbdcopy nbd://example.com - | file -
 
- cat disk1 disk2 | nbdcopy - "nbd+unix:///?socket=/tmp/unixsock"
+This streams the first part of the disk on the NBD server at
+C<example.com> into the L<file(1)> command.  Note here that C<-> means
+to stream to stdout (and therefore into the pipe to the file command).
 
- nbdcopy nbd://server1 nbd://server2
+=head2 nbdcopy -p /dev/sdX nbd://example.com
+
+Copy the full local hard disk C</dev/sdX> to the NBD server at
+C<example.com>.  Because of the I<-p> option this will print a
+progress bar.
+
+=head2 cat disk1 disk2 | nbdcopy - "nbd+unix:///?socket=/tmp/unixsock"
+
+Concatenate two disk images and stream it to the NBD server listening
+on the Unix domain socket F</tmp/unixsock>.
+
+=head2 nbdcopy nbd://server1 nbd://server2
+
+Copy a full disk from one NBD server to another.
 
 =head1 DESCRIPTION
 
