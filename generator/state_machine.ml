@@ -107,6 +107,7 @@ let rec state_machine = [
     external_events = [ CmdIssue, "NEWSTYLE.START" ];
   };
 
+  (* Implementation: generator/states.c *)
   State {
     default_state with
     name = "READY";
@@ -118,12 +119,14 @@ let rec state_machine = [
   Group ("ISSUE_COMMAND", issue_command_state_machine);
   Group ("REPLY", reply_state_machine);
 
+  (* Implementation: generator/states.c *)
   State {
     default_state with
     name = "DEAD";
     comment = "Connection is in an unrecoverable error state, can only be closed";
   };
 
+  (* Implementation: generator/states.c *)
   State {
     default_state with
     name = "CLOSED";
@@ -131,7 +134,9 @@ let rec state_machine = [
   };
 ]
 
-(* State machine implementing [nbd_aio_connect]. *)
+(* State machine implementing [nbd_aio_connect].
+ * Implementation: generator/states-connect.c
+ *)
 and connect_state_machine = [
   State {
     default_state with
@@ -148,7 +153,9 @@ and connect_state_machine = [
   };
 ]
 
-(* State machine implementing [nbd_aio_connect_tcp]. *)
+(* State machine implementing [nbd_aio_connect_tcp].
+ * Implementation: generator/states-connect.c
+ *)
 and connect_tcp_state_machine = [
   State {
     default_state with
@@ -179,7 +186,9 @@ and connect_tcp_state_machine = [
   };
 ]
 
-(* State machine implementing [nbd_aio_connect_command]. *)
+(* State machine implementing [nbd_aio_connect_command].
+ * Implementation: generator/states-connect.c
+ *)
 and connect_command_state_machine = [
   State {
     default_state with
@@ -199,7 +208,9 @@ and connect_sa_state_machine = [
   };
 ]
 
-(* Parse initial magic string from the server. *)
+(* Parse initial magic string from the server.
+ * Implementation: generator/states-magic.c
+ *)
 and magic_state_machine = [
   State {
     default_state with
@@ -222,7 +233,9 @@ and magic_state_machine = [
   };
 ]
 
-(* Oldstyle handshake. *)
+(* Oldstyle handshake.
+ * Implementation: generator/states-oldstyle.c
+ *)
 and oldstyle_state_machine = [
   State {
     default_state with
@@ -246,7 +259,9 @@ and oldstyle_state_machine = [
   };
 ]
 
-(* Fixed newstyle handshake. *)
+(* Fixed newstyle handshake.
+ * Implementation: generator/states-newstyle.c
+ *)
 and newstyle_state_machine = [
   State {
     default_state with
@@ -325,7 +340,9 @@ and newstyle_state_machine = [
   };
 ]
 
-(* Fixed newstyle NBD_OPT_STARTTLS option. *)
+(* Fixed newstyle NBD_OPT_STARTTLS option.
+ * Implementation: generator/states-newstyle-opt-starttls.c
+ *)
 and newstyle_opt_starttls_state_machine = [
   State {
     default_state with
@@ -377,7 +394,9 @@ and newstyle_opt_starttls_state_machine = [
   };
 ]
 
-(* Fixed newstyle NBD_OPT_LIST option. *)
+(* Fixed newstyle NBD_OPT_LIST option.
+ * Implementation: generator/states-newstyle-opt-list.c
+ *)
 and newstyle_opt_list_state_machine = [
   State {
     default_state with
@@ -415,7 +434,9 @@ and newstyle_opt_list_state_machine = [
   };
 ]
 
-(* Fixed newstyle NBD_OPT_STRUCTURED_REPLY option. *)
+(* Fixed newstyle NBD_OPT_STRUCTURED_REPLY option.
+ * Implementation: generator/states-newstyle-opt-structured-reply.c
+ *)
 and newstyle_opt_structured_reply_state_machine = [
   State {
     default_state with
@@ -453,7 +474,9 @@ and newstyle_opt_structured_reply_state_machine = [
   };
 ]
 
-(* Fixed newstyle NBD_OPT_SET/LIST_META_CONTEXT option. *)
+(* Fixed newstyle NBD_OPT_SET/LIST_META_CONTEXT option.
+ * Implementation: generator/states-newstyle-opt-meta-context.c
+ *)
 and newstyle_opt_meta_context_state_machine = [
   State {
     default_state with
@@ -540,7 +563,9 @@ and newstyle_opt_meta_context_state_machine = [
   };
 ]
 
-(* Fixed newstyle NBD_OPT_GO option. *)
+(* Fixed newstyle NBD_OPT_GO option.
+ * Implementation: generator/states-newstyle-opt-go.c
+ *)
 and newstyle_opt_go_state_machine = [
   State {
     default_state with
@@ -606,7 +631,9 @@ and newstyle_opt_go_state_machine = [
   };
 ]
 
-(* Newstyle NBD_OPT_EXPORT_NAME option. *)
+(* Newstyle NBD_OPT_EXPORT_NAME option.
+ * Implementation: generator/states-newstyle-opt-export-name.c
+ *)
 and newstyle_opt_export_name_state_machine = [
   State {
     default_state with
@@ -644,7 +671,9 @@ and newstyle_opt_export_name_state_machine = [
   };
 ]
 
-(* Sending a command to the server. *)
+(* Sending a command to the server.
+ * Implementation: generator/states-issue-command.c
+ *)
 and issue_command_state_machine = [
   State {
     default_state with
@@ -713,7 +742,9 @@ and issue_command_state_machine = [
   };
 ]
 
-(* Receiving a reply from the server. *)
+(* Receiving a reply from the server.
+ * Implementation: generator/states-reply.c
+ *)
 and reply_state_machine = [
   State {
     default_state with
@@ -747,7 +778,9 @@ and reply_state_machine = [
   };
 ]
 
-(* Receiving a simple reply from the server. *)
+(* Receiving a simple reply from the server.
+ * Implementation: generator/states-reply-simple.c
+ *)
 and simple_reply_state_machine = [
   State {
     default_state with
@@ -764,7 +797,9 @@ and simple_reply_state_machine = [
   };
 ]
 
-(* Receiving a structured reply from the server. *)
+(* Receiving a structured reply from the server.
+ * Implementation: generator/states-reply-structured.c
+ *)
 and structured_reply_state_machine = [
   State {
     default_state with
