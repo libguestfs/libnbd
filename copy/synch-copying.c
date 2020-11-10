@@ -70,7 +70,7 @@ read_src (void *buf, size_t len, off_t pos)
     if (len > src.size - pos) len = src.size - pos;
     if (len == 0)
       return 0;
-    if (nbd_pread (src.u.nbd, buf, len, pos, 0) == -1) {
+    if (nbd_pread (src.u.nbd.ptr[0], buf, len, pos, 0) == -1) {
       fprintf (stderr, "%s: %s\n", src.name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
@@ -103,7 +103,7 @@ write_dst (const void *buf, size_t len, off_t pos)
     break;
 
   case NBD:
-    if (nbd_pwrite (dst.u.nbd, buf, len, pos, 0) == -1) {
+    if (nbd_pwrite (dst.u.nbd.ptr[0], buf, len, pos, 0) == -1) {
       fprintf (stderr, "%s: %s\n", dst.name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }

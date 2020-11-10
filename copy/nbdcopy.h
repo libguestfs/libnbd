@@ -22,7 +22,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "vector.h"
+
 #define MAX_REQUEST_SIZE (32 * 1024 * 1024)
+
+/* This must be a multiple of MAX_REQUEST_SIZE. */
+#define THREAD_WORK_SIZE (128 * 1024 * 1024)
+
+DEFINE_VECTOR_TYPE (handles, struct nbd_handle *)
 
 struct rw {
   enum { LOCAL, NBD } t;
@@ -33,15 +40,19 @@ struct rw {
       int fd;
       struct stat stat;
     } local;
-    struct nbd_handle *nbd;     /* For NBD, the libnbd handle. */
+    handles nbd;                /* For NBD, one handle per connection. */
   } u;
 };
 
+extern unsigned connections;
+extern unsigned max_requests;
 extern bool progress;
 extern bool synchronous;
+extern unsigned threads;
 extern struct rw src, dst;
 
 extern void progress_bar (off_t pos, int64_t size);
 extern void synch_copying (void);
+extern void multi_thread_copying (void);
 
 #endif /* NBDCOPY_H */

@@ -37,12 +37,23 @@ TESTS =
 nbdcopy_SOURCES = \
 	nbdcopy.c \
 	nbdcopy.h \
+	multi-thread-copying.c \
 	progress.c \
 	synch-copying.c \
 	$(NULL)
-nbdcopy_CPPFLAGS = -I$(top_srcdir)/include
-nbdcopy_CFLAGS = $(WARNINGS_CFLAGS)
-nbdcopy_LDADD = $(top_builddir)/lib/libnbd.la
+nbdcopy_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/common/utils \
+	$(NULL)
+nbdcopy_CFLAGS = \
+	$(WARNINGS_CFLAGS) \
+	$(PTHREAD_CFLAGS) \
+	$(NULL)
+nbdcopy_LDADD = \
+	$(PTHREAD_LIBS) \
+	$(top_builddir)/common/utils/libutils.la \
+	$(top_builddir)/lib/libnbd.la \
+	$(NULL)
 
 # This program depends on URI support; no point in installing it otherwise
 if HAVE_LIBXML2

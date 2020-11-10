@@ -29,18 +29,26 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <assert.h>
+
+#include <pthread.h>
 
 #include <libnbd.h>
 
 #include "nbdcopy.h"
 
+unsigned connections = 4;       /* --connections */
+unsigned max_requests = 64;     /* --requests */
 bool progress;                  /* -p flag */
 bool synchronous;               /* --synchronous flag */
+unsigned threads;               /* --threads */
 struct rw src, dst;             /* The source and destination. */
 
 static bool is_nbd_uri (const char *s);
 static int open_local (const char *prog,
                        const char *filename, bool writing, struct rw *rw);
+static void open_nbd_handle (const char *prog,
+                             const char *uri, struct rw *rw);
 
 static void __attribute__((noreturn))
 usage (FILE *fp, int exitcode)
@@ -75,13 +83,16 @@ main (int argc, char *argv[])
     SHORT_OPTIONS,
     SYNCHRONOUS_OPTION,
   };
-  const char *short_options = "pV";
+  const char *short_options = "C:pR:T:V";
   const struct option long_options[] = {
     { "help",               no_argument,       NULL, HELP_OPTION },
     { "long-options",       no_argument,       NULL, LONG_OPTIONS },
+    { "connections",        required_argument, NULL, 'C' },
     { "progress",           no_argument,       NULL, 'p' },
+    { "requests",           required_argument, NULL, 'R' },
     { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
     { "synchronous",        no_argument,       NULL, SYNCHRONOUS_OPTION },
+    { "threads",            required_argument, NULL, 'T' },
     { "version",            no_argument,       NULL, 'V' },
     { NULL }
   };
@@ -116,8 +127,32 @@ main (int argc, char *argv[])
       synchronous = true;
       break;
 
+    case 'C':
+      if (sscanf (optarg, "%u", &connections) != 1 || connections == 0) {
+        fprintf (stderr, "%s: --connections: could not parse: %s\n",
+                 argv[0], optarg);
+        exit (EXIT_FAILURE);
+      }
+      break;
+
     case 'p':
       progress = true;
+      break;
+
+    case 'R':
+      if (sscanf (optarg, "%u", &max_requests) != 1 || max_requests == 0) {
+        fprintf (stderr, "%s: --requests: could not parse: %s\n",
+                 argv[0], optarg);
+        exit (EXIT_FAILURE);
+      }
+      break;
+
+    case 'T':
+      if (sscanf (optarg, "%u", &threads) != 1) {
+        fprintf (stderr, "%s: --threads: could not parse: %s\n",
+                 argv[0], optarg);
+        exit (EXIT_FAILURE);
+      }
       break;
 
     case 'V':
@@ -155,16 +190,11 @@ main (int argc, char *argv[])
     src.u.local.fd = open_local (argv[0], src.name, false, &src);
   }
   else {
-    src.u.nbd = nbd_create ();
-    if (src.u.nbd == NULL) {
-      fprintf (stderr, "%s: %s\n", argv[0], nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    nbd_set_uri_allow_local_file (src.u.nbd, true); /* Allow ?tls-psk-file. */
-    if (nbd_connect_uri (src.u.nbd, src.name) == -1) {
-      fprintf (stderr, "%s: %s: %s\n", argv[0], src.name, nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
+    open_nbd_handle (argv[0], src.name, &src);
+
+    /* If multi-conn is not supported, force connections to 1. */
+    if (! nbd_can_multi_conn (src.u.nbd.ptr[0]))
+      connections = 1;
   }
 
   /* Set up the destination side. */
@@ -172,33 +202,53 @@ main (int argc, char *argv[])
     dst.u.local.fd = open_local (argv[0], dst.name, true /* writing */, &dst);
   }
   else {
-    dst.u.nbd = nbd_create ();
-    if (dst.u.nbd == NULL) {
-      fprintf (stderr, "%s: %s\n", argv[0], nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    nbd_set_uri_allow_local_file (dst.u.nbd, true); /* Allow ?tls-psk-file. */
-    if (nbd_connect_uri (dst.u.nbd, dst.name) == -1) {
-      fprintf (stderr, "%s: %s: %s\n", argv[0], dst.name, nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
+    open_nbd_handle (argv[0], dst.name, &dst);
+
     /* Obviously this is not going to work if the server is
      * advertising read-only, so fail early with a nice error message.
      */
-    if (nbd_is_read_only (dst.u.nbd)) {
+    if (nbd_is_read_only (dst.u.nbd.ptr[0])) {
       fprintf (stderr, "%s: %s: "
                "this NBD server is read-only, cannot write to it\n",
                argv[0], dst.name);
       exit (EXIT_FAILURE);
     }
+
+    /* If multi-conn is not supported, force connections to 1. */
+    if (! nbd_can_multi_conn (dst.u.nbd.ptr[0]))
+      connections = 1;
   }
+
+  /* Calculate the number of threads from the number of connections. */
+  if (threads == 0) {
+    long t;
+
+#ifdef _SC_NPROCESSORS_ONLN
+    t = sysconf (_SC_NPROCESSORS_ONLN);
+    if (t <= 0) {
+      perror ("could not get number of cores online");
+      t = 1;
+    }
+#else
+    t = 1;
+#endif
+    threads = (unsigned) t;
+  }
+
+  if (synchronous)
+    connections = 1;
+
+  if (connections < threads)
+    threads = connections;
+  if (threads < connections)
+    connections = threads;
 
   /* Calculate the source and destination sizes.  We set these to -1
    * if the size is not known (because it's a stream).  Note that for
    * local types, open_local set something in *.size already.
    */
   if (src.t == NBD) {
-    src.size = nbd_get_size (src.u.nbd);
+    src.size = nbd_get_size (src.u.nbd.ptr[0]);
     if (src.size == -1) {
       fprintf (stderr, "%s: %s: %s\n", argv[0], src.name, nbd_get_error ());
       exit (EXIT_FAILURE);
@@ -218,7 +268,7 @@ main (int argc, char *argv[])
     }
   }
   else if (dst.t == NBD) {
-    dst.size = nbd_get_size (dst.u.nbd);
+    dst.size = nbd_get_size (dst.u.nbd.ptr[0]);
     if (dst.size == -1) {
       fprintf (stderr, "%s: %s: %s\n", argv[0], dst.name, nbd_get_error ());
       exit (EXIT_FAILURE);
@@ -235,9 +285,29 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  /* If #connections > 1 then multi-conn is enabled at both ends and
+   * we need to open further connections.
+   */
+  if (connections > 1) {
+    assert (threads == connections);
+
+    if (src.t == NBD) {
+      for (i = 1; i < connections; ++i)
+        open_nbd_handle (argv[0], src.name, &src);
+      assert (src.u.nbd.size == connections);
+    }
+    if (dst.t == NBD) {
+      for (i = 1; i < connections; ++i)
+        open_nbd_handle (argv[0], dst.name, &dst);
+      assert (dst.u.nbd.size == connections);
+    }
+  }
+
   /* Start copying. */
-  //if (synchronous)
-  synch_copying ();
+  if (synchronous)
+    synch_copying ();
+  else
+    multi_thread_copying ();
 
   /* Shut down the source side. */
   if (src.t == LOCAL) {
@@ -247,11 +317,14 @@ main (int argc, char *argv[])
     }
   }
   else {
-    if (nbd_shutdown (src.u.nbd, 0) == -1) {
-      fprintf (stderr, "%s: %s: %s\n", argv[0], src.name, nbd_get_error ());
-      exit (EXIT_FAILURE);
+    for (i = 0; i < src.u.nbd.size; ++i) {
+      if (nbd_shutdown (src.u.nbd.ptr[i], 0) == -1) {
+        fprintf (stderr, "%s: %s: %s\n", argv[0], src.name, nbd_get_error ());
+        exit (EXIT_FAILURE);
+      }
+      nbd_close (src.u.nbd.ptr[i]);
     }
-    nbd_close (src.u.nbd);
+    free (src.u.nbd.ptr);
   }
 
   /* Shut down the destination side. */
@@ -262,11 +335,14 @@ main (int argc, char *argv[])
     }
   }
   else {
-    if (nbd_shutdown (dst.u.nbd, 0) == -1) {
-      fprintf (stderr, "%s: %s: %s\n", argv[0], dst.name, nbd_get_error ());
-      exit (EXIT_FAILURE);
+    for (i = 0; i < dst.u.nbd.size; ++i) {
+      if (nbd_shutdown (dst.u.nbd.ptr[i], 0) == -1) {
+        fprintf (stderr, "%s: %s: %s\n", argv[0], dst.name, nbd_get_error ());
+        exit (EXIT_FAILURE);
+      }
+      nbd_close (dst.u.nbd.ptr[i]);
     }
-    nbd_close (dst.u.nbd);
+    free (dst.u.nbd.ptr);
   }
 
   exit (EXIT_SUCCESS);
@@ -356,4 +432,28 @@ open_local (const char *prog,
   }
 
   return fd;
+}
+
+static void
+open_nbd_handle (const char *prog,
+                 const char *uri, struct rw *rw)
+{
+  struct nbd_handle *nbd;
+
+  nbd = nbd_create ();
+  if (nbd == NULL) {
+    fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  nbd_set_uri_allow_local_file (nbd, true); /* Allow ?tls-psk-file. */
+
+  if (handles_append (&rw->u.nbd, nbd) == -1) {
+    perror ("realloc");
+    exit (EXIT_FAILURE);
+  }
+
+  if (nbd_connect_uri (nbd, uri) == -1) {
+    fprintf (stderr, "%s: %s: %s\n", prog, uri, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
 }
