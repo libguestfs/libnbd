@@ -4,7 +4,7 @@ nbdcopy - copy to and from an NBD server
 
 =head1 SYNOPSIS
 
- nbdcopy [-p] SOURCE DESTINATION
+ nbdcopy [-p] [--synchronous] SOURCE DESTINATION
 
  SOURCE, DESTINATION := - | FILE | DEVICE | NBD-URI
 
@@ -68,6 +68,13 @@ Display brief command line help and exit.
 =item B<--progress>
 
 Display a progress bar.
+
+=item B<--synchronous>
+
+Force synchronous copying using the L<libnbd(3)> synchronous ("high
+level") API.  This is slow but may be necessary for some broken NBD
+servers which cannot handle multiple requests in flight.  This mode is
+also used when streaming to and from stdio, pipes and sockets.
 
 =item B<-V>
 

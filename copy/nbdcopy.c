@@ -35,6 +35,7 @@
 #include "nbdcopy.h"
 
 bool progress;                  /* -p flag */
+bool synchronous;               /* --synchronous flag */
 struct rw src, dst;             /* The source and destination. */
 
 static bool is_nbd_uri (const char *s);
@@ -72,6 +73,7 @@ main (int argc, char *argv[])
     HELP_OPTION = CHAR_MAX + 1,
     LONG_OPTIONS,
     SHORT_OPTIONS,
+    SYNCHRONOUS_OPTION,
   };
   const char *short_options = "pV";
   const struct option long_options[] = {
@@ -79,6 +81,7 @@ main (int argc, char *argv[])
     { "long-options",       no_argument,       NULL, LONG_OPTIONS },
     { "progress",           no_argument,       NULL, 'p' },
     { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
+    { "synchronous",        no_argument,       NULL, SYNCHRONOUS_OPTION },
     { "version",            no_argument,       NULL, 'V' },
     { NULL }
   };
@@ -108,6 +111,10 @@ main (int argc, char *argv[])
           printf ("-%c\n", short_options[i]);
       }
       exit (EXIT_SUCCESS);
+
+    case SYNCHRONOUS_OPTION:
+      synchronous = true;
+      break;
 
     case 'p':
       progress = true;
@@ -229,6 +236,7 @@ main (int argc, char *argv[])
   }
 
   /* Start copying. */
+  //if (synchronous)
   synch_copying ();
 
   /* Shut down the source side. */
@@ -292,6 +300,7 @@ open_local (const char *prog,
   int flags, fd;
 
   if (strcmp (filename, "-") == 0) {
+    synchronous = true;
     fd = writing ? STDOUT_FILENO : STDIN_FILENO;
     if (writing && isatty (fd)) {
       fprintf (stderr, "%s: refusing to write to tty\n", prog);
@@ -340,8 +349,9 @@ open_local (const char *prog,
   }
   else {
     /* Probably stdin/stdout, a pipe or a socket.  Set size == -1
-     * which means don't know.
+     * which means don't know, and force synchronous mode.
      */
+    synchronous = true;
     rw->size = -1;
   }
 

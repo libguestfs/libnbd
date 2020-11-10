@@ -38,6 +38,7 @@ struct rw {
 };
 
 extern bool progress;
+extern bool synchronous;
 extern struct rw src, dst;
 
 extern void progress_bar (off_t pos, int64_t size);
