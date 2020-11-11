@@ -22,6 +22,7 @@ set -e
 set -x
 
 requires nbdkit --exit-with-parent --version
+requires hexdump --version
 requires stat --version
 
 file=copy-nbd-to-file.file
@@ -47,3 +48,6 @@ if [ "$(stat -c %s $file)" -ne $(( 10 * 1024 * 1024 )) ]; then
     echo "$0: incorrect amount of data copied"
     exit 1
 fi
+
+# Test the data is at least non-zero.
+test "$(hexdump -C $file | head -1)" = "00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 08  |................|"

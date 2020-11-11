@@ -22,12 +22,16 @@ set -e
 set -x
 
 requires nbdkit --exit-with-parent --version
+requires cmp --version
+requires dd --version
+requires test -r /dev/urandom
 requires truncate --version
 
 file=copy-file-to-nbd.file
+file2=copy-file-to-nbd.file2
 pidfile=copy-file-to-nbd.pid
 sock=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
-cleanup_fn rm -f $file $pidfile $sock
+cleanup_fn rm -f $file $file2 $pidfile $sock
 
 nbdkit --exit-with-parent -f -v -P $pidfile -U $sock memory size=10M &
 # Wait for the pidfile to appear.
@@ -42,5 +46,8 @@ if ! test -f $pidfile; then
     exit 1
 fi
 
-truncate -s 5M $file
+dd if=/dev/urandom of=$file bs=1M count=10
 $VG nbdcopy $file "nbd+unix:///?socket=$sock"
+$VG nbdcopy "nbd+unix:///?socket=$sock" $file2
+
+cmp $file $file2

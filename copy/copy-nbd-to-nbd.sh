@@ -22,13 +22,16 @@ set -e
 set -x
 
 requires nbdkit --exit-with-parent --version
+requires cmp --version
 requires stat --version
 
 pidfile1=copy-nbd-to-nbd.pid1
 pidfile2=copy-nbd-to-nbd.pid2
+file1=copy-nbd-to-nbd.file1
+file2=copy-nbd-to-nbd.file2
 sock1=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
 sock2=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
-cleanup_fn rm -f $pidfile1 $pidfile2 $sock1 $sock2
+cleanup_fn rm -f $pidfile1 $pidfile2 $file1 $file2 $sock1 $sock2
 
 nbdkit --exit-with-parent -f -v -P $pidfile1 -U $sock1 pattern size=10M &
 # Wait for the pidfile to appear.
@@ -57,3 +60,11 @@ if ! test -f $pidfile2; then
 fi
 
 $VG nbdcopy "nbd+unix:///?socket=$sock1" "nbd+unix:///?socket=$sock2"
+
+# Download the file from both servers and check they are the same.
+$VG nbdcopy "nbd+unix:///?socket=$sock1" $file1
+$VG nbdcopy "nbd+unix:///?socket=$sock2" $file2
+cmp $file1 $file2
+
+# Test the data is at least non-zero.
+test "$(hexdump -C $file1 | head -1)" = "00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 08  |................|"
