@@ -30,13 +30,14 @@ Performance: Chart it over various buffer sizes and threads, as that
 Examine other fuzzers: https://gitlab.com/akihe/radamsa
 
 nbdcopy:
- - Use parallel AIO operations if the input or output is a regular
-   file or block device.
- - Consider using more threads.
- - Create sparseness in output.
- - Handle extents efficiently.
+ - Properly handle extents/sparseness in input and output.
  - Write zeroes efficiently.
- - Allow copy between NBD servers.
+ - Detect zeroes (optionally) and turn into sparseness.
+ - Progress bar: allow it to be written to a file descriptor
+   and/or written in a machine-consumable format.
+ - Minimum/preferred/maximum block size.
+ - Benchmark.
+ - Consider io_uring if there are performance bottlenecks.
 
 nbdfuse:
  - If you write beyond the end of the virtual file, it returns EIO.
