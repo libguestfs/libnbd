@@ -48,8 +48,11 @@ struct rw src, dst;             /* The source and destination. */
 static bool is_nbd_uri (const char *s);
 static int open_local (const char *prog,
                        const char *filename, bool writing, struct rw *rw);
-static void open_nbd_handle (const char *prog,
-                             const char *uri, struct rw *rw);
+static void open_nbd_uri (const char *prog,
+                          const char *uri, struct rw *rw);
+static void open_nbd_subprocess (const char *prog,
+                                 const char **argv, size_t argc,
+                                 struct rw *rw);
 
 static void __attribute__((noreturn))
 usage (FILE *fp, int exitcode)
@@ -171,14 +174,77 @@ main (int argc, char *argv[])
     }
   }
 
-  /* There must be exactly 2 parameters following. */
-  if (argc - optind != 2)
+  /* The remaining parameters describe the SOURCE and DESTINATION
+   * and may either be -, filenames, NBD URIs or [ ... ] sequences.
+   */
+  if (optind >= argc)
     usage (stderr, EXIT_FAILURE);
 
-  src.name = argv[optind];
-  dst.name = argv[optind+1];
-  src.t = is_nbd_uri (src.name) ? NBD : LOCAL;
-  dst.t = is_nbd_uri (dst.name) ? NBD : LOCAL;
+  if (strcmp (argv[optind], "[") == 0) { /* Source is [...] */
+    for (i = optind+1; i < argc; ++i)
+      if (strcmp (argv[i], "]") == 0)
+        goto found1;
+    usage (stderr, EXIT_FAILURE);
+
+  found1:
+    synchronous = true;
+    src.t = NBD;
+    src.name = argv[optind+1];
+    open_nbd_subprocess (argv[0],
+                         (const char **) &argv[optind+1], i-optind-1, &src);
+    optind = i+1;
+  }
+  else {                        /* Source is not [...]. */
+    src.name = argv[optind++];
+    src.t = is_nbd_uri (src.name) ? NBD : LOCAL;
+
+    if (src.t == LOCAL)
+      src.u.local.fd = open_local (argv[0], src.name, false, &src);
+    else
+      open_nbd_uri (argv[0], src.name, &src);
+  }
+
+  if (optind >= argc)
+    usage (stderr, EXIT_FAILURE);
+
+  if (strcmp (argv[optind], "[") == 0) { /* Destination is [...] */
+    for (i = optind+1; i < argc; ++i)
+      if (strcmp (argv[i], "]") == 0)
+        goto found2;
+    usage (stderr, EXIT_FAILURE);
+
+  found2:
+    synchronous = true;
+    dst.t = NBD;
+    dst.name = argv[optind+1];
+    open_nbd_subprocess (argv[0],
+                         (const char **) &argv[optind+1], i-optind-1, &dst);
+    optind = i+1;
+  }
+  else {                        /* Destination is not [...] */
+    dst.name = argv[optind++];
+    dst.t = is_nbd_uri (dst.name) ? NBD : LOCAL;
+
+    if (dst.t == LOCAL)
+      dst.u.local.fd = open_local (argv[0], dst.name, true /* writing */, &dst);
+    else {
+      open_nbd_uri (argv[0], dst.name, &dst);
+
+      /* Obviously this is not going to work if the server is
+       * advertising read-only, so fail early with a nice error message.
+       */
+      if (nbd_is_read_only (dst.u.nbd.ptr[0])) {
+        fprintf (stderr, "%s: %s: "
+                 "this NBD server is read-only, cannot write to it\n",
+                 argv[0], dst.name);
+        exit (EXIT_FAILURE);
+      }
+    }
+  }
+
+  /* There must be no extra parameters. */
+  if (optind != argc)
+    usage (stderr, EXIT_FAILURE);
 
   /* Prevent copying between local files or devices.  It's unlikely
    * this program will ever be better than highly tuned utilities like
@@ -192,39 +258,10 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* Set up the source side. */
-  if (src.t == LOCAL) {
-    src.u.local.fd = open_local (argv[0], src.name, false, &src);
-  }
-  else {
-    open_nbd_handle (argv[0], src.name, &src);
-
-    /* If multi-conn is not supported, force connections to 1. */
-    if (! nbd_can_multi_conn (src.u.nbd.ptr[0]))
-      connections = 1;
-  }
-
-  /* Set up the destination side. */
-  if (dst.t == LOCAL) {
-    dst.u.local.fd = open_local (argv[0], dst.name, true /* writing */, &dst);
-  }
-  else {
-    open_nbd_handle (argv[0], dst.name, &dst);
-
-    /* Obviously this is not going to work if the server is
-     * advertising read-only, so fail early with a nice error message.
-     */
-    if (nbd_is_read_only (dst.u.nbd.ptr[0])) {
-      fprintf (stderr, "%s: %s: "
-               "this NBD server is read-only, cannot write to it\n",
-               argv[0], dst.name);
-      exit (EXIT_FAILURE);
-    }
-
-    /* If multi-conn is not supported, force connections to 1. */
-    if (! nbd_can_multi_conn (dst.u.nbd.ptr[0]))
-      connections = 1;
-  }
+  /* If multi-conn is not supported, force connections to 1. */
+  if ((src.t == NBD && ! nbd_can_multi_conn (src.u.nbd.ptr[0])) ||
+      (dst.t == NBD && ! nbd_can_multi_conn (dst.u.nbd.ptr[0])))
+    connections = 1;
 
   /* Calculate the number of threads from the number of connections. */
   if (threads == 0) {
@@ -300,12 +337,12 @@ main (int argc, char *argv[])
 
     if (src.t == NBD) {
       for (i = 1; i < connections; ++i)
-        open_nbd_handle (argv[0], src.name, &src);
+        open_nbd_uri (argv[0], src.name, &src);
       assert (src.u.nbd.size == connections);
     }
     if (dst.t == NBD) {
       for (i = 1; i < connections; ++i)
-        open_nbd_handle (argv[0], dst.name, &dst);
+        open_nbd_uri (argv[0], dst.name, &dst);
       assert (dst.u.nbd.size == connections);
     }
   }
@@ -454,8 +491,8 @@ open_local (const char *prog,
 }
 
 static void
-open_nbd_handle (const char *prog,
-                 const char *uri, struct rw *rw)
+open_nbd_uri (const char *prog,
+              const char *uri, struct rw *rw)
 {
   struct nbd_handle *nbd;
 
@@ -475,4 +512,43 @@ open_nbd_handle (const char *prog,
     fprintf (stderr, "%s: %s: %s\n", prog, uri, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+}
+
+DEFINE_VECTOR_TYPE (const_string_vector, const char *);
+
+static void
+open_nbd_subprocess (const char *prog,
+                     const char **argv, size_t argc,
+                     struct rw *rw)
+{
+  struct nbd_handle *nbd;
+  const_string_vector copy = empty_vector;
+  size_t i;
+
+  nbd = nbd_create ();
+  if (nbd == NULL) {
+    fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  if (handles_append (&rw->u.nbd, nbd) == -1) {
+  memory_error:
+    perror ("realloc");
+    exit (EXIT_FAILURE);
+  }
+
+  /* We have to copy the args so we can null-terminate them. */
+  for (i = 0; i < argc; ++i) {
+    if (const_string_vector_append (&copy, argv[i]) == -1)
+      goto memory_error;
+  }
+  if (const_string_vector_append (&copy, NULL) == -1)
+    goto memory_error;
+
+  if (nbd_connect_systemd_socket_activation (nbd, (char **) copy.ptr) == -1) {
+    fprintf (stderr, "%s: %s: %s\n", prog, argv[0], nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  free (copy.ptr);
 }

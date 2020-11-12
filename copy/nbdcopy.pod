@@ -9,7 +9,7 @@ nbdcopy - copy to and from an NBD server
          [-T N|--threads=N]
          SOURCE DESTINATION
 
- SOURCE, DESTINATION := - | FILE | DEVICE | NBD-URI
+ SOURCE, DESTINATION := - | FILE | DEVICE | NBD-URI | [ CMD ARGS ... ]
 
  nbdcopy --help
 
@@ -42,6 +42,13 @@ on the Unix domain socket F</tmp/unixsock>.
 =head2 nbdcopy nbd://server1 nbd://server2
 
 Copy a full disk from one NBD server to another.
+
+=head2 nbdcopy -- [ qemu-nbd -f qcow2 disk.qcow ] disk.raw
+
+Run L<qemu-nbd(8)> as a subprocess to open F<disk.qcow2>, which is
+then copied and converted to F<disk.raw>.  Note the use of
+S<C<[ ... ]>> to run an NBD server as a subprocess and C<--> to
+prevent the qemu-nbd flags from being interpreted as nbdcopy flags.
 
 =head1 DESCRIPTION
 
@@ -155,6 +162,40 @@ amount of parallelism without using too much memory.
 Because of this parallelism, nbdcopy does not read or write blocks in
 order.  If for some reason you require that blocks are copied in
 strict order then you must use I<--synchronous>.
+
+=head1 RUNNING NBD SERVER AS A SUBPROCESS
+
+Instead of connecting to an already running server using an C<nbd://>
+URI, you can run an NBD server as a subprocess using:
+
+ nbdcopy -- [ CMD ARGS ... ] ...
+
+This requires the server to support systemd socket activation, which
+both L<qemu-nbd(8)> and L<nbdkit(1)> support (see also
+L<nbd_connect_systemd_socket_activation(3)>).
+
+C<[> and C<]> must be separate command line parameters.  You will
+usually need to use C<--> to stop nbdcopy from misinterpreting NBD
+server flags as nbdcopy flags.  Both the source and destination may be
+subprocesses.  nbdcopy cleans up the server on exit.
+
+Some examples follow.
+
+=head2 nbdcopy -- [ qemu-nbd -f qcow2 disk.qcow2 ] - | hexdump -C
+
+In this example, L<qemu-nbd(8)> is run as a subprocess.  The
+subprocess opens F<disk.qcow2> and exposes it as NBD to nbdcopy.
+nbdcopy streams this to stdout (C<->) into the pipe which is read by
+L<hexdump(1)>.
+
+=head2 nbdcopy -- [ qemu-nbd -f qcow2 disk.qcow2 ] [ nbdkit memory 1G ]
+
+Two subprocesses are created, L<qemu-nbd(8)> as the source and
+L<nbdkit(1)> as the destination.  The qcow2 file is converted to raw
+and stored temporarily in the RAM disk (L<nbdkit-memory-plugin(1)>).
+
+When nbdcopy exits both servers are killed and the RAM disk goes away,
+so this command has no overall effect, but is useful for testing.
 
 =head1 SEE ALSO
 
