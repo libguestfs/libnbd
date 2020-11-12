@@ -45,6 +45,7 @@ struct rw {
 };
 
 extern unsigned connections;
+extern bool flush;
 extern unsigned max_requests;
 extern bool progress;
 extern bool synchronous;

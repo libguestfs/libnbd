@@ -4,8 +4,9 @@ nbdcopy - copy to and from an NBD server
 
 =head1 SYNOPSIS
 
- nbdcopy [-C N|--connections=N] [-p] [--synchronous]
-         [-R N|--requests=N] [-T N|--threads=N]
+ nbdcopy [-C N|--connections=N] [--flush] [-p]
+         [--synchronous] [-R N|--requests=N]
+         [-T N|--threads=N]
          SOURCE DESTINATION
 
  SOURCE, DESTINATION := - | FILE | DEVICE | NBD-URI
@@ -72,6 +73,11 @@ Display brief command line help and exit.
 Set the maximum number of NBD connections ("multi-conn").  By default
 nbdcopy will try to use multi-conn with up to 4 connections if the NBD
 server supports it.
+
+=item B<--flush>
+
+Flush writes to ensure that everything is written to persistent
+storage before nbdcopy exits.
 
 =item B<-p>
 

@@ -38,6 +38,7 @@
 #include "nbdcopy.h"
 
 unsigned connections = 4;       /* --connections */
+bool flush;                     /* --flush flag */
 unsigned max_requests = 64;     /* --requests */
 bool progress;                  /* -p flag */
 bool synchronous;               /* --synchronous flag */
@@ -81,6 +82,7 @@ main (int argc, char *argv[])
     HELP_OPTION = CHAR_MAX + 1,
     LONG_OPTIONS,
     SHORT_OPTIONS,
+    FLUSH_OPTION,
     SYNCHRONOUS_OPTION,
   };
   const char *short_options = "C:pR:T:V";
@@ -88,6 +90,7 @@ main (int argc, char *argv[])
     { "help",               no_argument,       NULL, HELP_OPTION },
     { "long-options",       no_argument,       NULL, LONG_OPTIONS },
     { "connections",        required_argument, NULL, 'C' },
+    { "flush",              no_argument,       NULL, FLUSH_OPTION },
     { "progress",           no_argument,       NULL, 'p' },
     { "requests",           required_argument, NULL, 'R' },
     { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
@@ -122,6 +125,10 @@ main (int argc, char *argv[])
           printf ("-%c\n", short_options[i]);
       }
       exit (EXIT_SUCCESS);
+
+    case FLUSH_OPTION:
+      flush = true;
+      break;
 
     case SYNCHRONOUS_OPTION:
       synchronous = true;
@@ -329,6 +336,14 @@ main (int argc, char *argv[])
 
   /* Shut down the destination side. */
   if (dst.t == LOCAL) {
+    if (flush &&
+        (S_ISREG (dst.u.local.stat.st_mode) ||
+         S_ISBLK (dst.u.local.stat.st_mode)) &&
+        fsync (dst.u.local.fd) == -1) {
+      perror (dst.name);
+      exit (EXIT_FAILURE);
+    }
+
     if (close (dst.u.local.fd) == -1) {
       fprintf (stderr, "%s: %s: close: %m\n", argv[0], dst.name);
       exit (EXIT_FAILURE);
@@ -336,6 +351,10 @@ main (int argc, char *argv[])
   }
   else {
     for (i = 0; i < dst.u.nbd.size; ++i) {
+      if (flush && nbd_flush (dst.u.nbd.ptr[i], 0) == -1) {
+        fprintf (stderr, "%s: %s: %s\n", argv[0], dst.name, nbd_get_error ());
+        exit (EXIT_FAILURE);
+      }
       if (nbd_shutdown (dst.u.nbd.ptr[i], 0) == -1) {
         fprintf (stderr, "%s: %s: %s\n", argv[0], dst.name, nbd_get_error ());
         exit (EXIT_FAILURE);
