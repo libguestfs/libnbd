@@ -24,22 +24,5 @@ set -x
 requires nbdkit --exit-with-parent --version
 requires dd --version
 
-pidfile=copy-stdin-to-nbd.pid
-sock=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
-cleanup_fn rm -f $pidfile $sock
-
-nbdkit --exit-with-parent -f -v -P $pidfile -U $sock memory size=10M &
-# Wait for the pidfile to appear.
-for i in {1..60}; do
-    if test -f $pidfile; then
-        break
-    fi
-    sleep 1
-done
-if ! test -f $pidfile; then
-    echo "$0: nbdkit did not start up"
-    exit 1
-fi
-
 dd if=/dev/zero bs=1M count=10 |
-    $VG nbdcopy - "nbd+unix:///?socket=$sock"
+    $VG nbdcopy -- - [ nbdkit --exit-with-parent -v memory size=10M ]

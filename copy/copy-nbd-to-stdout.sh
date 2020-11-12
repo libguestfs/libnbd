@@ -25,24 +25,9 @@ requires nbdkit --exit-with-parent --version
 requires stat --version
 
 file=copy-nbd-to-stdout.file
-pidfile=copy-nbd-to-stdout.pid
-sock=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
-cleanup_fn rm -f $file $pidfile $sock
+cleanup_fn rm -f $file
 
-nbdkit --exit-with-parent -f -v -P $pidfile -U $sock pattern size=10M &
-# Wait for the pidfile to appear.
-for i in {1..60}; do
-    if test -f $pidfile; then
-        break
-    fi
-    sleep 1
-done
-if ! test -f $pidfile; then
-    echo "$0: nbdkit did not start up"
-    exit 1
-fi
-
-$VG nbdcopy "nbd+unix:///?socket=$sock" - | cat > $file
+$VG nbdcopy -- [ nbdkit --exit-with-parent -v pattern size=10M ] - | cat > $file
 if [ "$(stat -c %s $file)" -ne $(( 10 * 1024 * 1024 )) ]; then
     echo "$0: incorrect amount of data copied"
     exit 1

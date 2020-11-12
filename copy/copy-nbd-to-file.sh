@@ -26,28 +26,18 @@ requires hexdump --version
 requires stat --version
 
 file=copy-nbd-to-file.file
-pidfile=copy-nbd-to-file.pid
-sock=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
-cleanup_fn rm -f $file $pidfile $sock
+cleanup_fn rm -f $file
 
-nbdkit --exit-with-parent -f -v -P $pidfile -U $sock pattern size=10M &
-# Wait for the pidfile to appear.
-for i in {1..60}; do
-    if test -f $pidfile; then
-        break
-    fi
-    sleep 1
-done
-if ! test -f $pidfile; then
-    echo "$0: nbdkit did not start up"
-    exit 1
-fi
-
-$VG nbdcopy "nbd+unix:///?socket=$sock" $file
-if [ "$(stat -c %s $file)" -ne $(( 10 * 1024 * 1024 )) ]; then
+$VG nbdcopy -- [ nbdkit --exit-with-parent -v data data='0x55 0xAA @268435454 0xAA 0x55' ] $file
+if [ "$(stat -c %s $file)" -ne $(( 256 * 1024 * 1024 )) ]; then
     echo "$0: incorrect amount of data copied"
     exit 1
 fi
 
-# Test the data is at least non-zero.
-test "$(hexdump -C $file | head -1)" = "00000000  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 08  |................|"
+# Test the data is as expected.
+test "$(hexdump -C $file)" = \
+'00000000  55 aa 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |U...............|
+00000010  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+0ffffff0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 aa 55  |...............U|
+10000000'

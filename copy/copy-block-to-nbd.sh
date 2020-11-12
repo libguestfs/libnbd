@@ -27,30 +27,25 @@ requires nbd-client --version
 # /dev/nbd0 must not be in use.
 requires_not nbd-client -c /dev/nbd0
 
-pidfile1=copy-block-to-nbd.pid
-pidfile2=copy-block-to-nbd.pid
-sock1=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
-sock2=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
-cleanup_fn rm -f $pidfile1 $pidfile2 $sock1 $sock2
+pidfile=copy-block-to-nbd.pid
+sock=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
+cleanup_fn rm -f $pidfile $sock
 cleanup_fn nbd-client -d /dev/nbd0
 
-# We have two nbdkit servers, one is the source and the other is the
-# destination.
-
-nbdkit --exit-with-parent -f -v -P $pidfile1 -U $sock1 pattern 5M &
-nbdkit --exit-with-parent -f -v -P $pidfile2 -U $sock2 memory 5M &
-# Wait for the pidfiles to appear.
+# Run an nbdkit server to act as the backing for /dev/nbd0.
+nbdkit --exit-with-parent -f -v -P $pidfile -U $sock pattern 5M &
+# Wait for the pidfile to appear.
 for i in {1..60}; do
-    if test -f $pidfile1 && test -f $pidfile2; then
+    if test -f $pidfile; then
         break
     fi
     sleep 1
 done
-if ! test -f $pidfile1 || ! test -f $pidfile2; then
+if ! test -f $pidfile; then
     echo "$0: nbdkit did not start up"
     exit 1
 fi
 
-nbd-client -unix $sock1 /dev/nbd0 -b 512
+nbd-client -unix $sock /dev/nbd0 -b 512
 
-$VG nbdcopy /dev/nbd0 "nbd+unix:///?socket=$sock2"
+$VG nbdcopy -- /dev/nbd0 [ nbdkit --exit-with-parent -v memory 5M ]
