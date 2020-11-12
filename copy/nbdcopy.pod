@@ -4,7 +4,7 @@ nbdcopy - copy to and from an NBD server
 
 =head1 SYNOPSIS
 
- nbdcopy [-C N|--connections=N] [--flush] [-p]
+ nbdcopy [-C N|--connections=N] [--flush] [-p|--progress]
          [--synchronous] [-R N|--requests=N]
          [-T N|--threads=N]
          SOURCE DESTINATION
@@ -28,16 +28,13 @@ This streams the first part of the disk on the NBD server at
 C<example.com> into the L<file(1)> command.  Note here that C<-> means
 to stream to stdout (and therefore into the pipe to the file command).
 
-=head2 nbdcopy -p /dev/sdX nbd://example.com
+L<nbdinfo(1)> is another way to detect the content on an NBD server.
 
-Copy the full local hard disk C</dev/sdX> to the NBD server at
-C<example.com>.  Because of the I<-p> option this will print a
-progress bar.
+=head2 nbdcopy -p /dev/sdX "nbd+unix:///?socket=/tmp/unixsock"
 
-=head2 cat disk1 disk2 | nbdcopy - "nbd+unix:///?socket=/tmp/unixsock"
-
-Concatenate two disk images and stream it to the NBD server listening
-on the Unix domain socket F</tmp/unixsock>.
+Copy the full local hard disk C</dev/sdX> to the NBD server listening
+on the Unix domain socket F</tmp/unixsock>.  Because of the I<-p>
+option this will print a progress bar.
 
 =head2 nbdcopy nbd://server1 nbd://server2
 
@@ -46,9 +43,13 @@ Copy a full disk from one NBD server to another.
 =head2 nbdcopy -- [ qemu-nbd -f qcow2 disk.qcow ] disk.raw
 
 Run L<qemu-nbd(8)> as a subprocess to open F<disk.qcow2>, which is
-then copied and converted to F<disk.raw>.  Note the use of
-S<C<[ ... ]>> to run an NBD server as a subprocess and C<--> to
-prevent the qemu-nbd flags from being interpreted as nbdcopy flags.
+then copied to F<disk.raw>.  Note C<--> to prevent qemu-nbd flags from
+being interpreted as nbdcopy flags.
+
+=head2 cat disk1 disk2 | nbdcopy -- - [ qemu-nbd -f qcow2 output.qcow2 ]
+
+Concatenate two raw-format disk images into the qcow2 file
+F<output.qcow2>.  The output file has to be precreated.
 
 =head1 DESCRIPTION
 
