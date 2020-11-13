@@ -27,6 +27,9 @@ EXTRA_DIST = \
 	copy-nbd-to-small-block-error.sh \
 	copy-nbd-to-small-nbd-error.sh \
 	copy-nbd-to-stdout.sh \
+	copy-sparse.sh \
+	copy-sparse-allocated.sh \
+	copy-sparse-no-extents.sh \
 	copy-stdin-to-nbd.sh \
 	nbdcopy.pod \
 	$(NULL)
@@ -47,6 +50,7 @@ nbdcopy_SOURCES = \
 	$(NULL)
 nbdcopy_CPPFLAGS = \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/common/include \
 	-I$(top_srcdir)/common/utils \
 	$(NULL)
 nbdcopy_CFLAGS = \
@@ -90,6 +94,9 @@ TESTS += \
 	copy-nbd-to-small-nbd-error.sh \
 	copy-stdin-to-nbd.sh \
 	copy-nbd-to-stdout.sh \
+	copy-sparse.sh \
+	copy-sparse-allocated.sh \
+	copy-sparse-no-extents.sh \
 	$(ROOT_TESTS) \
 	$(NULL)
 

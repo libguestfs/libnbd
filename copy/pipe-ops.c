@@ -61,6 +61,12 @@ pipe_synch_write (struct rw *rw,
   }
 }
 
+static bool
+pipe_synch_trim_zero (struct rw *rw, uint64_t offset, uint64_t count)
+{
+  return false; /* not supported by pipes */
+}
+
 static void
 pipe_asynch_read (struct rw *rw,
                   struct buffer *buffer,
@@ -77,16 +83,30 @@ pipe_asynch_write (struct rw *rw,
   abort (); /* See comment below. */
 }
 
+static bool
+pipe_asynch_trim_zero (struct rw *rw, struct buffer *buffer,
+                       nbd_completion_callback cb)
+{
+  return false; /* not supported by pipes */
+}
+
 struct rw_ops pipe_ops = {
   .synch_read = pipe_synch_read,
   .synch_write = pipe_synch_write,
+  .synch_trim = pipe_synch_trim_zero,
+  .synch_zero = pipe_synch_trim_zero,
 
-  /* Asynch pipe operations are not defined.  These should never be
-   * called because pipes/streams/sockets force --synchronous.
-   * Because calling a NULL pointer screws up the stack trace when
-   * we're not using frame pointers, these are defined to functions
-   * that call abort().
+  /* Asynch pipe read/write operations are not defined.  These should
+   * never be called because pipes/streams/sockets force synchronous
+   * mode.  Because calling a NULL pointer screws up the stack trace
+   * when we're not using frame pointers, these are defined to
+   * functions that call abort().
    */
   .asynch_read = pipe_asynch_read,
   .asynch_write = pipe_asynch_write,
+
+  .asynch_trim = pipe_asynch_trim_zero,
+  .asynch_zero = pipe_asynch_trim_zero,
+
+  .get_extents = default_get_extents,
 };

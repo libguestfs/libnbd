@@ -30,7 +30,10 @@
 
 #define MAX_REQUEST_SIZE (32 * 1024 * 1024)
 
-/* This must be a multiple of MAX_REQUEST_SIZE. */
+/* This must be a multiple of MAX_REQUEST_SIZE.  Larger is better up
+ * to a point, but it reduces the effectiveness of threads if the work
+ * ranges are large compared to the virtual file size.
+ */
 #define THREAD_WORK_SIZE (128 * 1024 * 1024)
 
 DEFINE_VECTOR_TYPE (handles, struct nbd_handle *)
@@ -47,6 +50,8 @@ struct rw {
     struct {                    /* For LOCAL. */
       int fd;
       struct stat stat;
+      bool seek_hole_supported;
+      int sector_size;
     } local;
     handles nbd;                /* For NBD, one handle per connection. */
   } u;
@@ -62,6 +67,14 @@ struct buffer {
   void (*free_data) (void *);   /* Usually free(3), can be NULL. */
   uintptr_t index;              /* Thread number. */
 };
+
+/* List of extents for rw->ops->get_extents. */
+struct extent {
+  uint64_t offset;
+  uint64_t length;
+  bool hole;
+};
+DEFINE_VECTOR_TYPE(extent_list, struct extent);
 
 /* The operations struct hides some of the differences between local
  * file, NBD and pipes from the copying code.
@@ -80,6 +93,16 @@ struct rw_ops {
   void (*synch_write) (struct rw *rw,
                        const void *data, size_t len, uint64_t offset);
 
+  /* Synchronously trim.  buffer->data is not used.  If not possible,
+   * returns false.
+   */
+  bool (*synch_trim) (struct rw *rw, uint64_t offset, uint64_t count);
+
+  /* Synchronously zero.  buffer->data is not used.  If not possible,
+   * returns false.
+   */
+  bool (*synch_zero) (struct rw *rw, uint64_t offset, uint64_t count);
+
   /* Asynchronous I/O operations.  These start the operation and call
    * 'cb' on completion.
    *
@@ -95,12 +118,42 @@ struct rw_ops {
   void (*asynch_write) (struct rw *rw,
                         struct buffer *buffer,
                         nbd_completion_callback cb);
+
+  /* Asynchronously trim.  buffer->data is not used.  If not possible,
+   * returns false.
+   */
+  bool (*asynch_trim) (struct rw *rw, struct buffer *buffer,
+                       nbd_completion_callback cb);
+
+  /* Asynchronously zero.  buffer->data is not used.  If not possible,
+   * returns false.
+   */
+  bool (*asynch_zero) (struct rw *rw, struct buffer *buffer,
+                       nbd_completion_callback cb);
+
+  /* Read base:allocation extents metadata for a region of the source.
+   * For local files the same information is read from the kernel.
+   *
+   * Note that qemu-img fetches extents for the entire disk up front,
+   * and we want to avoid doing that because it had very negative
+   * behaviour for certain sources (ie. VDDK).
+   */
+  void (*get_extents) (struct rw *rw, uintptr_t index,
+                       uint64_t offset, uint64_t count,
+                       extent_list *ret);
 };
 extern struct rw_ops file_ops;
 extern struct rw_ops nbd_ops;
 extern struct rw_ops pipe_ops;
 
+extern void default_get_extents (struct rw *rw, uintptr_t index,
+                                 uint64_t offset, uint64_t count,
+                                 extent_list *ret);
+
+extern bool allocated;
 extern unsigned connections;
+extern bool destination_is_zero;
+extern bool extents;
 extern bool flush;
 extern unsigned max_requests;
 extern bool progress;

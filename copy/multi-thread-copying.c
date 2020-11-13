@@ -27,6 +27,7 @@
 #include <poll.h>
 #include <errno.h>
 #include <assert.h>
+#include <sys/stat.h>
 
 #include <pthread.h>
 
@@ -122,12 +123,14 @@ multi_thread_copying (void)
   free (workers);
 }
 
+static void wait_for_request_slots (uintptr_t index);
 static unsigned in_flight (struct nbd_handle *src_nbd,
                            struct nbd_handle *dst_nbd);
 static void poll_both_ends (struct nbd_handle *src_nbd,
                             struct nbd_handle *dst_nbd);
 static int finished_read (void *vp, int *error);
-static int finished_write (void *vp, int *error);
+static int free_buffer (void *vp, int *error);
+static void fill_dst_range_with_zeroes (struct buffer *buffer);
 
 /* There are 'threads' worker threads, each copying work ranges from
  * src to dst until there are no more work ranges.
@@ -138,13 +141,7 @@ worker_thread (void *indexp)
   uintptr_t index = (uintptr_t) indexp;
   uint64_t offset, count;
   struct nbd_handle *src_nbd, *dst_nbd;
-  bool done = false;
-
-  if (! get_next_offset (&offset, &count))
-    /* No work to do, return immediately.  Can happen for files which
-     * are smaller than THREAD_WORK_SIZE where multi-conn is enabled.
-     */
-    return NULL;
+  extent_list exts = empty_vector;
 
   /* In the case where src or dst is NBD, use
    * {src|dst}.u.nbd.ptr[index] so that each thread is connected to
@@ -161,54 +158,77 @@ worker_thread (void *indexp)
   else
     dst_nbd = NULL;
 
-  while (!done) {
-    struct buffer *buffer;
-    char *data;
-    size_t len;
+  while (get_next_offset (&offset, &count)) {
+    size_t i;
 
-    if (count == 0) {
-      /* Get another work range. */
-      done = ! get_next_offset (&offset, &count);
-      if (done) break;
-      assert (0 < count && count <= THREAD_WORK_SIZE);
-    }
+    assert (0 < count && count <= THREAD_WORK_SIZE);
+    if (extents)
+      src.ops->get_extents (&src, index, offset, count, &exts);
+    else
+      default_get_extents (&src, index, offset, count, &exts);
 
-    /* If the number of requests in flight exceeds the limit, poll
-     * waiting for at least one request to finish.  This enforces the
-     * user --requests option.
-     */
-    while (in_flight (src_nbd, dst_nbd) >= max_requests)
-      poll_both_ends (src_nbd, dst_nbd);
+    for (i = 0; i < exts.size; ++i) {
+      struct buffer *buffer;
+      char *data;
+      size_t len;
 
-    /* Create a new buffer.  This will be freed in a callback handler. */
-    len = count;
-    if (len > MAX_REQUEST_SIZE)
-      len = MAX_REQUEST_SIZE;
-    data = malloc (len);
-    if (data == NULL) {
-      perror ("malloc");
-      exit (EXIT_FAILURE);
-    }
-    buffer = malloc (sizeof *buffer);
-    if (buffer == NULL) {
-      perror ("malloc");
-      exit (EXIT_FAILURE);
-    }
-    buffer->offset = offset;
-    buffer->len = len;
-    buffer->data = data;
-    buffer->free_data = free;
-    buffer->index = index;
+      if (exts.ptr[i].hole) {
+        /* The source is a hole so we can proceed directly to
+         * skipping, trimming or writing zeroes at the destination.
+         */
+        buffer = calloc (1, sizeof *buffer);
+        if (buffer == NULL) {
+          perror ("malloc");
+          exit (EXIT_FAILURE);
+        }
+        buffer->offset = exts.ptr[i].offset;
+        buffer->len = exts.ptr[i].length;
+        buffer->index = index;
+        fill_dst_range_with_zeroes (buffer);
+      }
 
-    /* Begin the asynch read operation. */
-    src.ops->asynch_read (&src, buffer,
-                          (nbd_completion_callback) {
-                            .callback = finished_read,
-                            .user_data = buffer,
-                          });
+      else /* data */ {
+        /* As the extent might be larger than permitted for a single
+         * command, we may have to split this into multiple read
+         * requests.
+         */
+        while (exts.ptr[i].length > 0) {
+          len = exts.ptr[i].length;
+          if (len > MAX_REQUEST_SIZE)
+            len = MAX_REQUEST_SIZE;
+          data = malloc (len);
+          if (data == NULL) {
+            perror ("malloc");
+            exit (EXIT_FAILURE);
+          }
+          buffer = calloc (1, sizeof *buffer);
+          if (buffer == NULL) {
+            perror ("malloc");
+            exit (EXIT_FAILURE);
+          }
+          buffer->offset = exts.ptr[i].offset;
+          buffer->len = len;
+          buffer->data = data;
+          buffer->free_data = free;
+          buffer->index = index;
 
-    offset += len;
-    count -= len;
+          wait_for_request_slots (index);
+
+          /* Begin the asynch read operation. */
+          src.ops->asynch_read (&src, buffer,
+                                (nbd_completion_callback) {
+                                  .callback = finished_read,
+                                  .user_data = buffer,
+                                });
+
+          exts.ptr[i].offset += len;
+          exts.ptr[i].length -= len;
+        }
+      }
+
+      offset += count;
+      count = 0;
+    } /* for extents */
   }
 
   /* Wait for in flight NBD requests to finish. */
@@ -218,14 +238,37 @@ worker_thread (void *indexp)
   if (progress)
     progress_bar (1, 1);
 
+  free (exts.ptr);
   return NULL;
+}
+
+/* If the number of requests in flight exceeds the limit, poll
+ * waiting for at least one request to finish.  This enforces
+ * the user --requests option.
+ */
+static void
+wait_for_request_slots (uintptr_t index)
+{
+  struct nbd_handle *src_nbd, *dst_nbd;
+
+  if (src.t == NBD)
+    src_nbd = src.u.nbd.ptr[index];
+  else
+    src_nbd = NULL;
+  if (dst.t == NBD)
+    dst_nbd = dst.u.nbd.ptr[index];
+  else
+    dst_nbd = NULL;
+
+  while (in_flight (src_nbd, dst_nbd) >= max_requests)
+    poll_both_ends (src_nbd, dst_nbd);
 }
 
 /* Count the number of NBD commands in flight.  Since the commands are
  * auto-retired in the callbacks we don't need to count "done"
  * commands.
  */
-static inline unsigned
+static unsigned
 in_flight (struct nbd_handle *src_nbd, struct nbd_handle *dst_nbd)
 {
   return
@@ -335,18 +378,82 @@ finished_read (void *vp, int *error)
 
   dst.ops->asynch_write (&dst, buffer,
                          (nbd_completion_callback) {
-                           .callback = finished_write,
+                           .callback = free_buffer,
                            .user_data = buffer,
                          });
 
   return 1; /* auto-retires the command */
 }
 
-/* Callback called when dst has finished one write command.  We can
- * now free the buffer.
+/* Fill a range in dst with zeroes.  This is called from the copying
+ * loop when we see a hole in the source.  Depending on the command
+ * line flags this could mean:
+ *
+ * --destination-is-zero:
+ *                 do nothing
+ *
+ * --allocated:    we must write zeroes either using an efficient
+ *                 zeroing command or writing a buffer of zeroes
+ *
+ * (neither flag)  try trimming if supported, else write zeroes
+ *                 as above
+ *
+ * This takes over ownership of the buffer and frees it eventually.
  */
+static void
+fill_dst_range_with_zeroes (struct buffer *buffer)
+{
+  char *data;
+
+  if (destination_is_zero)
+    goto free_and_return;
+
+  if (!allocated) {
+    /* Try trimming. */
+    wait_for_request_slots (buffer->index);
+    if (dst.ops->asynch_trim (&dst, buffer,
+                              (nbd_completion_callback) {
+                                .callback = free_buffer,
+                                .user_data = buffer,
+                              }))
+      return;
+  }
+
+  /* Try efficient zeroing. */
+  wait_for_request_slots (buffer->index);
+  if (dst.ops->asynch_zero (&dst, buffer,
+                            (nbd_completion_callback) {
+                              .callback = free_buffer,
+                              .user_data = buffer,
+                            }))
+    return;
+
+  /* Fall back to loop writing zeroes.  This is going to be slow
+   * anyway, so do it synchronously. XXX
+   */
+  data = calloc (1, MAX_REQUEST_SIZE);
+  if (!data) {
+    perror ("calloc");
+    exit (EXIT_FAILURE);
+  }
+  while (buffer->len > 0) {
+    size_t len = buffer->len;
+
+    if (len > MAX_REQUEST_SIZE)
+      len = MAX_REQUEST_SIZE;
+
+    dst.ops->synch_write (&dst, data, len, buffer->offset);
+    buffer->len -= len;
+    buffer->offset += len;
+  }
+  free (data);
+
+ free_and_return:
+  free_buffer (buffer, &errno);
+}
+
 static int
-finished_write (void *vp, int *error)
+free_buffer (void *vp, int *error)
 {
   struct buffer *buffer = vp;
 

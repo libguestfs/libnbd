@@ -57,6 +57,37 @@ nbd_synch_write (struct rw *rw,
   }
 }
 
+static bool
+nbd_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
+{
+  assert (rw->t == NBD);
+
+  if (nbd_can_trim (rw->u.nbd.ptr[0]) == 0)
+    return false;
+
+  if (nbd_trim (rw->u.nbd.ptr[0], count, offset, 0) == -1) {
+    fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  return true;
+}
+
+static bool
+nbd_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
+{
+  assert (rw->t == NBD);
+
+  if (nbd_can_zero (rw->u.nbd.ptr[0]) == 0)
+    return false;
+
+  if (nbd_zero (rw->u.nbd.ptr[0],
+                count, offset, LIBNBD_CMD_FLAG_NO_HOLE) == -1) {
+    fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  return true;
+}
+
 static void
 nbd_asynch_read (struct rw *rw,
                  struct buffer *buffer,
@@ -87,9 +118,154 @@ nbd_asynch_write (struct rw *rw,
   }
 }
 
+static bool
+nbd_asynch_trim (struct rw *rw, struct buffer *buffer,
+                 nbd_completion_callback cb)
+{
+  assert (rw->t == NBD);
+
+  if (nbd_can_trim (rw->u.nbd.ptr[0]) == 0)
+    return false;
+
+  if (nbd_aio_trim (rw->u.nbd.ptr[buffer->index],
+                    buffer->len, buffer->offset,
+                    cb, 0) == -1) {
+    fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  return true;
+}
+
+static bool
+nbd_asynch_zero (struct rw *rw, struct buffer *buffer,
+                 nbd_completion_callback cb)
+{
+  assert (rw->t == NBD);
+
+  if (nbd_can_zero (rw->u.nbd.ptr[0]) == 0)
+    return false;
+
+  if (nbd_aio_zero (rw->u.nbd.ptr[buffer->index],
+                    buffer->len, buffer->offset,
+                    cb, LIBNBD_CMD_FLAG_NO_HOLE) == -1) {
+    fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  return true;
+}
+
+static int
+add_extent (void *vp, const char *metacontext,
+            uint64_t offset, uint32_t *entries, size_t nr_entries,
+            int *error)
+{
+  extent_list *ret = vp;
+  size_t i;
+
+  if (strcmp (metacontext, "base:allocation") != 0)
+    return 0;
+
+  for (i = 0; i < nr_entries; i += 2) {
+    struct extent e;
+
+    e.offset = offset;
+    e.length = entries[i];
+    /* Note we deliberately don't care about the ZERO flag. */
+    e.hole = (entries[i+1] & LIBNBD_STATE_HOLE) != 0;
+    if (extent_list_append (ret, e) == -1) {
+      perror ("realloc");
+      exit (EXIT_FAILURE);
+    }
+
+    offset += entries[i];
+  }
+
+  return 0;
+}
+
+/* This is done synchronously, but that's fine because commands from
+ * the previous work range in flight continue to run, it's difficult
+ * to (sanely) start new work until we have the full list of extents,
+ * and in almost every case the remote NBD server can answer our
+ * request for extents in a single round trip.
+ */
+static void
+nbd_get_extents (struct rw *rw, uintptr_t index,
+                  uint64_t offset, uint64_t count,
+                  extent_list *ret)
+{
+  extent_list exts = empty_vector;
+  struct nbd_handle *nbd;
+
+  assert (rw->t == NBD);
+  nbd = rw->u.nbd.ptr[index];
+
+  ret->size = 0;
+
+  while (count > 0) {
+    size_t i;
+
+    exts.size = 0;
+    if (nbd_block_status (nbd, count, offset,
+                          (nbd_extent_callback) {
+                            .user_data = &exts,
+                            .callback = add_extent
+                          }, 0) == -1) {
+      /* XXX We could call default_get_extents, but unclear if it's
+       * the right thing to do if the server is returning errors.
+       */
+      fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+
+    /* The server should always make progress. */
+    if (exts.size == 0) {
+      fprintf (stderr, "%s: NBD server is broken: it is not returning extent information.\nTry nbdcopy --no-extents as a workaround.\n",
+               rw->name);
+      exit (EXIT_FAILURE);
+    }
+
+    /* Copy the extents returned into the final list (ret).  This is
+     * complicated because the extents returned by the server may
+     * begin earlier and begin or end later than the requested size.
+     */
+    for (i = 0; i < exts.size; ++i) {
+      uint64_t d;
+
+      if (exts.ptr[i].offset + exts.ptr[i].length <= offset)
+        continue;
+      if (exts.ptr[i].offset < offset) {
+        d = offset - exts.ptr[i].offset;
+        exts.ptr[i].offset += d;
+        exts.ptr[i].length -= d;
+        assert (exts.ptr[i].offset == offset);
+      }
+      if (exts.ptr[i].offset + exts.ptr[i].length > offset + count) {
+        d = exts.ptr[i].offset + exts.ptr[i].length - offset - count;
+        exts.ptr[i].length -= d;
+        assert (exts.ptr[i].offset + exts.ptr[i].length == offset + count);
+      }
+      if (extent_list_append (ret, exts.ptr[i]) == -1) {
+        perror ("realloc");
+        exit (EXIT_FAILURE);
+      }
+
+      offset += exts.ptr[i].length;
+      count -= exts.ptr[i].length;
+    }
+  }
+
+  free (exts.ptr);
+}
+
 struct rw_ops nbd_ops = {
   .synch_read = nbd_synch_read,
   .synch_write = nbd_synch_write,
+  .synch_trim = nbd_synch_trim,
+  .synch_zero = nbd_synch_zero,
   .asynch_read = nbd_asynch_read,
   .asynch_write = nbd_asynch_write,
+  .asynch_trim = nbd_asynch_trim,
+  .asynch_zero = nbd_asynch_zero,
+  .get_extents = nbd_get_extents,
 };

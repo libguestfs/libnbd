@@ -4,7 +4,9 @@ nbdcopy - copy to and from an NBD server
 
 =head1 SYNOPSIS
 
- nbdcopy [-C N|--connections=N] [--flush] [-p|--progress]
+ nbdcopy [--allocated] [-C N|--connections=N]
+         [--destination-is-zero|--target-is-zero]
+         [--flush] [--no-extents] [-p|--progress]
          [-R N|--requests=N] [--synchronous]
          [-T N|--threads=N]
          SOURCE DESTINATION
@@ -74,6 +76,15 @@ formats use C<qemu-img convert>, see L<qemu-img(1)>.
 
 Display brief command line help and exit.
 
+=item B<--allocated>
+
+Normally nbdcopy tries to create a sparse output (with holes), if the
+destination supports that.  It does this in two ways: either using
+extent informtation from the source to copy holes (see
+I<--no-extents>), or by detecting runs of zeroes (see I<-S>).  If you
+use I<--allocated> then nbdcopy creates a fully allocated, non-sparse
+output on the destination.
+
 =item B<-C> N
 
 =item B<--connections=>N
@@ -82,10 +93,29 @@ Set the maximum number of NBD connections ("multi-conn").  By default
 nbdcopy will try to use multi-conn with up to 4 connections if the NBD
 server supports it.
 
+=item B<--destination-is-zero>
+
+=item B<--target-is-zero>
+
+Assume the destination is already zeroed.  This allows nbdcopy to skip
+copying blocks of zeroes from the source to the destination.  This is
+not safe unless the destination device is already zeroed.
+(I<--target-is-zero> is provided for compatibility with
+L<qemu-img(1)>.)
+
 =item B<--flush>
 
 Flush writes to ensure that everything is written to persistent
 storage before nbdcopy exits.
+
+=item B<--no-extents>
+
+Normally nbdcopy uses extent metadata to skip over parts of the source
+disk which contain holes.  If you use this flag, nbdcopy ignores
+extent information and reads everything, which is usually slower.  You
+might use this flag in two situations: the source NBD server has
+incorrect metadata information; or the source has very slow extent
+querying so it's faster to simply read all of the data.
 
 =item B<-p>
 

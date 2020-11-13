@@ -30,9 +30,9 @@ Performance: Chart it over various buffer sizes and threads, as that
 Examine other fuzzers: https://gitlab.com/akihe/radamsa
 
 nbdcopy:
- - Properly handle extents/sparseness in input and output.
- - Write zeroes efficiently.
- - Detect zeroes (optionally) and turn into sparseness.
+ - --synchronous mode does not yet support extents.
+ - Detect zeroes (optionally) and turn into sparseness
+   (like qemu-img convert -S).
  - Progress bar: allow it to be written to a file descriptor
    and/or written in a machine-consumable format.
  - Minimum/preferred/maximum block size.

@@ -27,9 +27,11 @@
 #include <limits.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
+#include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <assert.h>
+#include <sys/ioctl.h>
 
 #include <pthread.h>
 
@@ -37,7 +39,10 @@
 
 #include "nbdcopy.h"
 
+bool allocated;                 /* --allocated flag */
 unsigned connections = 4;       /* --connections */
+bool destination_is_zero;       /* --destination-is-zero flag */
+bool extents = true;            /* ! --no-extents flag */
 bool flush;                     /* --flush flag */
 unsigned max_requests = 64;     /* --requests */
 bool progress;                  /* -p flag */
@@ -46,13 +51,14 @@ unsigned threads;               /* --threads */
 struct rw src, dst;             /* The source and destination. */
 
 static bool is_nbd_uri (const char *s);
+static bool seek_hole_supported (int fd);
 static int open_local (const char *prog,
                        const char *filename, bool writing, struct rw *rw);
 static void open_nbd_uri (const char *prog,
-                          const char *uri, struct rw *rw);
+                          const char *uri, bool writing, struct rw *rw);
 static void open_nbd_subprocess (const char *prog,
                                  const char **argv, size_t argc,
-                                 struct rw *rw);
+                                 bool writing, struct rw *rw);
 
 static void __attribute__((noreturn))
 usage (FILE *fp, int exitcode)
@@ -85,19 +91,26 @@ main (int argc, char *argv[])
     HELP_OPTION = CHAR_MAX + 1,
     LONG_OPTIONS,
     SHORT_OPTIONS,
+    ALLOCATED_OPTION,
+    DESTINATION_IS_ZERO_OPTION,
     FLUSH_OPTION,
+    NO_EXTENTS_OPTION,
     SYNCHRONOUS_OPTION,
   };
   const char *short_options = "C:pR:T:V";
   const struct option long_options[] = {
     { "help",               no_argument,       NULL, HELP_OPTION },
     { "long-options",       no_argument,       NULL, LONG_OPTIONS },
+    { "allocated",          no_argument,       NULL, ALLOCATED_OPTION },
     { "connections",        required_argument, NULL, 'C' },
+    { "destination-is-zero",no_argument,       NULL, DESTINATION_IS_ZERO_OPTION },
     { "flush",              no_argument,       NULL, FLUSH_OPTION },
+    { "no-extents",         no_argument,       NULL, NO_EXTENTS_OPTION },
     { "progress",           no_argument,       NULL, 'p' },
     { "requests",           required_argument, NULL, 'R' },
     { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
     { "synchronous",        no_argument,       NULL, SYNCHRONOUS_OPTION },
+    { "target-is-zero",     no_argument,       NULL, DESTINATION_IS_ZERO_OPTION },
     { "threads",            required_argument, NULL, 'T' },
     { "version",            no_argument,       NULL, 'V' },
     { NULL }
@@ -129,8 +142,20 @@ main (int argc, char *argv[])
       }
       exit (EXIT_SUCCESS);
 
+    case ALLOCATED_OPTION:
+      allocated = true;
+      break;
+
+    case DESTINATION_IS_ZERO_OPTION:
+      destination_is_zero = true;
+      break;
+
     case FLUSH_OPTION:
       flush = true;
+      break;
+
+    case NO_EXTENTS_OPTION:
+      extents = false;
       break;
 
     case SYNCHRONOUS_OPTION:
@@ -191,7 +216,8 @@ main (int argc, char *argv[])
     src.t = NBD;
     src.name = argv[optind+1];
     open_nbd_subprocess (argv[0],
-                         (const char **) &argv[optind+1], i-optind-1, &src);
+                         (const char **) &argv[optind+1], i-optind-1,
+                         false, &src);
     optind = i+1;
   }
   else {                        /* Source is not [...]. */
@@ -201,7 +227,7 @@ main (int argc, char *argv[])
     if (src.t == LOCAL)
       src.u.local.fd = open_local (argv[0], src.name, false, &src);
     else
-      open_nbd_uri (argv[0], src.name, &src);
+      open_nbd_uri (argv[0], src.name, false, &src);
   }
 
   if (optind >= argc)
@@ -218,7 +244,8 @@ main (int argc, char *argv[])
     dst.t = NBD;
     dst.name = argv[optind+1];
     open_nbd_subprocess (argv[0],
-                         (const char **) &argv[optind+1], i-optind-1, &dst);
+                         (const char **) &argv[optind+1], i-optind-1,
+                         true, &dst);
     optind = i+1;
   }
   else {                        /* Destination is not [...] */
@@ -228,7 +255,7 @@ main (int argc, char *argv[])
     if (dst.t == LOCAL)
       dst.u.local.fd = open_local (argv[0], dst.name, true /* writing */, &dst);
     else {
-      open_nbd_uri (argv[0], dst.name, &dst);
+      open_nbd_uri (argv[0], dst.name, true, &dst);
 
       /* Obviously this is not going to work if the server is
        * advertising read-only, so fail early with a nice error message.
@@ -306,6 +333,7 @@ main (int argc, char *argv[])
       perror ("truncate");
       exit (EXIT_FAILURE);
     }
+    destination_is_zero = true;
   }
   else if (dst.t == NBD) {
     dst.size = nbd_get_size (dst.u.nbd.ptr[0]);
@@ -333,15 +361,22 @@ main (int argc, char *argv[])
 
     if (src.t == NBD) {
       for (i = 1; i < connections; ++i)
-        open_nbd_uri (argv[0], src.name, &src);
+        open_nbd_uri (argv[0], src.name, false, &src);
       assert (src.u.nbd.size == connections);
     }
     if (dst.t == NBD) {
       for (i = 1; i < connections; ++i)
-        open_nbd_uri (argv[0], dst.name, &dst);
+        open_nbd_uri (argv[0], dst.name, true, &dst);
       assert (dst.u.nbd.size == connections);
     }
   }
+
+  /* If the source is NBD and we couldn't negotiate meta
+   * base:allocation then turn off extents.
+   */
+  if (src.t == NBD &&
+      !nbd_can_meta_context (src.u.nbd.ptr[0], "base:allocation"))
+    extents = false;
 
   /* Start copying. */
   if (synchronous)
@@ -471,11 +506,18 @@ open_local (const char *prog,
       perror ("lseek");
       exit (EXIT_FAILURE);
     }
+    rw->u.local.seek_hole_supported = seek_hole_supported (fd);
+    rw->u.local.sector_size = 4096;
+#ifdef BLKSSZGET
+    if (ioctl (fd, BLKSSZGET, &rw->u.local.sector_size))
+      fprintf (stderr, "warning: cannot get sector size: %s: %m", rw->name);
+#endif
   }
   else if (S_ISREG (rw->u.local.stat.st_mode)) {
     /* Regular file. */
     rw->ops = &file_ops;
     rw->size = rw->u.local.stat.st_size;
+    rw->u.local.seek_hole_supported = seek_hole_supported (fd);
   }
   else {
     /* Probably stdin/stdout, a pipe or a socket.  Set size == -1
@@ -484,14 +526,26 @@ open_local (const char *prog,
     synchronous = true;
     rw->ops = &pipe_ops;
     rw->size = -1;
+    rw->u.local.seek_hole_supported = false;
   }
 
   return fd;
 }
 
+static bool
+seek_hole_supported (int fd)
+{
+#ifndef SEEK_HOLE
+  return false;
+#else
+  off_t r = lseek (fd, 0, SEEK_HOLE);
+  return r >= 0;
+#endif
+}
+
 static void
 open_nbd_uri (const char *prog,
-              const char *uri, struct rw *rw)
+              const char *uri, bool writing, struct rw *rw)
 {
   struct nbd_handle *nbd;
 
@@ -502,6 +556,11 @@ open_nbd_uri (const char *prog,
     exit (EXIT_FAILURE);
   }
   nbd_set_uri_allow_local_file (nbd, true); /* Allow ?tls-psk-file. */
+  if (extents && !writing &&
+      nbd_add_meta_context (nbd, "base:allocation") == -1) {
+    fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
 
   if (handles_append (&rw->u.nbd, nbd) == -1) {
     perror ("realloc");
@@ -519,7 +578,7 @@ DEFINE_VECTOR_TYPE (const_string_vector, const char *);
 static void
 open_nbd_subprocess (const char *prog,
                      const char **argv, size_t argc,
-                     struct rw *rw)
+                     bool writing, struct rw *rw)
 {
   struct nbd_handle *nbd;
   const_string_vector copy = empty_vector;
@@ -528,6 +587,11 @@ open_nbd_subprocess (const char *prog,
   rw->ops = &nbd_ops;
   nbd = nbd_create ();
   if (nbd == NULL) {
+    fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (extents && !writing &&
+      nbd_add_meta_context (nbd, "base:allocation") == -1) {
     fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -552,4 +616,25 @@ open_nbd_subprocess (const char *prog,
   }
 
   free (copy.ptr);
+}
+
+/* Default implementation of rw->ops->get_extents for backends which
+ * don't/can't support extents.  Also used for the --no-extents case.
+ */
+void
+default_get_extents (struct rw *rw, uintptr_t index,
+                     uint64_t offset, uint64_t count,
+                     extent_list *ret)
+{
+  struct extent e;
+
+  ret->size = 0;
+
+  e.offset = offset;
+  e.length = count;
+  e.hole = false;
+  if (extent_list_append (ret, e) == -1) {
+    perror ("realloc");
+    exit (EXIT_FAILURE);
+  }
 }
