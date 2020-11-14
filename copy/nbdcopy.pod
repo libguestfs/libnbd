@@ -5,7 +5,7 @@ nbdcopy - copy to and from an NBD server
 =head1 SYNOPSIS
 
  nbdcopy [-C N|--connections=N] [--flush] [-p|--progress]
-         [--synchronous] [-R N|--requests=N]
+         [-R N|--requests=N] [--synchronous]
          [-T N|--threads=N]
          SOURCE DESTINATION
 
