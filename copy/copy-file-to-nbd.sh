@@ -50,4 +50,5 @@ dd if=/dev/urandom of=$file bs=1M count=10
 $VG nbdcopy $file "nbd+unix:///?socket=$sock"
 $VG nbdcopy "nbd+unix:///?socket=$sock" $file2
 
+ls -l $file $file2
 cmp $file $file2

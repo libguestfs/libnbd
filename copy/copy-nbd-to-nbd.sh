@@ -64,6 +64,8 @@ $VG nbdcopy "nbd+unix:///?socket=$sock1" "nbd+unix:///?socket=$sock2"
 # Download the file from both servers and check they are the same.
 $VG nbdcopy "nbd+unix:///?socket=$sock1" $file1
 $VG nbdcopy "nbd+unix:///?socket=$sock2" $file2
+
+ls -l $file1 $file2
 cmp $file1 $file2
 
 # Test the data is at least non-zero.
