@@ -19,4 +19,7 @@ include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
 	byte-swapping.h \
-	iszero.h
+	isaligned.h \
+	ispowerof2.h \
+	iszero.h \
+	$(NULL)
