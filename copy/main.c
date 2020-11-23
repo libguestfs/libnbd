@@ -187,7 +187,7 @@ main (int argc, char *argv[])
     usage (stderr, EXIT_FAILURE);
 
   found1:
-    synchronous = true;
+    connections = 1;            /* multi-conn not supported */
     src.t = NBD;
     src.name = argv[optind+1];
     open_nbd_subprocess (argv[0],
@@ -214,7 +214,7 @@ main (int argc, char *argv[])
     usage (stderr, EXIT_FAILURE);
 
   found2:
-    synchronous = true;
+    connections = 1;            /* multi-conn not supported */
     dst.t = NBD;
     dst.name = argv[optind+1];
     open_nbd_subprocess (argv[0],
