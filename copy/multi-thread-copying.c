@@ -58,6 +58,15 @@ get_next_offset (uint64_t *offset, uint64_t *count)
 
     next_offset += THREAD_WORK_SIZE;
     r = true;                   /* there is more work */
+
+    /* XXX This means the progress bar "runs fast" since it shows the
+     * progress issuing commands, not necessarily progress performing
+     * the commands.  We might move this into a callback, but those
+     * are called from threads and not necessarily in monotonic order
+     * so the progress bar would move erratically.
+     */
+    if (progress)
+      progress_bar (*offset, dst.size);
   }
   pthread_mutex_unlock (&lock);
   return r;
@@ -113,14 +122,6 @@ multi_thread_copying (void)
   free (workers);
 }
 
-/* Each command in flight has this associated struct. */
-struct buffer {
-  uint64_t offset;
-  size_t n;
-  char *data;
-  struct nbd_handle *dst_nbd;
-};
-
 static unsigned in_flight (struct nbd_handle *src_nbd,
                            struct nbd_handle *dst_nbd);
 static void poll_both_ends (struct nbd_handle *src_nbd,
@@ -163,7 +164,7 @@ worker_thread (void *indexp)
   while (!done) {
     struct buffer *buffer;
     char *data;
-    size_t n;
+    size_t len;
 
     if (count == 0) {
       /* Get another work range. */
@@ -180,10 +181,10 @@ worker_thread (void *indexp)
       poll_both_ends (src_nbd, dst_nbd);
 
     /* Create a new buffer.  This will be freed in a callback handler. */
-    n = count;
-    if (n > MAX_REQUEST_SIZE)
-      n = MAX_REQUEST_SIZE;
-    data = malloc (n);
+    len = count;
+    if (len > MAX_REQUEST_SIZE)
+      len = MAX_REQUEST_SIZE;
+    data = malloc (len);
     if (data == NULL) {
       perror ("malloc");
       exit (EXIT_FAILURE);
@@ -194,67 +195,28 @@ worker_thread (void *indexp)
       exit (EXIT_FAILURE);
     }
     buffer->offset = offset;
-    buffer->n = n;
+    buffer->len = len;
     buffer->data = data;
-    buffer->dst_nbd = dst_nbd;
+    buffer->free_data = free;
+    buffer->index = index;
 
-    if (src.t == LOCAL) {
-      /* Reading from a local file. */
-      ssize_t r;
-      size_t c = n;
-      char *p = data;
-      uint64_t offs = offset;
-
-      while (c > 0) {
-        r = pread (src.u.local.fd, p, c, offs);
-        if (r == -1) {
-          perror (src.name);
-          exit (EXIT_FAILURE);
-        }
-        if (r == 0) {
-          /* Should never happen unless the file is truncated
-           * under us.
-           */
-          fprintf (stderr, "nbdcopy: error: %s: unexpected end of file\n",
-                   src.name);
-          exit (EXIT_FAILURE);
-        }
-        p += r;
-        c -= r;
-        offs += r;
-      }
-
-      /* Issue the write to dst which we know is NBD. */
-      assert (dst.t == NBD);
-      assert (dst_nbd != NULL);
-      if (nbd_aio_pwrite (dst_nbd, data, n, offset,
+    /* Begin the asynch read operation. */
+    src.ops->asynch_read (&src, buffer,
                           (nbd_completion_callback) {
-                            .callback = finished_write,
+                            .callback = finished_read,
                             .user_data = buffer,
-                          }, 0) == -1) {
-        fprintf (stderr, "%s: %s\n", dst.name, nbd_get_error ());
-        exit (EXIT_FAILURE);
-      }
-    }
-    else /* src.t == NBD */ {
-      /* Reading from NBD connection. */
-      if (nbd_aio_pread (src_nbd, data, n, offset,
-                         (nbd_completion_callback) {
-                           .callback = finished_read,
-                           .user_data = buffer,
-                         }, 0) == -1) {
-        fprintf (stderr, "%s: %s\n", dst.name, nbd_get_error ());
-        exit (EXIT_FAILURE);
-      }
-    }
+                          });
 
-    offset += n;
-    count -= n;
+    offset += len;
+    count -= len;
   }
 
   /* Wait for in flight NBD requests to finish. */
   while (in_flight (src_nbd, dst_nbd) > 0)
     poll_both_ends (src_nbd, dst_nbd);
+
+  if (progress)
+    progress_bar (1, 1);
 
   return NULL;
 }
@@ -363,62 +325,32 @@ poll_both_ends (struct nbd_handle *src_nbd, struct nbd_handle *dst_nbd)
   }
 }
 
-/* Callback called when src NBD connection has finished one read
- * command.  We either write the data directly out to a file or begin
- * another command if the dst is NBD.
+/* Callback called when src has finished one read command.  This
+ * initiates a write.
  */
 static int
 finished_read (void *vp, int *error)
 {
   struct buffer *buffer = vp;
 
-  if (dst.t == LOCAL) {
-    /* Write to the local file. */
-    ssize_t r;
-    size_t c = buffer->n;
-    const char *p = buffer->data;
-    uint64_t offs = buffer->offset;
-
-    while (c > 0) {
-      r = pwrite (dst.u.local.fd, p, c, offs);
-      if (r == -1) {
-        perror (dst.name);
-        exit (EXIT_FAILURE);
-      }
-      p += r;
-      c -= r;
-      offs += r;
-    }
-
-    /* We can now free the buffer. */
-    free (buffer->data);
-    free (buffer);
-  }
-  else /* dst.t == NBD */ {
-    /* Begin a write command to dst NBD. */
-    if (nbd_aio_pwrite (buffer->dst_nbd,
-                        buffer->data, buffer->n, buffer->offset,
-                        (nbd_completion_callback) {
-                          .callback = finished_write,
-                          .user_data = buffer,
-                        }, 0) == -1) {
-      fprintf (stderr, "%s: %s\n", dst.name, nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-  }
+  dst.ops->asynch_write (&dst, buffer,
+                         (nbd_completion_callback) {
+                           .callback = finished_write,
+                           .user_data = buffer,
+                         });
 
   return 1; /* auto-retires the command */
 }
 
-/* Callback called when dst NBD connection has finished one write
- * command.  We can now free the buffer.
+/* Callback called when dst has finished one write command.  We can
+ * now free the buffer.
  */
 static int
 finished_write (void *vp, int *error)
 {
   struct buffer *buffer = vp;
 
-  free (buffer->data);
+  if (buffer->free_data) buffer->free_data (buffer->data);
   free (buffer);
   return 1; /* auto-retires the command */
 }

@@ -30,85 +30,18 @@
 
 static char buf[MAX_REQUEST_SIZE];
 
-static size_t read_src (void *buf, size_t len, off_t pos);
-static void write_dst (const void *buf, size_t len, off_t pos);
-
 void
 synch_copying (void)
 {
-  off_t pos = 0;
+  uint64_t offset = 0;
   size_t r;
 
-  while ((r = read_src (buf, sizeof buf, pos)) > 0) {
-    write_dst (buf, r, pos);
-    pos += r;
+  while ((r = src.ops->synch_read (&src, buf, sizeof buf, offset)) > 0) {
+    dst.ops->synch_write (&dst, buf, r, offset);
+    offset += r;
     if (progress)
-      progress_bar (pos, dst.size);
+      progress_bar (offset, dst.size);
   }
   if (progress)
     progress_bar (1, 1);
-}
-
-/* Read from src up to len bytes into buf.  Returns 0 if we've reached
- * the end of the input.  This exits on failure.
- */
-static size_t
-read_src (void *buf, size_t len, off_t pos)
-{
-  ssize_t r;
-
-  switch (src.t) {
-  case LOCAL:
-    r = read (src.u.local.fd, buf, len);
-    if (r == -1) {
-      perror (src.name);
-      exit (EXIT_FAILURE);
-    }
-    return r;
-
-  case NBD:
-    if (len > src.size - pos) len = src.size - pos;
-    if (len == 0)
-      return 0;
-    if (nbd_pread (src.u.nbd.ptr[0], buf, len, pos, 0) == -1) {
-      fprintf (stderr, "%s: %s\n", src.name, nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    return len;
-
-  default: abort ();
-  }
-}
-
-/* Write buf to dst.  This exits on failure. */
-static void
-write_dst (const void *buf, size_t len, off_t pos)
-{
-  ssize_t r;
-
-  switch (dst.t) {
-  case LOCAL:
-    while (len > 0) {
-      r = write (dst.u.local.fd, buf, len);
-      if (r == -1) {
-        perror (dst.name);
-        exit (EXIT_FAILURE);
-      }
-      buf += r;
-      len -= r;
-      pos += r;
-      if (progress)
-        progress_bar (pos, dst.size);
-    }
-    break;
-
-  case NBD:
-    if (nbd_pwrite (dst.u.nbd.ptr[0], buf, len, pos, 0) == -1) {
-      fprintf (stderr, "%s: %s\n", dst.name, nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    break;
-
-  default: abort ();
-  }
 }

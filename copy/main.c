@@ -246,6 +246,14 @@ main (int argc, char *argv[])
   if (optind != argc)
     usage (stderr, EXIT_FAILURE);
 
+  /* Check we've set the fields of src and dst. */
+  assert (src.t);
+  assert (src.ops);
+  assert (src.name);
+  assert (dst.t);
+  assert (dst.ops);
+  assert (dst.name);
+
   /* Prevent copying between local files or devices.  It's unlikely
    * this program will ever be better than highly tuned utilities like
    * cp.
@@ -465,6 +473,7 @@ open_local (const char *prog,
   }
   if (S_ISBLK (rw->u.local.stat.st_mode)) {
     /* Block device. */
+    rw->ops = &file_ops;
     rw->size = lseek (fd, 0, SEEK_END);
     if (rw->size == -1) {
       perror ("lseek");
@@ -477,6 +486,7 @@ open_local (const char *prog,
   }
   else if (S_ISREG (rw->u.local.stat.st_mode)) {
     /* Regular file. */
+    rw->ops = &file_ops;
     rw->size = rw->u.local.stat.st_size;
   }
   else {
@@ -484,6 +494,7 @@ open_local (const char *prog,
      * which means don't know, and force synchronous mode.
      */
     synchronous = true;
+    rw->ops = &pipe_ops;
     rw->size = -1;
   }
 
@@ -496,6 +507,7 @@ open_nbd_uri (const char *prog,
 {
   struct nbd_handle *nbd;
 
+  rw->ops = &nbd_ops;
   nbd = nbd_create ();
   if (nbd == NULL) {
     fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());
@@ -525,6 +537,7 @@ open_nbd_subprocess (const char *prog,
   const_string_vector copy = empty_vector;
   size_t i;
 
+  rw->ops = &nbd_ops;
   nbd = nbd_create ();
   if (nbd == NULL) {
     fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());

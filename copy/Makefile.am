@@ -35,9 +35,12 @@ LOG_COMPILER = $(top_builddir)/run
 TESTS =
 
 nbdcopy_SOURCES = \
-	nbdcopy.c \
 	nbdcopy.h \
+	file-ops.c \
+	main.c \
 	multi-thread-copying.c \
+	nbd-ops.c \
+	pipe-ops.c \
 	progress.c \
 	synch-copying.c \
 	$(NULL)
