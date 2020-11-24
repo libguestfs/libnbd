@@ -248,6 +248,13 @@ worker_thread (void *indexp)
 /* If the number of requests in flight exceeds the limit, poll
  * waiting for at least one request to finish.  This enforces
  * the user --requests option.
+ *
+ * NB: Unfortunately it's not possible to call this from a callback,
+ * since it will deadlock trying to grab the libnbd handle lock.  This
+ * means that although the worker thread calls this and enforces the
+ * limit, when we split up requests into subrequests (eg. doing
+ * sparseness detection) we will probably exceed the user request
+ * limit. XXX
  */
 static void
 wait_for_request_slots (uintptr_t index)
@@ -525,7 +532,6 @@ fill_dst_range_with_zeroes (struct buffer *buffer)
 
   if (!allocated) {
     /* Try trimming. */
-    wait_for_request_slots (buffer->index);
     if (dst.ops->asynch_trim (&dst, buffer,
                               (nbd_completion_callback) {
                                 .callback = free_buffer,
@@ -535,7 +541,6 @@ fill_dst_range_with_zeroes (struct buffer *buffer)
   }
 
   /* Try efficient zeroing. */
-  wait_for_request_slots (buffer->index);
   if (dst.ops->asynch_zero (&dst, buffer,
                             (nbd_completion_callback) {
                               .callback = free_buffer,
