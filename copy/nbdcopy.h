@@ -157,6 +157,7 @@ extern bool extents;
 extern bool flush;
 extern unsigned max_requests;
 extern bool progress;
+extern unsigned sparse_size;
 extern bool synchronous;
 extern unsigned threads;
 

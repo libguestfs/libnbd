@@ -39,7 +39,7 @@ requires nbdkit eval --version
 out=copy-sparse-no-extents.out
 cleanup_fn rm -f $out
 
-$VG nbdcopy --no-extents -- \
+$VG nbdcopy --no-extents -S 0 -- \
     [ nbdkit --exit-with-parent data data='
              1
              @1073741823 1

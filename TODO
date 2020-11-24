@@ -31,8 +31,6 @@ Examine other fuzzers: https://gitlab.com/akihe/radamsa
 
 nbdcopy:
  - --synchronous mode does not yet support extents.
- - Detect zeroes (optionally) and turn into sparseness
-   (like qemu-img convert -S).
  - Progress bar: allow it to be written to a file descriptor
    and/or written in a machine-consumable format.
  - Minimum/preferred/maximum block size.

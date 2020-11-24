@@ -37,6 +37,7 @@
 
 #include <libnbd.h>
 
+#include "ispowerof2.h"
 #include "nbdcopy.h"
 
 bool allocated;                 /* --allocated flag */
@@ -46,6 +47,7 @@ bool extents = true;            /* ! --no-extents flag */
 bool flush;                     /* --flush flag */
 unsigned max_requests = 64;     /* --requests */
 bool progress;                  /* -p flag */
+unsigned sparse_size = 512;     /* --sparse */
 bool synchronous;               /* --synchronous flag */
 unsigned threads;               /* --threads */
 struct rw src, dst;             /* The source and destination. */
@@ -97,7 +99,7 @@ main (int argc, char *argv[])
     NO_EXTENTS_OPTION,
     SYNCHRONOUS_OPTION,
   };
-  const char *short_options = "C:pR:T:V";
+  const char *short_options = "C:pR:S:T:V";
   const struct option long_options[] = {
     { "help",               no_argument,       NULL, HELP_OPTION },
     { "long-options",       no_argument,       NULL, LONG_OPTIONS },
@@ -109,6 +111,7 @@ main (int argc, char *argv[])
     { "progress",           no_argument,       NULL, 'p' },
     { "requests",           required_argument, NULL, 'R' },
     { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
+    { "sparse",             required_argument, NULL, 'S' },
     { "synchronous",        no_argument,       NULL, SYNCHRONOUS_OPTION },
     { "target-is-zero",     no_argument,       NULL, DESTINATION_IS_ZERO_OPTION },
     { "threads",            required_argument, NULL, 'T' },
@@ -178,6 +181,20 @@ main (int argc, char *argv[])
       if (sscanf (optarg, "%u", &max_requests) != 1 || max_requests == 0) {
         fprintf (stderr, "%s: --requests: could not parse: %s\n",
                  argv[0], optarg);
+        exit (EXIT_FAILURE);
+      }
+      break;
+
+    case 'S':
+      if (sscanf (optarg, "%u", &sparse_size) != 1) {
+        fprintf (stderr, "%s: --sparse: could not parse: %s\n",
+                 argv[0], optarg);
+        exit (EXIT_FAILURE);
+      }
+      if (sparse_size != 0 &&
+          (sparse_size < 512 || !is_power_of_2 (sparse_size))) {
+        fprintf (stderr, "%s: --sparse: must be a power of 2 and >= 512\n",
+                 argv[0]);
         exit (EXIT_FAILURE);
       }
       break;

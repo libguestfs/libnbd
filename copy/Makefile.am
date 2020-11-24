@@ -21,11 +21,13 @@ EXTRA_DIST = \
 	copy-block-to-nbd.sh \
 	copy-file-to-file.sh \
 	copy-file-to-nbd.sh \
+	copy-file-to-sparse-file.sh \
 	copy-nbd-to-block.sh \
 	copy-nbd-to-file.sh \
 	copy-nbd-to-nbd.sh \
 	copy-nbd-to-small-block-error.sh \
 	copy-nbd-to-small-nbd-error.sh \
+	copy-nbd-to-sparse-file.sh \
 	copy-nbd-to-stdout.sh \
 	copy-sparse.sh \
 	copy-sparse-allocated.sh \
@@ -89,9 +91,11 @@ ROOT_TESTS = \
 TESTS += \
 	copy-file-to-file.sh \
 	copy-file-to-nbd.sh \
+	copy-file-to-sparse-file.sh \
 	copy-nbd-to-file.sh \
 	copy-nbd-to-nbd.sh \
 	copy-nbd-to-small-nbd-error.sh \
+	copy-nbd-to-sparse-file.sh \
 	copy-stdin-to-nbd.sh \
 	copy-nbd-to-stdout.sh \
 	copy-sparse.sh \

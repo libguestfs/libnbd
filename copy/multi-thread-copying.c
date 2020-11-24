@@ -33,6 +33,9 @@
 
 #include <libnbd.h>
 
+#include "rounding.h"
+#include "iszero.h"
+
 #include "nbdcopy.h"
 
 /* Threads pick up work in units of THREAD_WORK_SIZE starting at the
@@ -368,6 +371,38 @@ poll_both_ends (struct nbd_handle *src_nbd, struct nbd_handle *dst_nbd)
   }
 }
 
+/* Create a sub-buffer of an existing buffer. */
+static struct buffer *
+copy_subbuffer (struct buffer *buffer, uint64_t offset, size_t len,
+                bool hole)
+{
+  const uint64_t end = buffer->offset + buffer->len;
+  struct buffer *newbuffer;
+
+  assert (buffer->offset <= offset && offset < end);
+  assert (offset + len <= end);
+
+  newbuffer = calloc (1, sizeof *newbuffer);
+  if (newbuffer == NULL) {
+    perror ("calloc");
+    exit (EXIT_FAILURE);
+  }
+  newbuffer->offset = offset;
+  newbuffer->len = len;
+  if (!hole) {
+    newbuffer->data = malloc (len);
+    if (newbuffer->data == NULL) {
+      perror ("malloc");
+      exit (EXIT_FAILURE);
+    }
+    memcpy (newbuffer->data, buffer->data + offset - buffer->offset, len);
+    newbuffer->free_data = free;
+  }
+  newbuffer->index = buffer->index;
+
+  return newbuffer;
+}
+
 /* Callback called when src has finished one read command.  This
  * initiates a write.
  */
@@ -376,11 +411,91 @@ finished_read (void *vp, int *error)
 {
   struct buffer *buffer = vp;
 
-  dst.ops->asynch_write (&dst, buffer,
-                         (nbd_completion_callback) {
-                           .callback = free_buffer,
-                           .user_data = buffer,
-                         });
+  if (allocated || sparse_size == 0) {
+    /* If sparseness detection (see below) is turned off then we write
+     * the whole buffer.
+     */
+    dst.ops->asynch_write (&dst, buffer,
+                           (nbd_completion_callback) {
+                             .callback = free_buffer,
+                             .user_data = buffer,
+                           });
+  }
+  else {                               /* Sparseness detection. */
+    const uint64_t start = buffer->offset;
+    const uint64_t end = start + buffer->len;
+    uint64_t last_offset = start;
+    bool last_is_hole = false;
+    uint64_t i;
+    struct buffer *newbuffer;
+
+    /* Iterate over the buffer, starting on a block boundary. */
+    for (i = ROUND_UP (start, sparse_size);
+         i + sparse_size <= end;
+         i += sparse_size) {
+      if (is_zero (&buffer->data[i-start], sparse_size)) {
+        /* It's a hole.  If the last was a hole too then we do nothing
+         * here which coalesces.  Otherwise write the last data and
+         * start a new hole.
+         */
+        if (!last_is_hole) {
+          /* Write the last data (if any). */
+          if (i - last_offset > 0) {
+            newbuffer = copy_subbuffer (buffer, last_offset, i - last_offset,
+                                        false);
+            dst.ops->asynch_write (&dst, newbuffer,
+                                   (nbd_completion_callback) {
+                                     .callback = free_buffer,
+                                     .user_data = newbuffer,
+                                   });
+          }
+          /* Start the new hole. */
+          last_offset = i;
+          last_is_hole = true;
+        }
+      }
+      else {
+        /* It's data.  If the last was data too, do nothing =>
+         * coalesce.  Otherwise write the last hole and start a new
+         * data.
+         */
+        if (last_is_hole) {
+          /* Write the last hole (if any). */
+          if (i - last_offset > 0) {
+            newbuffer = copy_subbuffer (buffer, last_offset, i - last_offset,
+                                        true);
+            fill_dst_range_with_zeroes (newbuffer);
+          }
+          /* Start the new data. */
+          last_offset = i;
+          last_is_hole = false;
+        }
+      }
+    } /* for i */
+
+    /* Write the last_offset up to the end. */
+    if (end - last_offset > 0) {
+      if (!last_is_hole) {
+        newbuffer = copy_subbuffer (buffer, last_offset, end - last_offset,
+                                    false);
+        dst.ops->asynch_write (&dst, newbuffer,
+                               (nbd_completion_callback) {
+                                 .callback = free_buffer,
+                                 .user_data = newbuffer,
+                               });
+      }
+      else {
+        newbuffer = copy_subbuffer (buffer, last_offset, end - last_offset,
+                                    true);
+        fill_dst_range_with_zeroes (newbuffer);
+      }
+    }
+
+    /* Free the original buffer since it has been split into
+     * subbuffers and the original is no longer needed.
+     */
+    free_buffer (buffer, &errno);
+  }
 
   return 1; /* auto-retires the command */
 }

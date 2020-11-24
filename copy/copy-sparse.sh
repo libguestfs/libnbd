@@ -35,7 +35,7 @@ cleanup_fn rm -f $out
 # is logging everything.  This allows us to see exactly what nbdcopy
 # is writing, to ensure it is writing and trimming the target as
 # expected.
-$VG nbdcopy -- \
+$VG nbdcopy -S 0 -- \
     [ nbdkit --exit-with-parent data data='
              1
              @1073741823 1
