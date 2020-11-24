@@ -26,8 +26,41 @@
 
 #include "nbdcopy.h"
 
+static void
+nbd_ops_close (struct rw *rw)
+{
+  size_t i;
+
+  assert (rw->t == NBD);
+
+  for (i = 0; i < rw->u.nbd.size; ++i) {
+    if (nbd_shutdown (rw->u.nbd.ptr[i], 0) == -1) {
+      fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    nbd_close (rw->u.nbd.ptr[i]);
+  }
+
+  handles_reset (&rw->u.nbd);
+}
+
+static void
+nbd_ops_flush (struct rw *rw)
+{
+  size_t i;
+
+  assert (rw->t == NBD);
+
+  for (i = 0; i < rw->u.nbd.size; ++i) {
+    if (nbd_flush (rw->u.nbd.ptr[i], 0) == -1) {
+      fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+  }
+}
+
 static size_t
-nbd_synch_read (struct rw *rw,
+nbd_ops_synch_read (struct rw *rw,
                 void *data, size_t len, uint64_t offset)
 {
   assert (rw->t == NBD);
@@ -46,7 +79,7 @@ nbd_synch_read (struct rw *rw,
 }
 
 static void
-nbd_synch_write (struct rw *rw,
+nbd_ops_synch_write (struct rw *rw,
                  const void *data, size_t len, uint64_t offset)
 {
   assert (rw->t == NBD);
@@ -58,7 +91,7 @@ nbd_synch_write (struct rw *rw,
 }
 
 static bool
-nbd_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
+nbd_ops_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
 {
   assert (rw->t == NBD);
 
@@ -73,7 +106,7 @@ nbd_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
 }
 
 static bool
-nbd_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
+nbd_ops_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
 {
   assert (rw->t == NBD);
 
@@ -89,9 +122,9 @@ nbd_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
 }
 
 static void
-nbd_asynch_read (struct rw *rw,
-                 struct buffer *buffer,
-                 nbd_completion_callback cb)
+nbd_ops_asynch_read (struct rw *rw,
+                     struct buffer *buffer,
+                     nbd_completion_callback cb)
 {
   assert (rw->t == NBD);
 
@@ -104,9 +137,9 @@ nbd_asynch_read (struct rw *rw,
 }
 
 static void
-nbd_asynch_write (struct rw *rw,
-                  struct buffer *buffer,
-                  nbd_completion_callback cb)
+nbd_ops_asynch_write (struct rw *rw,
+                      struct buffer *buffer,
+                      nbd_completion_callback cb)
 {
   assert (rw->t == NBD);
 
@@ -119,8 +152,8 @@ nbd_asynch_write (struct rw *rw,
 }
 
 static bool
-nbd_asynch_trim (struct rw *rw, struct buffer *buffer,
-                 nbd_completion_callback cb)
+nbd_ops_asynch_trim (struct rw *rw, struct buffer *buffer,
+                     nbd_completion_callback cb)
 {
   assert (rw->t == NBD);
 
@@ -137,8 +170,8 @@ nbd_asynch_trim (struct rw *rw, struct buffer *buffer,
 }
 
 static bool
-nbd_asynch_zero (struct rw *rw, struct buffer *buffer,
-                 nbd_completion_callback cb)
+nbd_ops_asynch_zero (struct rw *rw, struct buffer *buffer,
+                     nbd_completion_callback cb)
 {
   assert (rw->t == NBD);
 
@@ -190,9 +223,9 @@ add_extent (void *vp, const char *metacontext,
  * request for extents in a single round trip.
  */
 static void
-nbd_get_extents (struct rw *rw, uintptr_t index,
-                  uint64_t offset, uint64_t count,
-                  extent_list *ret)
+nbd_ops_get_extents (struct rw *rw, uintptr_t index,
+                     uint64_t offset, uint64_t count,
+                     extent_list *ret)
 {
   extent_list exts = empty_vector;
   struct nbd_handle *nbd;
@@ -259,13 +292,15 @@ nbd_get_extents (struct rw *rw, uintptr_t index,
 }
 
 struct rw_ops nbd_ops = {
-  .synch_read = nbd_synch_read,
-  .synch_write = nbd_synch_write,
-  .synch_trim = nbd_synch_trim,
-  .synch_zero = nbd_synch_zero,
-  .asynch_read = nbd_asynch_read,
-  .asynch_write = nbd_asynch_write,
-  .asynch_trim = nbd_asynch_trim,
-  .asynch_zero = nbd_asynch_zero,
-  .get_extents = nbd_get_extents,
+  .close = nbd_ops_close,
+  .flush = nbd_ops_flush,
+  .synch_read = nbd_ops_synch_read,
+  .synch_write = nbd_ops_synch_write,
+  .synch_trim = nbd_ops_synch_trim,
+  .synch_zero = nbd_ops_synch_zero,
+  .asynch_read = nbd_ops_asynch_read,
+  .asynch_write = nbd_ops_asynch_write,
+  .asynch_trim = nbd_ops_asynch_trim,
+  .asynch_zero = nbd_ops_asynch_zero,
+  .get_extents = nbd_ops_get_extents,
 };

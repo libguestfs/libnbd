@@ -36,6 +36,26 @@
 #include "isaligned.h"
 #include "nbdcopy.h"
 
+static void
+file_close (struct rw *rw)
+{
+  if (close (rw->u.local.fd) == -1) {
+    fprintf (stderr, "%s: close: %m\n", rw->name);
+    exit (EXIT_FAILURE);
+  }
+}
+
+static void
+file_flush (struct rw *rw)
+{
+  if ((S_ISREG (rw->u.local.stat.st_mode) ||
+       S_ISBLK (rw->u.local.stat.st_mode)) &&
+      fsync (rw->u.local.fd) == -1) {
+    perror (rw->name);
+    exit (EXIT_FAILURE);
+  }
+}
+
 static size_t
 file_synch_read (struct rw *rw,
                  void *data, size_t len, uint64_t offset)
@@ -281,6 +301,8 @@ file_get_extents (struct rw *rw, uintptr_t index,
 
 
 struct rw_ops file_ops = {
+  .close = file_close,
+  .flush = file_flush,
   .synch_read = file_synch_read,
   .synch_write = file_synch_write,
   .synch_trim = file_synch_trim,

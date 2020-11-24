@@ -402,52 +402,12 @@ main (int argc, char *argv[])
     multi_thread_copying ();
 
   /* Shut down the source side. */
-  if (src.t == LOCAL) {
-    if (close (src.u.local.fd) == -1) {
-      fprintf (stderr, "%s: %s: close: %m\n", argv[0], src.name);
-      exit (EXIT_FAILURE);
-    }
-  }
-  else {
-    for (i = 0; i < src.u.nbd.size; ++i) {
-      if (nbd_shutdown (src.u.nbd.ptr[i], 0) == -1) {
-        fprintf (stderr, "%s: %s: %s\n", argv[0], src.name, nbd_get_error ());
-        exit (EXIT_FAILURE);
-      }
-      nbd_close (src.u.nbd.ptr[i]);
-    }
-    free (src.u.nbd.ptr);
-  }
+  src.ops->close (&src);
 
   /* Shut down the destination side. */
-  if (dst.t == LOCAL) {
-    if (flush &&
-        (S_ISREG (dst.u.local.stat.st_mode) ||
-         S_ISBLK (dst.u.local.stat.st_mode)) &&
-        fsync (dst.u.local.fd) == -1) {
-      perror (dst.name);
-      exit (EXIT_FAILURE);
-    }
-
-    if (close (dst.u.local.fd) == -1) {
-      fprintf (stderr, "%s: %s: close: %m\n", argv[0], dst.name);
-      exit (EXIT_FAILURE);
-    }
-  }
-  else {
-    for (i = 0; i < dst.u.nbd.size; ++i) {
-      if (flush && nbd_flush (dst.u.nbd.ptr[i], 0) == -1) {
-        fprintf (stderr, "%s: %s: %s\n", argv[0], dst.name, nbd_get_error ());
-        exit (EXIT_FAILURE);
-      }
-      if (nbd_shutdown (dst.u.nbd.ptr[i], 0) == -1) {
-        fprintf (stderr, "%s: %s: %s\n", argv[0], dst.name, nbd_get_error ());
-        exit (EXIT_FAILURE);
-      }
-      nbd_close (dst.u.nbd.ptr[i]);
-    }
-    free (dst.u.nbd.ptr);
-  }
+  if (flush)
+    dst.ops->flush (&dst);
+  dst.ops->close (&dst);
 
   exit (EXIT_SUCCESS);
 }

@@ -26,6 +26,23 @@
 
 #include "nbdcopy.h"
 
+static void
+pipe_close (struct rw *rw)
+{
+  if (close (rw->u.local.fd) == -1) {
+    fprintf (stderr, "%s: close: %m\n", rw->name);
+    exit (EXIT_FAILURE);
+  }
+}
+
+static void
+pipe_flush (struct rw *rw)
+{
+  /* We don't need to do anything here as the close will return an
+   * error if the pipe could not be flushed.
+   */
+}
+
 static size_t
 pipe_synch_read (struct rw *rw,
                  void *data, size_t len, uint64_t offset)
@@ -91,6 +108,9 @@ pipe_asynch_trim_zero (struct rw *rw, struct buffer *buffer,
 }
 
 struct rw_ops pipe_ops = {
+  .close = pipe_close,
+  .flush = pipe_flush,
+
   .synch_read = pipe_synch_read,
   .synch_write = pipe_synch_write,
   .synch_trim = pipe_synch_trim_zero,

@@ -83,6 +83,12 @@ DEFINE_VECTOR_TYPE(extent_list, struct extent);
  * error indications.
  */
 struct rw_ops {
+  /* Close the connection and free up associated resources. */
+  void (*close) (struct rw *rw);
+
+  /* Flush pending writes to permanent storage. */
+  void (*flush) (struct rw *rw);
+
   /* Synchronous I/O operations.
    *
    * synch_read may not return the requested length of data (eg. for
