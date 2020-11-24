@@ -19,6 +19,7 @@ include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
 	copy-block-to-nbd.sh \
+	copy-file-to-file.sh \
 	copy-file-to-nbd.sh \
 	copy-nbd-to-block.sh \
 	copy-nbd-to-file.sh \
@@ -82,6 +83,7 @@ ROOT_TESTS = \
 	copy-nbd-to-small-block-error.sh \
 	$(NULL)
 TESTS += \
+	copy-file-to-file.sh \
 	copy-file-to-nbd.sh \
 	copy-nbd-to-file.sh \
 	copy-nbd-to-nbd.sh \

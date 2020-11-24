@@ -254,18 +254,6 @@ main (int argc, char *argv[])
   assert (dst.ops);
   assert (dst.name);
 
-  /* Prevent copying between local files or devices.  It's unlikely
-   * this program will ever be better than highly tuned utilities like
-   * cp.
-   */
-  if (src.t == LOCAL && dst.t == LOCAL) {
-    fprintf (stderr,
-             "%s: this tool does not let you copy between local files, use\n"
-             "cp(1) or dd(1) instead.\n",
-             argv[0]);
-    exit (EXIT_FAILURE);
-  }
-
   /* If multi-conn is not supported, force connections to 1. */
   if ((src.t == NBD && ! nbd_can_multi_conn (src.u.nbd.ptr[0])) ||
       (dst.t == NBD && ! nbd_can_multi_conn (dst.u.nbd.ptr[0])))
