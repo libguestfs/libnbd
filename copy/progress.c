@@ -48,13 +48,13 @@ progress_bar (off_t pos, int64_t size)
   if (frac < 0) frac = 0; else if (frac > 1) frac = 1;
 
   if (frac == 1) {
-    snprintf (msg, sizeof msg, "● 100%% [********************]\n");
+    snprintf (msg, sizeof msg, "● 100%% [****************************************]\n");
     progress = false; /* Don't print any more progress bar messages. */
   } else {
-    snprintf (msg, sizeof msg, "%s %3d%% [--------------------]\r",
+    snprintf (msg, sizeof msg, "%s %3d%% [----------------------------------------]\r",
               spinner[(int)(4*frac)], (int)(100*frac));
     n = strcspn (msg, "-");
-    for (i = 0; i < 20*frac; ++i)
+    for (i = 0; i < 40*frac; ++i)
       msg[n+i] = '*';
   }
 
