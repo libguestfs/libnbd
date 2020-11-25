@@ -29,6 +29,7 @@ EXTRA_DIST = \
 	copy-nbd-to-small-nbd-error.sh \
 	copy-nbd-to-sparse-file.sh \
 	copy-nbd-to-stdout.sh \
+	copy-progress-bar.sh \
 	copy-sparse.sh \
 	copy-sparse-allocated.sh \
 	copy-sparse-no-extents.sh \
@@ -98,6 +99,7 @@ TESTS += \
 	copy-nbd-to-sparse-file.sh \
 	copy-stdin-to-nbd.sh \
 	copy-nbd-to-stdout.sh \
+	copy-progress-bar.sh \
 	copy-sparse.sh \
 	copy-sparse-allocated.sh \
 	copy-sparse-no-extents.sh \

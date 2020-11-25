@@ -47,6 +47,7 @@ bool extents = true;            /* ! --no-extents flag */
 bool flush;                     /* --flush flag */
 unsigned max_requests = 64;     /* --requests */
 bool progress;                  /* -p flag */
+int progress_fd = -1;           /* --progress=FD */
 unsigned sparse_size = 512;     /* --sparse */
 bool synchronous;               /* --synchronous flag */
 unsigned threads;               /* --threads */
@@ -108,7 +109,7 @@ main (int argc, char *argv[])
     { "destination-is-zero",no_argument,       NULL, DESTINATION_IS_ZERO_OPTION },
     { "flush",              no_argument,       NULL, FLUSH_OPTION },
     { "no-extents",         no_argument,       NULL, NO_EXTENTS_OPTION },
-    { "progress",           no_argument,       NULL, 'p' },
+    { "progress",           optional_argument, NULL, 'p' },
     { "requests",           required_argument, NULL, 'R' },
     { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
     { "sparse",             required_argument, NULL, 'S' },
@@ -175,6 +176,13 @@ main (int argc, char *argv[])
 
     case 'p':
       progress = true;
+      if (optarg) {
+        if (sscanf (optarg, "%d", &progress_fd) != 1 || progress_fd < 0) {
+          fprintf (stderr, "%s: --progress: could not parse: %s\n",
+                   argv[0], optarg);
+          exit (EXIT_FAILURE);
+        }
+      }
       break;
 
     case 'R':

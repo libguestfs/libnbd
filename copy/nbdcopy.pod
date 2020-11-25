@@ -5,8 +5,8 @@ nbdcopy - copy to and from an NBD server
 =head1 SYNOPSIS
 
  nbdcopy [--allocated] [-C N|--connections=N]
-         [--destination-is-zero|--target-is-zero]
-         [--flush] [--no-extents] [-p|--progress]
+         [--destination-is-zero|--target-is-zero] [--flush]
+         [--no-extents] [-p|--progress|--progress=FD]
          [-R N|--requests=N] [--synchronous]
          [-T N|--threads=N]
          SOURCE DESTINATION
@@ -122,6 +122,20 @@ querying so it's faster to simply read all of the data.
 =item B<--progress>
 
 Display a progress bar.
+
+=item B<--progress=>FD
+
+Write a progress bar to the file descriptor C<FD> (a number) in a
+format which is easily parsable by other programs.  nbdcopy will
+periodically write the string C<"N/100\n"> (where N is an integer
+between 0 and 100) to the file descriptor.
+
+To get nbdcopy to write the progress bar to a file you can use the
+following shell commands:
+
+ exec 3>/tmp/progress
+ nbdcopy --progress=3 ...
+ exec 3>&-
 
 =item B<-R> N
 

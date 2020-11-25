@@ -25,13 +25,15 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <pthread.h>
+
 #include <libnbd.h>
 
 #include "nbdcopy.h"
 
 /* Display the progress bar. */
-void
-progress_bar (off_t pos, int64_t size)
+static void
+do_progress_bar (off_t pos, int64_t size)
 {
   static const char *spinner[] = { "◐", "◓", "◑", "◒" };
   static int tty = -1;
@@ -58,5 +60,43 @@ progress_bar (off_t pos, int64_t size)
       msg[n+i] = '*';
   }
 
-  n = write (tty, msg, strlen (msg));
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
+  write (tty, msg, strlen (msg));
+#pragma GCC diagnostic pop
+}
+
+/* Machine-readable progress bar used with --progress-fd. */
+static void
+do_progress_bar_fd (off_t pos, int64_t size)
+{
+  double frac = (double) pos / size;
+  char msg[80];
+
+  if (frac < 0) frac = 0; else if (frac > 1) frac = 1;
+  if (frac == 1)
+    snprintf (msg, sizeof msg, "100/100\n");
+  else
+    snprintf (msg, sizeof msg, "%d/100\n", (int)(100*frac));
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
+  write (progress_fd, msg, strlen (msg));
+#pragma GCC diagnostic pop
+}
+
+void
+progress_bar (off_t pos, int64_t size)
+{
+  static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+  if (!progress)
+    return;
+
+  pthread_mutex_lock (&lock);
+  if (progress_fd == -1)
+    do_progress_bar (pos, size);
+  else
+    do_progress_bar_fd (pos, size);
+  pthread_mutex_unlock (&lock);
 }

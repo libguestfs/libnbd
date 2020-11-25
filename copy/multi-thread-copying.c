@@ -69,8 +69,7 @@ get_next_offset (uint64_t *offset, uint64_t *count)
      * are called from threads and not necessarily in monotonic order
      * so the progress bar would move erratically.
      */
-    if (progress)
-      progress_bar (*offset, dst.size);
+    progress_bar (*offset, dst.size);
   }
   pthread_mutex_unlock (&lock);
   return r;
@@ -122,6 +121,9 @@ multi_thread_copying (void)
       exit (EXIT_FAILURE);
     }
   }
+
+  /* Set the progress bar to 100/100 to indicate we're done. */
+  progress_bar (1, 1);
 
   free (workers);
 }
@@ -219,9 +221,6 @@ worker_thread (void *indexp)
   /* Wait for in flight NBD requests to finish. */
   while (in_flight (index) > 0)
     poll_both_ends (index);
-
-  if (progress)
-    progress_bar (1, 1);
 
   free (exts.ptr);
   return NULL;

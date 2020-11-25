@@ -39,9 +39,7 @@ synch_copying (void)
   while ((r = src.ops->synch_read (&src, buf, sizeof buf, offset)) > 0) {
     dst.ops->synch_write (&dst, buf, r, offset);
     offset += r;
-    if (progress)
-      progress_bar (offset, dst.size);
+    progress_bar (offset, dst.size);
   }
-  if (progress)
-    progress_bar (1, 1);
+  progress_bar (1, 1);
 }
