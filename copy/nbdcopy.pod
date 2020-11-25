@@ -7,8 +7,8 @@ nbdcopy - copy to and from an NBD server
  nbdcopy [--allocated] [-C N|--connections=N]
          [--destination-is-zero|--target-is-zero] [--flush]
          [--no-extents] [-p|--progress|--progress=FD]
-         [-R N|--requests=N] [--synchronous]
-         [-T N|--threads=N]
+         [-R N|--requests=N] [-S N|--sparse=N]
+         [--synchronous] [-T N|--threads=N]
          SOURCE DESTINATION
 
  SOURCE, DESTINATION := - | FILE | DEVICE | NBD-URI | [ CMD ARGS ... ]
