@@ -63,8 +63,6 @@ file_synch_read (struct rw *rw,
   size_t n = 0;
   ssize_t r;
 
-  assert (rw->t == LOCAL);
-
   while (len > 0) {
     r = pread (rw->u.local.fd, data, len, offset);
     if (r == -1) {
@@ -89,8 +87,6 @@ file_synch_write (struct rw *rw,
 {
   ssize_t r;
 
-  assert (rw->t == LOCAL);
-
   while (len > 0) {
     r = pwrite (rw->u.local.fd, data, len, offset);
     if (r == -1) {
@@ -106,8 +102,6 @@ file_synch_write (struct rw *rw,
 static bool
 file_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
 {
-  assert (rw->t == LOCAL);
-
 #ifdef FALLOC_FL_PUNCH_HOLE
   int fd = rw->u.local.fd;
   int r;
@@ -127,8 +121,6 @@ file_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
 static bool
 file_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
 {
-  assert (rw->t == LOCAL);
-
   if (S_ISREG (rw->u.local.stat.st_mode)) {
 #ifdef FALLOC_FL_ZERO_RANGE
     int fd = rw->u.local.fd;
@@ -166,8 +158,6 @@ file_asynch_read (struct rw *rw,
                   struct buffer *buffer,
                   nbd_completion_callback cb)
 {
-  assert (rw->t == LOCAL);
-
   file_synch_read (rw, buffer->data, buffer->len, buffer->offset);
   errno = 0;
   if (cb.callback (cb.user_data, &errno) == -1) {
@@ -181,8 +171,6 @@ file_asynch_write (struct rw *rw,
                    struct buffer *buffer,
                    nbd_completion_callback cb)
 {
-  assert (rw->t == LOCAL);
-
   file_synch_write (rw, buffer->data, buffer->len, buffer->offset);
   errno = 0;
   if (cb.callback (cb.user_data, &errno) == -1) {
@@ -195,8 +183,6 @@ static bool
 file_asynch_trim (struct rw *rw, struct buffer *buffer,
                   nbd_completion_callback cb)
 {
-  assert (rw->t == LOCAL);
-
   if (!file_synch_trim (rw, buffer->offset, buffer->len))
     return false;
   errno = 0;
@@ -211,8 +197,6 @@ static bool
 file_asynch_zero (struct rw *rw, struct buffer *buffer,
                   nbd_completion_callback cb)
 {
-  assert (rw->t == LOCAL);
-
   if (!file_synch_zero (rw, buffer->offset, buffer->len))
     return false;
   errno = 0;
@@ -234,8 +218,6 @@ file_get_extents (struct rw *rw, uintptr_t index,
                   uint64_t offset, uint64_t count,
                   extent_list *ret)
 {
-  assert (rw->t == LOCAL);
-
   ret->size = 0;
 
 #ifdef SEEK_HOLE

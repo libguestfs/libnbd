@@ -49,8 +49,6 @@ pipe_synch_read (struct rw *rw,
 {
   ssize_t r;
 
-  assert (rw->t == LOCAL);
-
   r = read (rw->u.local.fd, data, len);
   if (r == -1) {
     perror (rw->name);
@@ -64,8 +62,6 @@ pipe_synch_write (struct rw *rw,
                   const void *data, size_t len, uint64_t offset)
 {
   ssize_t r;
-
-  assert (rw->t == LOCAL);
 
   while (len > 0) {
     r = write (rw->u.local.fd, data, len);

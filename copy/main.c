@@ -230,7 +230,6 @@ main (int argc, char *argv[])
 
   found1:
     connections = 1;            /* multi-conn not supported */
-    src.t = NBD;
     src.name = argv[optind+1];
     open_nbd_subprocess (argv[0],
                          (const char **) &argv[optind+1], i-optind-1,
@@ -239,9 +238,7 @@ main (int argc, char *argv[])
   }
   else {                        /* Source is not [...]. */
     src.name = argv[optind++];
-    src.t = is_nbd_uri (src.name) ? NBD : LOCAL;
-
-    if (src.t == LOCAL)
+    if (! is_nbd_uri (src.name))
       src.u.local.fd = open_local (argv[0], src.name, false, &src);
     else
       open_nbd_uri (argv[0], src.name, false, &src);
@@ -258,7 +255,6 @@ main (int argc, char *argv[])
 
   found2:
     connections = 1;            /* multi-conn not supported */
-    dst.t = NBD;
     dst.name = argv[optind+1];
     open_nbd_subprocess (argv[0],
                          (const char **) &argv[optind+1], i-optind-1,
@@ -267,9 +263,7 @@ main (int argc, char *argv[])
   }
   else {                        /* Destination is not [...] */
     dst.name = argv[optind++];
-    dst.t = is_nbd_uri (dst.name) ? NBD : LOCAL;
-
-    if (dst.t == LOCAL)
+    if (! is_nbd_uri (dst.name))
       dst.u.local.fd = open_local (argv[0], dst.name, true /* writing */, &dst);
     else {
       open_nbd_uri (argv[0], dst.name, true, &dst);
@@ -291,16 +285,14 @@ main (int argc, char *argv[])
     usage (stderr, EXIT_FAILURE);
 
   /* Check we've set the fields of src and dst. */
-  assert (src.t);
   assert (src.ops);
   assert (src.name);
-  assert (dst.t);
   assert (dst.ops);
   assert (dst.name);
 
   /* If multi-conn is not supported, force connections to 1. */
-  if ((src.t == NBD && ! nbd_can_multi_conn (src.u.nbd.ptr[0])) ||
-      (dst.t == NBD && ! nbd_can_multi_conn (dst.u.nbd.ptr[0])))
+  if ((src.ops == &nbd_ops && ! nbd_can_multi_conn (src.u.nbd.ptr[0])) ||
+      (dst.ops == &nbd_ops && ! nbd_can_multi_conn (dst.u.nbd.ptr[0])))
     connections = 1;
 
   /* Calculate the number of threads from the number of connections. */
@@ -331,14 +323,14 @@ main (int argc, char *argv[])
    * if the size is not known (because it's a stream).  Note that for
    * local types, open_local set something in *.size already.
    */
-  if (src.t == NBD) {
+  if (src.ops == &nbd_ops) {
     src.size = nbd_get_size (src.u.nbd.ptr[0]);
     if (src.size == -1) {
       fprintf (stderr, "%s: %s: %s\n", argv[0], src.name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
   }
-  if (dst.t == LOCAL && S_ISREG (dst.u.local.stat.st_mode)) {
+  if (dst.ops != &nbd_ops && S_ISREG (dst.u.local.stat.st_mode)) {
     /* If the destination is an ordinary file then the original file
      * size doesn't matter.  Truncate it to the source size.  But
      * truncate it to zero first so the file is completely empty and
@@ -352,7 +344,7 @@ main (int argc, char *argv[])
     }
     destination_is_zero = true;
   }
-  else if (dst.t == NBD) {
+  else if (dst.ops == &nbd_ops) {
     dst.size = nbd_get_size (dst.u.nbd.ptr[0]);
     if (dst.size == -1) {
       fprintf (stderr, "%s: %s: %s\n", argv[0], dst.name, nbd_get_error ());
@@ -376,12 +368,12 @@ main (int argc, char *argv[])
   if (connections > 1) {
     assert (threads == connections);
 
-    if (src.t == NBD) {
+    if (src.ops == &nbd_ops) {
       for (i = 1; i < connections; ++i)
         open_nbd_uri (argv[0], src.name, false, &src);
       assert (src.u.nbd.size == connections);
     }
-    if (dst.t == NBD) {
+    if (dst.ops == &nbd_ops) {
       for (i = 1; i < connections; ++i)
         open_nbd_uri (argv[0], dst.name, true, &dst);
       assert (dst.u.nbd.size == connections);
@@ -391,7 +383,7 @@ main (int argc, char *argv[])
   /* If the source is NBD and we couldn't negotiate meta
    * base:allocation then turn off extents.
    */
-  if (src.t == NBD &&
+  if (src.ops == &nbd_ops &&
       !nbd_can_meta_context (src.u.nbd.ptr[0], "base:allocation"))
     extents = false;
 

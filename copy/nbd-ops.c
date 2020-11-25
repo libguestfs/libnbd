@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #include <libnbd.h>
 
@@ -30,8 +31,6 @@ static void
 nbd_ops_close (struct rw *rw)
 {
   size_t i;
-
-  assert (rw->t == NBD);
 
   for (i = 0; i < rw->u.nbd.size; ++i) {
     if (nbd_shutdown (rw->u.nbd.ptr[i], 0) == -1) {
@@ -49,8 +48,6 @@ nbd_ops_flush (struct rw *rw)
 {
   size_t i;
 
-  assert (rw->t == NBD);
-
   for (i = 0; i < rw->u.nbd.size; ++i) {
     if (nbd_flush (rw->u.nbd.ptr[i], 0) == -1) {
       fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
@@ -63,8 +60,6 @@ static size_t
 nbd_ops_synch_read (struct rw *rw,
                 void *data, size_t len, uint64_t offset)
 {
-  assert (rw->t == NBD);
-
   if (len > rw->size - offset)
     len = rw->size - offset;
   if (len == 0)
@@ -82,8 +77,6 @@ static void
 nbd_ops_synch_write (struct rw *rw,
                  const void *data, size_t len, uint64_t offset)
 {
-  assert (rw->t == NBD);
-
   if (nbd_pwrite (rw->u.nbd.ptr[0], data, len, offset, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -93,8 +86,6 @@ nbd_ops_synch_write (struct rw *rw,
 static bool
 nbd_ops_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
 {
-  assert (rw->t == NBD);
-
   if (nbd_can_trim (rw->u.nbd.ptr[0]) == 0)
     return false;
 
@@ -108,8 +99,6 @@ nbd_ops_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
 static bool
 nbd_ops_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
 {
-  assert (rw->t == NBD);
-
   if (nbd_can_zero (rw->u.nbd.ptr[0]) == 0)
     return false;
 
@@ -126,8 +115,6 @@ nbd_ops_asynch_read (struct rw *rw,
                      struct buffer *buffer,
                      nbd_completion_callback cb)
 {
-  assert (rw->t == NBD);
-
   if (nbd_aio_pread (rw->u.nbd.ptr[buffer->index],
                      buffer->data, buffer->len, buffer->offset,
                      cb, 0) == -1) {
@@ -141,8 +128,6 @@ nbd_ops_asynch_write (struct rw *rw,
                       struct buffer *buffer,
                       nbd_completion_callback cb)
 {
-  assert (rw->t == NBD);
-
   if (nbd_aio_pwrite (rw->u.nbd.ptr[buffer->index],
                       buffer->data, buffer->len, buffer->offset,
                       cb, 0) == -1) {
@@ -155,8 +140,6 @@ static bool
 nbd_ops_asynch_trim (struct rw *rw, struct buffer *buffer,
                      nbd_completion_callback cb)
 {
-  assert (rw->t == NBD);
-
   if (nbd_can_trim (rw->u.nbd.ptr[0]) == 0)
     return false;
 
@@ -173,8 +156,6 @@ static bool
 nbd_ops_asynch_zero (struct rw *rw, struct buffer *buffer,
                      nbd_completion_callback cb)
 {
-  assert (rw->t == NBD);
-
   if (nbd_can_zero (rw->u.nbd.ptr[0]) == 0)
     return false;
 
@@ -219,8 +200,6 @@ add_extent (void *vp, const char *metacontext,
 static unsigned
 nbd_ops_in_flight (struct rw *rw, uintptr_t index)
 {
-  assert (rw->t == NBD);
-
   /* Since the commands are auto-retired in the callbacks we don't
    * need to count "done" commands.
    */
@@ -232,8 +211,6 @@ nbd_ops_get_polling_fd (struct rw *rw, uintptr_t index,
                         int *fd, int *direction)
 {
   struct nbd_handle *nbd;
-
-  assert (rw->t == NBD);
 
   nbd = rw->u.nbd.ptr[index];
 
@@ -251,8 +228,6 @@ nbd_ops_get_polling_fd (struct rw *rw, uintptr_t index,
 static void
 nbd_ops_asynch_notify_read (struct rw *rw, uintptr_t index)
 {
-  assert (rw->t == NBD);
-
   if (nbd_aio_notify_read (rw->u.nbd.ptr[index]) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -262,8 +237,6 @@ nbd_ops_asynch_notify_read (struct rw *rw, uintptr_t index)
 static void
 nbd_ops_asynch_notify_write (struct rw *rw, uintptr_t index)
 {
-  assert (rw->t == NBD);
-
   if (nbd_aio_notify_write (rw->u.nbd.ptr[index]) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -284,7 +257,6 @@ nbd_ops_get_extents (struct rw *rw, uintptr_t index,
   extent_list exts = empty_vector;
   struct nbd_handle *nbd;
 
-  assert (rw->t == NBD);
   nbd = rw->u.nbd.ptr[index];
 
   ret->size = 0;

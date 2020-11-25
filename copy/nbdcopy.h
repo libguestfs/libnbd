@@ -42,12 +42,11 @@ DEFINE_VECTOR_TYPE (handles, struct nbd_handle *)
  * command line.
  */
 struct rw {
-  enum { LOCAL = 1, NBD = 2 } t;/* Type. */
   struct rw_ops *ops;           /* Operations. */
   const char *name;             /* Printable name, for error messages etc. */
   int64_t size;                 /* May be -1 for streams. */
   union {
-    struct {                    /* For LOCAL. */
+    struct {                    /* For files and pipes. */
       int fd;
       struct stat stat;
       bool seek_hole_supported;
