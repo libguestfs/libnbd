@@ -216,6 +216,60 @@ add_extent (void *vp, const char *metacontext,
   return 0;
 }
 
+static unsigned
+nbd_ops_in_flight (struct rw *rw, uintptr_t index)
+{
+  assert (rw->t == NBD);
+
+  /* Since the commands are auto-retired in the callbacks we don't
+   * need to count "done" commands.
+   */
+  return nbd_aio_in_flight (rw->u.nbd.ptr[index]);
+}
+
+static void
+nbd_ops_get_polling_fd (struct rw *rw, uintptr_t index,
+                        int *fd, int *direction)
+{
+  struct nbd_handle *nbd;
+
+  assert (rw->t == NBD);
+
+  nbd = rw->u.nbd.ptr[index];
+
+  *fd = nbd_aio_get_fd (nbd);
+  if (*fd == -1) {
+  error:
+    fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  *direction = nbd_aio_get_direction (nbd);
+  if (*direction == -1)
+    goto error;
+}
+
+static void
+nbd_ops_asynch_notify_read (struct rw *rw, uintptr_t index)
+{
+  assert (rw->t == NBD);
+
+  if (nbd_aio_notify_read (rw->u.nbd.ptr[index]) == -1) {
+    fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+}
+
+static void
+nbd_ops_asynch_notify_write (struct rw *rw, uintptr_t index)
+{
+  assert (rw->t == NBD);
+
+  if (nbd_aio_notify_write (rw->u.nbd.ptr[index]) == -1) {
+    fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+}
+
 /* This is done synchronously, but that's fine because commands from
  * the previous work range in flight continue to run, it's difficult
  * to (sanely) start new work until we have the full list of extents,
@@ -302,5 +356,9 @@ struct rw_ops nbd_ops = {
   .asynch_write = nbd_ops_asynch_write,
   .asynch_trim = nbd_ops_asynch_trim,
   .asynch_zero = nbd_ops_asynch_zero,
+  .in_flight = nbd_ops_in_flight,
+  .get_polling_fd = nbd_ops_get_polling_fd,
+  .asynch_notify_read = nbd_ops_asynch_notify_read,
+  .asynch_notify_write = nbd_ops_asynch_notify_write,
   .get_extents = nbd_ops_get_extents,
 };

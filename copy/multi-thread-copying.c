@@ -127,10 +127,8 @@ multi_thread_copying (void)
 }
 
 static void wait_for_request_slots (uintptr_t index);
-static unsigned in_flight (struct nbd_handle *src_nbd,
-                           struct nbd_handle *dst_nbd);
-static void poll_both_ends (struct nbd_handle *src_nbd,
-                            struct nbd_handle *dst_nbd);
+static unsigned in_flight (uintptr_t index);
+static void poll_both_ends (uintptr_t index);
 static int finished_read (void *vp, int *error);
 static int free_buffer (void *vp, int *error);
 static void fill_dst_range_with_zeroes (struct buffer *buffer);
@@ -143,23 +141,7 @@ worker_thread (void *indexp)
 {
   uintptr_t index = (uintptr_t) indexp;
   uint64_t offset, count;
-  struct nbd_handle *src_nbd, *dst_nbd;
   extent_list exts = empty_vector;
-
-  /* In the case where src or dst is NBD, use
-   * {src|dst}.u.nbd.ptr[index] so that each thread is connected to
-   * its own NBD connection.  If either src or dst is LOCAL then set
-   * src_nbd/dst_nbd to NULL so hopefully we'll crash hard if the
-   * program accidentally tries to use them.
-   */
-  if (src.t == NBD)
-    src_nbd = src.u.nbd.ptr[index];
-  else
-    src_nbd = NULL;
-  if (dst.t == NBD)
-    dst_nbd = dst.u.nbd.ptr[index];
-  else
-    dst_nbd = NULL;
 
   while (get_next_offset (&offset, &count)) {
     size_t i;
@@ -235,8 +217,8 @@ worker_thread (void *indexp)
   }
 
   /* Wait for in flight NBD requests to finish. */
-  while (in_flight (src_nbd, dst_nbd) > 0)
-    poll_both_ends (src_nbd, dst_nbd);
+  while (in_flight (index) > 0)
+    poll_both_ends (index);
 
   if (progress)
     progress_bar (1, 1);
@@ -259,49 +241,32 @@ worker_thread (void *indexp)
 static void
 wait_for_request_slots (uintptr_t index)
 {
-  struct nbd_handle *src_nbd, *dst_nbd;
-
-  if (src.t == NBD)
-    src_nbd = src.u.nbd.ptr[index];
-  else
-    src_nbd = NULL;
-  if (dst.t == NBD)
-    dst_nbd = dst.u.nbd.ptr[index];
-  else
-    dst_nbd = NULL;
-
-  while (in_flight (src_nbd, dst_nbd) >= max_requests)
-    poll_both_ends (src_nbd, dst_nbd);
+  while (in_flight (index) >= max_requests)
+    poll_both_ends (index);
 }
 
-/* Count the number of NBD commands in flight.  Since the commands are
- * auto-retired in the callbacks we don't need to count "done"
- * commands.
- */
+/* Count the number of asynchronous commands in flight. */
 static unsigned
-in_flight (struct nbd_handle *src_nbd, struct nbd_handle *dst_nbd)
+in_flight (uintptr_t index)
 {
-  return
-    (src_nbd ? nbd_aio_in_flight (src_nbd) : 0) +
-    (dst_nbd ? nbd_aio_in_flight (dst_nbd) : 0);
+  return src.ops->in_flight (&src, index) + dst.ops->in_flight (&dst, index);
 }
 
 /* Poll (optional) NBD src and NBD dst, moving the state machine(s)
  * along.  This is a lightly modified nbd_poll.
  */
 static void
-poll_both_ends (struct nbd_handle *src_nbd, struct nbd_handle *dst_nbd)
+poll_both_ends (uintptr_t index)
 {
   struct pollfd fds[2] = { 0 };
-  int r;
+  int r, direction;
 
-  /* Note: poll will ignore fd == -1 */
-
-  if (!src_nbd)
+  if (src.ops->get_polling_fd == NULL)
+    /* Note: poll will ignore fd == -1 */
     fds[0].fd = -1;
   else {
-    fds[0].fd = nbd_aio_get_fd (src_nbd);
-    switch (nbd_aio_get_direction (src_nbd)) {
+    src.ops->get_polling_fd (&src, index, &fds[0].fd, &direction);
+    switch (direction) {
     case LIBNBD_AIO_DIRECTION_READ:
       fds[0].events = POLLIN;
       break;
@@ -311,17 +276,14 @@ poll_both_ends (struct nbd_handle *src_nbd, struct nbd_handle *dst_nbd)
     case LIBNBD_AIO_DIRECTION_BOTH:
       fds[0].events = POLLIN|POLLOUT;
       break;
-    default:
-      fprintf (stderr, "%s: %s\n", src.name, nbd_get_error ());
-      exit (EXIT_FAILURE);
     }
   }
 
-  if (!dst_nbd)
+  if (dst.ops->get_polling_fd == NULL)
     fds[1].fd = -1;
   else {
-    fds[1].fd = nbd_aio_get_fd (dst_nbd);
-    switch (nbd_aio_get_direction (dst_nbd)) {
+    dst.ops->get_polling_fd (&dst, index, &fds[1].fd, &direction);
+    switch (direction) {
     case LIBNBD_AIO_DIRECTION_READ:
       fds[1].events = POLLIN;
       break;
@@ -331,9 +293,6 @@ poll_both_ends (struct nbd_handle *src_nbd, struct nbd_handle *dst_nbd)
     case LIBNBD_AIO_DIRECTION_BOTH:
       fds[1].events = POLLIN|POLLOUT;
       break;
-    default:
-      fprintf (stderr, "%s: %s\n", src.name, nbd_get_error ());
-      exit (EXIT_FAILURE);
     }
   }
 
@@ -345,33 +304,25 @@ poll_both_ends (struct nbd_handle *src_nbd, struct nbd_handle *dst_nbd)
   if (r == 0)
     return;
 
-  if (src_nbd) {
-    r = 0;
+  if (fds[0].fd >= 0) {
     if ((fds[0].revents & (POLLIN | POLLHUP)) != 0)
-      r = nbd_aio_notify_read (src_nbd);
+      src.ops->asynch_notify_read (&src, index);
     else if ((fds[0].revents & POLLOUT) != 0)
-      r = nbd_aio_notify_write (src_nbd);
+      src.ops->asynch_notify_write (&src, index);
     else if ((fds[0].revents & (POLLERR | POLLNVAL)) != 0) {
       errno = ENOTCONN;
-      r = -1;
-    }
-    if (r == -1) {
       perror (src.name);
       exit (EXIT_FAILURE);
     }
   }
 
-  if (dst_nbd) {
-    r = 0;
+  if (fds[1].fd >= 0) {
     if ((fds[1].revents & (POLLIN | POLLHUP)) != 0)
-      r = nbd_aio_notify_read (dst_nbd);
+      dst.ops->asynch_notify_read (&dst, index);
     else if ((fds[1].revents & POLLOUT) != 0)
-      r = nbd_aio_notify_write (dst_nbd);
+      dst.ops->asynch_notify_write (&dst, index);
     else if ((fds[1].revents & (POLLERR | POLLNVAL)) != 0) {
       errno = ENOTCONN;
-      r = -1;
-    }
-    if (r == -1) {
       perror (dst.name);
       exit (EXIT_FAILURE);
     }

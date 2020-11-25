@@ -107,6 +107,12 @@ pipe_asynch_trim_zero (struct rw *rw, struct buffer *buffer,
   return false; /* not supported by pipes */
 }
 
+static unsigned
+pipe_in_flight (struct rw *rw, uintptr_t index)
+{
+  return 0;
+}
+
 struct rw_ops pipe_ops = {
   .close = pipe_close,
   .flush = pipe_flush,
@@ -127,6 +133,7 @@ struct rw_ops pipe_ops = {
 
   .asynch_trim = pipe_asynch_trim_zero,
   .asynch_zero = pipe_asynch_trim_zero,
+  .in_flight = pipe_in_flight,
 
   .get_extents = default_get_extents,
 };

@@ -137,6 +137,18 @@ struct rw_ops {
   bool (*asynch_zero) (struct rw *rw, struct buffer *buffer,
                        nbd_completion_callback cb);
 
+  /* Number of asynchronous commands in flight for a particular thread. */
+  unsigned (*in_flight) (struct rw *rw, uintptr_t index);
+
+  /* Get polling file descriptor and direction, and notify read/write.
+   * For sources which cannot be polled (such as files and pipes)
+   * these entries are NULL.
+   */
+  void (*get_polling_fd) (struct rw *rw, uintptr_t index,
+                          int *fd_rtn, int *direction_rtn);
+  void (*asynch_notify_read) (struct rw *rw, uintptr_t index);
+  void (*asynch_notify_write) (struct rw *rw, uintptr_t index);
+
   /* Read base:allocation extents metadata for a region of the source.
    * For local files the same information is read from the kernel.
    *

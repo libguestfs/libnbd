@@ -223,6 +223,12 @@ file_asynch_zero (struct rw *rw, struct buffer *buffer,
   return true;
 }
 
+static unsigned
+file_in_flight (struct rw *rw, uintptr_t index)
+{
+  return 0;
+}
+
 static void
 file_get_extents (struct rw *rw, uintptr_t index,
                   uint64_t offset, uint64_t count,
@@ -311,5 +317,6 @@ struct rw_ops file_ops = {
   .asynch_write = file_asynch_write,
   .asynch_trim = file_asynch_trim,
   .asynch_zero = file_asynch_zero,
+  .in_flight = file_in_flight,
   .get_extents = file_get_extents,
 };
