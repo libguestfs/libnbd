@@ -15,7 +15,7 @@ nbdcopy - copy to and from an NBD server
 
  nbdcopy --help
 
- nbdcopy --version
+ nbdcopy -V|--version
 
 =head1 EXAMPLES
 
@@ -60,10 +60,13 @@ to an NBD server, or download the contents of an NBD server to a local
 file, device or stdin/stdout.  It can also copy between NBD servers.
 
 The local file can be a file, a block device (eg. C</dev/cdrom>), or
-C<-> which means stream in from stdin or stream out to stdout.  The
-NBD server is specified using an NBD URI (like C<nbd://localhost>).
-The NBD server can be local or remote, and encryption can be used if
-libnbd was built with encryption support.
+C<-> which means stream in from stdin or stream out to stdout.
+
+The NBD server can be specified using an NBD URI (like
+C<nbd://localhost>).  The NBD server can be local or remote, and
+encryption can be used if libnbd was built with encryption support.
+Alternately you can use square brackets around a L<qemu-nbd(8)> or
+L<nbdkit(1)> command to run the NBD server as a subprocess of nbdcopy.
 
 For more complex copying operations including converting between disk
 formats use C<qemu-img convert>, see L<qemu-img(1)>.
@@ -78,7 +81,7 @@ Display brief command line help and exit.
 
 =item B<--allocated>
 
-Normally nbdcopy tries to create a sparse output (with holes), if the
+Normally nbdcopy tries to create sparse output (with holes) if the
 destination supports that.  It does this in two ways: either using
 extent informtation from the source to copy holes (see
 I<--no-extents>), or by detecting runs of zeroes (see I<-S>).  If you
@@ -91,7 +94,8 @@ output on the destination.
 
 Set the maximum number of NBD connections ("multi-conn").  By default
 nbdcopy will try to use multi-conn with up to 4 connections if the NBD
-server supports it.
+server supports it.  If copying between NBD servers then nbdcopy
+cannot use multi-conn if either of the servers does not support it.
 
 =item B<--destination-is-zero>
 
@@ -218,8 +222,8 @@ strict order then you must use I<--synchronous>.
 
 =head1 RUNNING NBD SERVER AS A SUBPROCESS
 
-Instead of connecting to an already running server using an C<nbd://>
-URI, you can run an NBD server as a subprocess using:
+Instead of connecting to an already running server using an NBD URI,
+you can run an NBD server as a subprocess using:
 
  nbdcopy -- [ CMD ARGS ... ] ...
 
@@ -230,7 +234,7 @@ L<nbd_connect_systemd_socket_activation(3)>).
 C<[> and C<]> must be separate command line parameters.  You will
 usually need to use C<--> to stop nbdcopy from misinterpreting NBD
 server flags as nbdcopy flags.  Both the source and destination may be
-subprocesses.  nbdcopy cleans up the server on exit.
+subprocesses.  nbdcopy cleans up the subprocess on exit.
 
 Some examples follow.
 
@@ -250,7 +254,7 @@ and stored temporarily in the RAM disk (L<nbdkit-memory-plugin(1)>).
 When nbdcopy exits both servers are killed and the RAM disk goes away,
 so this command has no overall effect, but is useful for testing.
 
-=head1 COMPARING NBD CONTENT
+=head1 COMPARING NBD SERVER CONTENT
 
 You can use nbdcopy, L<cmp(1)> and L<bash(1)> process substitution to
 compare the content of two NBD servers for equality:
@@ -259,7 +263,8 @@ compare the content of two NBD servers for equality:
 
 Note this tests that the content is logically equal.  It does not
 compare the NBD metadata such as sparseness (see L<nbdinfo(1)>
-I<--map> option).
+I<--map> option).  Thus for example a run of allocated zeroes in one
+server will match a hole in the other.
 
 =head1 SEE ALSO
 
