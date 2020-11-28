@@ -36,6 +36,7 @@
 #include <libnbd.h>
 
 #include "iszero.h"
+#include "version.h"
 
 #include "methods.h"
 
@@ -73,6 +74,23 @@ nbd_internal_py_close (PyObject *self, PyObject *args)
   h = get_handle (py_h);
 
   nbd_close (h);
+
+  Py_INCREF (Py_None);
+  return Py_None;
+}
+
+/* A wrapper around common/utils/version.c:display_version, used when
+ * you do "nbdsh --version".
+ */
+PyObject *
+nbd_internal_py_display_version (PyObject *self, PyObject *args)
+{
+  const char *program_name;
+
+  if (!PyArg_ParseTuple (args, (char *) "s:display_version", &program_name))
+    return NULL;
+
+  display_version (program_name);
 
   Py_INCREF (Py_None);
   return Py_None;

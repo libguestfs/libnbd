@@ -33,9 +33,16 @@ if HAVE_FUSE
 bin_PROGRAMS = nbdfuse
 
 nbdfuse_SOURCES = nbdfuse.c
-nbdfuse_CPPFLAGS = -I$(top_srcdir)/include
+nbdfuse_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/common/utils \
+	$(NULL)
 nbdfuse_CFLAGS = $(WARNINGS_CFLAGS) $(FUSE_CFLAGS)
-nbdfuse_LDADD = $(top_builddir)/lib/libnbd.la $(FUSE_LIBS)
+nbdfuse_LDADD = \
+	$(top_builddir)/common/utils/libutils.la \
+	$(top_builddir)/lib/libnbd.la \
+	$(FUSE_LIBS) \
+	$(NULL)
 
 if HAVE_POD
 

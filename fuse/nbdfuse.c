@@ -45,6 +45,8 @@
 
 #include <libnbd.h>
 
+#include "version.h"
+
 #define MAX_REQUEST_SIZE (32 * 1024 * 1024)
 
 static struct nbd_handle *nbd;
@@ -107,12 +109,6 @@ usage (FILE *fp, int exitcode)
 "\n"
 );
   exit (exitcode);
-}
-
-static void
-display_version (void)
-{
-  printf ("%s %s\n", PACKAGE_NAME, PACKAGE_VERSION);
 }
 
 static void
@@ -230,7 +226,7 @@ main (int argc, char *argv[])
       break;
 
     case 'V':
-      display_version ();
+      display_version ("nbdfuse");
       exit (EXIT_SUCCESS);
 
     default:

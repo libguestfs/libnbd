@@ -70,6 +70,7 @@ raise_exception ()
       pr "extern PyObject *nbd_internal_py_%s (PyObject *self, PyObject *args);\n"
          name;
   ) ([ "create"; "close";
+       "display_version";
        "alloc_aio_buffer";
        "aio_buffer_from_bytearray";
        "aio_buffer_to_bytearray";
@@ -101,6 +102,7 @@ let generate_python_libnbdmod_c () =
       pr "  { (char *) \"%s\", nbd_internal_py_%s, METH_VARARGS, NULL },\n"
          name name;
   ) ([ "create"; "close";
+       "display_version";
        "alloc_aio_buffer";
        "aio_buffer_from_bytearray";
        "aio_buffer_to_bytearray";

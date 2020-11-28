@@ -24,7 +24,8 @@ if [ $? != 0 ]; then
     echo "$0: unexpected exit status"
     fail=1
 fi
-if [ "$output" != "libnbd $EXP_VERSION" ]; then
+if [ "$output" != "nbdsh $EXP_VERSION
+libnbd $EXP_VERSION" ]; then
     echo "$0: unexpected output"
     fail=1
 fi

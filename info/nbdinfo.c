@@ -33,6 +33,7 @@
 #include <libnbd.h>
 
 #include "vector.h"
+#include "version.h"
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
@@ -87,12 +88,6 @@ usage (FILE *fp, int exitcode)
 "\n"
 );
   exit (exitcode);
-}
-
-static void
-display_version (void)
-{
-  printf ("%s %s\n", PACKAGE_NAME, PACKAGE_VERSION);
 }
 
 int
@@ -182,7 +177,7 @@ main (int argc, char *argv[])
       break;
 
     case 'V':
-      display_version ();
+      display_version ("nbdinfo");
       exit (EXIT_SUCCESS);
 
     default:

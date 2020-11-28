@@ -25,6 +25,7 @@ def shell():
     import code
     import sys
 
+    import libnbdmod
     import nbd
 
     description = '''Network Block Device (NBD) shell'''
@@ -53,8 +54,7 @@ def shell():
     short_options.append("-c")
     long_options.append("--command")
 
-    parser.add_argument('-V', '--version', action='version',
-                        version=nbd.package_name + ' ' + nbd.__version__)
+    parser.add_argument('-V', '--version', action='store_true')
     short_options.append("-V")
     long_options.append("--version")
 
@@ -63,6 +63,10 @@ def shell():
     parser.add_argument("--long-options", action='store_true')
 
     args = parser.parse_args()
+
+    if args.version:
+        libnbdmod.display_version("nbdsh")
+        exit(0)
 
     if args.short_options:
         short_options.sort()

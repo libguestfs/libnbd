@@ -52,15 +52,20 @@ libnbdmod_la_SOURCES = \
 	libnbdmod.c \
 	methods.c \
 	methods.h \
-	utils.c
+	utils.c \
+	$(NULL)
 libnbdmod_la_CPPFLAGS = \
 	$(PYTHON_CFLAGS) \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/common/include
+	-I$(top_srcdir)/common/include \
+	-I$(top_srcdir)/common/utils \
+	$(NULL)
 libnbdmod_la_CFLAGS = \
 	$(WARNINGS_CFLAGS)
 libnbdmod_la_LIBADD = \
-	$(top_builddir)/lib/libnbd.la
+	$(top_builddir)/common/utils/libutils.la \
+	$(top_builddir)/lib/libnbd.la \
+	$(NULL)
 libnbdmod_la_LDFLAGS = \
 	-avoid-version -shared -module -shrext $(PYTHON_EXT_SUFFIX)
 

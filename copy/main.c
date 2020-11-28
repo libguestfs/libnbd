@@ -38,6 +38,7 @@
 #include <libnbd.h>
 
 #include "ispowerof2.h"
+#include "version.h"
 #include "nbdcopy.h"
 
 bool allocated;                 /* --allocated flag */
@@ -79,12 +80,6 @@ usage (FILE *fp, int exitcode)
 "\n"
 );
   exit (exitcode);
-}
-
-static void
-display_version (void)
-{
-  printf ("%s %s\n", PACKAGE_NAME, PACKAGE_VERSION);
 }
 
 int
@@ -216,7 +211,7 @@ main (int argc, char *argv[])
       break;
 
     case 'V':
-      display_version ();
+      display_version ("nbdcopy");
       exit (EXIT_SUCCESS);
 
     default:

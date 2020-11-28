@@ -36,6 +36,11 @@ noinst_LTLIBRARIES = libutils.la
 libutils_la_SOURCES = \
 	vector.c \
 	vector.h \
+	version.c \
+	version.h \
+	$(NULL)
+libutils_la_CPPFLAGS = \
+	-I$(top_srcdir)/include \
 	$(NULL)
 libutils_la_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
