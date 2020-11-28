@@ -24,7 +24,9 @@ EXTRA_DIST = \
 	test-context.sh \
 	test-error.sh \
 	test-help.sh \
+	test-long-options.sh \
 	test-pattern.sh \
+	test-short-options.sh \
 	test-version.sh \
 	$(NULL)
 
@@ -45,11 +47,13 @@ nbdsh.1: nbdsh.pod $(top_builddir)/podwrapper.pl
 
 endif HAVE_POD
 
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 NBDKIT_DEBUG=1 EXP_VERSION=$(VERSION)
+TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 NBDKIT_DEBUG=1 EXPECTED_VERSION=$(VERSION)
 LOG_COMPILER = $(top_builddir)/run
 TESTS = \
 	test-help.sh \
 	test-version.sh \
+	test-short-options.sh \
+	test-long-options.sh \
 	test-error.sh \
 	$(NULL)
 

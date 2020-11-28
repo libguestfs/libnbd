@@ -35,9 +35,12 @@ EXTRA_DIST = \
 	copy-sparse-no-extents.sh \
 	copy-stdin-to-nbd.sh \
 	nbdcopy.pod \
+	test-long-options.sh \
+	test-short-options.sh \
+	test-version.sh \
 	$(NULL)
 
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
+TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 EXPECTED_VERSION=$(VERSION)
 LOG_COMPILER = $(top_builddir)/run
 TESTS =
 
@@ -104,6 +107,9 @@ TESTS += \
 	copy-sparse-allocated.sh \
 	copy-sparse-no-extents.sh \
 	$(ROOT_TESTS) \
+	test-long-options.sh \
+	test-short-options.sh \
+	test-version.sh \
 	$(NULL)
 
 check-valgrind:

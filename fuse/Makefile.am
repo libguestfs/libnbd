@@ -20,11 +20,14 @@ include $(top_srcdir)/subdir-rules.mk
 EXTRA_DIST = \
 	nbdfuse.pod \
 	test-file-mode.sh \
+	test-long-options.sh \
 	test-nbdkit.sh \
 	test-qcow2.sh \
+	test-short-options.sh \
+	test-version.sh \
 	$(NULL)
 
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
+TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 EXPECTED_VERSION=$(VERSION)
 LOG_COMPILER = $(top_builddir)/run
 TESTS =
 
@@ -58,6 +61,9 @@ nbdfuse.1: nbdfuse.pod $(top_builddir)/podwrapper.pl
 endif HAVE_POD
 
 TESTS += \
+	test-long-options.sh \
+	test-short-options.sh \
+	test-version.sh \
 	test-file-mode.sh \
 	test-nbdkit.sh \
 	test-qcow2.sh \

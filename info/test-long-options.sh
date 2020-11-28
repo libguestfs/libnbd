@@ -16,18 +16,21 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-# Test that nbdsh --version looks sane.
+# Test that nbdinfo --long-options looks sane.
 
-fail=0
-output=$($VG nbdsh --version)
+. ../tests/functions.sh
+set -e
+set -x
+
+output=test-long-options.out
+cleanup_fn rm -f $output
+
+$VG nbdinfo --long-options > $output
 if [ $? != 0 ]; then
     echo "$0: unexpected exit status"
     fail=1
 fi
-if [ "$output" != "nbdsh $EXPECTED_VERSION
-libnbd $EXPECTED_VERSION" ]; then
-    echo "$0: unexpected output"
-    fail=1
-fi
-echo "$output"
-exit $fail
+cat $output
+grep -- --list $output
+grep -- --map $output
+grep -- --version $output

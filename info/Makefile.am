@@ -42,9 +42,12 @@ info_sh_files = \
 EXTRA_DIST = \
 	$(info_sh_files) \
 	nbdinfo.pod \
+	test-long-options.sh \
+	test-short-options.sh \
+	test-version.sh \
 	$(NULL)
 
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1
+TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 EXPECTED_VERSION=$(VERSION)
 LOG_COMPILER = $(top_builddir)/run
 TESTS =
 
@@ -79,7 +82,12 @@ nbdinfo.1: nbdinfo.pod $(top_builddir)/podwrapper.pl
 
 endif HAVE_POD
 
-TESTS += $(info_sh_files)
+TESTS += \
+	test-long-options.sh \
+	test-short-options.sh \
+	test-version.sh \
+	$(info_sh_files) \
+	$(NULL)
 
 check-valgrind:
 	LIBNBD_VALGRIND=1 $(MAKE) check

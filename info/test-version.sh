@@ -16,15 +16,15 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-# Test that nbdsh --version looks sane.
+# Test that nbdinfo --version looks sane.
 
 fail=0
-output=$($VG nbdsh --version)
+output=$($VG nbdinfo --version)
 if [ $? != 0 ]; then
     echo "$0: unexpected exit status"
     fail=1
 fi
-if [ "$output" != "nbdsh $EXPECTED_VERSION
+if [ "$output" != "nbdinfo $EXPECTED_VERSION
 libnbd $EXPECTED_VERSION" ]; then
     echo "$0: unexpected output"
     fail=1
