@@ -23,6 +23,7 @@ EXTRA_DIST = \
 	copy-file-to-nbd.sh \
 	copy-nbd-to-block.sh \
 	copy-nbd-to-file.sh \
+	copy-nbd-to-hexdump.sh \
 	copy-nbd-to-nbd.sh \
 	copy-nbd-to-small-block-error.sh \
 	copy-nbd-to-small-nbd-error.sh \
@@ -96,6 +97,7 @@ TESTS += \
 	copy-file-to-file.sh \
 	copy-file-to-nbd.sh \
 	copy-nbd-to-file.sh \
+	copy-nbd-to-hexdump.sh \
 	copy-nbd-to-nbd.sh \
 	copy-nbd-to-small-nbd-error.sh \
 	copy-nbd-to-sparse-file.sh \
