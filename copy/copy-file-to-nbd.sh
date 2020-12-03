@@ -24,7 +24,10 @@ set -x
 requires nbdkit --exit-with-parent --version
 requires cmp --version
 requires dd --version
+requires dd oflag=seek_bytes </dev/null
+requires stat --version
 requires test -r /dev/urandom
+requires test -r /dev/zero
 requires truncate --version
 
 file=copy-file-to-nbd.file
@@ -33,7 +36,17 @@ pidfile=copy-file-to-nbd.pid
 sock=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
 cleanup_fn rm -f $file $file2 $pidfile $sock
 
-nbdkit --exit-with-parent -f -v -P $pidfile -U $sock memory size=10M &
+# Create a random partially sparse file.
+touch $file
+for i in `seq 1 100`; do
+    dd if=/dev/urandom of=$file ibs=512 count=1 \
+       oflag=seek_bytes seek=$((RANDOM * 9973)) conv=notrunc
+    dd if=/dev/zero of=$file ibs=512 count=1 \
+       oflag=seek_bytes seek=$((RANDOM * 9973)) conv=notrunc
+done
+size="$( stat -c %s $file )"
+
+nbdkit --exit-with-parent -f -v -P $pidfile -U $sock memory size=$size &
 # Wait for the pidfile to appear.
 for i in {1..60}; do
     if test -f $pidfile; then
@@ -46,7 +59,6 @@ if ! test -f $pidfile; then
     exit 1
 fi
 
-dd if=/dev/urandom of=$file bs=1M count=10
 $VG nbdcopy $file "nbd+unix:///?socket=$sock"
 $VG nbdcopy "nbd+unix:///?socket=$sock" $file2
 
