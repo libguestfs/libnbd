@@ -23,7 +23,6 @@ set -x
 
 requires nbdkit --exit-with-parent --version
 requires cmp --version
-requires stat --version
 
 pidfile1=copy-nbd-to-nbd.pid1
 pidfile2=copy-nbd-to-nbd.pid2
