@@ -23,13 +23,23 @@ set -x
 
 requires cmp --version
 requires dd --version
+requires dd oflag=seek_bytes </dev/null
 requires test -r /dev/urandom
+requires test -r /dev/zero
 
 file=copy-file-to-file.file
 file2=copy-file-to-file.file2
 cleanup_fn rm -f $file $file2
 
-dd if=/dev/urandom of=$file bs=1M count=10
+# Create a random partially sparse file.
+touch $file
+for i in `seq 1 100`; do
+    dd if=/dev/urandom of=$file ibs=512 count=1 \
+       oflag=seek_bytes seek=$((RANDOM * 9973)) conv=notrunc
+    dd if=/dev/zero of=$file ibs=512 count=1 \
+       oflag=seek_bytes seek=$((RANDOM * 9973)) conv=notrunc
+done
+
 $VG nbdcopy $file $file2
 
 ls -l $file $file2
