@@ -260,11 +260,11 @@ poll_both_ends (uintptr_t index)
   struct pollfd fds[2] = { 0 };
   int r, direction;
 
-  if (src.ops->get_polling_fd == NULL)
-    /* Note: poll will ignore fd == -1 */
-    fds[0].fd = -1;
-  else {
-    src.ops->get_polling_fd (&src, index, &fds[0].fd, &direction);
+  /* Note: if polling is not supported, this function will
+   * set fd == -1 which poll ignores.
+   */
+  src.ops->get_polling_fd (&src, index, &fds[0].fd, &direction);
+  if (fds[0].fd >= 0) {
     switch (direction) {
     case LIBNBD_AIO_DIRECTION_READ:
       fds[0].events = POLLIN;
@@ -278,10 +278,8 @@ poll_both_ends (uintptr_t index)
     }
   }
 
-  if (dst.ops->get_polling_fd == NULL)
-    fds[1].fd = -1;
-  else {
-    dst.ops->get_polling_fd (&dst, index, &fds[1].fd, &direction);
+  dst.ops->get_polling_fd (&dst, index, &fds[1].fd, &direction);
+  if (fds[1].fd >= 0) {
     switch (direction) {
     case LIBNBD_AIO_DIRECTION_READ:
       fds[1].events = POLLIN;

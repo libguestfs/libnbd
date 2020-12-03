@@ -610,3 +610,21 @@ default_get_extents (struct rw *rw, uintptr_t index,
     exit (EXIT_FAILURE);
   }
 }
+
+/* Implementations of get_polling_fd and asynch_notify_* for backends
+ * which don't support polling.
+ */
+void
+get_polling_fd_not_supported (struct rw *rw, uintptr_t index,
+                              int *fd_rtn, int *direction_rtn)
+{
+  /* Not an error, this causes poll to ignore the fd. */
+  *fd_rtn = -1;
+  *direction_rtn = LIBNBD_AIO_DIRECTION_READ;
+}
+
+void
+asynch_notify_read_write_not_supported (struct rw *rw, uintptr_t index)
+{
+  /* nothing */
+}

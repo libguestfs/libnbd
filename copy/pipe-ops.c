@@ -131,5 +131,9 @@ struct rw_ops pipe_ops = {
   .asynch_zero = pipe_asynch_trim_zero,
   .in_flight = pipe_in_flight,
 
+  .get_polling_fd = get_polling_fd_not_supported,
+  .asynch_notify_read = asynch_notify_read_write_not_supported,
+  .asynch_notify_write = asynch_notify_read_write_not_supported,
+
   .get_extents = default_get_extents,
 };

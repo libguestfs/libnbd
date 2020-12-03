@@ -141,7 +141,8 @@ struct rw_ops {
 
   /* Get polling file descriptor and direction, and notify read/write.
    * For sources which cannot be polled (such as files and pipes)
-   * these entries are NULL.
+   * get_polling_fd returns fd == -1 (NOT an error), and the
+   * asynch_notify_* functions are no-ops.
    */
   void (*get_polling_fd) (struct rw *rw, uintptr_t index,
                           int *fd_rtn, int *direction_rtn);
@@ -166,6 +167,10 @@ extern struct rw_ops pipe_ops;
 extern void default_get_extents (struct rw *rw, uintptr_t index,
                                  uint64_t offset, uint64_t count,
                                  extent_list *ret);
+extern void get_polling_fd_not_supported (struct rw *rw, uintptr_t index,
+                                          int *fd_rtn, int *direction_rtn);
+extern void asynch_notify_read_write_not_supported (struct rw *rw,
+                                                    uintptr_t index);
 
 extern bool allocated;
 extern unsigned connections;
