@@ -31,18 +31,17 @@ file=copy-nbd-to-sparse-file.file
 file2=copy-nbd-to-sparse-file.file2
 cleanup_fn rm -f $file $file2
 
-# Start with a random, but partially sparse file, apply nbdkit on top.
-# Copy it and make sure that it doesn't get corrupted.
-
+# Create a random partially sparse file.
 touch $file
-
 for i in `seq 1 100`; do
     dd if=/dev/urandom of=$file ibs=512 count=1 \
-       oflag=seek_bytes seek=$((RANDOM * 9973))
+       oflag=seek_bytes seek=$((RANDOM * 9973)) conv=notrunc
     dd if=/dev/zero of=$file ibs=512 count=1 \
-       oflag=seek_bytes seek=$((RANDOM * 9973))
+       oflag=seek_bytes seek=$((RANDOM * 9973)) conv=notrunc
 done
 
+# Apply nbdkit on top of the file, copy it and make sure that it
+# doesn't get corrupted.
 nbdcopy -S 512 -- [ nbdkit --exit-with-parent file $file ] $file2
 
 ls -ls $file $file2
