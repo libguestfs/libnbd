@@ -52,7 +52,10 @@ struct rw {
       bool seek_hole_supported;
       int sector_size;
     } local;
-    handles nbd;                /* For NBD, one handle per connection. */
+    struct {
+      handles handles;          /* For NBD, one handle per connection. */
+      bool can_trim, can_zero;  /* Cached nbd_can_trim, nbd_can_zero. */
+    } nbd;
   } u;
 };
 

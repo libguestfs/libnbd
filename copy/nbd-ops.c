@@ -32,15 +32,15 @@ nbd_ops_close (struct rw *rw)
 {
   size_t i;
 
-  for (i = 0; i < rw->u.nbd.size; ++i) {
-    if (nbd_shutdown (rw->u.nbd.ptr[i], 0) == -1) {
+  for (i = 0; i < rw->u.nbd.handles.size; ++i) {
+    if (nbd_shutdown (rw->u.nbd.handles.ptr[i], 0) == -1) {
       fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
-    nbd_close (rw->u.nbd.ptr[i]);
+    nbd_close (rw->u.nbd.handles.ptr[i]);
   }
 
-  handles_reset (&rw->u.nbd);
+  handles_reset (&rw->u.nbd.handles);
 }
 
 static void
@@ -48,8 +48,8 @@ nbd_ops_flush (struct rw *rw)
 {
   size_t i;
 
-  for (i = 0; i < rw->u.nbd.size; ++i) {
-    if (nbd_flush (rw->u.nbd.ptr[i], 0) == -1) {
+  for (i = 0; i < rw->u.nbd.handles.size; ++i) {
+    if (nbd_flush (rw->u.nbd.handles.ptr[i], 0) == -1) {
       fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
@@ -65,7 +65,7 @@ nbd_ops_synch_read (struct rw *rw,
   if (len == 0)
     return 0;
 
-  if (nbd_pread (rw->u.nbd.ptr[0], data, len, offset, 0) == -1) {
+  if (nbd_pread (rw->u.nbd.handles.ptr[0], data, len, offset, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -77,7 +77,7 @@ static void
 nbd_ops_synch_write (struct rw *rw,
                  const void *data, size_t len, uint64_t offset)
 {
-  if (nbd_pwrite (rw->u.nbd.ptr[0], data, len, offset, 0) == -1) {
+  if (nbd_pwrite (rw->u.nbd.handles.ptr[0], data, len, offset, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -86,10 +86,10 @@ nbd_ops_synch_write (struct rw *rw,
 static bool
 nbd_ops_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
 {
-  if (nbd_can_trim (rw->u.nbd.ptr[0]) == 0)
+  if (!rw->u.nbd.can_trim)
     return false;
 
-  if (nbd_trim (rw->u.nbd.ptr[0], count, offset, 0) == -1) {
+  if (nbd_trim (rw->u.nbd.handles.ptr[0], count, offset, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -99,10 +99,10 @@ nbd_ops_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
 static bool
 nbd_ops_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
 {
-  if (nbd_can_zero (rw->u.nbd.ptr[0]) == 0)
+  if (!rw->u.nbd.can_zero)
     return false;
 
-  if (nbd_zero (rw->u.nbd.ptr[0],
+  if (nbd_zero (rw->u.nbd.handles.ptr[0],
                 count, offset, LIBNBD_CMD_FLAG_NO_HOLE) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -115,7 +115,7 @@ nbd_ops_asynch_read (struct rw *rw,
                      struct buffer *buffer,
                      nbd_completion_callback cb)
 {
-  if (nbd_aio_pread (rw->u.nbd.ptr[buffer->index],
+  if (nbd_aio_pread (rw->u.nbd.handles.ptr[buffer->index],
                      buffer->data, buffer->len, buffer->offset,
                      cb, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
@@ -128,7 +128,7 @@ nbd_ops_asynch_write (struct rw *rw,
                       struct buffer *buffer,
                       nbd_completion_callback cb)
 {
-  if (nbd_aio_pwrite (rw->u.nbd.ptr[buffer->index],
+  if (nbd_aio_pwrite (rw->u.nbd.handles.ptr[buffer->index],
                       buffer->data, buffer->len, buffer->offset,
                       cb, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
@@ -140,12 +140,12 @@ static bool
 nbd_ops_asynch_trim (struct rw *rw, struct buffer *buffer,
                      nbd_completion_callback cb)
 {
-  if (nbd_can_trim (rw->u.nbd.ptr[0]) == 0)
+  if (!rw->u.nbd.can_trim)
     return false;
 
   assert (buffer->len <= UINT32_MAX);
 
-  if (nbd_aio_trim (rw->u.nbd.ptr[buffer->index],
+  if (nbd_aio_trim (rw->u.nbd.handles.ptr[buffer->index],
                     buffer->len, buffer->offset,
                     cb, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
@@ -158,12 +158,12 @@ static bool
 nbd_ops_asynch_zero (struct rw *rw, struct buffer *buffer,
                      nbd_completion_callback cb)
 {
-  if (nbd_can_zero (rw->u.nbd.ptr[0]) == 0)
+  if (!rw->u.nbd.can_zero)
     return false;
 
   assert (buffer->len <= UINT32_MAX);
 
-  if (nbd_aio_zero (rw->u.nbd.ptr[buffer->index],
+  if (nbd_aio_zero (rw->u.nbd.handles.ptr[buffer->index],
                     buffer->len, buffer->offset,
                     cb, LIBNBD_CMD_FLAG_NO_HOLE) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
@@ -207,7 +207,7 @@ nbd_ops_in_flight (struct rw *rw, uintptr_t index)
   /* Since the commands are auto-retired in the callbacks we don't
    * need to count "done" commands.
    */
-  return nbd_aio_in_flight (rw->u.nbd.ptr[index]);
+  return nbd_aio_in_flight (rw->u.nbd.handles.ptr[index]);
 }
 
 static void
@@ -216,7 +216,7 @@ nbd_ops_get_polling_fd (struct rw *rw, uintptr_t index,
 {
   struct nbd_handle *nbd;
 
-  nbd = rw->u.nbd.ptr[index];
+  nbd = rw->u.nbd.handles.ptr[index];
 
   *fd = nbd_aio_get_fd (nbd);
   if (*fd == -1) {
@@ -232,7 +232,7 @@ nbd_ops_get_polling_fd (struct rw *rw, uintptr_t index,
 static void
 nbd_ops_asynch_notify_read (struct rw *rw, uintptr_t index)
 {
-  if (nbd_aio_notify_read (rw->u.nbd.ptr[index]) == -1) {
+  if (nbd_aio_notify_read (rw->u.nbd.handles.ptr[index]) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -241,7 +241,7 @@ nbd_ops_asynch_notify_read (struct rw *rw, uintptr_t index)
 static void
 nbd_ops_asynch_notify_write (struct rw *rw, uintptr_t index)
 {
-  if (nbd_aio_notify_write (rw->u.nbd.ptr[index]) == -1) {
+  if (nbd_aio_notify_write (rw->u.nbd.handles.ptr[index]) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -261,7 +261,7 @@ nbd_ops_get_extents (struct rw *rw, uintptr_t index,
   extent_list exts = empty_vector;
   struct nbd_handle *nbd;
 
-  nbd = rw->u.nbd.ptr[index];
+  nbd = rw->u.nbd.handles.ptr[index];
 
   ret->size = 0;
 

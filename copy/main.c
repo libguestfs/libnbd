@@ -274,7 +274,7 @@ main (int argc, char *argv[])
       /* Obviously this is not going to work if the server is
        * advertising read-only, so fail early with a nice error message.
        */
-      if (nbd_is_read_only (dst.u.nbd.ptr[0])) {
+      if (nbd_is_read_only (dst.u.nbd.handles.ptr[0])) {
         fprintf (stderr, "%s: %s: "
                  "this NBD server is read-only, cannot write to it\n",
                  argv[0], dst.name);
@@ -294,8 +294,10 @@ main (int argc, char *argv[])
   assert (dst.name);
 
   /* If multi-conn is not supported, force connections to 1. */
-  if ((src.ops == &nbd_ops && ! nbd_can_multi_conn (src.u.nbd.ptr[0])) ||
-      (dst.ops == &nbd_ops && ! nbd_can_multi_conn (dst.u.nbd.ptr[0])))
+  if ((src.ops == &nbd_ops &&
+       ! nbd_can_multi_conn (src.u.nbd.handles.ptr[0])) ||
+      (dst.ops == &nbd_ops &&
+       ! nbd_can_multi_conn (dst.u.nbd.handles.ptr[0])))
     connections = 1;
 
   /* Calculate the number of threads from the number of connections. */
@@ -327,7 +329,7 @@ main (int argc, char *argv[])
    * local types, open_local set something in *.size already.
    */
   if (src.ops == &nbd_ops) {
-    src.size = nbd_get_size (src.u.nbd.ptr[0]);
+    src.size = nbd_get_size (src.u.nbd.handles.ptr[0]);
     if (src.size == -1) {
       fprintf (stderr, "%s: %s: %s\n", argv[0], src.name, nbd_get_error ());
       exit (EXIT_FAILURE);
@@ -348,7 +350,7 @@ main (int argc, char *argv[])
     destination_is_zero = true;
   }
   else if (dst.ops == &nbd_ops) {
-    dst.size = nbd_get_size (dst.u.nbd.ptr[0]);
+    dst.size = nbd_get_size (dst.u.nbd.handles.ptr[0]);
     if (dst.size == -1) {
       fprintf (stderr, "%s: %s: %s\n", argv[0], dst.name, nbd_get_error ());
       exit (EXIT_FAILURE);
@@ -374,12 +376,12 @@ main (int argc, char *argv[])
     if (src.ops == &nbd_ops) {
       for (i = 1; i < connections; ++i)
         open_nbd_uri (argv[0], src.name, false, &src);
-      assert (src.u.nbd.size == connections);
+      assert (src.u.nbd.handles.size == connections);
     }
     if (dst.ops == &nbd_ops) {
       for (i = 1; i < connections; ++i)
         open_nbd_uri (argv[0], dst.name, true, &dst);
-      assert (dst.u.nbd.size == connections);
+      assert (dst.u.nbd.handles.size == connections);
     }
   }
 
@@ -387,7 +389,7 @@ main (int argc, char *argv[])
    * base:allocation then turn off extents.
    */
   if (src.ops == &nbd_ops &&
-      !nbd_can_meta_context (src.u.nbd.ptr[0], "base:allocation"))
+      !nbd_can_meta_context (src.u.nbd.handles.ptr[0], "base:allocation"))
     extents = false;
 
   /* Start copying. */
@@ -534,7 +536,7 @@ open_nbd_uri (const char *prog,
     exit (EXIT_FAILURE);
   }
 
-  if (handles_append (&rw->u.nbd, nbd) == -1) {
+  if (handles_append (&rw->u.nbd.handles, nbd) == -1) {
     perror ("realloc");
     exit (EXIT_FAILURE);
   }
@@ -543,6 +545,12 @@ open_nbd_uri (const char *prog,
     fprintf (stderr, "%s: %s: %s\n", prog, uri, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+
+  /* Cache these.  We assume with multi-conn that each handle will act
+   * the same way.
+   */
+  rw->u.nbd.can_trim = nbd_can_trim (nbd) > 0;
+  rw->u.nbd.can_zero = nbd_can_zero (nbd) > 0;
 }
 
 DEFINE_VECTOR_TYPE (const_string_vector, const char *);
@@ -568,7 +576,7 @@ open_nbd_subprocess (const char *prog,
     exit (EXIT_FAILURE);
   }
 
-  if (handles_append (&rw->u.nbd, nbd) == -1) {
+  if (handles_append (&rw->u.nbd.handles, nbd) == -1) {
   memory_error:
     perror ("realloc");
     exit (EXIT_FAILURE);
@@ -586,6 +594,12 @@ open_nbd_subprocess (const char *prog,
     fprintf (stderr, "%s: %s: %s\n", prog, argv[0], nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+
+  /* Cache these.  We assume with multi-conn that each handle will act
+   * the same way.
+   */
+  rw->u.nbd.can_trim = nbd_can_trim (nbd) > 0;
+  rw->u.nbd.can_zero = nbd_can_zero (nbd) > 0;
 
   free (copy.ptr);
 }

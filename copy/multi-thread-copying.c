@@ -90,9 +90,9 @@ multi_thread_copying (void)
   assert (threads > 0);
   assert (threads == connections);
   if (src.ops == &nbd_ops)
-    assert (src.u.nbd.size == connections);
+    assert (src.u.nbd.handles.size == connections);
   if (dst.ops == &nbd_ops)
-    assert (dst.u.nbd.size == connections);
+    assert (dst.u.nbd.handles.size == connections);
   assert (src.size != -1);
 
   workers = malloc (sizeof (pthread_t) * threads);
