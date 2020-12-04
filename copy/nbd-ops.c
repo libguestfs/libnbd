@@ -308,6 +308,8 @@ nbd_ops_get_extents (struct rw *rw, uintptr_t index,
         exts.ptr[i].length -= d;
         assert (exts.ptr[i].offset + exts.ptr[i].length == offset + count);
       }
+      if (exts.ptr[i].length == 0)
+        continue;
       if (extent_list_append (ret, exts.ptr[i]) == -1) {
         perror ("realloc");
         exit (EXIT_FAILURE);
