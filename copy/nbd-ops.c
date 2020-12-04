@@ -143,6 +143,8 @@ nbd_ops_asynch_trim (struct rw *rw, struct buffer *buffer,
   if (nbd_can_trim (rw->u.nbd.ptr[0]) == 0)
     return false;
 
+  assert (buffer->len <= UINT32_MAX);
+
   if (nbd_aio_trim (rw->u.nbd.ptr[buffer->index],
                     buffer->len, buffer->offset,
                     cb, 0) == -1) {
@@ -158,6 +160,8 @@ nbd_ops_asynch_zero (struct rw *rw, struct buffer *buffer,
 {
   if (nbd_can_zero (rw->u.nbd.ptr[0]) == 0)
     return false;
+
+  assert (buffer->len <= UINT32_MAX);
 
   if (nbd_aio_zero (rw->u.nbd.ptr[buffer->index],
                     buffer->len, buffer->offset,
