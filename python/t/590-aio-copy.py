@@ -53,7 +53,8 @@ def asynch_copy(src, dst):
 
     # The main loop which runs until we have finished reading and
     # there are no more commands in flight.
-    while soff < size or dst.aio_in_flight() > 0:
+    while soff < size or src.aio_in_flight () > 0 or dst.aio_in_flight() > 0 \
+          or len(writes) > 0:
         # If we're able to submit more reads from the source
         # then do so now.
         if soff < size and src.aio_in_flight() < max_reads_in_flight:
