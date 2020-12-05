@@ -228,6 +228,7 @@ file_get_extents (struct rw *rw, uintptr_t index,
     int fd = rw->u.local.fd;
     off_t pos;
     struct extent e;
+    size_t last;
 
     pthread_mutex_lock (&lseek_lock);
 
@@ -277,6 +278,18 @@ file_get_extents (struct rw *rw, uintptr_t index,
 
       offset = pos;
     } while (offset < end);
+
+    /* The last extent may extend beyond the request bounds.  We must
+     * truncate it.
+     */
+    assert (ret->size > 0);
+    last = ret->size - 1;
+    assert (ret->ptr[last].offset <= end);
+    if (ret->ptr[last].offset + ret->ptr[last].length > end) {
+      uint64_t d = ret->ptr[last].offset + ret->ptr[last].length - end;
+      ret->ptr[last].length -= d;
+      assert (ret->ptr[last].offset + ret->ptr[last].length == end);
+    }
 
     pthread_mutex_unlock (&lseek_lock);
     return;
