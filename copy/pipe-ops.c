@@ -82,7 +82,7 @@ pipe_synch_trim_zero (struct rw *rw, uint64_t offset, uint64_t count)
 
 static void
 pipe_asynch_read (struct rw *rw,
-                  struct buffer *buffer,
+                  struct command *command,
                   nbd_completion_callback cb)
 {
   abort (); /* See comment below. */
@@ -90,14 +90,14 @@ pipe_asynch_read (struct rw *rw,
 
 static void
 pipe_asynch_write (struct rw *rw,
-                   struct buffer *buffer,
+                   struct command *command,
                    nbd_completion_callback cb)
 {
   abort (); /* See comment below. */
 }
 
 static bool
-pipe_asynch_trim_zero (struct rw *rw, struct buffer *buffer,
+pipe_asynch_trim_zero (struct rw *rw, struct command *command,
                        nbd_completion_callback cb)
 {
   return false; /* not supported by pipes */

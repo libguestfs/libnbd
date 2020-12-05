@@ -155,10 +155,11 @@ file_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
 
 static void
 file_asynch_read (struct rw *rw,
-                  struct buffer *buffer,
+                  struct command *command,
                   nbd_completion_callback cb)
 {
-  file_synch_read (rw, buffer->data, buffer->len, buffer->offset);
+  file_synch_read (rw, slice_ptr (command->slice),
+                   command->slice.len, command->offset);
   errno = 0;
   if (cb.callback (cb.user_data, &errno) == -1) {
     perror (rw->name);
@@ -168,10 +169,11 @@ file_asynch_read (struct rw *rw,
 
 static void
 file_asynch_write (struct rw *rw,
-                   struct buffer *buffer,
+                   struct command *command,
                    nbd_completion_callback cb)
 {
-  file_synch_write (rw, buffer->data, buffer->len, buffer->offset);
+  file_synch_write (rw, slice_ptr (command->slice),
+                    command->slice.len, command->offset);
   errno = 0;
   if (cb.callback (cb.user_data, &errno) == -1) {
     perror (rw->name);
@@ -180,10 +182,10 @@ file_asynch_write (struct rw *rw,
 }
 
 static bool
-file_asynch_trim (struct rw *rw, struct buffer *buffer,
+file_asynch_trim (struct rw *rw, struct command *command,
                   nbd_completion_callback cb)
 {
-  if (!file_synch_trim (rw, buffer->offset, buffer->len))
+  if (!file_synch_trim (rw, command->offset, command->slice.len))
     return false;
   errno = 0;
   if (cb.callback (cb.user_data, &errno) == -1) {
@@ -194,10 +196,10 @@ file_asynch_trim (struct rw *rw, struct buffer *buffer,
 }
 
 static bool
-file_asynch_zero (struct rw *rw, struct buffer *buffer,
+file_asynch_zero (struct rw *rw, struct command *command,
                   nbd_completion_callback cb)
 {
-  if (!file_synch_zero (rw, buffer->offset, buffer->len))
+  if (!file_synch_zero (rw, command->offset, command->slice.len))
     return false;
   errno = 0;
   if (cb.callback (cb.user_data, &errno) == -1) {

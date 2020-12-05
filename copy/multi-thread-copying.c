@@ -132,8 +132,8 @@ static void wait_for_request_slots (uintptr_t index);
 static unsigned in_flight (uintptr_t index);
 static void poll_both_ends (uintptr_t index);
 static int finished_read (void *vp, int *error);
-static int free_buffer (void *vp, int *error);
-static void fill_dst_range_with_zeroes (struct buffer *buffer);
+static int free_command (void *vp, int *error);
+static void fill_dst_range_with_zeroes (struct command *command);
 
 /* There are 'threads' worker threads, each copying work ranges from
  * src to dst until there are no more work ranges.
@@ -155,6 +155,7 @@ worker_thread (void *indexp)
       default_get_extents (&src, index, offset, count, &exts);
 
     for (i = 0; i < exts.size; ++i) {
+      struct command *command;
       struct buffer *buffer;
       char *data;
       size_t len;
@@ -163,15 +164,16 @@ worker_thread (void *indexp)
         /* The source is a hole so we can proceed directly to
          * skipping, trimming or writing zeroes at the destination.
          */
-        buffer = calloc (1, sizeof *buffer);
-        if (buffer == NULL) {
+        command = calloc (1, sizeof *command);
+        if (command == NULL) {
           perror ("malloc");
           exit (EXIT_FAILURE);
         }
-        buffer->offset = exts.ptr[i].offset;
-        buffer->len = exts.ptr[i].length;
-        buffer->index = index;
-        fill_dst_range_with_zeroes (buffer);
+        command->offset = exts.ptr[i].offset;
+        command->slice.len = exts.ptr[i].length;
+        command->slice.base = 0;
+        command->index = index;
+        fill_dst_range_with_zeroes (command);
       }
 
       else /* data */ {
@@ -193,19 +195,26 @@ worker_thread (void *indexp)
             perror ("malloc");
             exit (EXIT_FAILURE);
           }
-          buffer->offset = exts.ptr[i].offset;
-          buffer->len = len;
           buffer->data = data;
-          buffer->free_data = free;
-          buffer->index = index;
+          buffer->refs = 1;
+          command = calloc (1, sizeof *command);
+          if (command == NULL) {
+            perror ("malloc");
+            exit (EXIT_FAILURE);
+          }
+          command->offset = exts.ptr[i].offset;
+          command->slice.len = len;
+          command->slice.base = 0;
+          command->slice.buffer = buffer;
+          command->index = index;
 
           wait_for_request_slots (index);
 
           /* Begin the asynch read operation. */
-          src.ops->asynch_read (&src, buffer,
+          src.ops->asynch_read (&src, command,
                                 (nbd_completion_callback) {
                                   .callback = finished_read,
-                                  .user_data = buffer,
+                                  .user_data = command,
                                 });
 
           exts.ptr[i].offset += len;
@@ -326,36 +335,35 @@ poll_both_ends (uintptr_t index)
   }
 }
 
-/* Create a sub-buffer of an existing buffer. */
-static struct buffer *
-copy_subbuffer (struct buffer *buffer, uint64_t offset, size_t len,
-                bool hole)
+/* Create a sub-command of an existing command.  This creates a slice
+ * referencing the buffer of the existing command in order to avoid
+ * copying.
+ */
+static struct command *
+copy_subcommand (struct command *command, uint64_t offset, size_t len,
+                 bool hole)
 {
-  const uint64_t end = buffer->offset + buffer->len;
-  struct buffer *newbuffer;
+  const uint64_t end = command->offset + command->slice.len;
+  struct command *newcommand;
 
-  assert (buffer->offset <= offset && offset < end);
+  assert (command->offset <= offset && offset < end);
   assert (offset + len <= end);
 
-  newbuffer = calloc (1, sizeof *newbuffer);
-  if (newbuffer == NULL) {
+  newcommand = calloc (1, sizeof *newcommand);
+  if (newcommand == NULL) {
     perror ("calloc");
     exit (EXIT_FAILURE);
   }
-  newbuffer->offset = offset;
-  newbuffer->len = len;
+  newcommand->offset = offset;
+  newcommand->slice.len = len;
   if (!hole) {
-    newbuffer->data = malloc (len);
-    if (newbuffer->data == NULL) {
-      perror ("malloc");
-      exit (EXIT_FAILURE);
-    }
-    memcpy (newbuffer->data, buffer->data + offset - buffer->offset, len);
-    newbuffer->free_data = free;
+    newcommand->slice.buffer = command->slice.buffer;
+    newcommand->slice.buffer->refs++;
+    newcommand->slice.base = offset - command->offset;
   }
-  newbuffer->index = buffer->index;
+  newcommand->index = command->index;
 
-  return newbuffer;
+  return newcommand;
 }
 
 /* Callback called when src has finished one read command.  This
@@ -364,31 +372,31 @@ copy_subbuffer (struct buffer *buffer, uint64_t offset, size_t len,
 static int
 finished_read (void *vp, int *error)
 {
-  struct buffer *buffer = vp;
+  struct command *command = vp;
 
   if (allocated || sparse_size == 0) {
     /* If sparseness detection (see below) is turned off then we write
-     * the whole buffer.
+     * the whole command.
      */
-    dst.ops->asynch_write (&dst, buffer,
+    dst.ops->asynch_write (&dst, command,
                            (nbd_completion_callback) {
-                             .callback = free_buffer,
-                             .user_data = buffer,
+                             .callback = free_command,
+                             .user_data = command,
                            });
   }
   else {                               /* Sparseness detection. */
-    const uint64_t start = buffer->offset;
-    const uint64_t end = start + buffer->len;
+    const uint64_t start = command->offset;
+    const uint64_t end = start + command->slice.len;
     uint64_t last_offset = start;
     bool last_is_hole = false;
     uint64_t i;
-    struct buffer *newbuffer;
+    struct command *newcommand;
 
-    /* Iterate over the buffer, starting on a block boundary. */
+    /* Iterate over the command, starting on a block boundary. */
     for (i = ROUND_UP (start, sparse_size);
          i + sparse_size <= end;
          i += sparse_size) {
-      if (is_zero (&buffer->data[i-start], sparse_size)) {
+      if (is_zero (slice_ptr (command->slice) + i-start, sparse_size)) {
         /* It's a hole.  If the last was a hole too then we do nothing
          * here which coalesces.  Otherwise write the last data and
          * start a new hole.
@@ -396,12 +404,13 @@ finished_read (void *vp, int *error)
         if (!last_is_hole) {
           /* Write the last data (if any). */
           if (i - last_offset > 0) {
-            newbuffer = copy_subbuffer (buffer, last_offset, i - last_offset,
-                                        false);
-            dst.ops->asynch_write (&dst, newbuffer,
+            newcommand = copy_subcommand (command,
+                                          last_offset, i - last_offset,
+                                          false);
+            dst.ops->asynch_write (&dst, newcommand,
                                    (nbd_completion_callback) {
-                                     .callback = free_buffer,
-                                     .user_data = newbuffer,
+                                     .callback = free_command,
+                                     .user_data = newcommand,
                                    });
           }
           /* Start the new hole. */
@@ -417,9 +426,10 @@ finished_read (void *vp, int *error)
         if (last_is_hole) {
           /* Write the last hole (if any). */
           if (i - last_offset > 0) {
-            newbuffer = copy_subbuffer (buffer, last_offset, i - last_offset,
-                                        true);
-            fill_dst_range_with_zeroes (newbuffer);
+            newcommand = copy_subcommand (command,
+                                          last_offset, i - last_offset,
+                                          true);
+            fill_dst_range_with_zeroes (newcommand);
           }
           /* Start the new data. */
           last_offset = i;
@@ -431,25 +441,27 @@ finished_read (void *vp, int *error)
     /* Write the last_offset up to the end. */
     if (end - last_offset > 0) {
       if (!last_is_hole) {
-        newbuffer = copy_subbuffer (buffer, last_offset, end - last_offset,
-                                    false);
-        dst.ops->asynch_write (&dst, newbuffer,
+        newcommand = copy_subcommand (command,
+                                      last_offset, end - last_offset,
+                                      false);
+        dst.ops->asynch_write (&dst, newcommand,
                                (nbd_completion_callback) {
-                                 .callback = free_buffer,
-                                 .user_data = newbuffer,
+                                 .callback = free_command,
+                                 .user_data = newcommand,
                                });
       }
       else {
-        newbuffer = copy_subbuffer (buffer, last_offset, end - last_offset,
-                                    true);
-        fill_dst_range_with_zeroes (newbuffer);
+        newcommand = copy_subcommand (command,
+                                      last_offset, end - last_offset,
+                                      true);
+        fill_dst_range_with_zeroes (newcommand);
       }
     }
 
-    /* Free the original buffer since it has been split into
-     * subbuffers and the original is no longer needed.
+    /* Free the original command since it has been split into
+     * subcommands and the original is no longer needed.
      */
-    free_buffer (buffer, &errno);
+    free_command (command, &errno);
   }
 
   return 1; /* auto-retires the command */
@@ -463,15 +475,15 @@ finished_read (void *vp, int *error)
  *                 do nothing
  *
  * --allocated:    we must write zeroes either using an efficient
- *                 zeroing command or writing a buffer of zeroes
+ *                 zeroing command or writing a command of zeroes
  *
  * (neither flag)  try trimming if supported, else write zeroes
  *                 as above
  *
- * This takes over ownership of the buffer and frees it eventually.
+ * This takes over ownership of the command and frees it eventually.
  */
 static void
-fill_dst_range_with_zeroes (struct buffer *buffer)
+fill_dst_range_with_zeroes (struct command *command)
 {
   char *data;
 
@@ -480,19 +492,19 @@ fill_dst_range_with_zeroes (struct buffer *buffer)
 
   if (!allocated) {
     /* Try trimming. */
-    if (dst.ops->asynch_trim (&dst, buffer,
+    if (dst.ops->asynch_trim (&dst, command,
                               (nbd_completion_callback) {
-                                .callback = free_buffer,
-                                .user_data = buffer,
+                                .callback = free_command,
+                                .user_data = command,
                               }))
       return;
   }
 
   /* Try efficient zeroing. */
-  if (dst.ops->asynch_zero (&dst, buffer,
+  if (dst.ops->asynch_zero (&dst, command,
                             (nbd_completion_callback) {
-                              .callback = free_buffer,
-                              .user_data = buffer,
+                              .callback = free_command,
+                              .user_data = command,
                             }))
     return;
 
@@ -504,28 +516,36 @@ fill_dst_range_with_zeroes (struct buffer *buffer)
     perror ("calloc");
     exit (EXIT_FAILURE);
   }
-  while (buffer->len > 0) {
-    size_t len = buffer->len;
+  while (command->slice.len > 0) {
+    size_t len = command->slice.len;
 
     if (len > MAX_REQUEST_SIZE)
       len = MAX_REQUEST_SIZE;
 
-    dst.ops->synch_write (&dst, data, len, buffer->offset);
-    buffer->len -= len;
-    buffer->offset += len;
+    dst.ops->synch_write (&dst, data, len, command->offset);
+    command->slice.len -= len;
+    command->offset += len;
   }
   free (data);
 
  free_and_return:
-  free_buffer (buffer, &errno);
+  free_command (command, &errno);
 }
 
 static int
-free_buffer (void *vp, int *error)
+free_command (void *vp, int *error)
 {
-  struct buffer *buffer = vp;
+  struct command *command = vp;
+  struct buffer *buffer = command->slice.buffer;
 
-  if (buffer->free_data) buffer->free_data (buffer->data);
-  free (buffer);
+  if (buffer != NULL) {
+    if (--buffer->refs == 0) {
+      free (buffer->data);
+      free (buffer);
+    }
+  }
+
+  free (command);
+
   return 1; /* auto-retires the command */
 }

@@ -112,11 +112,12 @@ nbd_ops_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
 
 static void
 nbd_ops_asynch_read (struct rw *rw,
-                     struct buffer *buffer,
+                     struct command *command,
                      nbd_completion_callback cb)
 {
-  if (nbd_aio_pread (rw->u.nbd.handles.ptr[buffer->index],
-                     buffer->data, buffer->len, buffer->offset,
+  if (nbd_aio_pread (rw->u.nbd.handles.ptr[command->index],
+                     slice_ptr (command->slice),
+                     command->slice.len, command->offset,
                      cb, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -125,11 +126,12 @@ nbd_ops_asynch_read (struct rw *rw,
 
 static void
 nbd_ops_asynch_write (struct rw *rw,
-                      struct buffer *buffer,
+                      struct command *command,
                       nbd_completion_callback cb)
 {
-  if (nbd_aio_pwrite (rw->u.nbd.handles.ptr[buffer->index],
-                      buffer->data, buffer->len, buffer->offset,
+  if (nbd_aio_pwrite (rw->u.nbd.handles.ptr[command->index],
+                      slice_ptr (command->slice),
+                      command->slice.len, command->offset,
                       cb, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -137,16 +139,16 @@ nbd_ops_asynch_write (struct rw *rw,
 }
 
 static bool
-nbd_ops_asynch_trim (struct rw *rw, struct buffer *buffer,
+nbd_ops_asynch_trim (struct rw *rw, struct command *command,
                      nbd_completion_callback cb)
 {
   if (!rw->u.nbd.can_trim)
     return false;
 
-  assert (buffer->len <= UINT32_MAX);
+  assert (command->slice.len <= UINT32_MAX);
 
-  if (nbd_aio_trim (rw->u.nbd.handles.ptr[buffer->index],
-                    buffer->len, buffer->offset,
+  if (nbd_aio_trim (rw->u.nbd.handles.ptr[command->index],
+                    command->slice.len, command->offset,
                     cb, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -155,16 +157,16 @@ nbd_ops_asynch_trim (struct rw *rw, struct buffer *buffer,
 }
 
 static bool
-nbd_ops_asynch_zero (struct rw *rw, struct buffer *buffer,
+nbd_ops_asynch_zero (struct rw *rw, struct command *command,
                      nbd_completion_callback cb)
 {
   if (!rw->u.nbd.can_zero)
     return false;
 
-  assert (buffer->len <= UINT32_MAX);
+  assert (command->slice.len <= UINT32_MAX);
 
-  if (nbd_aio_zero (rw->u.nbd.handles.ptr[buffer->index],
-                    buffer->len, buffer->offset,
+  if (nbd_aio_zero (rw->u.nbd.handles.ptr[command->index],
+                    command->slice.len, command->offset,
                     cb, LIBNBD_CMD_FLAG_NO_HOLE) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);

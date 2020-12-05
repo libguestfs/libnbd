@@ -61,12 +61,38 @@ struct rw {
 
 extern struct rw src, dst;
 
-/* Buffer used for asynchronous operations in flight. */
+/* Underlying data buffers. */
 struct buffer {
-  uint64_t offset;
-  size_t len;
-  char *data;                   /* Data buffer. */
-  void (*free_data) (void *);   /* Usually free(3), can be NULL. */
+  char *data;                   /* Pointer to base address of allocation. */
+  unsigned refs;                /* Reference count. */
+};
+
+/* Slice used to share whole or part of underlying buffers. */
+struct slice {
+  size_t len;                   /* Length of slice. */
+  size_t base;                  /* Start of slice relative to buffer. */
+  struct buffer *buffer;        /* Underlying allocation (may be shared
+                                 * or NULL).
+                                 */
+};
+
+#define slice_ptr(slice) ((slice).buffer->data + (slice).base)
+
+/* Commands for asynchronous operations in flight.
+ *
+ * We don't store the command type (read/write/trim/etc) because it is
+ * implicit in the function being called and because commands
+ * naturally change from read -> write/trim/etc as they progress.
+ *
+ * slice.buffer may be NULL for commands (like trim) that have no
+ * associated data.
+ *
+ * A separate set of commands, slices and buffers is maintained per
+ * thread so no locking is necessary.
+ */
+struct command {
+  uint64_t offset;              /* Offset relative to start of disk. */
+  struct slice slice;           /* Data slice. */
   uintptr_t index;              /* Thread number. */
 };
 
@@ -101,14 +127,10 @@ struct rw_ops {
   void (*synch_write) (struct rw *rw,
                        const void *data, size_t len, uint64_t offset);
 
-  /* Synchronously trim.  buffer->data is not used.  If not possible,
-   * returns false.
-   */
+  /* Synchronously trim.  If not possible, returns false. */
   bool (*synch_trim) (struct rw *rw, uint64_t offset, uint64_t count);
 
-  /* Synchronously zero.  buffer->data is not used.  If not possible,
-   * returns false.
-   */
+  /* Synchronously zero.  If not possible, returns false. */
   bool (*synch_zero) (struct rw *rw, uint64_t offset, uint64_t count);
 
   /* Asynchronous I/O operations.  These start the operation and call
@@ -121,22 +143,22 @@ struct rw_ops {
    * be called on pipes because pipes force --synchronous mode.
    */
   void (*asynch_read) (struct rw *rw,
-                       struct buffer *buffer,
+                       struct command *command,
                        nbd_completion_callback cb);
   void (*asynch_write) (struct rw *rw,
-                        struct buffer *buffer,
+                        struct command *command,
                         nbd_completion_callback cb);
 
-  /* Asynchronously trim.  buffer->data is not used.  If not possible,
-   * returns false.
+  /* Asynchronously trim.  command->slice.buffer is not used.  If not
+   * possible, returns false.
    */
-  bool (*asynch_trim) (struct rw *rw, struct buffer *buffer,
+  bool (*asynch_trim) (struct rw *rw, struct command *command,
                        nbd_completion_callback cb);
 
-  /* Asynchronously zero.  buffer->data is not used.  If not possible,
+  /* Asynchronously zero.  command->slice.buffer is not used.  If not possible,
    * returns false.
    */
-  bool (*asynch_zero) (struct rw *rw, struct buffer *buffer,
+  bool (*asynch_zero) (struct rw *rw, struct command *command,
                        nbd_completion_callback cb);
 
   /* Number of asynchronous commands in flight for a particular thread. */
