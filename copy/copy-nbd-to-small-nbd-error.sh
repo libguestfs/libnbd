@@ -57,7 +57,7 @@ if ! test -f $pidfile2; then
     exit 1
 fi
 
-if nbdcopy "nbd+unix:///?socket=$sock1" "nbd+unix:///?socket=$sock2"; then
+if $VG nbdcopy "nbd+unix:///?socket=$sock1" "nbd+unix:///?socket=$sock2"; then
     echo "$0: expected this test to fail"
     exit 1
 fi

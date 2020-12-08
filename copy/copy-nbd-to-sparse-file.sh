@@ -42,7 +42,7 @@ done
 
 # Apply nbdkit on top of the file, copy it and make sure that it
 # doesn't get corrupted.
-nbdcopy -S 512 -- [ nbdkit --exit-with-parent file $file ] $file2
+$VG nbdcopy -S 512 -- [ nbdkit --exit-with-parent file $file ] $file2
 
 ls -ls $file $file2
 cmp $file $file2
