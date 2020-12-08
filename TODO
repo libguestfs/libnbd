@@ -32,6 +32,8 @@ Examine other fuzzers: https://gitlab.com/akihe/radamsa
 nbdcopy:
  - Minimum/preferred/maximum block size.
  - Benchmark.
+ - Better page cache usage, see nbdkit-file-plugin options
+   fadvise=sequential cache=none.
  - Consider io_uring if there are performance bottlenecks.
 
 nbdfuse:
