@@ -392,7 +392,9 @@ finished_read (void *vp, int *error)
     uint64_t i;
     struct command *newcommand;
 
-    /* Iterate over the command, starting on a block boundary. */
+    /* Iterate over whole blocks in the command, starting on a block
+     * boundary.
+     */
     for (i = ROUND_UP (start, sparse_size);
          i + sparse_size <= end;
          i += sparse_size) {
@@ -438,11 +440,11 @@ finished_read (void *vp, int *error)
       }
     } /* for i */
 
-    /* Write the last_offset up to the end. */
-    if (end - last_offset > 0) {
+    /* Write the last_offset up to i. */
+    if (i - last_offset > 0) {
       if (!last_is_hole) {
         newcommand = copy_subcommand (command,
-                                      last_offset, end - last_offset,
+                                      last_offset, i - last_offset,
                                       false);
         dst.ops->asynch_write (&dst, newcommand,
                                (nbd_completion_callback) {
@@ -452,10 +454,20 @@ finished_read (void *vp, int *error)
       }
       else {
         newcommand = copy_subcommand (command,
-                                      last_offset, end - last_offset,
+                                      last_offset, i - last_offset,
                                       true);
         fill_dst_range_with_zeroes (newcommand);
       }
+    }
+
+    /* There may be an unaligned tail, so write that. */
+    if (end - i > 0) {
+      newcommand = copy_subcommand (command, i, end - i, false);
+      dst.ops->asynch_write (&dst, newcommand,
+                             (nbd_completion_callback) {
+                               .callback = free_command,
+                               .user_data = newcommand,
+                             });
     }
 
     /* Free the original command since it has been split into
