@@ -934,6 +934,7 @@ L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>.
 
 =head2 Other
 
+L<libnbd-release-notes-1.6(1)>,
 L<libnbd-release-notes-1.4(1)>,
 L<libnbd-release-notes-1.2(1)>,
 L<libnbd-security(3)>,

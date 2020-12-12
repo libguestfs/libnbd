@@ -1,0 +1,88 @@
+=head1 NAME
+
+libnbd-release-notes-1.6 - release notes for libnbd 1.6
+
+=head1 DESCRIPTION
+
+These are the release notes for libnbd stable release 1.6.
+This describes the major changes since 1.4.
+
+libnbd 1.6.0 was released on XXX XXXXX 20XX.
+
+=head2 Security
+
+There were no security issues found in this release.
+
+If you find a security issue, please read F<SECURITY> in the source
+(online here:
+L<https://github.com/libguestfs/libnbd/blob/master/SECURITY>).  To
+find out about previous security issues in libnbd, see
+L<libnbd-security(3)>.
+
+=head2 New APIs
+
+=over 4
+
+=item L<nbd_set_strict_mode(3)>
+
+=item L<nbd_get_strict_mode(3)>
+
+XXX
+
+=item L<nbd_get_nr_meta_contexts(3)>
+
+=item L<nbd_get_meta_context(3)>
+
+=item L<nbd_clear_meta_contexts(3)>
+
+XXX
+
+=item L<nbd_opt_list_meta_context(3)>
+
+=item L<nbd_aio_opt_list_meta_context(3)>
+
+XXX
+
+=back
+
+Thanks: Eric Blake for all of the new APIs.
+
+=head2 New features
+
+
+
+
+=head2 Documentation
+
+
+
+
+=head2 Tools
+
+
+
+
+=head2 Tests
+
+
+
+
+=head2 Other improvements and bug fixes
+
+
+
+
+
+=head1 SEE ALSO
+
+L<libnbd(3)>.
+
+=head1 AUTHORS
+
+Eric Blake
+
+Richard W.M. Jones
+
+=head1 COPYRIGHT
+
+Copyright (C) 2020 Red Hat Inc.
