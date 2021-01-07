@@ -7,7 +7,7 @@ libnbd-release-notes-1.6 - release notes for libnbd 1.6
 These are the release notes for libnbd stable release 1.6.
 This describes the major changes since 1.4.
 
-libnbd 1.6.0 was released on XXX XXXXX 20XX.
+libnbd 1.6.0 was released on XXX XXXXX 2021.
 
 =head2 Security
 
@@ -27,7 +27,13 @@ L<libnbd-security(3)>.
 
 =item L<nbd_get_strict_mode(3)>
 
-XXX
+This API allows you to control how libnbd handles requests from the
+program that it thinks would trigger undefined behaviour in the server
+(such as sending unknown commands, zero-sized or out-of-bounds
+requests, etc).  Normally libnbd is very strict and will prevent you
+from sending such requests, but you can use this API to relax these
+restrictions, leaving it up to the server to handle or reject them.
+Some servers may crash if you do this.
 
 =item L<nbd_get_nr_meta_contexts(3)>
 
@@ -35,43 +41,89 @@ XXX
 
 =item L<nbd_clear_meta_contexts(3)>
 
-XXX
+These APIs allow you to review or clear the requested metadata
+contexts.
 
 =item L<nbd_opt_list_meta_context(3)>
 
 =item L<nbd_aio_opt_list_meta_context(3)>
 
-XXX
+Request that the server lists available metadata contexts.  You can
+only use this in opt mode.
 
 =back
 
 Thanks: Eric Blake for all of the new APIs.
 
+=head2 Enhancements to existing APIs
+
+L<nbd_shutdown(3)> new flag C<LIBNBD_SHUTDOWN_ABANDON_PENDING> drops
+any commands in flight which have not been sent to the server yet
+(Eric Blake).
+
+All APIs which have flag (bitmask) parameters now define a
+C<LIBNBD_*_MASK> constant allowing you to tell which bits represent
+valid flags at compilation time (Eric Blake).
+
 =head2 New features
 
+The performance of the L<nbdcopy(1)> tool has been greatly improved.
+Also it supports numerous new features.
 
+New L<nbdinfo(1)> I<--map> option showing the allocated and sparse
+extents of an NBD server.  This can also show other information such
+as dirty bitmaps.
 
+=begin comment
 
 =head2 Documentation
 
-
-
+=end comment
 
 =head2 Tools
 
+L<nbdfuse(1)> can now mount the NBD export on top of any regular file,
+it does not have to mount over a directory.
 
+L<nbdsh(1)> now produces a nice error message if the URI in the I<-u>
+option or the command in the I<-c> option is wrong (Eric Blake).
 
+New L<nbdsh(1)> I<--opt-mode> option which requests opt mode on the
+handle before connecting.
+
+L<nbdinfo(1)> I<--list> option now shows the supported metadata
+contexts of the server (Eric Blake).
+
+The output of L<nbdinfo(1)> is now usually printed atomically, ie. it
+will either print the complete output or an error message, but not
+partial output followed by an error.
+
+L<nbdinfo(1)> can now decode C<qemu:allocation-depth> metacontext
+(Eric Blake).
+
+=begin comment
 
 =head2 Tests
 
-
-
+=end comment
 
 =head2 Other improvements and bug fixes
 
+Multiple improvements to handling of NBD protocol (Eric Blake).
 
+Fix handling of booleans in Python bindings (Eric Blake).
 
+Fix handling of flags parameters in OCaml bindings (Eric Blake).
 
+Python style fixes (Eric Blake).
+
+Fix multiple memory leaks (Eric Blake).
+
+OCaml bindings now include ocamldoc-generated documentation, if
+ocamldoc is installed at build time.
+
+The "vector" library from nbdkit is now used by libnbd, simplifying
+places where we used to use L<realloc(3)>.
 
 =head1 SEE ALSO
 
@@ -85,4 +137,4 @@ Richard W.M. Jones
 
 =head1 COPYRIGHT
 
-Copyright (C) 2020 Red Hat Inc.
+Copyright (C) 2020-2021 Red Hat Inc.
