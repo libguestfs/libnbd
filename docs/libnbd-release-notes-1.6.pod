@@ -7,7 +7,7 @@ libnbd-release-notes-1.6 - release notes for libnbd 1.6
 These are the release notes for libnbd stable release 1.6.
 This describes the major changes since 1.4.
 
-libnbd 1.6.0 was released on XXX XXXXX 2021.
+libnbd 1.6.0 was released on B<7 January 2021>.
 
 =head2 Security
 
