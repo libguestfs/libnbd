@@ -24,6 +24,7 @@ set -x
 requires cmp --version
 requires dd --version
 requires dd oflag=seek_bytes </dev/null
+requires nbdkit --version
 requires test -r /dev/urandom
 requires test -r /dev/zero
 
