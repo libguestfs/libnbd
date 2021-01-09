@@ -302,7 +302,6 @@ file_get_extents (struct rw *rw, uintptr_t index,
   default_get_extents (rw, index, offset, count, ret);
 }
 
-
 struct rw_ops file_ops = {
   .close = file_close,
   .flush = file_flush,
