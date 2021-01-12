@@ -266,8 +266,10 @@ in_flight (uintptr_t index)
 static void
 poll_both_ends (uintptr_t index)
 {
-  struct pollfd fds[2] = { 0 };
+  struct pollfd fds[2];
   int r, direction;
+
+  memset (fds, 0, sizeof fds);
 
   /* Note: if polling is not supported, this function will
    * set fd == -1 which poll ignores.
