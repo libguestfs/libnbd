@@ -30,10 +30,12 @@ generator_built = \
 	$(NULL)
 
 EXTRA_DIST = \
+	examples/LICENSE-FOR-EXAMPLES \
+	examples/checksum.py \
 	$(generator_built) \
 	nbdsh.py \
-	$(srcdir)/t/*.py \
 	pycodestyle.sh \
+	$(srcdir)/t/*.py \
 	$(NULL)
 
 TESTS = pycodestyle.sh

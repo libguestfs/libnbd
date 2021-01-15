@@ -25,4 +25,4 @@ requires flake8 --version
 
 d="$abs_top_srcdir"/python
 test -f "$d"/nbd.py
-flake8 "$d"/nbd.py "$d"/nbdsh.py "$d"/t/*.py
+flake8 "$d"/nbd.py "$d"/nbdsh.py "$d"/examples/*.py "$d"/t/*.py
