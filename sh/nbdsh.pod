@@ -72,6 +72,12 @@ attempting the same with C<-c> would be too late).
 Instead of starting an interactive shell, run a command.  This option
 can be specified multiple times in order to run multiple commands.
 
+=item B<-c ->
+
+=item B<--command ->
+
+Read standard input and execute it as a command.
+
 =item B<--opt-mode>
 
 Request that option mode be enabled, which gives fine-grained control
@@ -80,12 +86,6 @@ prior to actually using the export.  This is equivalent to calling
 S<C<h.set_opt_mode(True)>> in the shell prior to connecting, and works
 even when combined with C<--uri> (while attempting the same with C<-c>
 would be too late).
-
-=item B<-c ->
-
-=item B<--command ->
-
-Read standard input and execute it as a command.
 
 =item B<-u> URI
 
