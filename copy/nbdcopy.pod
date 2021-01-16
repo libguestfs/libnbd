@@ -196,15 +196,20 @@ else in this section applies.
 The I<--connections=N> option controls NBD multi-conn (see
 L<libnbd(3)/Multi-conn>), opening up to N connections to the NBD
 server (or to both NBD servers if copying between NBD servers).  This
-defaults to 4.  The NBD servers must support and advertise multi-conn
-(for L<nbdkit(1)> availability of multi-conn can depend on the
-plugin).  If the NBD server doesn’t advertise multi-conn then only one
-connection will be opened regardless of the I<--connections> flag.
+defaults to 4.  The NBD servers must support and advertise multi-conn.
+For L<nbdkit(1)> availability of multi-conn can depend on the plugin.
+You can use L<nbdinfo(1)> to find out if a particular NBD server is
+advertising multi-conn.  If the NBD server doesn’t advertise
+multi-conn then only one connection will be opened regardless of the
+I<--connections> flag.
 
 When copying between two NBD servers, the number of connections is
 limited to the minimum multi-conn supported on both sides.  For the
 purposes of this calculation, you can consider local files and block
 devices as supporting infinite multi-conn.
+
+When you run an NBD server as a subprocess (using the S<C<[ ... ]>>
+syntax) multi-conn cannot be used.
 
 The I<--threads=N> option allows nbdcopy to start up to N threads
 (defaulting to the number of cores).  However nbdcopy cannot use more
