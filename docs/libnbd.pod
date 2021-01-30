@@ -868,6 +868,11 @@ pkg-config to detect the proper location of libnbd:
 
  cc prog.c -o prog `pkg-config libnbd --cflags --libs`
 
+To compile an external project against a built copy of the libnbd
+source tree which hasn't been installed, see the F<./run> script.
+
+=head2 Autoconf projects
+
 External projects which use autoconf and need to check if libnbd is
 installed should use the C<PKG_CHECK_MODULES> macro in F<configure.ac>
 like this:
@@ -877,6 +882,8 @@ like this:
 This will define C<@LIBNBD_CFLAGS@> and C<@LIBNBD_LIBS@> which you
 will need to add to your F<Makefile.am>.
 
+=head2 CMake projects
+
 For CMake projects use:
 
  find_package(PkgConfig REQUIRED)
@@ -885,8 +892,12 @@ For CMake projects use:
  target_include_directories(prog PUBLIC ${LIBNBD_INCLUDE_DIRS})
  target_compile_options(prog PUBLIC ${LIBNBD_CFLAGS_OTHER})
 
-To compile an external project against a built copy of the libnbd
-source tree which hasn't been installed, see the F<./run> script.
+=head2 Meson projects
+
+For meson projects use:
+
+ nbd_dep = dependency('libnbd')
+ executable('prog', 'prog.c', dependencies : [nbd_dep])
 
 =head1 ENVIRONMENT VARIABLES
 
