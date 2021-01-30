@@ -35,8 +35,15 @@
 static void
 do_progress_bar (off_t pos, int64_t size)
 {
-  static const char *spinner[] = { "◐", "◓", "◑", "◒" };
   static int tty = -1;
+
+  /* Note the spinner is covered with the cursor which usually makes
+   * it appear inverse video.
+   */
+  static const char *spinner[] = { "▝", "▐", "▗", "▃", "▖", "▍", "▘", "▀" };
+  static const char *spinner_100 = "█";
+  static int spinpos = 0;
+
   double frac = (double) pos / size;
   char msg[80];
   size_t n, i;
@@ -50,14 +57,18 @@ do_progress_bar (off_t pos, int64_t size)
   if (frac < 0) frac = 0; else if (frac > 1) frac = 1;
 
   if (frac == 1) {
-    snprintf (msg, sizeof msg, "● 100%% [****************************************]\n");
+    snprintf (msg, sizeof msg,
+              "%s 100%% [****************************************]\n",
+              spinner_100);
     progress = false; /* Don't print any more progress bar messages. */
   } else {
-    snprintf (msg, sizeof msg, "%s %3d%% [----------------------------------------]\r",
-              spinner[(int)(4*frac)], (int)(100*frac));
+    snprintf (msg, sizeof msg,
+              "%s %3d%% [----------------------------------------]\r",
+              spinner[spinpos], (int)(100*frac));
     n = strcspn (msg, "-");
     for (i = 0; i < 40*frac; ++i)
       msg[n+i] = '*';
+    spinpos = (spinpos+1) % (sizeof spinner / sizeof spinner[0]);
   }
 
 #pragma GCC diagnostic push
