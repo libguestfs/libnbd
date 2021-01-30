@@ -402,8 +402,7 @@ a string (eg. C<"10809">).
 
 libnbd supports the
 L<NBD URI specification|https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>.
-The URIs that libnbd currently supports is documented in
-L<nbd_connect_uri(3)>.
+The format of URIs is documented in L<nbd_connect_uri(3)>.
 
 You can connect to a URI as in these examples (using the high level
 API):
