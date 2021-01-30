@@ -392,11 +392,17 @@ main (int argc, char *argv[])
       !nbd_can_meta_context (src.u.nbd.handles.ptr[0], "base:allocation"))
     extents = false;
 
+  /* Always set the progress bar to 0% at the start of the copy. */
+  progress_bar (0, 1);
+
   /* Start copying. */
   if (synchronous)
     synch_copying ();
   else
     multi_thread_copying ();
+
+  /* Always set the progress bar to 100% at the end of the copy. */
+  progress_bar (1, 1);
 
   /* Shut down the source side. */
   src.ops->close (&src);

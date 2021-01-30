@@ -122,9 +122,6 @@ multi_thread_copying (void)
     }
   }
 
-  /* Set the progress bar to 100/100 to indicate we're done. */
-  progress_bar (1, 1);
-
   free (workers);
 }
 
