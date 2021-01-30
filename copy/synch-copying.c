@@ -99,7 +99,4 @@ synch_copying (void)
       free (exts.ptr);
     } /* while */
   }
-
-  /* Always set the progress bar to 100% at the end of the copy. */
-  progress_bar (1, 1);
 }
