@@ -70,6 +70,22 @@ STATE_MACHINE {
   if (r == 0 || (r == -1 && errno == EINPROGRESS))
     return 0;
   assert (r == -1);
+#ifdef __linux__
+  if (errno == EAGAIN && family == AF_UNIX) {
+    /* This can happen on Linux when connecting to a Unix domain
+     * socket, if the server's backlog is full.  Unfortunately there
+     * is nothing good we can do on the client side when this happens
+     * since any solution would involve sleeping or busy-waiting.  The
+     * only solution is on the server side, increasing the backlog.
+     * But at least improve the error message.
+     * https://bugzilla.redhat.com/1925045
+     */
+    SET_NEXT_STATE (%.DEAD);
+    set_error (errno, "connect: server backlog overflowed, "
+               "see https://bugzilla.redhat.com/1925045");
+    return 0;
+  }
+#endif
   SET_NEXT_STATE (%.DEAD);
   set_error (errno, "connect");
   return 0;
