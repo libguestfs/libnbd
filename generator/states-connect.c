@@ -47,11 +47,12 @@ disable_nagle (int sock)
 
 STATE_MACHINE {
  CONNECT.START:
-  int fd;
+  sa_family_t family;
+  int fd, r;
 
   assert (!h->sock);
-  fd = socket (h->connaddr.ss_family,
-               SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
+  family = h->connaddr.ss_family;
+  fd = socket (family, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
   if (fd == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "socket");
@@ -65,14 +66,12 @@ STATE_MACHINE {
 
   disable_nagle (fd);
 
-  if (connect (fd, (struct sockaddr *) &h->connaddr,
-               h->connaddrlen) == -1) {
-    if (errno != EINPROGRESS) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (errno, "connect");
-      return 0;
-    }
-  }
+  r = connect (fd, (struct sockaddr *) &h->connaddr, h->connaddrlen);
+  if (r == 0 || (r == -1 && errno == EINPROGRESS))
+    return 0;
+  assert (r == -1);
+  SET_NEXT_STATE (%.DEAD);
+  set_error (errno, "connect");
   return 0;
 
  CONNECT.CONNECTING:
