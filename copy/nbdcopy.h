@@ -1,5 +1,5 @@
 /* NBD client library in userspace.
- * Copyright (C) 2020 Red Hat Inc.
+ * Copyright (C) 2020-2021 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -188,6 +188,7 @@ struct rw_ops {
 extern struct rw_ops file_ops;
 extern struct rw_ops nbd_ops;
 extern struct rw_ops pipe_ops;
+extern struct rw_ops null_ops;
 
 extern void default_get_extents (struct rw *rw, uintptr_t index,
                                  uint64_t offset, uint64_t count,

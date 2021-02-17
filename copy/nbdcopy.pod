@@ -12,6 +12,7 @@ nbdcopy - copy to and from an NBD server
          SOURCE DESTINATION
 
  SOURCE, DESTINATION := - | FILE | DEVICE | NBD-URI | [ CMD ARGS ... ]
+ DESTINATION += null:
 
  nbdcopy --help
 
@@ -54,6 +55,12 @@ qemu-nbd flags from being interpreted as nbdcopy flags.
 Concatenate two raw-format disk images into the qcow2 file
 F<output.qcow2>.  The output file has to be precreated.
 
+=head2 nbdcopy nbd://server null:
+
+Read the contents of the NBD server as fast as possible and throw it
+away (write it to a virtual null device).  This is useful for
+benchmarking NBD servers and/or nbdcopy.
+
 =head1 DESCRIPTION
 
 nbdcopy copies to and from an NBD server.  It can upload a local file
@@ -68,6 +75,9 @@ C<nbd://localhost>).  The NBD server can be local or remote, and
 encryption can be used if libnbd was built with encryption support.
 Alternately you can use square brackets around a L<qemu-nbd(8)> or
 L<nbdkit(1)> command to run the NBD server as a subprocess of nbdcopy.
+
+The destination may be the special word C<null:> to throw away the
+output.
 
 For more complex copying operations including converting between disk
 formats use C<qemu-img convert>, see L<qemu-img(1)>.

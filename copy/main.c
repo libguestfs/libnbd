@@ -1,5 +1,5 @@
 /* NBD client library in userspace.
- * Copyright (C) 2020 Red Hat Inc.
+ * Copyright (C) 2020-2021 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -56,6 +56,7 @@ struct rw src, dst;             /* The source and destination. */
 
 static bool is_nbd_uri (const char *s);
 static bool seek_hole_supported (int fd);
+static void open_null (struct rw *rw);
 static int open_local (const char *prog,
                        const char *filename, bool writing, struct rw *rw);
 static void open_nbd_uri (const char *prog,
@@ -219,8 +220,8 @@ main (int argc, char *argv[])
     }
   }
 
-  /* The remaining parameters describe the SOURCE and DESTINATION
-   * and may either be -, filenames, NBD URIs or [ ... ] sequences.
+  /* The remaining parameters describe the SOURCE and DESTINATION and
+   * may either be -, filenames, NBD URIs, null: or [ ... ] sequences.
    */
   if (optind >= argc)
     usage (stderr, EXIT_FAILURE);
@@ -266,7 +267,9 @@ main (int argc, char *argv[])
   }
   else {                        /* Destination is not [...] */
     dst.name = argv[optind++];
-    if (! is_nbd_uri (dst.name))
+    if (strcmp (dst.name, "null:") == 0)
+      open_null (&dst);
+    else if (! is_nbd_uri (dst.name))
       dst.u.local.fd = open_local (argv[0], dst.name, true /* writing */, &dst);
     else {
       open_nbd_uri (argv[0], dst.name, true, &dst);
@@ -426,6 +429,14 @@ is_nbd_uri (const char *s)
     strncmp (s, "nbds+unix:", 10) == 0 ||
     strncmp (s, "nbd+vsock:", 10) == 0 ||
     strncmp (s, "nbds+vsock:", 11) == 0;
+}
+
+/* Open null: (destination only). */
+static void
+open_null (struct rw *rw)
+{
+  rw->ops = &null_ops;
+  rw->size = INT64_MAX;
 }
 
 /* Open a local (non-NBD) file, ie. a file, device, or "-" for stdio.

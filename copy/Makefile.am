@@ -21,11 +21,13 @@ EXTRA_DIST = \
 	copy-block-to-nbd.sh \
 	copy-file-to-file.sh \
 	copy-file-to-nbd.sh \
+	copy-file-to-null.sh \
 	copy-nbd-to-block.sh \
 	copy-nbd-to-file.sh \
 	copy-nbd-to-hexdump.sh \
 	copy-nbd-to-nbd.sh \
 	copy-nbd-to-nbd2.sh \
+	copy-nbd-to-null.sh \
 	copy-nbd-to-small-block-error.sh \
 	copy-nbd-to-small-nbd-error.sh \
 	copy-nbd-to-sparse-file.sh \
@@ -36,6 +38,7 @@ EXTRA_DIST = \
 	copy-sparse-no-extents.sh \
 	copy-sparse-to-stream.sh \
 	copy-stdin-to-nbd.sh \
+	copy-stdin-to-null.sh \
 	nbdcopy.pod \
 	test-long-options.sh \
 	test-short-options.sh \
@@ -52,6 +55,7 @@ nbdcopy_SOURCES = \
 	main.c \
 	multi-thread-copying.c \
 	nbd-ops.c \
+	null-ops.c \
 	pipe-ops.c \
 	progress.c \
 	synch-copying.c \
@@ -97,13 +101,16 @@ ROOT_TESTS = \
 TESTS += \
 	copy-file-to-file.sh \
 	copy-file-to-nbd.sh \
+	copy-file-to-null.sh \
 	copy-nbd-to-file.sh \
 	copy-nbd-to-hexdump.sh \
 	copy-nbd-to-nbd.sh \
 	copy-nbd-to-nbd2.sh \
+	copy-nbd-to-null.sh \
 	copy-nbd-to-small-nbd-error.sh \
 	copy-nbd-to-sparse-file.sh \
 	copy-stdin-to-nbd.sh \
+	copy-stdin-to-null.sh \
 	copy-nbd-to-stdout.sh \
 	copy-progress-bar.sh \
 	copy-sparse.sh \
