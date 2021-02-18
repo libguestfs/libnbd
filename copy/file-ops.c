@@ -303,6 +303,7 @@ file_get_extents (struct rw *rw, uintptr_t index,
 }
 
 struct rw_ops file_ops = {
+  .ops_name = "file_ops",
   .close = file_close,
   .flush = file_flush,
   .synch_read = file_synch_read,

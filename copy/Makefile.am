@@ -42,6 +42,7 @@ EXTRA_DIST = \
 	nbdcopy.pod \
 	test-long-options.sh \
 	test-short-options.sh \
+	test-verbose.sh \
 	test-version.sh \
 	$(NULL)
 
@@ -120,6 +121,7 @@ TESTS += \
 	$(ROOT_TESTS) \
 	test-long-options.sh \
 	test-short-options.sh \
+	test-verbose.sh \
 	test-version.sh \
 	$(NULL)
 

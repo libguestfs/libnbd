@@ -8,7 +8,7 @@ nbdcopy - copy to and from an NBD server
          [--destination-is-zero|--target-is-zero] [--flush]
          [--no-extents] [-p|--progress|--progress=FD]
          [-R N|--requests=N] [-S N|--sparse=N]
-         [--synchronous] [-T N|--threads=N]
+         [--synchronous] [-T N|--threads=N] [-v|--verbose]
          SOURCE DESTINATION
 
  SOURCE, DESTINATION := - | FILE | DEVICE | NBD-URI | [ CMD ARGS ... ]
@@ -182,6 +182,13 @@ of processor cores available.
 
 Note I<--threads=0> means autodetect and I<--threads=1> means use a
 single thread.
+
+=item B<-v>
+
+=item B<--verbose>
+
+Verbose output.  This enables debug in libnbd (see
+L<nbd_set_debug(3)>) as well as printing other useful information.
 
 =item B<-V>
 

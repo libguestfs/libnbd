@@ -111,6 +111,9 @@ DEFINE_VECTOR_TYPE(extent_list, struct extent);
  * error indications.
  */
 struct rw_ops {
+  /* Debug string. */
+  const char *ops_name;
+
   /* Close the connection and free up associated resources. */
   void (*close) (struct rw *rw);
 
@@ -209,6 +212,7 @@ extern int progress_fd;
 extern unsigned sparse_size;
 extern bool synchronous;
 extern unsigned threads;
+extern bool verbose;
 
 extern void progress_bar (off_t pos, int64_t size);
 extern void synch_copying (void);

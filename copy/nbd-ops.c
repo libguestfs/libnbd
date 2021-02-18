@@ -326,6 +326,7 @@ nbd_ops_get_extents (struct rw *rw, uintptr_t index,
 }
 
 struct rw_ops nbd_ops = {
+  .ops_name = "nbd_ops",
   .close = nbd_ops_close,
   .flush = nbd_ops_flush,
   .synch_read = nbd_ops_synch_read,

@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <getopt.h>
 #include <limits.h>
@@ -53,6 +54,7 @@ unsigned sparse_size = 4096;    /* --sparse */
 bool synchronous;               /* --synchronous flag */
 unsigned threads;               /* --threads */
 struct rw src, dst;             /* The source and destination. */
+bool verbose;                   /* --verbose flag */
 
 static bool is_nbd_uri (const char *s);
 static bool seek_hole_supported (int fd);
@@ -64,6 +66,7 @@ static void open_nbd_uri (const char *prog,
 static void open_nbd_subprocess (const char *prog,
                                  const char **argv, size_t argc,
                                  bool writing, struct rw *rw);
+static void print_rw (struct rw *rw, const char *prefix, FILE *fp);
 
 static void __attribute__((noreturn))
 usage (FILE *fp, int exitcode)
@@ -96,7 +99,7 @@ main (int argc, char *argv[])
     NO_EXTENTS_OPTION,
     SYNCHRONOUS_OPTION,
   };
-  const char *short_options = "C:pR:S:T:V";
+  const char *short_options = "C:pR:S:T:vV";
   const struct option long_options[] = {
     { "help",               no_argument,       NULL, HELP_OPTION },
     { "long-options",       no_argument,       NULL, LONG_OPTIONS },
@@ -112,6 +115,7 @@ main (int argc, char *argv[])
     { "synchronous",        no_argument,       NULL, SYNCHRONOUS_OPTION },
     { "target-is-zero",     no_argument,       NULL, DESTINATION_IS_ZERO_OPTION },
     { "threads",            required_argument, NULL, 'T' },
+    { "verbose",            no_argument,       NULL, 'v' },
     { "version",            no_argument,       NULL, 'V' },
     { NULL }
   };
@@ -209,6 +213,10 @@ main (int argc, char *argv[])
                  argv[0], optarg);
         exit (EXIT_FAILURE);
       }
+      break;
+
+    case 'v':
+      verbose = true;
       break;
 
     case 'V':
@@ -368,6 +376,19 @@ main (int argc, char *argv[])
     fprintf (stderr,
              "nbdcopy: error: destination size is smaller than source size\n");
     exit (EXIT_FAILURE);
+  }
+
+  /* Since we have constructed the final src and dst structures here,
+   * print them out in verbose mode, and also various useful internal
+   * settings.
+   */
+  if (verbose) {
+    print_rw (&src, "nbdcopy: src", stderr);
+    print_rw (&dst, "nbdcopy: dst", stderr);
+    fprintf (stderr, "nbdcopy: connections=%u requests=%u threads=%u "
+             "synchronous=%s\n",
+             connections, max_requests, threads,
+             synchronous ? "true" : "false");
   }
 
   /* If #connections > 1 then multi-conn is enabled at both ends and
@@ -546,6 +567,7 @@ open_nbd_uri (const char *prog,
     fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+  nbd_set_debug (nbd, verbose);
   nbd_set_uri_allow_local_file (nbd, true); /* Allow ?tls-psk-file. */
   if (extents && !writing &&
       nbd_add_meta_context (nbd, "base:allocation") == -1) {
@@ -587,6 +609,7 @@ open_nbd_subprocess (const char *prog,
     fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+  nbd_set_debug (nbd, verbose);
   if (extents && !writing &&
       nbd_add_meta_context (nbd, "base:allocation") == -1) {
     fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());
@@ -619,6 +642,15 @@ open_nbd_subprocess (const char *prog,
   rw->u.nbd.can_zero = nbd_can_zero (nbd) > 0;
 
   free (copy.ptr);
+}
+
+/* Print an rw struct, used in --verbose mode. */
+static void
+print_rw (struct rw *rw, const char *prefix, FILE *fp)
+{
+  fprintf (fp, "%s: %s \"%s\"\n", prefix, rw->ops->ops_name, rw->name);
+  fprintf (fp, "%s: size=%" PRIi64 "\n", prefix, rw->size);
+  /* Could print other stuff here, but that's enough for debugging. */
 }
 
 /* Default implementation of rw->ops->get_extents for backends which

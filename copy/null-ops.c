@@ -127,6 +127,7 @@ null_get_extents (struct rw *rw, uintptr_t index,
 }
 
 struct rw_ops null_ops = {
+  .ops_name = "null_ops",
   .close = null_close,
   .flush = null_flush,
   .synch_read = null_synch_read,

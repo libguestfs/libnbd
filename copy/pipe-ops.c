@@ -110,6 +110,8 @@ pipe_in_flight (struct rw *rw, uintptr_t index)
 }
 
 struct rw_ops pipe_ops = {
+  .ops_name = "pipe_ops",
+
   .close = pipe_close,
   .flush = pipe_flush,
 
