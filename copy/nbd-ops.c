@@ -190,8 +190,14 @@ add_extent (void *vp, const char *metacontext,
 
     e.offset = offset;
     e.length = entries[i];
-    /* Note we deliberately don't care about the ZERO flag. */
-    e.hole = (entries[i+1] & LIBNBD_STATE_HOLE) != 0;
+
+    /*
+     * Note we deliberately don't care about the HOLE flag. There is no need to
+     * read extent that reads as zeroes. We will convert to it to a hole or
+     * allocated extents based on the command line arguments.
+     */
+    e.zero = (entries[i+1] & LIBNBD_STATE_ZERO) != 0;
+
     if (extent_list_append (ret, e) == -1) {
       perror ("realloc");
       exit (EXIT_FAILURE);

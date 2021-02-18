@@ -667,7 +667,7 @@ default_get_extents (struct rw *rw, uintptr_t index,
 
   e.offset = offset;
   e.length = count;
-  e.hole = false;
+  e.zero = false;
   if (extent_list_append (ret, e) == -1) {
     perror ("realloc");
     exit (EXIT_FAILURE);

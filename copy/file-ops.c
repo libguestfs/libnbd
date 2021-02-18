@@ -250,7 +250,7 @@ file_get_extents (struct rw *rw, uintptr_t index,
       if (pos > offset) {
         e.offset = offset;
         e.length = pos - offset;
-        e.hole = true;
+        e.zero = true;
         if (extent_list_append (ret, e) == -1) {
           perror ("realloc");
           exit (EXIT_FAILURE);
@@ -271,7 +271,7 @@ file_get_extents (struct rw *rw, uintptr_t index,
       if (pos > offset) {
         e.offset = offset;
         e.length = pos - offset;
-        e.hole = false;
+        e.zero = false;
         if (extent_list_append (ret, e) == -1) {
           perror ("realloc");
           exit (EXIT_FAILURE);

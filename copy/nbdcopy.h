@@ -100,7 +100,7 @@ struct command {
 struct extent {
   uint64_t offset;
   uint64_t length;
-  bool hole;
+  bool zero;
 };
 DEFINE_VECTOR_TYPE(extent_list, struct extent);
 

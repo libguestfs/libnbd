@@ -68,7 +68,7 @@ synch_copying (void)
       for (i = 0; i < exts.size; ++i) {
         assert (exts.ptr[i].length <= count);
 
-        if (exts.ptr[i].hole) {
+        if (exts.ptr[i].zero) {
           if (!dst.ops->synch_trim (&dst, offset, exts.ptr[i].length) &&
               !dst.ops->synch_zero (&dst, offset, exts.ptr[i].length)) {
             /* If neither trimming nor efficient zeroing are possible,

@@ -157,8 +157,8 @@ worker_thread (void *indexp)
       char *data;
       size_t len;
 
-      if (exts.ptr[i].hole) {
-        /* The source is a hole so we can proceed directly to
+      if (exts.ptr[i].zero) {
+        /* The source is zero so we can proceed directly to
          * skipping, trimming or writing zeroes at the destination.
          */
         command = calloc (1, sizeof *command);
