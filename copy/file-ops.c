@@ -36,35 +36,159 @@
 #include "isaligned.h"
 #include "nbdcopy.h"
 
+static struct rw_ops file_ops;
+
+struct rw_file {
+  struct rw rw;
+  int fd;
+  struct stat stat;
+  bool seek_hole_supported;
+  int sector_size;
+};
+
+static bool
+seek_hole_supported (int fd)
+{
+#ifndef SEEK_HOLE
+  return false;
+#else
+  off_t r = lseek (fd, 0, SEEK_HOLE);
+  return r >= 0;
+#endif
+}
+
+struct rw *
+file_create (const char *name, const struct stat *stat, int fd)
+{
+  struct rw_file *rwf = calloc (1, sizeof *rwf);
+  if (rwf == NULL) { perror ("calloc"); exit (EXIT_FAILURE); }
+
+  rwf->rw.ops = &file_ops;
+  rwf->rw.name = name;
+  rwf->stat = *stat;
+  rwf->fd = fd;
+
+  if (S_ISBLK (stat->st_mode)) {
+    /* Block device. */
+    rwf->rw.size = lseek (fd, 0, SEEK_END);
+    if (rwf->rw.size == -1) {
+      perror ("lseek");
+      exit (EXIT_FAILURE);
+    }
+    if (lseek (fd, 0, SEEK_SET) == -1) {
+      perror ("lseek");
+      exit (EXIT_FAILURE);
+    }
+    rwf->seek_hole_supported = seek_hole_supported (fd);
+    rwf->sector_size = 4096;
+#ifdef BLKSSZGET
+    if (ioctl (fd, BLKSSZGET, &rwf->sector_size))
+      fprintf (stderr, "warning: cannot get sector size: %s: %m", name);
+#endif
+  }
+  else if (S_ISREG (stat->st_mode)) {
+    /* Regular file. */
+    rwf->rw.size = stat->st_size;
+    rwf->seek_hole_supported = seek_hole_supported (fd);
+  }
+  else
+    abort ();
+
+  return &rwf->rw;
+}
+
 static void
 file_close (struct rw *rw)
 {
-  if (close (rw->u.local.fd) == -1) {
+  struct rw_file *rwf = (struct rw_file *)rw;
+
+  if (close (rwf->fd) == -1) {
     fprintf (stderr, "%s: close: %m\n", rw->name);
     exit (EXIT_FAILURE);
   }
+  free (rw);
+}
+
+static void
+file_truncate (struct rw *rw, int64_t size)
+{
+  struct rw_file *rwf = (struct rw_file *) rw;
+
+  /* If the destination is an ordinary file then the original file
+   * size doesn't matter.  Truncate it to the source size.  But
+   * truncate it to zero first so the file is completely empty and
+   * sparse.
+   */
+  if (! S_ISREG (rwf->stat.st_mode))
+    return;
+
+  if (ftruncate (rwf->fd, 0) == -1 ||
+      ftruncate (rwf->fd, size) == -1) {
+    perror ("truncate");
+    exit (EXIT_FAILURE);
+  }
+  rwf->rw.size = size;
+
+  /* We can assume the destination is zero. */
+  destination_is_zero = true;
 }
 
 static void
 file_flush (struct rw *rw)
 {
-  if ((S_ISREG (rw->u.local.stat.st_mode) ||
-       S_ISBLK (rw->u.local.stat.st_mode)) &&
-      fsync (rw->u.local.fd) == -1) {
+  struct rw_file *rwf = (struct rw_file *)rw;
+
+  if ((S_ISREG (rwf->stat.st_mode) ||
+       S_ISBLK (rwf->stat.st_mode)) &&
+      fsync (rwf->fd) == -1) {
     perror (rw->name);
     exit (EXIT_FAILURE);
   }
+}
+
+static bool
+file_is_read_only (struct rw *rw)
+{
+  /* Permissions are hard, and this is only used as an early check
+   * before the copy.  Proceed with the copy and fail if it fails.
+   */
+  return false;
+}
+
+static bool
+file_can_extents (struct rw *rw)
+{
+#ifdef SEEK_HOLE
+  return true;
+#else
+  return false;
+#endif
+}
+
+static bool
+file_can_multi_conn (struct rw *rw)
+{
+  return true;
+}
+
+static void
+file_start_multi_conn (struct rw *rw)
+{
+  /* Don't need to do anything for files since we can read/write on a
+   * single file descriptor.
+   */
 }
 
 static size_t
 file_synch_read (struct rw *rw,
                  void *data, size_t len, uint64_t offset)
 {
+  struct rw_file *rwf = (struct rw_file *)rw;
   size_t n = 0;
   ssize_t r;
 
   while (len > 0) {
-    r = pread (rw->u.local.fd, data, len, offset);
+    r = pread (rwf->fd, data, len, offset);
     if (r == -1) {
       perror (rw->name);
       exit (EXIT_FAILURE);
@@ -85,10 +209,11 @@ static void
 file_synch_write (struct rw *rw,
                   const void *data, size_t len, uint64_t offset)
 {
+  struct rw_file *rwf = (struct rw_file *)rw;
   ssize_t r;
 
   while (len > 0) {
-    r = pwrite (rw->u.local.fd, data, len, offset);
+    r = pwrite (rwf->fd, data, len, offset);
     if (r == -1) {
       perror (rw->name);
       exit (EXIT_FAILURE);
@@ -103,7 +228,8 @@ static bool
 file_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
 {
 #ifdef FALLOC_FL_PUNCH_HOLE
-  int fd = rw->u.local.fd;
+  struct rw_file *rwf = (struct rw_file *)rw;
+  int fd = rwf->fd;
   int r;
 
   r = fallocate (fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
@@ -121,9 +247,11 @@ file_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
 static bool
 file_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
 {
-  if (S_ISREG (rw->u.local.stat.st_mode)) {
+  struct rw_file *rwf = (struct rw_file *)rw;
+
+  if (S_ISREG (rwf->stat.st_mode)) {
 #ifdef FALLOC_FL_ZERO_RANGE
-    int fd = rw->u.local.fd;
+    int fd = rwf->fd;
     int r;
 
     r = fallocate (fd, FALLOC_FL_ZERO_RANGE, offset, count);
@@ -134,10 +262,10 @@ file_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
     return true;
 #endif
   }
-  else if (S_ISBLK (rw->u.local.stat.st_mode) &&
-           IS_ALIGNED (offset | count, rw->u.local.sector_size)) {
+  else if (S_ISBLK (rwf->stat.st_mode) &&
+           IS_ALIGNED (offset | count, rwf->sector_size)) {
 #ifdef BLKZEROOUT
-    int fd = rw->u.local.fd;
+    int fd = rwf->fd;
     int r;
     uint64_t range[2] = {offset, count};
 
@@ -223,11 +351,12 @@ file_get_extents (struct rw *rw, uintptr_t index,
   ret->size = 0;
 
 #ifdef SEEK_HOLE
+  struct rw_file *rwf = (struct rw_file *)rw;
   static pthread_mutex_t lseek_lock = PTHREAD_MUTEX_INITIALIZER;
 
-  if (rw->u.local.seek_hole_supported) {
+  if (rwf->seek_hole_supported) {
     uint64_t end = offset + count;
-    int fd = rw->u.local.fd;
+    int fd = rwf->fd;
     off_t pos;
     struct extent e;
     size_t last;
@@ -302,9 +431,14 @@ file_get_extents (struct rw *rw, uintptr_t index,
   default_get_extents (rw, index, offset, count, ret);
 }
 
-struct rw_ops file_ops = {
+static struct rw_ops file_ops = {
   .ops_name = "file_ops",
   .close = file_close,
+  .is_read_only = file_is_read_only,
+  .can_extents = file_can_extents,
+  .can_multi_conn = file_can_multi_conn,
+  .start_multi_conn = file_start_multi_conn,
+  .truncate = file_truncate,
   .flush = file_flush,
   .synch_read = file_synch_read,
   .synch_write = file_synch_write,

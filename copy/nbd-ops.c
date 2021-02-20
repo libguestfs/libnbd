@@ -27,45 +27,221 @@
 
 #include "nbdcopy.h"
 
+static struct rw_ops nbd_ops;
+
+DEFINE_VECTOR_TYPE (handles, struct nbd_handle *)
+DEFINE_VECTOR_TYPE (const_string_vector, const char *);
+
+struct rw_nbd {
+  struct rw rw;
+
+  /* Because of multi-conn we have to remember enough state in this
+   * handle in order to be able to open another connection with the
+   * same parameters after nbd_rw_create* has been called once.
+   */
+  enum { CREATE_URI, CREATE_SUBPROCESS } create_t;
+  const char *uri;              /* For CREATE_URI */
+  const_string_vector argv;     /* For CREATE_SUBPROCESS */
+  bool writing;
+
+  handles handles;              /* One handle per connection. */
+  bool can_trim, can_zero;      /* Cached nbd_can_trim, nbd_can_zero. */
+};
+
+static void
+open_one_nbd_handle (struct rw_nbd *rwn)
+{
+  struct nbd_handle *nbd;
+
+  nbd = nbd_create ();
+  if (nbd == NULL) {
+    fprintf (stderr, "%s: %s\n", "nbdcopy", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  nbd_set_debug (nbd, verbose);
+
+  if (extents && !rwn->writing &&
+      nbd_add_meta_context (nbd, "base:allocation") == -1) {
+    fprintf (stderr, "%s: %s\n", "nbdcopy", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  switch (rwn->create_t) {
+  case CREATE_URI:
+    nbd_set_uri_allow_local_file (nbd, true); /* Allow ?tls-psk-file. */
+
+    if (nbd_connect_uri (nbd, rwn->uri) == -1) {
+      fprintf (stderr, "%s: %s: %s\n", "nbdcopy", rwn->uri, nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    break;
+
+  case CREATE_SUBPROCESS:
+    if (nbd_connect_systemd_socket_activation (nbd,
+                                               (char **) rwn->argv.ptr)
+        == -1) {
+      fprintf (stderr, "%s: %s: %s\n", "nbdcopy", rwn->argv.ptr[0],
+               nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+  }
+
+  /* Cache these.  We assume with multi-conn that each handle will act
+   * the same way.
+   */
+  if (rwn->handles.size == 0) {
+    rwn->can_trim = nbd_can_trim (nbd) > 0;
+    rwn->can_zero = nbd_can_zero (nbd) > 0;
+    rwn->rw.size = nbd_get_size (nbd);
+    if (rwn->rw.size == -1) {
+      fprintf (stderr, "%s: %s: %s\n", "nbdcopy", rwn->rw.name,
+               nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+  }
+
+  if (handles_append (&rwn->handles, nbd) == -1) {
+    perror ("realloc");
+    exit (EXIT_FAILURE);
+  }
+}
+
+struct rw *
+nbd_rw_create_uri (const char *name, const char *uri, bool writing)
+{
+  struct rw_nbd *rwn = calloc (1, sizeof *rwn);
+  if (rwn == NULL) { perror ("calloc"); exit (EXIT_FAILURE); }
+
+  rwn->rw.ops = &nbd_ops;
+  rwn->rw.name = name;
+  rwn->create_t = CREATE_URI;
+  rwn->uri = uri;
+  rwn->writing = writing;
+
+  open_one_nbd_handle (rwn);
+
+  return &rwn->rw;
+}
+
+struct rw *
+nbd_rw_create_subprocess (const char **argv, size_t argc, bool writing)
+{
+  size_t i;
+  struct rw_nbd *rwn = calloc (1, sizeof *rwn);
+  if (rwn == NULL) { perror ("calloc"); exit (EXIT_FAILURE); }
+
+  rwn->rw.ops = &nbd_ops;
+  rwn->rw.name = argv[0];
+  rwn->create_t = CREATE_SUBPROCESS;
+  rwn->writing = writing;
+
+  /* We have to copy the args so we can null-terminate them. */
+  for (i = 0; i < argc; ++i) {
+    if (const_string_vector_append (&rwn->argv, argv[i]) == -1) {
+    memory_error:
+      perror ("realloc");
+      exit (EXIT_FAILURE);
+    }
+  }
+  if (const_string_vector_append (&rwn->argv, NULL) == -1)
+    goto memory_error;
+
+  open_one_nbd_handle (rwn);
+
+  return &rwn->rw;
+}
+
 static void
 nbd_ops_close (struct rw *rw)
 {
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
   size_t i;
 
-  for (i = 0; i < rw->u.nbd.handles.size; ++i) {
-    if (nbd_shutdown (rw->u.nbd.handles.ptr[i], 0) == -1) {
+  for (i = 0; i < rwn->handles.size; ++i) {
+    if (nbd_shutdown (rwn->handles.ptr[i], 0) == -1) {
       fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
-    nbd_close (rw->u.nbd.handles.ptr[i]);
+    nbd_close (rwn->handles.ptr[i]);
   }
 
-  handles_reset (&rw->u.nbd.handles);
+  handles_reset (&rwn->handles);
+  const_string_vector_reset (&rwn->argv);
+  free (rw);
 }
 
 static void
 nbd_ops_flush (struct rw *rw)
 {
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
   size_t i;
 
-  for (i = 0; i < rw->u.nbd.handles.size; ++i) {
-    if (nbd_flush (rw->u.nbd.handles.ptr[i], 0) == -1) {
+  for (i = 0; i < rwn->handles.size; ++i) {
+    if (nbd_flush (rwn->handles.ptr[i], 0) == -1) {
       fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
   }
+}
+
+static bool
+nbd_ops_is_read_only (struct rw *rw)
+{
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+
+  if (rwn->handles.size > 0)
+    return nbd_is_read_only (rwn->handles.ptr[0]);
+  else
+    return false;
+}
+
+static bool
+nbd_ops_can_extents (struct rw *rw)
+{
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+
+  if (rwn->handles.size > 0)
+    return nbd_can_meta_context (rwn->handles.ptr[0], "base:allocation");
+  else
+    return false;
+}
+
+static bool
+nbd_ops_can_multi_conn (struct rw *rw)
+{
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+
+  if (rwn->handles.size > 0)
+    return nbd_can_multi_conn (rwn->handles.ptr[0]);
+  else
+    return false;
+}
+
+static void
+nbd_ops_start_multi_conn (struct rw *rw)
+{
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+  size_t i;
+
+  for (i = 1; i < connections; ++i)
+    open_one_nbd_handle (rwn);
+
+  assert (rwn->handles.size == connections);
 }
 
 static size_t
 nbd_ops_synch_read (struct rw *rw,
                 void *data, size_t len, uint64_t offset)
 {
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+
   if (len > rw->size - offset)
     len = rw->size - offset;
   if (len == 0)
     return 0;
 
-  if (nbd_pread (rw->u.nbd.handles.ptr[0], data, len, offset, 0) == -1) {
+  if (nbd_pread (rwn->handles.ptr[0], data, len, offset, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -77,7 +253,9 @@ static void
 nbd_ops_synch_write (struct rw *rw,
                  const void *data, size_t len, uint64_t offset)
 {
-  if (nbd_pwrite (rw->u.nbd.handles.ptr[0], data, len, offset, 0) == -1) {
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+
+  if (nbd_pwrite (rwn->handles.ptr[0], data, len, offset, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -86,10 +264,12 @@ nbd_ops_synch_write (struct rw *rw,
 static bool
 nbd_ops_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
 {
-  if (!rw->u.nbd.can_trim)
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+
+  if (!rwn->can_trim)
     return false;
 
-  if (nbd_trim (rw->u.nbd.handles.ptr[0], count, offset, 0) == -1) {
+  if (nbd_trim (rwn->handles.ptr[0], count, offset, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -99,10 +279,12 @@ nbd_ops_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
 static bool
 nbd_ops_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
 {
-  if (!rw->u.nbd.can_zero)
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+
+  if (!rwn->can_zero)
     return false;
 
-  if (nbd_zero (rw->u.nbd.handles.ptr[0],
+  if (nbd_zero (rwn->handles.ptr[0],
                 count, offset, LIBNBD_CMD_FLAG_NO_HOLE) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -115,7 +297,9 @@ nbd_ops_asynch_read (struct rw *rw,
                      struct command *command,
                      nbd_completion_callback cb)
 {
-  if (nbd_aio_pread (rw->u.nbd.handles.ptr[command->index],
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+
+  if (nbd_aio_pread (rwn->handles.ptr[command->index],
                      slice_ptr (command->slice),
                      command->slice.len, command->offset,
                      cb, 0) == -1) {
@@ -129,7 +313,9 @@ nbd_ops_asynch_write (struct rw *rw,
                       struct command *command,
                       nbd_completion_callback cb)
 {
-  if (nbd_aio_pwrite (rw->u.nbd.handles.ptr[command->index],
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+
+  if (nbd_aio_pwrite (rwn->handles.ptr[command->index],
                       slice_ptr (command->slice),
                       command->slice.len, command->offset,
                       cb, 0) == -1) {
@@ -142,12 +328,14 @@ static bool
 nbd_ops_asynch_trim (struct rw *rw, struct command *command,
                      nbd_completion_callback cb)
 {
-  if (!rw->u.nbd.can_trim)
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+
+  if (!rwn->can_trim)
     return false;
 
   assert (command->slice.len <= UINT32_MAX);
 
-  if (nbd_aio_trim (rw->u.nbd.handles.ptr[command->index],
+  if (nbd_aio_trim (rwn->handles.ptr[command->index],
                     command->slice.len, command->offset,
                     cb, 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
@@ -160,12 +348,14 @@ static bool
 nbd_ops_asynch_zero (struct rw *rw, struct command *command,
                      nbd_completion_callback cb)
 {
-  if (!rw->u.nbd.can_zero)
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+
+  if (!rwn->can_zero)
     return false;
 
   assert (command->slice.len <= UINT32_MAX);
 
-  if (nbd_aio_zero (rw->u.nbd.handles.ptr[command->index],
+  if (nbd_aio_zero (rwn->handles.ptr[command->index],
                     command->slice.len, command->offset,
                     cb, LIBNBD_CMD_FLAG_NO_HOLE) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
@@ -212,19 +402,22 @@ add_extent (void *vp, const char *metacontext,
 static unsigned
 nbd_ops_in_flight (struct rw *rw, uintptr_t index)
 {
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+
   /* Since the commands are auto-retired in the callbacks we don't
    * need to count "done" commands.
    */
-  return nbd_aio_in_flight (rw->u.nbd.handles.ptr[index]);
+  return nbd_aio_in_flight (rwn->handles.ptr[index]);
 }
 
 static void
 nbd_ops_get_polling_fd (struct rw *rw, uintptr_t index,
                         int *fd, int *direction)
 {
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
   struct nbd_handle *nbd;
 
-  nbd = rw->u.nbd.handles.ptr[index];
+  nbd = rwn->handles.ptr[index];
 
   *fd = nbd_aio_get_fd (nbd);
   if (*fd == -1) {
@@ -240,7 +433,8 @@ nbd_ops_get_polling_fd (struct rw *rw, uintptr_t index,
 static void
 nbd_ops_asynch_notify_read (struct rw *rw, uintptr_t index)
 {
-  if (nbd_aio_notify_read (rw->u.nbd.handles.ptr[index]) == -1) {
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+  if (nbd_aio_notify_read (rwn->handles.ptr[index]) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -249,7 +443,8 @@ nbd_ops_asynch_notify_read (struct rw *rw, uintptr_t index)
 static void
 nbd_ops_asynch_notify_write (struct rw *rw, uintptr_t index)
 {
-  if (nbd_aio_notify_write (rw->u.nbd.handles.ptr[index]) == -1) {
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
+  if (nbd_aio_notify_write (rwn->handles.ptr[index]) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -266,10 +461,11 @@ nbd_ops_get_extents (struct rw *rw, uintptr_t index,
                      uint64_t offset, uint64_t count,
                      extent_list *ret)
 {
+  struct rw_nbd *rwn = (struct rw_nbd *) rw;
   extent_list exts = empty_vector;
   struct nbd_handle *nbd;
 
-  nbd = rw->u.nbd.handles.ptr[index];
+  nbd = rwn->handles.ptr[index];
 
   ret->size = 0;
 
@@ -331,9 +527,13 @@ nbd_ops_get_extents (struct rw *rw, uintptr_t index,
   free (exts.ptr);
 }
 
-struct rw_ops nbd_ops = {
+static struct rw_ops nbd_ops = {
   .ops_name = "nbd_ops",
   .close = nbd_ops_close,
+  .is_read_only = nbd_ops_is_read_only,
+  .can_extents = nbd_ops_can_extents,
+  .can_multi_conn = nbd_ops_can_multi_conn,
+  .start_multi_conn = nbd_ops_start_multi_conn,
   .flush = nbd_ops_flush,
   .synch_read = nbd_ops_synch_read,
   .synch_write = nbd_ops_synch_write,

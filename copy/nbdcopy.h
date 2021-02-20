@@ -36,8 +36,6 @@
  */
 #define THREAD_WORK_SIZE (128 * 1024 * 1024)
 
-DEFINE_VECTOR_TYPE (handles, struct nbd_handle *)
-
 /* Abstracts the input (src) and output (dst) parameters on the
  * command line.
  */
@@ -45,21 +43,20 @@ struct rw {
   struct rw_ops *ops;           /* Operations. */
   const char *name;             /* Printable name, for error messages etc. */
   int64_t size;                 /* May be -1 for streams. */
-  union {
-    struct {                    /* For files and pipes. */
-      int fd;
-      struct stat stat;
-      bool seek_hole_supported;
-      int sector_size;
-    } local;
-    struct {
-      handles handles;          /* For NBD, one handle per connection. */
-      bool can_trim, can_zero;  /* Cached nbd_can_trim, nbd_can_zero. */
-    } nbd;
-  } u;
+  /* Followed by private data for the particular subtype. */
 };
 
-extern struct rw src, dst;
+extern struct rw *src, *dst;
+
+/* Create subtypes. */
+extern struct rw *file_create (const char *name,
+                               const struct stat *stat, int fd);
+extern struct rw *nbd_rw_create_uri (const char *name,
+                                     const char *uri, bool writing);
+extern struct rw *nbd_rw_create_subprocess (const char **argv, size_t argc,
+                                            bool writing);
+extern struct rw *null_create (const char *name);
+extern struct rw *pipe_create (const char *name, int fd);
 
 /* Underlying data buffers. */
 struct buffer {
@@ -116,6 +113,28 @@ struct rw_ops {
 
   /* Close the connection and free up associated resources. */
   void (*close) (struct rw *rw);
+
+  /* Return true if this is a read-only connection. */
+  bool (*is_read_only) (struct rw *rw);
+
+  /* For source only, does it support reading extents? */
+  bool (*can_extents) (struct rw *rw);
+
+  /* Return true if the connection can do multi-conn.  This is true
+   * for files, false for streams, and passed through for NBD.
+   */
+  bool (*can_multi_conn) (struct rw *rw);
+
+  /* For multi-conn capable backends, before copying we must call this
+   * to begin multi-conn.  For NBD this means opening the additional
+   * connections.
+   */
+  void (*start_multi_conn) (struct rw *rw);
+
+  /* Truncate, only called on output files.  This callback can be NULL
+   * for types that don't support this.
+   */
+  void (*truncate) (struct rw *rw, int64_t size);
 
   /* Flush pending writes to permanent storage. */
   void (*flush) (struct rw *rw);
@@ -188,10 +207,6 @@ struct rw_ops {
                        uint64_t offset, uint64_t count,
                        extent_list *ret);
 };
-extern struct rw_ops file_ops;
-extern struct rw_ops nbd_ops;
-extern struct rw_ops pipe_ops;
-extern struct rw_ops null_ops;
 
 extern void default_get_extents (struct rw *rw, uintptr_t index,
                                  uint64_t offset, uint64_t count,

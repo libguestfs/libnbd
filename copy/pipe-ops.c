@@ -26,10 +26,33 @@
 
 #include "nbdcopy.h"
 
+static struct rw_ops pipe_ops;
+
+struct rw_pipe {
+  struct rw rw;
+  int fd;
+};
+
+struct rw *
+pipe_create (const char *name, int fd)
+{
+  struct rw_pipe *rwp = calloc (1, sizeof *rwp);
+  if (rwp == NULL) { perror ("calloc"); exit (EXIT_FAILURE); }
+
+  /* Set size == -1 which means don't know. */
+  rwp->rw.ops = &pipe_ops;
+  rwp->rw.name = name;
+  rwp->rw.size = -1;
+  rwp->fd = fd;
+  return &rwp->rw;
+}
+
 static void
 pipe_close (struct rw *rw)
 {
-  if (close (rw->u.local.fd) == -1) {
+  struct rw_pipe *rwp = (struct rw_pipe *) rw;
+
+  if (close (rwp->fd) == -1) {
     fprintf (stderr, "%s: close: %m\n", rw->name);
     exit (EXIT_FAILURE);
   }
@@ -43,13 +66,39 @@ pipe_flush (struct rw *rw)
    */
 }
 
+static bool
+pipe_is_read_only (struct rw *rw)
+{
+  return false;
+}
+
+static bool
+pipe_can_extents (struct rw *rw)
+{
+  return false;
+}
+
+static bool
+pipe_can_multi_conn (struct rw *rw)
+{
+  return false;
+}
+
+static void
+pipe_start_multi_conn (struct rw *rw)
+{
+  /* Should never be called. */
+  abort ();
+}
+
 static size_t
 pipe_synch_read (struct rw *rw,
                  void *data, size_t len, uint64_t offset)
 {
+  struct rw_pipe *rwp = (struct rw_pipe *) rw;
   ssize_t r;
 
-  r = read (rw->u.local.fd, data, len);
+  r = read (rwp->fd, data, len);
   if (r == -1) {
     perror (rw->name);
     exit (EXIT_FAILURE);
@@ -61,10 +110,11 @@ static void
 pipe_synch_write (struct rw *rw,
                   const void *data, size_t len, uint64_t offset)
 {
+  struct rw_pipe *rwp = (struct rw_pipe *) rw;
   ssize_t r;
 
   while (len > 0) {
-    r = write (rw->u.local.fd, data, len);
+    r = write (rwp->fd, data, len);
     if (r == -1) {
       perror (rw->name);
       exit (EXIT_FAILURE);
@@ -109,10 +159,16 @@ pipe_in_flight (struct rw *rw, uintptr_t index)
   return 0;
 }
 
-struct rw_ops pipe_ops = {
+static struct rw_ops pipe_ops = {
   .ops_name = "pipe_ops",
 
   .close = pipe_close,
+
+  .is_read_only = pipe_is_read_only,
+  .can_extents = pipe_can_extents,
+  .can_multi_conn = pipe_can_multi_conn,
+  .start_multi_conn = pipe_start_multi_conn,
+
   .flush = pipe_flush,
 
   .synch_read = pipe_synch_read,

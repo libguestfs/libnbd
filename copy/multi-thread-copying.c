@@ -50,13 +50,13 @@ get_next_offset (uint64_t *offset, uint64_t *count)
   bool r = false;               /* returning false means no more work */
 
   pthread_mutex_lock (&lock);
-  if (next_offset < src.size) {
+  if (next_offset < src->size) {
     *offset = next_offset;
 
     /* Work out how large this range is.  The last range may be
      * smaller than THREAD_WORK_SIZE.
      */
-    *count = src.size - *offset;
+    *count = src->size - *offset;
     if (*count > THREAD_WORK_SIZE)
       *count = THREAD_WORK_SIZE;
 
@@ -69,7 +69,7 @@ get_next_offset (uint64_t *offset, uint64_t *count)
      * are called from threads and not necessarily in monotonic order
      * so the progress bar would move erratically.
      */
-    progress_bar (*offset, dst.size);
+    progress_bar (*offset, dst->size);
   }
   pthread_mutex_unlock (&lock);
   return r;
@@ -89,11 +89,13 @@ multi_thread_copying (void)
    */
   assert (threads > 0);
   assert (threads == connections);
+/*
   if (src.ops == &nbd_ops)
     assert (src.u.nbd.handles.size == connections);
   if (dst.ops == &nbd_ops)
     assert (dst.u.nbd.handles.size == connections);
-  assert (src.size != -1);
+*/
+  assert (src->size != -1);
 
   workers = malloc (sizeof (pthread_t) * threads);
   if (workers == NULL) {
@@ -147,9 +149,9 @@ worker_thread (void *indexp)
 
     assert (0 < count && count <= THREAD_WORK_SIZE);
     if (extents)
-      src.ops->get_extents (&src, index, offset, count, &exts);
+      src->ops->get_extents (src, index, offset, count, &exts);
     else
-      default_get_extents (&src, index, offset, count, &exts);
+      default_get_extents (src, index, offset, count, &exts);
 
     for (i = 0; i < exts.size; ++i) {
       struct command *command;
@@ -208,11 +210,11 @@ worker_thread (void *indexp)
           wait_for_request_slots (index);
 
           /* Begin the asynch read operation. */
-          src.ops->asynch_read (&src, command,
-                                (nbd_completion_callback) {
-                                  .callback = finished_read,
-                                  .user_data = command,
-                                });
+          src->ops->asynch_read (src, command,
+                                 (nbd_completion_callback) {
+                                   .callback = finished_read,
+                                   .user_data = command,
+                                 });
 
           exts.ptr[i].offset += len;
           exts.ptr[i].length -= len;
@@ -254,7 +256,7 @@ wait_for_request_slots (uintptr_t index)
 static unsigned
 in_flight (uintptr_t index)
 {
-  return src.ops->in_flight (&src, index) + dst.ops->in_flight (&dst, index);
+  return src->ops->in_flight (src, index) + dst->ops->in_flight (dst, index);
 }
 
 /* Poll (optional) NBD src and NBD dst, moving the state machine(s)
@@ -271,7 +273,7 @@ poll_both_ends (uintptr_t index)
   /* Note: if polling is not supported, this function will
    * set fd == -1 which poll ignores.
    */
-  src.ops->get_polling_fd (&src, index, &fds[0].fd, &direction);
+  src->ops->get_polling_fd (src, index, &fds[0].fd, &direction);
   if (fds[0].fd >= 0) {
     switch (direction) {
     case LIBNBD_AIO_DIRECTION_READ:
@@ -286,7 +288,7 @@ poll_both_ends (uintptr_t index)
     }
   }
 
-  dst.ops->get_polling_fd (&dst, index, &fds[1].fd, &direction);
+  dst->ops->get_polling_fd (dst, index, &fds[1].fd, &direction);
   if (fds[1].fd >= 0) {
     switch (direction) {
     case LIBNBD_AIO_DIRECTION_READ:
@@ -311,24 +313,24 @@ poll_both_ends (uintptr_t index)
 
   if (fds[0].fd >= 0) {
     if ((fds[0].revents & (POLLIN | POLLHUP)) != 0)
-      src.ops->asynch_notify_read (&src, index);
+      src->ops->asynch_notify_read (src, index);
     else if ((fds[0].revents & POLLOUT) != 0)
-      src.ops->asynch_notify_write (&src, index);
+      src->ops->asynch_notify_write (src, index);
     else if ((fds[0].revents & (POLLERR | POLLNVAL)) != 0) {
       errno = ENOTCONN;
-      perror (src.name);
+      perror (src->name);
       exit (EXIT_FAILURE);
     }
   }
 
   if (fds[1].fd >= 0) {
     if ((fds[1].revents & (POLLIN | POLLHUP)) != 0)
-      dst.ops->asynch_notify_read (&dst, index);
+      dst->ops->asynch_notify_read (dst, index);
     else if ((fds[1].revents & POLLOUT) != 0)
-      dst.ops->asynch_notify_write (&dst, index);
+      dst->ops->asynch_notify_write (dst, index);
     else if ((fds[1].revents & (POLLERR | POLLNVAL)) != 0) {
       errno = ENOTCONN;
-      perror (dst.name);
+      perror (dst->name);
       exit (EXIT_FAILURE);
     }
   }
@@ -377,11 +379,11 @@ finished_read (void *vp, int *error)
     /* If sparseness detection (see below) is turned off then we write
      * the whole command.
      */
-    dst.ops->asynch_write (&dst, command,
-                           (nbd_completion_callback) {
-                             .callback = free_command,
-                             .user_data = command,
-                           });
+    dst->ops->asynch_write (dst, command,
+                            (nbd_completion_callback) {
+                              .callback = free_command,
+                              .user_data = command,
+                            });
   }
   else {                               /* Sparseness detection. */
     const uint64_t start = command->offset;
@@ -408,11 +410,11 @@ finished_read (void *vp, int *error)
             newcommand = copy_subcommand (command,
                                           last_offset, i - last_offset,
                                           false);
-            dst.ops->asynch_write (&dst, newcommand,
-                                   (nbd_completion_callback) {
-                                     .callback = free_command,
-                                     .user_data = newcommand,
-                                   });
+            dst->ops->asynch_write (dst, newcommand,
+                                    (nbd_completion_callback) {
+                                      .callback = free_command,
+                                      .user_data = newcommand,
+                                    });
           }
           /* Start the new hole. */
           last_offset = i;
@@ -445,11 +447,11 @@ finished_read (void *vp, int *error)
         newcommand = copy_subcommand (command,
                                       last_offset, i - last_offset,
                                       false);
-        dst.ops->asynch_write (&dst, newcommand,
-                               (nbd_completion_callback) {
-                                 .callback = free_command,
-                                 .user_data = newcommand,
-                               });
+        dst->ops->asynch_write (dst, newcommand,
+                                (nbd_completion_callback) {
+                                  .callback = free_command,
+                                  .user_data = newcommand,
+                                });
       }
       else {
         newcommand = copy_subcommand (command,
@@ -462,11 +464,11 @@ finished_read (void *vp, int *error)
     /* There may be an unaligned tail, so write that. */
     if (end - i > 0) {
       newcommand = copy_subcommand (command, i, end - i, false);
-      dst.ops->asynch_write (&dst, newcommand,
-                             (nbd_completion_callback) {
-                               .callback = free_command,
-                               .user_data = newcommand,
-                             });
+      dst->ops->asynch_write (dst, newcommand,
+                              (nbd_completion_callback) {
+                                .callback = free_command,
+                                .user_data = newcommand,
+                              });
     }
 
     /* Free the original command since it has been split into
@@ -503,20 +505,20 @@ fill_dst_range_with_zeroes (struct command *command)
 
   if (!allocated) {
     /* Try trimming. */
-    if (dst.ops->asynch_trim (&dst, command,
-                              (nbd_completion_callback) {
-                                .callback = free_command,
-                                .user_data = command,
-                              }))
+    if (dst->ops->asynch_trim (dst, command,
+                               (nbd_completion_callback) {
+                                 .callback = free_command,
+                                 .user_data = command,
+                               }))
       return;
   }
 
   /* Try efficient zeroing. */
-  if (dst.ops->asynch_zero (&dst, command,
-                            (nbd_completion_callback) {
-                              .callback = free_command,
-                              .user_data = command,
-                            }))
+  if (dst->ops->asynch_zero (dst, command,
+                             (nbd_completion_callback) {
+                               .callback = free_command,
+                               .user_data = command,
+                             }))
     return;
 
   /* Fall back to loop writing zeroes.  This is going to be slow
@@ -533,7 +535,7 @@ fill_dst_range_with_zeroes (struct command *command)
     if (len > MAX_REQUEST_SIZE)
       len = MAX_REQUEST_SIZE;
 
-    dst.ops->synch_write (&dst, data, len, command->offset);
+    dst->ops->synch_write (dst, data, len, command->offset);
     command->slice.len -= len;
     command->offset += len;
   }
