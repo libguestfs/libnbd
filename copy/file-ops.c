@@ -66,6 +66,7 @@ file_create (const char *name, int fd, off_t st_size, bool is_block)
   rwf->rw.ops = &file_ops;
   rwf->rw.name = name;
   rwf->fd = fd;
+  rwf->is_block = is_block;
 
   if (is_block) {
     /* Block device - ignore size passed in. */
