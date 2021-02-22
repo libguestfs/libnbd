@@ -22,7 +22,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 
 #include <libnbd.h>
 
@@ -49,8 +48,8 @@ struct rw {
 extern struct rw *src, *dst;
 
 /* Create subtypes. */
-extern struct rw *file_create (const char *name,
-                               const struct stat *stat, int fd);
+extern struct rw *file_create (const char *name, int fd,
+                               off_t st_size, bool is_block);
 extern struct rw *nbd_rw_create_uri (const char *name,
                                      const char *uri, bool writing);
 extern struct rw *nbd_rw_create_subprocess (const char **argv, size_t argc,

@@ -455,7 +455,7 @@ open_local (const char *prog, const char *filename, bool writing)
     exit (EXIT_FAILURE);
   }
   if (S_ISBLK (stat.st_mode) || S_ISREG (stat.st_mode))
-    return file_create (filename, &stat, fd);
+    return file_create (filename, fd, stat.st_size, S_ISBLK (stat.st_mode));
   else {
     /* Probably stdin/stdout, a pipe or a socket. */
     synchronous = true;        /* Force synchronous mode for pipes. */

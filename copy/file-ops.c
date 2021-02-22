@@ -41,7 +41,7 @@ static struct rw_ops file_ops;
 struct rw_file {
   struct rw rw;
   int fd;
-  struct stat stat;
+  bool is_block;
   bool seek_hole_supported;
   int sector_size;
 };
@@ -58,18 +58,17 @@ seek_hole_supported (int fd)
 }
 
 struct rw *
-file_create (const char *name, const struct stat *stat, int fd)
+file_create (const char *name, int fd, off_t st_size, bool is_block)
 {
   struct rw_file *rwf = calloc (1, sizeof *rwf);
   if (rwf == NULL) { perror ("calloc"); exit (EXIT_FAILURE); }
 
   rwf->rw.ops = &file_ops;
   rwf->rw.name = name;
-  rwf->stat = *stat;
   rwf->fd = fd;
 
-  if (S_ISBLK (stat->st_mode)) {
-    /* Block device. */
+  if (is_block) {
+    /* Block device - ignore size passed in. */
     rwf->rw.size = lseek (fd, 0, SEEK_END);
     if (rwf->rw.size == -1) {
       perror ("lseek");
@@ -86,13 +85,11 @@ file_create (const char *name, const struct stat *stat, int fd)
       fprintf (stderr, "warning: cannot get sector size: %s: %m", name);
 #endif
   }
-  else if (S_ISREG (stat->st_mode)) {
+  else {
     /* Regular file. */
-    rwf->rw.size = stat->st_size;
+    rwf->rw.size = st_size;
     rwf->seek_hole_supported = seek_hole_supported (fd);
   }
-  else
-    abort ();
 
   return &rwf->rw;
 }
@@ -119,7 +116,7 @@ file_truncate (struct rw *rw, int64_t size)
    * truncate it to zero first so the file is completely empty and
    * sparse.
    */
-  if (! S_ISREG (rwf->stat.st_mode))
+  if (rwf->is_block)
     return;
 
   if (ftruncate (rwf->fd, 0) == -1 ||
@@ -138,9 +135,7 @@ file_flush (struct rw *rw)
 {
   struct rw_file *rwf = (struct rw_file *)rw;
 
-  if ((S_ISREG (rwf->stat.st_mode) ||
-       S_ISBLK (rwf->stat.st_mode)) &&
-      fsync (rwf->fd) == -1) {
+  if (fsync (rwf->fd) == -1) {
     perror (rw->name);
     exit (EXIT_FAILURE);
   }
@@ -249,7 +244,7 @@ file_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
 {
   struct rw_file *rwf = (struct rw_file *)rw;
 
-  if (S_ISREG (rwf->stat.st_mode)) {
+  if (! rwf->is_block) {
 #ifdef FALLOC_FL_ZERO_RANGE
     int fd = rwf->fd;
     int r;
@@ -262,8 +257,7 @@ file_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
     return true;
 #endif
   }
-  else if (S_ISBLK (rwf->stat.st_mode) &&
-           IS_ALIGNED (offset | count, rwf->sector_size)) {
+  else if (rwf->is_block && IS_ALIGNED (offset | count, rwf->sector_size)) {
 #ifdef BLKZEROOUT
     int fd = rwf->fd;
     int r;
