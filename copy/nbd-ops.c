@@ -45,7 +45,7 @@ struct rw_nbd {
   direction d;
 
   handles handles;              /* One handle per connection. */
-  bool can_trim, can_zero;      /* Cached nbd_can_trim, nbd_can_zero. */
+  bool can_zero;                /* Cached nbd_can_zero. */
 };
 
 static void
@@ -91,7 +91,6 @@ open_one_nbd_handle (struct rw_nbd *rwn)
    * the same way.
    */
   if (rwn->handles.size == 0) {
-    rwn->can_trim = nbd_can_trim (nbd) > 0;
     rwn->can_zero = nbd_can_zero (nbd) > 0;
     rwn->rw.size = nbd_get_size (nbd);
     if (rwn->rw.size == -1) {
@@ -261,30 +260,16 @@ nbd_ops_synch_write (struct rw *rw,
 }
 
 static bool
-nbd_ops_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
-{
-  struct rw_nbd *rwn = (struct rw_nbd *) rw;
-
-  if (!rwn->can_trim)
-    return false;
-
-  if (nbd_trim (rwn->handles.ptr[0], count, offset, 0) == -1) {
-    fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-  return true;
-}
-
-static bool
-nbd_ops_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
+nbd_ops_synch_zero (struct rw *rw, uint64_t offset, uint64_t count,
+                    bool allocate)
 {
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
 
   if (!rwn->can_zero)
     return false;
 
-  if (nbd_zero (rwn->handles.ptr[0],
-                count, offset, LIBNBD_CMD_FLAG_NO_HOLE) == -1) {
+  if (nbd_zero (rwn->handles.ptr[0], count, offset,
+                allocate ? LIBNBD_CMD_FLAG_NO_HOLE : 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -324,28 +309,8 @@ nbd_ops_asynch_write (struct rw *rw,
 }
 
 static bool
-nbd_ops_asynch_trim (struct rw *rw, struct command *command,
-                     nbd_completion_callback cb)
-{
-  struct rw_nbd *rwn = (struct rw_nbd *) rw;
-
-  if (!rwn->can_trim)
-    return false;
-
-  assert (command->slice.len <= UINT32_MAX);
-
-  if (nbd_aio_trim (rwn->handles.ptr[command->index],
-                    command->slice.len, command->offset,
-                    cb, 0) == -1) {
-    fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-  return true;
-}
-
-static bool
 nbd_ops_asynch_zero (struct rw *rw, struct command *command,
-                     nbd_completion_callback cb)
+                     nbd_completion_callback cb, bool allocate)
 {
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
 
@@ -356,7 +321,7 @@ nbd_ops_asynch_zero (struct rw *rw, struct command *command,
 
   if (nbd_aio_zero (rwn->handles.ptr[command->index],
                     command->slice.len, command->offset,
-                    cb, LIBNBD_CMD_FLAG_NO_HOLE) == -1) {
+                    cb, allocate ? LIBNBD_CMD_FLAG_NO_HOLE : 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -536,11 +501,9 @@ static struct rw_ops nbd_ops = {
   .flush = nbd_ops_flush,
   .synch_read = nbd_ops_synch_read,
   .synch_write = nbd_ops_synch_write,
-  .synch_trim = nbd_ops_synch_trim,
   .synch_zero = nbd_ops_synch_zero,
   .asynch_read = nbd_ops_asynch_read,
   .asynch_write = nbd_ops_asynch_write,
-  .asynch_trim = nbd_ops_asynch_trim,
   .asynch_zero = nbd_ops_asynch_zero,
   .in_flight = nbd_ops_in_flight,
   .get_polling_fd = nbd_ops_get_polling_fd,

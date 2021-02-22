@@ -69,10 +69,10 @@ synch_copying (void)
         assert (exts.ptr[i].length <= count);
 
         if (exts.ptr[i].zero) {
-          if (!dst->ops->synch_trim (dst, offset, exts.ptr[i].length) &&
-              !dst->ops->synch_zero (dst, offset, exts.ptr[i].length)) {
-            /* If neither trimming nor efficient zeroing are possible,
-             * write zeroes the hard way.
+          if (!dst->ops->synch_zero (dst, offset, exts.ptr[i].length, false) &&
+              !dst->ops->synch_zero (dst, offset, exts.ptr[i].length, true)) {
+            /* If efficient zeroing (punching a hole or allocating
+             * space) are possible, write zeroes the hard way.
              */
             memset (buf, 0, exts.ptr[i].length);
             dst->ops->synch_write (dst, buf, exts.ptr[i].length, offset);

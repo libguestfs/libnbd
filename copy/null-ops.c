@@ -26,8 +26,8 @@
 #include "nbdcopy.h"
 
 /* This sinks writes and aborts on any read-like operations.  It
- * should be faster than using /dev/null because it "supports" trim
- * and fast zeroing.
+ * should be faster than using /dev/null because it "supports" fast
+ * zeroing.
  */
 
 static struct rw_ops null_ops;
@@ -99,13 +99,7 @@ null_synch_write (struct rw *rw,
 }
 
 static bool
-null_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
-{
-  return true;
-}
-
-static bool
-null_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
+null_synch_zero (struct rw *rw, uint64_t offset, uint64_t count, bool allocate)
 {
   return true;
 }
@@ -131,20 +125,8 @@ null_asynch_write (struct rw *rw,
 }
 
 static bool
-null_asynch_trim (struct rw *rw, struct command *command,
-                  nbd_completion_callback cb)
-{
-  errno = 0;
-  if (cb.callback (cb.user_data, &errno) == -1) {
-    perror (rw->name);
-    exit (EXIT_FAILURE);
-  }
-  return true;
-}
-
-static bool
 null_asynch_zero (struct rw *rw, struct command *command,
-                  nbd_completion_callback cb)
+                  nbd_completion_callback cb, bool allocate)
 {
   errno = 0;
   if (cb.callback (cb.user_data, &errno) == -1) {
@@ -178,11 +160,9 @@ static struct rw_ops null_ops = {
   .flush = null_flush,
   .synch_read = null_synch_read,
   .synch_write = null_synch_write,
-  .synch_trim = null_synch_trim,
   .synch_zero = null_synch_zero,
   .asynch_read = null_asynch_read,
   .asynch_write = null_asynch_write,
-  .asynch_trim = null_asynch_trim,
   .asynch_zero = null_asynch_zero,
   .in_flight = null_in_flight,
   .get_polling_fd = get_polling_fd_not_supported,

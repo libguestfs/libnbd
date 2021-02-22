@@ -79,11 +79,11 @@ struct slice {
 
 /* Commands for asynchronous operations in flight.
  *
- * We don't store the command type (read/write/trim/etc) because it is
+ * We don't store the command type (read/write/zero/etc) because it is
  * implicit in the function being called and because commands
- * naturally change from read -> write/trim/etc as they progress.
+ * naturally change from read -> write/zero/etc as they progress.
  *
- * slice.buffer may be NULL for commands (like trim) that have no
+ * slice.buffer may be NULL for commands (like zero) that have no
  * associated data.
  *
  * A separate set of commands, slices and buffers is maintained per
@@ -151,11 +151,9 @@ struct rw_ops {
   void (*synch_write) (struct rw *rw,
                        const void *data, size_t len, uint64_t offset);
 
-  /* Synchronously trim.  If not possible, returns false. */
-  bool (*synch_trim) (struct rw *rw, uint64_t offset, uint64_t count);
-
   /* Synchronously zero.  If not possible, returns false. */
-  bool (*synch_zero) (struct rw *rw, uint64_t offset, uint64_t count);
+  bool (*synch_zero) (struct rw *rw, uint64_t offset, uint64_t count,
+                      bool allocate);
 
   /* Asynchronous I/O operations.  These start the operation and call
    * 'cb' on completion.
@@ -173,17 +171,11 @@ struct rw_ops {
                         struct command *command,
                         nbd_completion_callback cb);
 
-  /* Asynchronously trim.  command->slice.buffer is not used.  If not
-   * possible, returns false.
-   */
-  bool (*asynch_trim) (struct rw *rw, struct command *command,
-                       nbd_completion_callback cb);
-
   /* Asynchronously zero.  command->slice.buffer is not used.  If not possible,
    * returns false.
    */
   bool (*asynch_zero) (struct rw *rw, struct command *command,
-                       nbd_completion_callback cb);
+                       nbd_completion_callback cb, bool allocate);
 
   /* Number of asynchronous commands in flight for a particular thread. */
   unsigned (*in_flight) (struct rw *rw, uintptr_t index);

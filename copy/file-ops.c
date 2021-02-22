@@ -221,11 +221,9 @@ file_synch_write (struct rw *rw,
 }
 
 static bool
-file_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
+file_punch_hole (int fd, uint64_t offset, uint64_t count)
 {
 #ifdef FALLOC_FL_PUNCH_HOLE
-  struct rw_file *rwf = (struct rw_file *)rw;
-  int fd = rwf->fd;
   int r;
 
   r = fallocate (fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
@@ -235,42 +233,58 @@ file_synch_trim (struct rw *rw, uint64_t offset, uint64_t count)
     exit (EXIT_FAILURE);
   }
   return true;
-#else /* !FALLOC_FL_PUNCH_HOLE */
-  return false;
 #endif
+  return false;
 }
 
 static bool
-file_synch_zero (struct rw *rw, uint64_t offset, uint64_t count)
+file_zero_range (int fd, uint64_t offset, uint64_t count)
+{
+#ifdef FALLOC_FL_ZERO_RANGE
+  int r;
+
+  r = fallocate (fd, FALLOC_FL_ZERO_RANGE, offset, count);
+  if (r == -1) {
+    perror ("fallocate: FALLOC_FL_ZERO_RANGE");
+    exit (EXIT_FAILURE);
+  }
+  return true;
+#endif
+  return false;
+}
+
+static bool
+file_zeroout (int fd, uint64_t offset, uint64_t count)
+{
+#ifdef BLKZEROOUT
+  int r;
+  uint64_t range[2] = {offset, count};
+
+  r = ioctl (fd, BLKZEROOUT, &range);
+  if (r == -1) {
+    perror ("ioctl: BLKZEROOUT");
+    exit (EXIT_FAILURE);
+  }
+  return true;
+#endif
+    return false;
+}
+
+static bool
+file_synch_zero (struct rw *rw, uint64_t offset, uint64_t count, bool allocate)
 {
   struct rw_file *rwf = (struct rw_file *)rw;
 
-  if (! rwf->is_block) {
-#ifdef FALLOC_FL_ZERO_RANGE
-    int fd = rwf->fd;
-    int r;
-
-    r = fallocate (fd, FALLOC_FL_ZERO_RANGE, offset, count);
-    if (r == -1) {
-      perror ("fallocate: FALLOC_FL_ZERO_RANGE");
-      exit (EXIT_FAILURE);
+  if (!rwf->is_block) {
+    if (allocate) {
+        return file_zero_range (rwf->fd, offset, count);
+    } else {
+        return file_punch_hole (rwf->fd, offset, count);
     }
-    return true;
-#endif
   }
-  else if (rwf->is_block && IS_ALIGNED (offset | count, rwf->sector_size)) {
-#ifdef BLKZEROOUT
-    int fd = rwf->fd;
-    int r;
-    uint64_t range[2] = {offset, count};
-
-    r = ioctl (fd, BLKZEROOUT, &range);
-    if (r == -1) {
-      perror ("ioctl: BLKZEROOUT");
-      exit (EXIT_FAILURE);
-    }
-    return true;
-#endif
+  else if (IS_ALIGNED (offset | count, rwf->sector_size)) {
+    /* Always allocate, discard and gurantee zeroing. */
+    return file_zeroout (rwf->fd, offset, count);
   }
 
   return false;
@@ -305,24 +319,10 @@ file_asynch_write (struct rw *rw,
 }
 
 static bool
-file_asynch_trim (struct rw *rw, struct command *command,
-                  nbd_completion_callback cb)
-{
-  if (!file_synch_trim (rw, command->offset, command->slice.len))
-    return false;
-  errno = 0;
-  if (cb.callback (cb.user_data, &errno) == -1) {
-    perror (rw->name);
-    exit (EXIT_FAILURE);
-  }
-  return true;
-}
-
-static bool
 file_asynch_zero (struct rw *rw, struct command *command,
-                  nbd_completion_callback cb)
+                  nbd_completion_callback cb, bool allocate)
 {
-  if (!file_synch_zero (rw, command->offset, command->slice.len))
+  if (!file_synch_zero (rw, command->offset, command->slice.len, allocate))
     return false;
   errno = 0;
   if (cb.callback (cb.user_data, &errno) == -1) {
@@ -437,11 +437,9 @@ static struct rw_ops file_ops = {
   .flush = file_flush,
   .synch_read = file_synch_read,
   .synch_write = file_synch_write,
-  .synch_trim = file_synch_trim,
   .synch_zero = file_synch_zero,
   .asynch_read = file_asynch_read,
   .asynch_write = file_asynch_write,
-  .asynch_trim = file_asynch_trim,
   .asynch_zero = file_asynch_zero,
   .in_flight = file_in_flight,
   .get_polling_fd = get_polling_fd_not_supported,

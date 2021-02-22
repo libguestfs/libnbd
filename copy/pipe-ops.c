@@ -125,7 +125,7 @@ pipe_synch_write (struct rw *rw,
 }
 
 static bool
-pipe_synch_trim_zero (struct rw *rw, uint64_t offset, uint64_t count)
+pipe_synch_zero (struct rw *rw, uint64_t offset, uint64_t count, bool allocate)
 {
   return false; /* not supported by pipes */
 }
@@ -147,8 +147,8 @@ pipe_asynch_write (struct rw *rw,
 }
 
 static bool
-pipe_asynch_trim_zero (struct rw *rw, struct command *command,
-                       nbd_completion_callback cb)
+pipe_asynch_zero (struct rw *rw, struct command *command,
+                       nbd_completion_callback cb, bool allocate)
 {
   return false; /* not supported by pipes */
 }
@@ -173,8 +173,7 @@ static struct rw_ops pipe_ops = {
 
   .synch_read = pipe_synch_read,
   .synch_write = pipe_synch_write,
-  .synch_trim = pipe_synch_trim_zero,
-  .synch_zero = pipe_synch_trim_zero,
+  .synch_zero = pipe_synch_zero,
 
   /* Asynch pipe read/write operations are not defined.  These should
    * never be called because pipes/streams/sockets force synchronous
@@ -185,8 +184,7 @@ static struct rw_ops pipe_ops = {
   .asynch_read = pipe_asynch_read,
   .asynch_write = pipe_asynch_write,
 
-  .asynch_trim = pipe_asynch_trim_zero,
-  .asynch_zero = pipe_asynch_trim_zero,
+  .asynch_zero = pipe_asynch_zero,
   .in_flight = pipe_in_flight,
 
   .get_polling_fd = get_polling_fd_not_supported,

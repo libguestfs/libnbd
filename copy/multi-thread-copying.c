@@ -160,8 +160,8 @@ worker_thread (void *indexp)
       size_t len;
 
       if (exts.ptr[i].zero) {
-        /* The source is zero so we can proceed directly to
-         * skipping, trimming or writing zeroes at the destination.
+        /* The source is zero so we can proceed directly to skipping,
+         * fast zeroing, or writing zeroes at the destination.
          */
         command = calloc (1, sizeof *command);
         if (command == NULL) {
@@ -487,11 +487,12 @@ finished_read (void *vp, int *error)
  * --destination-is-zero:
  *                 do nothing
  *
- * --allocated:    we must write zeroes either using an efficient
+ * --allocated:    write zeroes allocating space using an efficient
  *                 zeroing command or writing a command of zeroes
  *
- * (neither flag)  try trimming if supported, else write zeroes
- *                 as above
+ * (neither flag)  write zeroes punching a hole using an efficient
+ *                 zeroing command or fallback to writing a command
+ *                 of zeroes.
  *
  * This takes over ownership of the command and frees it eventually.
  */
@@ -503,22 +504,13 @@ fill_dst_range_with_zeroes (struct command *command)
   if (destination_is_zero)
     goto free_and_return;
 
-  if (!allocated) {
-    /* Try trimming. */
-    if (dst->ops->asynch_trim (dst, command,
-                               (nbd_completion_callback) {
-                                 .callback = free_command,
-                                 .user_data = command,
-                               }))
-      return;
-  }
-
   /* Try efficient zeroing. */
   if (dst->ops->asynch_zero (dst, command,
                              (nbd_completion_callback) {
                                .callback = free_command,
                                .user_data = command,
-                             }))
+                             },
+                             allocated))
     return;
 
   /* Fall back to loop writing zeroes.  This is going to be slow
