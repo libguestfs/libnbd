@@ -44,6 +44,12 @@ struct rw_file {
   bool is_block;
   bool seek_hole_supported;
   int sector_size;
+
+  /* We try to use the most eficient zeroing first. If an efficent zero
+   * method is not available, we disable the flag so next time we use
+   * the working method.
+   */
+  bool can_punch_hole, can_zero_range, can_fallocate, can_zeroout;
 };
 
 static bool
@@ -85,11 +91,29 @@ file_create (const char *name, int fd, off_t st_size, bool is_block)
     if (ioctl (fd, BLKSSZGET, &rwf->sector_size))
       fprintf (stderr, "warning: cannot get sector size: %s: %m", name);
 #endif
+    /* Possible efficient zero methods for block device. */
+#ifdef FALLOC_FL_PUNCH_HOLE
+    rwf->can_punch_hole = true;
+#endif
+#ifdef FALLOC_FL_ZERO_RANGE
+    rwf->can_zero_range = true;
+#endif
+#ifdef BLKZEROOUT
+    rwf->can_zeroout = true;
+#endif
   }
   else {
     /* Regular file. */
     rwf->rw.size = st_size;
     rwf->seek_hole_supported = seek_hole_supported (fd);
+    /* Possible efficient zero methods for regular file. */
+#ifdef FALLOC_FL_PUNCH_HOLE
+    rwf->can_punch_hole = true;
+#endif
+#ifdef FALLOC_FL_ZERO_RANGE
+    rwf->can_zero_range = true;
+#endif
+    rwf->can_fallocate = true;
   }
 
   return &rwf->rw;
@@ -220,6 +244,12 @@ file_synch_write (struct rw *rw,
   }
 }
 
+static inline bool
+is_not_supported (int err)
+{
+  return err == ENOTSUP || err == EOPNOTSUPP;
+}
+
 static bool
 file_punch_hole (int fd, uint64_t offset, uint64_t count)
 {
@@ -229,6 +259,9 @@ file_punch_hole (int fd, uint64_t offset, uint64_t count)
   r = fallocate (fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
                  offset, count);
   if (r == -1) {
+    if (is_not_supported (errno))
+      return false;
+
     perror ("fallocate: FALLOC_FL_PUNCH_HOLE");
     exit (EXIT_FAILURE);
   }
@@ -245,6 +278,9 @@ file_zero_range (int fd, uint64_t offset, uint64_t count)
 
   r = fallocate (fd, FALLOC_FL_ZERO_RANGE, offset, count);
   if (r == -1) {
+    if (is_not_supported (errno))
+      return false;
+
     perror ("fallocate: FALLOC_FL_ZERO_RANGE");
     exit (EXIT_FAILURE);
   }
@@ -262,6 +298,9 @@ file_zeroout (int fd, uint64_t offset, uint64_t count)
 
   r = ioctl (fd, BLKZEROOUT, &range);
   if (r == -1) {
+    if (errno == ENOTTY)
+      return false;
+
     perror ("ioctl: BLKZEROOUT");
     exit (EXIT_FAILURE);
   }
@@ -275,16 +314,57 @@ file_synch_zero (struct rw *rw, uint64_t offset, uint64_t count, bool allocate)
 {
   struct rw_file *rwf = (struct rw_file *)rw;
 
-  if (!rwf->is_block) {
-    if (allocate) {
-        return file_zero_range (rwf->fd, offset, count);
+  /* The first call will try several options, discovering the
+   * capabilities of the underlying storage, and disabling non working
+   * options. The next calls will try only what works.
+   *
+   * If we don't need to allocate try to punch a hole. This works for
+   * both files and block devices with modern kernels.
+   */
+
+  if (!allocate && rwf->can_punch_hole) {
+    if (file_punch_hole (rwf->fd, offset, count))
+      return true;
+
+    rwf->can_punch_hole = false;
+  }
+
+  /* Try to zero the range. This works for both files and block devices
+   * with modern kernels.
+   */
+
+  if (rwf->can_zero_range) {
+    if (file_zero_range (rwf->fd, offset, count))
+      return true;
+
+    rwf->can_zero_range = false;
+  }
+
+  /* If we can punch a hole and fallocate, we can combine both
+   * operations. This is expected to be more efficient than actually
+   * writing zeroes. This works only for files.
+   */
+
+  if (rwf->can_punch_hole && rwf->can_fallocate) {
+    if (file_punch_hole (rwf->fd, offset, count)) {
+      if (fallocate (rwf->fd, 0, offset, count))
+          return true;
+
+      rwf->can_fallocate = false;
     } else {
-        return file_punch_hole (rwf->fd, offset, count);
+      rwf->can_punch_hole = false;
     }
   }
-  else if (IS_ALIGNED (offset | count, rwf->sector_size)) {
-    /* Always allocate, discard and gurantee zeroing. */
-    return file_zeroout (rwf->fd, offset, count);
+
+  /* Finally try BLKZEROOUT. This works only for block device if offset
+   * and count are aligned to device sector size.
+   */
+  else if (rwf->can_zeroout &&
+           IS_ALIGNED (offset | count, rwf->sector_size)) {
+    if (file_zeroout (rwf->fd, offset, count))
+      return true;
+
+    rwf->can_zeroout = false;
   }
 
   return false;
