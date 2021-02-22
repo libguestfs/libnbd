@@ -55,7 +55,7 @@ open_one_nbd_handle (struct rw_nbd *rwn)
 
   nbd = nbd_create ();
   if (nbd == NULL) {
-    fprintf (stderr, "%s: %s\n", "nbdcopy", nbd_get_error ());
+    fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
@@ -63,7 +63,7 @@ open_one_nbd_handle (struct rw_nbd *rwn)
 
   if (extents && !rwn->writing &&
       nbd_add_meta_context (nbd, "base:allocation") == -1) {
-    fprintf (stderr, "%s: %s\n", "nbdcopy", nbd_get_error ());
+    fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
@@ -72,7 +72,7 @@ open_one_nbd_handle (struct rw_nbd *rwn)
     nbd_set_uri_allow_local_file (nbd, true); /* Allow ?tls-psk-file. */
 
     if (nbd_connect_uri (nbd, rwn->uri) == -1) {
-      fprintf (stderr, "%s: %s: %s\n", "nbdcopy", rwn->uri, nbd_get_error ());
+      fprintf (stderr, "%s: %s: %s\n", prog, rwn->uri, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
     break;
@@ -81,7 +81,7 @@ open_one_nbd_handle (struct rw_nbd *rwn)
     if (nbd_connect_systemd_socket_activation (nbd,
                                                (char **) rwn->argv.ptr)
         == -1) {
-      fprintf (stderr, "%s: %s: %s\n", "nbdcopy", rwn->argv.ptr[0],
+      fprintf (stderr, "%s: %s: %s\n", prog, rwn->argv.ptr[0],
                nbd_get_error ());
       exit (EXIT_FAILURE);
     }
@@ -95,8 +95,7 @@ open_one_nbd_handle (struct rw_nbd *rwn)
     rwn->can_zero = nbd_can_zero (nbd) > 0;
     rwn->rw.size = nbd_get_size (nbd);
     if (rwn->rw.size == -1) {
-      fprintf (stderr, "%s: %s: %s\n", "nbdcopy", rwn->rw.name,
-               nbd_get_error ());
+      fprintf (stderr, "%s: %s: %s\n", prog, rwn->rw.name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
   }

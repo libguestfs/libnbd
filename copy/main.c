@@ -56,9 +56,10 @@ unsigned threads;               /* --threads */
 struct rw *src, *dst;           /* The source and destination. */
 bool verbose;                   /* --verbose flag */
 
+const char *prog;               /* program name (== basename argv[0]) */
+
 static bool is_nbd_uri (const char *s);
-static struct rw *open_local (const char *prog,
-                              const char *filename, bool writing);
+static struct rw *open_local (const char *filename, bool writing);
 static void print_rw (struct rw *rw, const char *prefix, FILE *fp);
 
 static void __attribute__((noreturn))
@@ -115,6 +116,10 @@ main (int argc, char *argv[])
   int c;
   size_t i;
 
+  /* Set prog to basename argv[0]. */
+  prog = strrchr (argv[0], '/');
+  if (prog == NULL) prog = argv[0]; else prog++;
+
   for (;;) {
     c = getopt_long (argc, argv, short_options, long_options, NULL);
     if (c == -1)
@@ -162,7 +167,7 @@ main (int argc, char *argv[])
     case 'C':
       if (sscanf (optarg, "%u", &connections) != 1 || connections == 0) {
         fprintf (stderr, "%s: --connections: could not parse: %s\n",
-                 argv[0], optarg);
+                 prog, optarg);
         exit (EXIT_FAILURE);
       }
       break;
@@ -172,7 +177,7 @@ main (int argc, char *argv[])
       if (optarg) {
         if (sscanf (optarg, "%d", &progress_fd) != 1 || progress_fd < 0) {
           fprintf (stderr, "%s: --progress: could not parse: %s\n",
-                   argv[0], optarg);
+                   prog, optarg);
           exit (EXIT_FAILURE);
         }
       }
@@ -181,7 +186,7 @@ main (int argc, char *argv[])
     case 'R':
       if (sscanf (optarg, "%u", &max_requests) != 1 || max_requests == 0) {
         fprintf (stderr, "%s: --requests: could not parse: %s\n",
-                 argv[0], optarg);
+                 prog, optarg);
         exit (EXIT_FAILURE);
       }
       break;
@@ -189,13 +194,13 @@ main (int argc, char *argv[])
     case 'S':
       if (sscanf (optarg, "%u", &sparse_size) != 1) {
         fprintf (stderr, "%s: --sparse: could not parse: %s\n",
-                 argv[0], optarg);
+                 prog, optarg);
         exit (EXIT_FAILURE);
       }
       if (sparse_size != 0 &&
           (sparse_size < 512 || !is_power_of_2 (sparse_size))) {
         fprintf (stderr, "%s: --sparse: must be a power of 2 and >= 512\n",
-                 argv[0]);
+                 prog);
         exit (EXIT_FAILURE);
       }
       break;
@@ -203,7 +208,7 @@ main (int argc, char *argv[])
     case 'T':
       if (sscanf (optarg, "%u", &threads) != 1) {
         fprintf (stderr, "%s: --threads: could not parse: %s\n",
-                 argv[0], optarg);
+                 prog, optarg);
         exit (EXIT_FAILURE);
       }
       break;
@@ -224,7 +229,7 @@ main (int argc, char *argv[])
   /* The remaining parameters describe the SOURCE and DESTINATION and
    * may either be -, filenames, NBD URIs, null: or [ ... ] sequences.
    */
-  if (optind >= argc)
+  if (optind > argc - 2)
     usage (stderr, EXIT_FAILURE);
 
   if (strcmp (argv[optind], "[") == 0) { /* Source is [...] */
@@ -244,7 +249,7 @@ main (int argc, char *argv[])
     const char *src_name = argv[optind++];
 
     if (! is_nbd_uri (src_name))
-      src = open_local (argv[0], src_name, false);
+      src = open_local (src_name, false);
     else
       src = nbd_rw_create_uri (src_name, src_name, false);
   }
@@ -271,7 +276,7 @@ main (int argc, char *argv[])
     if (strcmp (dst_name, "null:") == 0)
       dst = null_create (dst_name);
     else if (! is_nbd_uri (dst_name))
-      dst = open_local (argv[0], dst_name, true /* writing */);
+      dst = open_local (dst_name, true /* writing */);
     else
       dst = nbd_rw_create_uri (dst_name, dst_name, true);
   }
@@ -294,7 +299,7 @@ main (int argc, char *argv[])
   if (dst->ops->is_read_only (dst)) {
     fprintf (stderr, "%s: %s: "
              "the destination is read-only, cannot write to it\n",
-             argv[0], dst->name);
+             prog, dst->name);
     exit (EXIT_FAILURE);
   }
 
@@ -338,7 +343,8 @@ main (int argc, char *argv[])
    */
   if (src->size >= 0 && dst->size >= 0 && src->size > dst->size) {
     fprintf (stderr,
-             "nbdcopy: error: destination size is smaller than source size\n");
+             "%s: error: destination size is smaller than source size\n",
+             prog);
     exit (EXIT_FAILURE);
   }
 
@@ -417,7 +423,7 @@ is_nbd_uri (const char *s)
  * pipe or stdio).
  */
 static struct rw *
-open_local (const char *prog, const char *filename, bool writing)
+open_local (const char *filename, bool writing)
 {
   int flags, fd;
   struct stat stat;
@@ -444,14 +450,14 @@ open_local (const char *prog, const char *filename, bool writing)
         fd = open (filename, flags, 0644);
       }
       if (fd == -1) {
-        perror (filename);
+        fprintf (stderr, "%s: %s: %m\n", prog, filename);
         exit (EXIT_FAILURE);
       }
     }
   }
 
   if (fstat (fd, &stat) == -1) {
-    perror (filename);
+    fprintf (stderr, "%s: %s: %m\n", prog, filename);
     exit (EXIT_FAILURE);
   }
   if (S_ISBLK (stat.st_mode) || S_ISREG (stat.st_mode))

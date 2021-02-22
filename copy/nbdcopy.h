@@ -228,6 +228,8 @@ extern bool synchronous;
 extern unsigned threads;
 extern bool verbose;
 
+extern const char *prog;
+
 extern void progress_bar (off_t pos, int64_t size);
 extern void synch_copying (void);
 extern void multi_thread_copying (void);

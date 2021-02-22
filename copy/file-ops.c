@@ -122,7 +122,7 @@ file_truncate (struct rw *rw, int64_t size)
 
   if (ftruncate (rwf->fd, 0) == -1 ||
       ftruncate (rwf->fd, size) == -1) {
-    perror ("truncate");
+    fprintf (stderr, "%s: truncate: %m\n", rw->name);
     exit (EXIT_FAILURE);
   }
   rwf->rw.size = size;
