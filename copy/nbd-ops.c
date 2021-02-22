@@ -42,7 +42,7 @@ struct rw_nbd {
   enum { CREATE_URI, CREATE_SUBPROCESS } create_t;
   const char *uri;              /* For CREATE_URI */
   const_string_vector argv;     /* For CREATE_SUBPROCESS */
-  bool writing;
+  direction d;
 
   handles handles;              /* One handle per connection. */
   bool can_trim, can_zero;      /* Cached nbd_can_trim, nbd_can_zero. */
@@ -61,7 +61,7 @@ open_one_nbd_handle (struct rw_nbd *rwn)
 
   nbd_set_debug (nbd, verbose);
 
-  if (extents && !rwn->writing &&
+  if (extents && rwn->d == READING &&
       nbd_add_meta_context (nbd, "base:allocation") == -1) {
     fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -107,7 +107,7 @@ open_one_nbd_handle (struct rw_nbd *rwn)
 }
 
 struct rw *
-nbd_rw_create_uri (const char *name, const char *uri, bool writing)
+nbd_rw_create_uri (const char *name, const char *uri, direction d)
 {
   struct rw_nbd *rwn = calloc (1, sizeof *rwn);
   if (rwn == NULL) { perror ("calloc"); exit (EXIT_FAILURE); }
@@ -116,7 +116,7 @@ nbd_rw_create_uri (const char *name, const char *uri, bool writing)
   rwn->rw.name = name;
   rwn->create_t = CREATE_URI;
   rwn->uri = uri;
-  rwn->writing = writing;
+  rwn->d = d;
 
   open_one_nbd_handle (rwn);
 
@@ -124,7 +124,7 @@ nbd_rw_create_uri (const char *name, const char *uri, bool writing)
 }
 
 struct rw *
-nbd_rw_create_subprocess (const char **argv, size_t argc, bool writing)
+nbd_rw_create_subprocess (const char **argv, size_t argc, direction d)
 {
   size_t i;
   struct rw_nbd *rwn = calloc (1, sizeof *rwn);
@@ -133,7 +133,7 @@ nbd_rw_create_subprocess (const char **argv, size_t argc, bool writing)
   rwn->rw.ops = &nbd_ops;
   rwn->rw.name = argv[0];
   rwn->create_t = CREATE_SUBPROCESS;
-  rwn->writing = writing;
+  rwn->d = d;
 
   /* We have to copy the args so we can null-terminate them. */
   for (i = 0; i < argc; ++i) {

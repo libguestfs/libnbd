@@ -59,7 +59,7 @@ bool verbose;                   /* --verbose flag */
 const char *prog;               /* program name (== basename argv[0]) */
 
 static bool is_nbd_uri (const char *s);
-static struct rw *open_local (const char *filename, bool writing);
+static struct rw *open_local (const char *filename, direction d);
 static void print_rw (struct rw *rw, const char *prefix, FILE *fp);
 
 static void __attribute__((noreturn))
@@ -249,9 +249,9 @@ main (int argc, char *argv[])
     const char *src_name = argv[optind++];
 
     if (! is_nbd_uri (src_name))
-      src = open_local (src_name, false);
+      src = open_local (src_name, READING);
     else
-      src = nbd_rw_create_uri (src_name, src_name, false);
+      src = nbd_rw_create_uri (src_name, src_name, READING);
   }
 
   if (optind >= argc)
@@ -276,9 +276,9 @@ main (int argc, char *argv[])
     if (strcmp (dst_name, "null:") == 0)
       dst = null_create (dst_name);
     else if (! is_nbd_uri (dst_name))
-      dst = open_local (dst_name, true /* writing */);
+      dst = open_local (dst_name, WRITING);
     else
-      dst = nbd_rw_create_uri (dst_name, dst_name, true);
+      dst = nbd_rw_create_uri (dst_name, dst_name, WRITING);
   }
 
   /* There must be no extra parameters. */
@@ -423,15 +423,15 @@ is_nbd_uri (const char *s)
  * pipe or stdio).
  */
 static struct rw *
-open_local (const char *filename, bool writing)
+open_local (const char *filename, direction d)
 {
   int flags, fd;
   struct stat stat;
 
   if (strcmp (filename, "-") == 0) {
     synchronous = true;
-    fd = writing ? STDOUT_FILENO : STDIN_FILENO;
-    if (writing && isatty (fd)) {
+    fd = d == WRITING ? STDOUT_FILENO : STDIN_FILENO;
+    if (d == WRITING && isatty (fd)) {
       fprintf (stderr, "%s: refusing to write to tty\n", prog);
       exit (EXIT_FAILURE);
     }
@@ -441,10 +441,10 @@ open_local (const char *filename, bool writing)
      * it into a truncated regular file by accident, so try to open
      * without O_CREAT first.
      */
-    flags = writing ? O_WRONLY : O_RDONLY;
+    flags = d == WRITING ? O_WRONLY : O_RDONLY;
     fd = open (filename, flags);
     if (fd == -1) {
-      if (writing) {
+      if (d == WRITING) {
         /* Try again, with more flags. */
         flags |= O_TRUNC|O_CREAT|O_EXCL;
         fd = open (filename, flags, 0644);

@@ -45,15 +45,18 @@ struct rw {
   /* Followed by private data for the particular subtype. */
 };
 
+/* Source and destination. */
 extern struct rw *src, *dst;
+
+typedef enum { READING, WRITING } direction;
 
 /* Create subtypes. */
 extern struct rw *file_create (const char *name, int fd,
                                off_t st_size, bool is_block);
 extern struct rw *nbd_rw_create_uri (const char *name,
-                                     const char *uri, bool writing);
+                                     const char *uri, direction d);
 extern struct rw *nbd_rw_create_subprocess (const char **argv, size_t argc,
-                                            bool writing);
+                                            direction d);
 extern struct rw *null_create (const char *name);
 extern struct rw *pipe_create (const char *name, int fd);
 
