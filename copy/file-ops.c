@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
@@ -53,6 +54,13 @@
 #define PAGE_CACHE_MAPPING 1
 #endif
 #endif
+#endif
+
+/* Define EVICT_WRITES if we are going to evict the page cache after
+ * writing a new file.
+ */
+#ifdef __linux__
+#define EVICT_WRITES 1
 #endif
 
 #ifdef PAGE_CACHE_MAPPING
@@ -164,7 +172,60 @@ page_cache_evict (struct rw_file *rwf, uint64_t orig_offset, size_t orig_len)
     len -= n;
   }
 }
-#endif
+#endif /* PAGE_CACHE_MAPPING */
+
+#ifdef EVICT_WRITES
+/* Prepare to evict file contents from the page cache when writing.
+ * We cannot do this directly (as for reads above) because we have to
+ * wait for Linux to finish writing the pages to disk.  Therefore the
+ * strategy is to (1) tell Linux to begin writing asynchronously and
+ * (2) evict the previous pages, which have hopefully been written
+ * already by the time we get here.  We have to maintain window(s) per
+ * thread.
+ *
+ * For more information see https://stackoverflow.com/a/3756466 and
+ * the links to Linus's advice from that entry.
+ */
+
+/* Increasing the number of windows gives better performance since
+ * writes are given more time to make it to disk before we have to
+ * pause to do the page cache eviction.  But a larger number of
+ * windows means less success overall since (a) more page cache is
+ * used as the program runs, and (b) we don't evict any writes which
+ * are still pending when the program exits.
+ */
+#define NR_WINDOWS 8
+
+struct write_window {
+  uint64_t offset;
+  size_t len;
+};
+
+static inline void
+evict_writes (struct rw_file *rwf, uint64_t offset, size_t len)
+{
+  static __thread struct write_window window[NR_WINDOWS];
+
+  /* Evict the oldest window from the page cache. */
+  if (window[0].len > 0) {
+    sync_file_range (rwf->fd, window[0].offset, window[0].len,
+                     SYNC_FILE_RANGE_WAIT_BEFORE|SYNC_FILE_RANGE_WRITE|
+                     SYNC_FILE_RANGE_WAIT_AFTER);
+    posix_fadvise (rwf->fd, window[0].offset, window[0].len,
+                   POSIX_FADV_DONTNEED);
+  }
+
+  /* Move the Nth window to N-1. */
+  memmove (&window[0], &window[1], sizeof window[0] * (NR_WINDOWS-1));
+
+  /* Set up the current window and tell Linux to start writing it out
+   * to disk (asynchronously).
+   */
+  sync_file_range (rwf->fd, offset, len, SYNC_FILE_RANGE_WRITE);
+  window[NR_WINDOWS-1].offset = offset;
+  window[NR_WINDOWS-1].len = len;
+}
+#endif /* EVICT_WRITES */
 
 static bool
 seek_hole_supported (int fd)
@@ -370,6 +431,10 @@ file_synch_write (struct rw *rw,
                   const void *data, size_t len, uint64_t offset)
 {
   struct rw_file *rwf = (struct rw_file *)rw;
+#ifdef EVICT_WRITES
+  const uint64_t orig_offset = offset;
+  const size_t orig_len = len;
+#endif
   ssize_t r;
 
   while (len > 0) {
@@ -382,6 +447,10 @@ file_synch_write (struct rw *rw,
     offset += r;
     len -= r;
   }
+
+#if EVICT_WRITES
+  evict_writes (rwf, orig_offset, orig_len);
+#endif
 }
 
 static inline bool
