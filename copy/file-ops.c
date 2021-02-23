@@ -24,8 +24,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <limits.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+#include <sys/mman.h>
 
 #include <pthread.h>
 
@@ -34,7 +36,28 @@
 #endif
 
 #include "isaligned.h"
+#include "ispowerof2.h"
+#include "rounding.h"
+
 #include "nbdcopy.h"
+
+/* Define PAGE_CACHE_MAPPING if we are going to attempt page cache
+ * mapping.  This feature tries not to disturb the page cache when
+ * reading a file.  Only do this on Linux systems where we understand
+ * how the page cache behaves.  Since we need to mmap the whole file,
+ * also restrict this to 64 bit systems.
+ */
+#ifdef __linux__
+#ifdef __SIZEOF_POINTER__
+#if __SIZEOF_POINTER__ == 8
+#define PAGE_CACHE_MAPPING 1
+#endif
+#endif
+#endif
+
+#ifdef PAGE_CACHE_MAPPING
+DEFINE_VECTOR_TYPE (byte_vector, uint8_t)
+#endif
 
 static struct rw_ops file_ops;
 
@@ -50,7 +73,97 @@ struct rw_file {
    * the working method.
    */
   bool can_punch_hole, can_zero_range, can_fallocate, can_zeroout;
+
+#ifdef PAGE_CACHE_MAPPING
+  byte_vector cached_pages;
+#endif
 };
+
+#ifdef PAGE_CACHE_MAPPING
+static long page_size;
+
+static void page_size_init (void) __attribute__((constructor));
+static void
+page_size_init (void)
+{
+  page_size = sysconf (_SC_PAGE_SIZE);
+  assert (page_size > 0);
+  assert (is_power_of_2 (page_size));
+}
+
+/* Load the page cache map for a particular file into
+ * rwf->cached_pages.  Only used when reading files.  This doesn't
+ * fail: if a system call fails then rwf->cached_pages.size will be
+ * zero which is handled in page_was_cached.
+ */
+static inline void
+page_cache_map (struct rw_file *rwf, int fd, int64_t size)
+{
+  void *ptr;
+
+  if (size == 0) return;
+
+  ptr = mmap (NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+  if (ptr == (void *)-1) return;
+
+  const size_t veclen = ROUND_UP (size, page_size) / page_size;
+
+  if (byte_vector_reserve (&rwf->cached_pages, veclen) == -1)
+    goto err;
+  if (mincore (ptr, size, rwf->cached_pages.ptr) == -1)
+    goto err;
+
+  rwf->cached_pages.size = veclen;
+ err:
+  munmap (ptr, size);
+}
+
+/* Test if a single page of the file was cached before nbdcopy ran. */
+static inline bool
+page_was_cached (struct rw_file *rwf, uint64_t offset)
+{
+  uint64_t page = offset / page_size;
+  if (page < rwf->cached_pages.size)
+    return (rwf->cached_pages.ptr[page] & 1) != 0;
+  else
+    /* This path is taken if we didn't manage to map the input file
+     * for any reason.  In this case assume that pages were mapped so
+     * we will not evict them: essentially fall back to doing nothing.
+     */
+    return true;
+}
+
+/* Evict file contents from the page cache if they were not present in
+ * the page cache before.
+ */
+static inline void
+page_cache_evict (struct rw_file *rwf, uint64_t orig_offset, size_t orig_len)
+{
+  uint64_t offset, n;
+  size_t len;
+
+  if (rwf->cached_pages.size == 0) return;
+
+  /* Only bother with whole pages. */
+  offset = ROUND_UP (orig_offset, page_size);
+  len = orig_len - (offset - orig_offset);
+  len = ROUND_DOWN (len, page_size);
+
+  while (len > 0) {
+    n = page_size;
+    if (! page_was_cached (rwf, offset)) {
+      /* Try to evict runs of pages in one go. */
+      while (len-n > 0 && ! page_was_cached (rwf, offset+n))
+        n += page_size;
+
+      posix_fadvise (rwf->fd, offset, n, POSIX_FADV_DONTNEED);
+    }
+
+    offset += n;
+    len -= n;
+  }
+}
+#endif
 
 static bool
 seek_hole_supported (int fd)
@@ -64,7 +177,8 @@ seek_hole_supported (int fd)
 }
 
 struct rw *
-file_create (const char *name, int fd, off_t st_size, bool is_block)
+file_create (const char *name, int fd,
+             off_t st_size, bool is_block, direction d)
 {
   struct rw_file *rwf = calloc (1, sizeof *rwf);
   if (rwf == NULL) { perror ("calloc"); exit (EXIT_FAILURE); }
@@ -123,6 +237,11 @@ file_create (const char *name, int fd, off_t st_size, bool is_block)
   posix_fadvise (fd, 0, 0, POSIX_FADV_SEQUENTIAL);
 #endif
 
+#if PAGE_CACHE_MAPPING
+  if (d == READING)
+    page_cache_map (rwf, fd, rwf->rw.size);
+#endif
+
   return &rwf->rw;
 }
 
@@ -135,6 +254,11 @@ file_close (struct rw *rw)
     fprintf (stderr, "%s: close: %m\n", rw->name);
     exit (EXIT_FAILURE);
   }
+
+#ifdef PAGE_CACHE_MAPPING
+  byte_vector_reset (&rwf->cached_pages);
+#endif
+
   free (rw);
 }
 
@@ -211,6 +335,10 @@ file_synch_read (struct rw *rw,
                  void *data, size_t len, uint64_t offset)
 {
   struct rw_file *rwf = (struct rw_file *)rw;
+#ifdef PAGE_CACHE_MAPPING
+  const uint64_t orig_offset = offset;
+  const size_t orig_len = len;
+#endif
   size_t n = 0;
   ssize_t r;
 
@@ -228,6 +356,10 @@ file_synch_read (struct rw *rw,
     len -= r;
     n += r;
   }
+
+#if PAGE_CACHE_MAPPING
+  page_cache_evict (rwf, orig_offset, orig_len);
+#endif
 
   return n;
 }
