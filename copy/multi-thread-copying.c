@@ -367,6 +367,12 @@ copy_subcommand (struct command *command, uint64_t offset, size_t len,
   return newcommand;
 }
 
+static inline uint64_t
+min(uint64_t a, uint64_t b)
+{
+    return a < b ? a : b;
+}
+
 /* Callback called when src has finished one read command.  This
  * initiates a write.
  */
@@ -396,7 +402,7 @@ finished_read (void *vp, int *error)
     /* Iterate over whole blocks in the command, starting on a block
      * boundary.
      */
-    for (i = ROUND_UP (start, sparse_size);
+    for (i = min (ROUND_UP (start, sparse_size), end);
          i + sparse_size <= end;
          i += sparse_size) {
       if (is_zero (slice_ptr (command->slice) + i-start, sparse_size)) {
