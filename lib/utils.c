@@ -25,9 +25,9 @@
 #include <ctype.h>
 #include <errno.h>
 
-#include "internal.h"
+#include "minmax.h"
 
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#include "internal.h"
 
 void
 nbd_internal_hexdump (const void *data, size_t len, FILE *fp)

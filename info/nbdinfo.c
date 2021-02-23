@@ -32,10 +32,9 @@
 
 #include <libnbd.h>
 
+#include "minmax.h"
 #include "vector.h"
 #include "version.h"
-
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
 
 DEFINE_VECTOR_TYPE (string_vector, char *)
 

@@ -33,6 +33,8 @@
 #include <unistd.h>
 #include <assert.h>
 
+#include "minmax.h"
+
 #include "internal.h"
 
 /* Uncomment this to dump received protocol packets to stderr. */
@@ -58,7 +60,7 @@ recv_into_rbuf (struct nbd_handle *h)
   }
   else {
     rbuf = &buf;
-    rlen = h->rlen > sizeof buf ? sizeof buf : h->rlen;
+    rlen = MIN (h->rlen, sizeof buf);
   }
 
   r = h->sock->ops->recv (h, h->sock, rbuf, rlen);

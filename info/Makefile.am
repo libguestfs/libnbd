@@ -54,6 +54,7 @@ TESTS =
 nbdinfo_SOURCES = nbdinfo.c
 nbdinfo_CPPFLAGS = \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/common/include \
 	-I$(top_srcdir)/common/utils \
 	$(NULL)
 nbdinfo_CFLAGS = \

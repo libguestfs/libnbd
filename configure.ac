@@ -70,6 +70,25 @@ if test "x$gcc_warnings" = "xyes"; then
     AC_SUBST([WARNINGS_CFLAGS])
 fi
 
+dnl Check for __auto_type (GCC extension).
+AC_MSG_CHECKING([if __auto_type is available in this compiler])
+AC_COMPILE_IFELSE([
+AC_LANG_SOURCE([[
+static int
+test (int a)
+{
+  __auto_type at = a;
+  return at;
+}
+]])
+    ],[
+    AC_MSG_RESULT([yes])
+    AC_DEFINE([HAVE_AUTO_TYPE],[1],[__auto_type is available])
+    ],[
+    AC_MSG_RESULT([no])
+    ]
+)
+
 dnl Check for other headers, all optional.
 AC_CHECK_HEADERS([\
     byteswap.h \

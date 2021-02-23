@@ -22,5 +22,6 @@ EXTRA_DIST = \
 	isaligned.h \
 	ispowerof2.h \
 	iszero.h \
+	minmax.h \
 	rounding.h \
 	$(NULL)
