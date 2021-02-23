@@ -116,6 +116,13 @@ file_create (const char *name, int fd, off_t st_size, bool is_block)
     rwf->can_fallocate = true;
   }
 
+  /* Set the POSIX_FADV_SEQUENTIAL flag on the file descriptor, but
+   * don't fail.
+   */
+#if defined (HAVE_POSIX_FADVISE) && defined (POSIX_FADV_SEQUENTIAL)
+  posix_fadvise (fd, 0, 0, POSIX_FADV_SEQUENTIAL);
+#endif
+
   return &rwf->rw;
 }
 
