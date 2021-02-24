@@ -83,7 +83,7 @@ Display brief command line help and exit.
 
 Normally nbdcopy tries to create sparse output (with holes) if the
 destination supports that.  It does this in two ways: either using
-extent informtation from the source to copy holes (see
+extent information from the source to copy holes (see
 I<--no-extents>), or by detecting runs of zeroes (see I<-S>).  If you
 use I<--allocated> then nbdcopy creates a fully allocated, non-sparse
 output on the destination.
