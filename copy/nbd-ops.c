@@ -434,6 +434,7 @@ nbd_ops_get_extents (struct rw *rw, uintptr_t index,
   ret->size = 0;
 
   while (count > 0) {
+    const uint64_t old_offset = offset;
     size_t i;
 
     exts.size = 0;
@@ -449,28 +450,11 @@ nbd_ops_get_extents (struct rw *rw, uintptr_t index,
       exit (EXIT_FAILURE);
     }
 
-    /* The server should always make progress. */
-    if (exts.size == 0) {
-      fprintf (stderr, "%s: NBD server is broken: it is not returning extent information.\nTry nbdcopy --no-extents as a workaround.\n",
-               rw->name);
-      exit (EXIT_FAILURE);
-    }
-
-    /* Copy the extents returned into the final list (ret).  This is
-     * complicated because the extents returned by the server may
-     * begin earlier and begin or end later than the requested size.
-     */
+    /* Copy the extents returned into the final list (ret). */
     for (i = 0; i < exts.size; ++i) {
       uint64_t d;
 
-      if (exts.ptr[i].offset + exts.ptr[i].length <= offset)
-        continue;
-      if (exts.ptr[i].offset < offset) {
-        d = offset - exts.ptr[i].offset;
-        exts.ptr[i].offset += d;
-        exts.ptr[i].length -= d;
-        assert (exts.ptr[i].offset == offset);
-      }
+      assert (exts.ptr[i].offset == offset);
       if (exts.ptr[i].offset + exts.ptr[i].length > offset + count) {
         d = exts.ptr[i].offset + exts.ptr[i].length - offset - count;
         exts.ptr[i].length -= d;
@@ -485,6 +469,13 @@ nbd_ops_get_extents (struct rw *rw, uintptr_t index,
 
       offset += exts.ptr[i].length;
       count -= exts.ptr[i].length;
+    }
+
+    /* The server should always make progress. */
+    if (offset == old_offset) {
+      fprintf (stderr, "%s: NBD server is broken: it is not returning extent information.\nTry nbdcopy --no-extents as a workaround.\n",
+               rw->name);
+      exit (EXIT_FAILURE);
     }
   }
 
