@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2021 Red Hat Inc.
+ * Copyright (C) 2013-2019 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -47,14 +47,11 @@ main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
   char tmpfile[] = "/tmp/nbdXXXXXX";
+  char *args[] = { SERVER, SERVER_PARAMS, NULL };
   int fd;
   int64_t actual_size;
   char buf[512];
   int r = -1;
-  size_t i;
-#ifdef UNIXSOCKET
-  pid_t pid = 0;
-#endif
 
   /* Create a large sparse temporary file. */
   fd = mkstemp (tmpfile);
@@ -105,18 +102,7 @@ main (int argc, char *argv[])
   }
 #endif
 
-  /* Create the server parameters. */
-#ifdef SERVER_PARAM_VARS
-  SERVER_PARAM_VARS
-#endif
-  char *args[] = { SERVER, SERVER_PARAMS, NULL };
-  fprintf (stderr, "server: %s", args[0]);
-  for (i = 1; args[i] != NULL; ++i)
-    fprintf (stderr, " %s", args[i]);
-  fprintf (stderr, "\n");
-
   /* Start the server. */
-#ifndef UNIXSOCKET
 #if SOCKET_ACTIVATION
 #define NBD_CONNECT nbd_connect_systemd_socket_activation
 #else
@@ -126,40 +112,6 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     goto out;
   }
-#else /* UNIXSOCKET */
-  /* This is for servers which don't support either stdin/stdout or
-   * systemd socket activation.  We have to run the command in the
-   * background and connect to the Unix domain socket.
-   */
-  pid = fork ();
-  if (pid == -1) {
-    perror ("fork");
-    goto out;
-  }
-  if (pid == 0) {
-    execvp (args[0], args);
-    perror (args[0]);
-    _exit (EXIT_FAILURE);
-  }
-  /* Unfortunately qemu-storage-daemon doesn't support pidfiles, so we
-   * have to wait for the socket to be created then sleep "a bit".
-   */
-  for (int i = 0; i < 60; ++i) {
-    if (access (UNIXSOCKET, R_OK) == 0)
-      break;
-    sleep (1);
-  }
-  sleep (1);
-  /* Connect to the socket. */
-  if (nbd_connect_unix (nbd, UNIXSOCKET) == -1) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    goto out;
-  }
-  /* We don't need the socket to exist in the filesystem any more, so
-   * we can remove it early.
-   */
-  unlink (UNIXSOCKET);
-#endif /* UNIXSOCKET */
 
 #if TLS
   if (TLS_MODE == LIBNBD_TLS_REQUIRE) {
@@ -226,15 +178,6 @@ main (int argc, char *argv[])
   r = 0;
  out:
   unlink (tmpfile);
-
-#ifdef UNIXSOCKET
-  /* Kill the background server. */
-  if (pid > 0) {
-    printf ("killing %s PID %d ...\n", args[0], (int) pid);
-    fflush (stdout);
-    kill (pid, SIGTERM);
-  }
-#endif
 
   exit (r == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }

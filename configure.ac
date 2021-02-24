@@ -201,15 +201,11 @@ AS_IF([test "x$NBDKIT" != "x"], [
 AM_CONDITIONAL([HAVE_NBDKIT],
     [test "x$NBDKIT" != "x" && test "x$have_nbdkit_features" = "xyes"])
 
-dnl nbd-server, qemu-nbd and qemu-storage-daemon for interop testing.
+dnl nbd-server and qemu-nbd for interop testing.
 AC_CHECK_PROG([NBD_SERVER], [nbd-server], [nbd-server])
 AM_CONDITIONAL([HAVE_NBD_SERVER], [test "x$NBD_SERVER" != "x"])
 AC_CHECK_PROG([QEMU_NBD], [qemu-nbd], [qemu-nbd])
 AM_CONDITIONAL([HAVE_QEMU_NBD], [test "x$QEMU_NBD" != "x"])
-AC_CHECK_PROG([QEMU_STORAGE_DAEMON],
-               [qemu-storage-daemon], [qemu-storage-daemon])
-AM_CONDITIONAL([HAVE_QEMU_STORAGE_DAEMON],
-               [test "x$QEMU_STORAGE_DAEMON" != "x"])
 
 dnl glib2 main loop for examples that interoperate with the glib main loop.
 PKG_CHECK_MODULES([GLIB], [glib-2.0], [
