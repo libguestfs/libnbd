@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2021 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -52,6 +52,7 @@ main (int argc, char *argv[])
   int64_t actual_size;
   char buf[512];
   int r = -1;
+  size_t i;
 
   /* Create a large sparse temporary file. */
   fd = mkstemp (tmpfile);
@@ -101,6 +102,12 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 #endif
+
+  /* Print the server parameters. */
+  fprintf (stderr, "server: %s", args[0]);
+  for (i = 1; args[i] != NULL; ++i)
+    fprintf (stderr, " %s", args[i]);
+  fprintf (stderr, "\n");
 
   /* Start the server. */
 #if SOCKET_ACTIVATION
