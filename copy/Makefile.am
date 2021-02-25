@@ -39,6 +39,7 @@ EXTRA_DIST = \
 	copy-sparse-to-stream.sh \
 	copy-stdin-to-nbd.sh \
 	copy-stdin-to-null.sh \
+	copy-tls.sh \
 	nbdcopy.pod \
 	test-long-options.sh \
 	test-short-options.sh \
@@ -46,7 +47,11 @@ EXTRA_DIST = \
 	test-version.sh \
 	$(NULL)
 
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 EXPECTED_VERSION=$(VERSION)
+TESTS_ENVIRONMENT = \
+	LIBNBD_DEBUG=1 \
+	EXPECTED_VERSION=$(VERSION) \
+	PSKTOOL=$(PSKTOOL) \
+	$(NULL)
 LOG_COMPILER = $(top_builddir)/run
 TESTS =
 
@@ -124,6 +129,12 @@ TESTS += \
 	test-verbose.sh \
 	test-version.sh \
 	$(NULL)
+
+if HAVE_GNUTLS
+if HAVE_PSKTOOL
+TESTS += copy-tls.sh
+endif
+endif
 
 check-valgrind:
 	LIBNBD_VALGRIND=1 $(MAKE) check
