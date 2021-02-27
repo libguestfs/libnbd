@@ -50,6 +50,7 @@ bool flush;                     /* --flush flag */
 unsigned max_requests = 64;     /* --requests */
 bool progress;                  /* -p flag */
 int progress_fd = -1;           /* --progress=FD */
+unsigned request_size = MAX_REQUEST_SIZE;  /* --request-size */
 unsigned sparse_size = 4096;    /* --sparse */
 bool synchronous;               /* --synchronous flag */
 unsigned threads;               /* --threads */
@@ -91,6 +92,7 @@ main (int argc, char *argv[])
     DESTINATION_IS_ZERO_OPTION,
     FLUSH_OPTION,
     NO_EXTENTS_OPTION,
+    REQUEST_SIZE_OPTION,
     SYNCHRONOUS_OPTION,
   };
   const char *short_options = "C:pR:S:T:vV";
@@ -103,6 +105,7 @@ main (int argc, char *argv[])
     { "flush",              no_argument,       NULL, FLUSH_OPTION },
     { "no-extents",         no_argument,       NULL, NO_EXTENTS_OPTION },
     { "progress",           optional_argument, NULL, 'p' },
+    { "request-size",       optional_argument, NULL, REQUEST_SIZE_OPTION },
     { "requests",           required_argument, NULL, 'R' },
     { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
     { "sparse",             required_argument, NULL, 'S' },
@@ -180,6 +183,21 @@ main (int argc, char *argv[])
                    prog, optarg);
           exit (EXIT_FAILURE);
         }
+      }
+      break;
+
+    case REQUEST_SIZE_OPTION:
+      if (sscanf (optarg, "%u", &request_size) != 1) {
+        fprintf (stderr, "%s: --request-size: could not parse: %s\n",
+                 prog, optarg);
+        exit (EXIT_FAILURE);
+      }
+      if (request_size < MIN_REQUEST_SIZE || request_size > MAX_REQUEST_SIZE ||
+              !is_power_of_2 (request_size)) {
+        fprintf (stderr,
+                "%s: --request-size: must be a power of 2 within %d-%d\n",
+                 prog, MIN_REQUEST_SIZE, MAX_REQUEST_SIZE);
+        exit (EXIT_FAILURE);
       }
       break;
 

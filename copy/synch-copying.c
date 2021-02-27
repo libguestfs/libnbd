@@ -28,12 +28,17 @@
 
 #include "nbdcopy.h"
 
-static char buf[MAX_REQUEST_SIZE];
-
 void
 synch_copying (void)
 {
   uint64_t offset = 0;
+  unsigned char *buf;
+
+  buf = malloc (request_size);
+  if (buf == NULL) {
+    perror ("malloc");
+    exit (EXIT_FAILURE);
+  }
 
   /* If the source size is unknown then we copy data and cannot use
    * extent information.
@@ -41,7 +46,7 @@ synch_copying (void)
   if (src->size == -1) {
     size_t r;
 
-    while ((r = src->ops->synch_read (src, buf, sizeof buf, offset)) > 0) {
+    while ((r = src->ops->synch_read (src, buf, request_size, offset)) > 0) {
       dst->ops->synch_write (dst, buf, r, offset);
       offset += r;
       progress_bar (offset, src->size);
@@ -57,8 +62,8 @@ synch_copying (void)
       uint64_t count = src->size - offset;
       size_t i, r;
 
-      if (count > sizeof buf)
-        count = sizeof buf;
+      if (count > request_size)
+        count = request_size;
 
       if (extents)
         src->ops->get_extents (src, 0, offset, count, &exts);
@@ -99,4 +104,6 @@ synch_copying (void)
       free (exts.ptr);
     } /* while */
   }
+
+  free (buf);
 }

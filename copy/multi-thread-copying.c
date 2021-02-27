@@ -183,8 +183,8 @@ worker_thread (void *indexp)
          */
         while (exts.ptr[i].length > 0) {
           len = exts.ptr[i].length;
-          if (len > MAX_REQUEST_SIZE)
-            len = MAX_REQUEST_SIZE;
+          if (len > request_size)
+            len = request_size;
           data = malloc (len);
           if (data == NULL) {
             perror ("malloc");
@@ -518,7 +518,7 @@ fill_dst_range_with_zeroes (struct command *command)
   /* Fall back to loop writing zeroes.  This is going to be slow
    * anyway, so do it synchronously. XXX
    */
-  data_size = MIN (MAX_REQUEST_SIZE, command->slice.len);
+  data_size = MIN (request_size, command->slice.len);
   data = calloc (1, data_size);
   if (!data) {
     perror ("calloc");

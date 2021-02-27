@@ -7,7 +7,7 @@ nbdcopy - copy to and from an NBD server
  nbdcopy [--allocated] [-C N|--connections=N]
          [--destination-is-zero|--target-is-zero] [--flush]
          [--no-extents] [-p|--progress|--progress=FD]
-         [-R N|--requests=N] [-S N|--sparse=N]
+         [--request-size=N] [-R N|--requests=N] [-S N|--sparse=N]
          [--synchronous] [-T N|--threads=N] [-v|--verbose]
          SOURCE DESTINATION
 
@@ -151,6 +151,11 @@ following shell commands:
  exec 3>/tmp/progress
  nbdcopy --progress=3 ...
  exec 3>&-
+
+=item B<--request-size=>N
+
+Set the maximum request size in bytes. The maximum value is 32 MiB,
+specified by the NBD protocol.
 
 =item B<-R> N
 
