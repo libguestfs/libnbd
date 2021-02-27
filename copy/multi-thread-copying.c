@@ -501,6 +501,7 @@ static void
 fill_dst_range_with_zeroes (struct command *command)
 {
   char *data;
+  size_t data_size;
 
   if (destination_is_zero)
     goto free_and_return;
@@ -517,7 +518,8 @@ fill_dst_range_with_zeroes (struct command *command)
   /* Fall back to loop writing zeroes.  This is going to be slow
    * anyway, so do it synchronously. XXX
    */
-  data = calloc (1, MAX_REQUEST_SIZE);
+  data_size = MIN (MAX_REQUEST_SIZE, command->slice.len);
+  data = calloc (1, data_size);
   if (!data) {
     perror ("calloc");
     exit (EXIT_FAILURE);
@@ -525,8 +527,8 @@ fill_dst_range_with_zeroes (struct command *command)
   while (command->slice.len > 0) {
     size_t len = command->slice.len;
 
-    if (len > MAX_REQUEST_SIZE)
-      len = MAX_REQUEST_SIZE;
+    if (len > data_size)
+      len = data_size;
 
     dst->ops->synch_write (dst, data, len, command->offset);
     command->slice.len -= len;
