@@ -97,25 +97,25 @@ page_size_init (void)
  * zero which is handled in page_cache_evict.
  */
 static inline void
-page_cache_map (struct rw_file *rwf, int fd, int64_t size)
+page_cache_map (struct rw_file *rwf)
 {
   void *ptr;
 
-  if (size == 0) return;
+  if (rwf->rw.size == 0) return;
 
-  ptr = mmap (NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
+  ptr = mmap (NULL, rwf->rw.size, PROT_READ, MAP_PRIVATE, rwf->fd, 0);
   if (ptr == (void *)-1) return;
 
-  const size_t veclen = ROUND_UP (size, page_size) / page_size;
+  const size_t veclen = ROUND_UP (rwf->rw.size, page_size) / page_size;
 
   if (byte_vector_reserve (&rwf->cached_pages, veclen) == -1)
     goto err;
-  if (mincore (ptr, size, rwf->cached_pages.ptr) == -1)
+  if (mincore (ptr, rwf->rw.size, rwf->cached_pages.ptr) == -1)
     goto err;
 
   rwf->cached_pages.size = veclen;
  err:
-  munmap (ptr, size);
+  munmap (ptr, rwf->rw.size);
 }
 
 /* Test if a single page of the file was cached before nbdcopy ran.
@@ -240,7 +240,7 @@ file_create (const char *name, int fd,
 
 #if PAGE_CACHE_MAPPING
   if (d == READING)
-    page_cache_map (rwf, fd, rwf->rw.size);
+    page_cache_map (rwf);
 #endif
 
   return &rwf->rw;
