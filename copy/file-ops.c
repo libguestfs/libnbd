@@ -94,7 +94,7 @@ page_size_init (void)
 /* Load the page cache map for a particular file into
  * rwf->cached_pages.  Only used when reading files.  This doesn't
  * fail: if a system call fails then rwf->cached_pages.size will be
- * zero which is handled in page_was_cached.
+ * zero which is handled in page_cache_evict.
  */
 static inline void
 page_cache_map (struct rw_file *rwf, int fd, int64_t size)
@@ -118,19 +118,16 @@ page_cache_map (struct rw_file *rwf, int fd, int64_t size)
   munmap (ptr, size);
 }
 
-/* Test if a single page of the file was cached before nbdcopy ran. */
+/* Test if a single page of the file was cached before nbdcopy ran.
+ * Valid only if we mapped the cached pages.
+ */
 static inline bool
 page_was_cached (struct rw_file *rwf, uint64_t offset)
 {
   uint64_t page = offset / page_size;
-  if (page < rwf->cached_pages.size)
-    return (rwf->cached_pages.ptr[page] & 1) != 0;
-  else
-    /* This path is taken if we didn't manage to map the input file
-     * for any reason.  In this case assume that pages were mapped so
-     * we will not evict them: essentially fall back to doing nothing.
-     */
-    return true;
+  assert (page < rwf->cached_pages.size);
+
+  return (rwf->cached_pages.ptr[page] & 1) != 0;
 }
 
 /* Evict file contents from the page cache if they were not present in
@@ -142,6 +139,10 @@ page_cache_evict (struct rw_file *rwf, uint64_t orig_offset, size_t orig_len)
   uint64_t offset, n;
   size_t len;
 
+  /* If we didn't manage to map the input file for any reason, assume
+   * that pages were mapped so we will not evict them: essentially fall
+   * back to doing nothing.
+   */
   if (rwf->cached_pages.size == 0) return;
 
   /* Only bother with whole pages. */
