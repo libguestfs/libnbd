@@ -136,18 +136,19 @@ nbd_rw_create_subprocess (const char **argv, size_t argc, direction d)
 
   /* We have to copy the args so we can null-terminate them. */
   for (i = 0; i < argc; ++i) {
-    if (const_string_vector_append (&rwn->argv, argv[i]) == -1) {
-    memory_error:
-      perror ("realloc");
-      exit (EXIT_FAILURE);
-    }
+    if (const_string_vector_append (&rwn->argv, argv[i]) == -1)
+      goto error;
   }
   if (const_string_vector_append (&rwn->argv, NULL) == -1)
-    goto memory_error;
+    goto error;
 
   open_one_nbd_handle (rwn);
 
   return &rwn->rw;
+
+error:
+  perror ("realloc");
+  exit (EXIT_FAILURE);
 }
 
 static void
@@ -384,14 +385,18 @@ nbd_ops_get_polling_fd (struct rw *rw, uintptr_t index,
   nbd = rwn->handles.ptr[index];
 
   *fd = nbd_aio_get_fd (nbd);
-  if (*fd == -1) {
-  error:
-    fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
+  if (*fd == -1)
+    goto error;
+
   *direction = nbd_aio_get_direction (nbd);
   if (*direction == -1)
     goto error;
+
+  return;
+
+error:
+  fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
+  exit (EXIT_FAILURE);
 }
 
 static void
