@@ -65,6 +65,7 @@ Makefile.in
 /examples/server-flags
 /examples/strict-structured-reads
 /examples/threaded-reads-and-writes
+/examples/copy-libev
 /fuse/nbdfuse
 /fuse/nbdfuse.1
 /fuzzing/libnbd-fuzz-wrapper

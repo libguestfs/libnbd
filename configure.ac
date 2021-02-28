@@ -223,6 +223,25 @@ PKG_CHECK_MODULES([GLIB], [glib-2.0], [
 ])
 AM_CONDITIONAL([HAVE_GLIB], [test "x$GLIB_LIBS" != "x"])
 
+dnl libev support for examples that interoperate with libev event loop.
+PKG_CHECK_MODULES([LIBEV], [libev], [
+    AC_SUBST([LIBEV_CFLAGS])
+    AC_SUBST([LIBEV_LIBS])
+],[
+    dnl no pkg-config for libev, searching manually:
+    AC_CHECK_HEADERS([ev.h], [
+        AC_CHECK_LIB([ev], [ev_time], [
+            AC_SUBST([LIBEV_LIBS], ["-lev"])
+        ],
+        [
+            AC_MSG_WARN([libev not found, some examples will not be compiled])
+        ])
+    ],[
+        AC_MSG_WARN([ev.h not found, some examples will not be compiled])
+    ])
+])
+AM_CONDITIONAL([HAVE_LIBEV], [test "x$LIBEV_LIBS" != "x"])
+
 dnl FUSE is optional to build the FUSE module.
 AC_ARG_ENABLE([fuse],
     AS_HELP_STRING([--disable-fuse], [disable FUSE (guestmount) support]),

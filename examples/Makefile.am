@@ -39,6 +39,11 @@ noinst_PROGRAMS += \
 	glib-main-loop
 endif
 
+if HAVE_LIBEV
+noinst_PROGRAMS += \
+	copy-libev
+endif
+
 aio_connect_read_SOURCES = \
 	aio-connect-read.c \
 	$(NULL)
@@ -211,5 +216,22 @@ glib_main_loop_CFLAGS = \
 glib_main_loop_LDADD = \
 	$(top_builddir)/lib/libnbd.la \
 	$(GLIB_LIBS) \
+	$(NULL)
+endif
+
+if HAVE_LIBEV
+copy_libev_SOURCES = \
+	copy-libev.c \
+	$(NULL)
+copy_libev_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	$(NULL)
+copy_libev_CFLAGS = \
+	$(WARNINGS_CFLAGS) \
+	$(LIBEV_CFLAGS) \
+	$(NULL)
+copy_libev_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(LIBEV_LIBS) \
 	$(NULL)
 endif
