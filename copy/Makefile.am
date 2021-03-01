@@ -36,6 +36,7 @@ EXTRA_DIST = \
 	copy-sparse.sh \
 	copy-sparse-allocated.sh \
 	copy-sparse-no-extents.sh \
+	copy-sparse-request-size.sh \
 	copy-sparse-to-stream.sh \
 	copy-stdin-to-nbd.sh \
 	copy-stdin-to-null.sh \
@@ -122,6 +123,7 @@ TESTS += \
 	copy-sparse.sh \
 	copy-sparse-allocated.sh \
 	copy-sparse-no-extents.sh \
+	copy-sparse-request-size.sh \
 	copy-sparse-to-stream.sh \
 	$(ROOT_TESTS) \
 	test-long-options.sh \
