@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2020 Red Hat Inc.
+ * Copyright (C) 2020-2021 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -83,7 +83,8 @@ nbd_unlocked_opt_go (struct nbd_handle *h)
 
   r = wait_for_option (h);
   if (r == 0 && err) {
-    assert (nbd_internal_is_state_negotiating (get_next_state (h)));
+    assert (nbd_internal_is_state_negotiating (get_next_state (h)) ||
+            nbd_internal_is_state_dead (get_next_state (h)));
     set_error (err, "server replied with error to opt_go request");
     return -1;
   }
@@ -105,7 +106,8 @@ nbd_unlocked_opt_info (struct nbd_handle *h)
 
   r = wait_for_option (h);
   if (r == 0 && err) {
-    assert (nbd_internal_is_state_negotiating (get_next_state (h)));
+    assert (nbd_internal_is_state_negotiating (get_next_state (h)) ||
+            nbd_internal_is_state_dead (get_next_state (h)));
     set_error (err, "server replied with error to opt_info request");
     return -1;
   }
