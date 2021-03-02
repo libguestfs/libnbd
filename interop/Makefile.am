@@ -19,6 +19,7 @@ include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
 	dirty-bitmap.sh \
+	interop-qemu-storage-daemon.sh \
 	list-exports-nbd-config \
 	structured-read.sh \
 	$(NULL)
