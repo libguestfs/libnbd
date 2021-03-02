@@ -17,8 +17,10 @@
  */
 
 #include <assert.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <libnbd.h>
@@ -42,10 +44,18 @@
 
 #define MIN(a,b) (a) < (b) ? (a) : (b)
 
-#define DEBUG(fmt, ...)                                             \
-  do {                                                              \
-    if (debug)                                                      \
-      fprintf (stderr, "copy-libev: " fmt "\n", ## __VA_ARGS__);    \
+#define PROG "copy-libev"
+
+#define DEBUG(fmt, ...)                                     \
+  do {                                                      \
+    if (debug)                                              \
+      fprintf (stderr, PROG ": " fmt "\n", ## __VA_ARGS__); \
+  } while (0)
+
+#define FAIL(fmt, ...)                                      \
+  do {                                                      \
+    fprintf (stderr, PROG ": " fmt "\n", ## __VA_ARGS__);   \
+    exit (EXIT_FAILURE);                                    \
   } while (0)
 
 struct connection {
@@ -111,10 +121,8 @@ start_read(struct request *r)
         (nbd_completion_callback) { .callback=read_completed,
                                     .user_data=r },
         0);
-    if (cookie == -1) {
-        fprintf (stderr, "start_read: %s", nbd_get_error ());
-        exit (EXIT_FAILURE);
-    }
+    if (cookie == -1)
+        FAIL ("Cannot start read: %s", nbd_get_error ());
 
     offset += r->length;
 }
@@ -133,10 +141,8 @@ read_completed (void *user_data, int *error)
         (nbd_completion_callback) { .callback=write_completed,
                                     .user_data=r },
         0);
-    if (cookie == -1) {
-        fprintf (stderr, "read_completed: %s", nbd_get_error ());
-        exit (EXIT_FAILURE);
-    }
+    if (cookie == -1)
+        FAIL ("Cannot start write: %s", nbd_get_error ());
 
     return 1;
 }
@@ -207,44 +213,31 @@ main (int argc, char *argv[])
 
     loop = EV_DEFAULT;
 
-    if (argc != 3) {
-        fprintf (stderr, "Usage: copy-ev src-uri dst-uri\n");
-        exit (EXIT_FAILURE);
-    }
+    if (argc != 3)
+        FAIL ("Usage: %s src-uri dst-uri", PROG);
 
     src.nbd = nbd_create ();
-    if (src.nbd == NULL) {
-        fprintf (stderr, "nbd_create: %s\n", nbd_get_error ());
-        exit (EXIT_FAILURE);
-    }
-
+    if (src.nbd == NULL)
+        FAIL ("Cannot create source: %s", nbd_get_error ());
 
     dst.nbd = nbd_create ();
-    if (dst.nbd == NULL) {
-        fprintf (stderr, "nbd_create: %s\n", nbd_get_error ());
-        exit (EXIT_FAILURE);
-    }
+    if (dst.nbd == NULL)
+        FAIL ("Cannot create destination: %s", nbd_get_error ());
 
     debug = nbd_get_debug (src.nbd);
 
     /* Connecting is fast, so use the syncronous API. */
 
-    if (nbd_connect_uri (src.nbd, argv[1])) {
-        fprintf (stderr, "nbd_connect_uri: %s\n", nbd_get_error ());
-        exit (EXIT_FAILURE);
-    }
+    if (nbd_connect_uri (src.nbd, argv[1]))
+        FAIL ("Cannot connect to source: %s", nbd_get_error ());
 
-    if (nbd_connect_uri (dst.nbd, argv[2])) {
-        fprintf (stderr, "nbd_connect_uri: %s\n", nbd_get_error ());
-        exit (EXIT_FAILURE);
-    }
+    if (nbd_connect_uri (dst.nbd, argv[2]))
+        FAIL ("Cannot connect to destination: %s", nbd_get_error ());
 
     size = nbd_get_size (src.nbd);
 
-    if (size > nbd_get_size (dst.nbd)) {
-        fprintf (stderr, "destinatio is not large enough\n");
-        exit (EXIT_FAILURE);
-    }
+    if (size > nbd_get_size (dst.nbd))
+        FAIL ("Destinatio is not large enough\n");
 
     /* Start the copy "loop".  When request completes, it starts the
      * next request, until entire image was copied. */
@@ -253,10 +246,8 @@ main (int argc, char *argv[])
         struct request *r = &requests[i];
 
         r->data = malloc (REQUEST_SIZE);
-        if (r->data == NULL) {
-            perror ("malloc");
-            exit (EXIT_FAILURE);
-        }
+        if (r->data == NULL)
+            FAIL ("Cannot allocate buffer: %s", strerror (errno));
 
         start_read(r);
     }
@@ -284,11 +275,9 @@ main (int argc, char *argv[])
 
     /* Copy completed - flush data to storage. */
 
-    DEBUG("flush");
-    if (nbd_flush (dst.nbd, 0)) {
-        fprintf (stderr, "Cannot flush: %s", nbd_get_error ());
-        exit (EXIT_FAILURE);
-    }
+    DEBUG ("flush");
+    if (nbd_flush (dst.nbd, 0))
+        FAIL ("Cannot flush: %s", nbd_get_error ());
 
     /* We don't care about errors here since data was flushed. */
 
