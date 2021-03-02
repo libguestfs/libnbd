@@ -50,7 +50,7 @@ $VG nbdcopy -S 0 -- \
 
 # Order of the output could vary because requests are sent in
 # parallel.
-sort -n -o $out $out
+LC_ALL=C sort -n -o $out $out
 
 echo Output:
 cat $out
@@ -65,8 +65,8 @@ zero 134184960 4160749568 may_trim
 zero 134184960 939524096 may_trim
 zero 134217728 1073741824 may_trim
 zero 134217728 1207959552 may_trim
-zero 134217728 1342177280 may_trim
 zero 134217728 134217728 may_trim
+zero 134217728 1342177280 may_trim
 zero 134217728 1476395008 may_trim
 zero 134217728 1610612736 may_trim
 zero 134217728 1744830464 may_trim
@@ -76,8 +76,8 @@ zero 134217728 2147483648 may_trim
 zero 134217728 2281701376 may_trim
 zero 134217728 2415919104 may_trim
 zero 134217728 2550136832 may_trim
-zero 134217728 2684354560 may_trim
 zero 134217728 268435456 may_trim
+zero 134217728 2684354560 may_trim
 zero 134217728 2818572288 may_trim
 zero 134217728 2952790016 may_trim
 zero 134217728 3087007744 may_trim
@@ -87,8 +87,8 @@ zero 134217728 3489660928 may_trim
 zero 134217728 3623878656 may_trim
 zero 134217728 3758096384 may_trim
 zero 134217728 3892314112 may_trim
-zero 134217728 4026531840 may_trim
 zero 134217728 402653184 may_trim
+zero 134217728 4026531840 may_trim
 zero 134217728 536870912 may_trim
 zero 134217728 671088640 may_trim
 zero 134217728 805306368 may_trim" ]; then

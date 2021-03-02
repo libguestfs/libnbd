@@ -50,7 +50,7 @@ $VG nbdcopy --no-extents -S 0 --request-size=1048576 -- \
              trim=" echo \$@ >> $out " \
              zero=" echo \$@ >> $out " ]
 
-sort -n -o $out $out
+LC_ALL=C sort -n -o $out $out
 
 echo Output:
 cat $out
