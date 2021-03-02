@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2020 Red Hat Inc.
+ * Copyright (C) 2020-2021 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -416,13 +416,16 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
 
   /* Collect the metadata we are going to display. If opt_info works,
    * great; if not (such as for legacy newstyle), we have to go all
-   * the way with opt_go.
+   * the way with opt_go.  If we fail to connect (such as a server
+   * advertising something it later refuses to serve), return rather
+   * than exit, to allow output on the rest of the list.
    */
   if (nbd_aio_is_negotiating (nbd) &&
       nbd_opt_info (nbd) == -1 &&
       nbd_opt_go (nbd) == -1) {
-    fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
-    exit (EXIT_FAILURE);
+    fprintf (stderr, "%s: %s: %s\n", progname, nbd_get_export_name (nbd),
+             nbd_get_error ());
+    return;
   }
   size = nbd_get_size (nbd);
   if (size == -1) {
