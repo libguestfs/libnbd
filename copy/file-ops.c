@@ -155,6 +155,7 @@ page_cache_evict (struct rw_file *rwf, uint64_t orig_offset, size_t orig_len)
 
   /* Only bother with whole pages. */
   offset = ROUND_UP (orig_offset, page_size);
+  if (orig_len < offset - orig_offset) return;
   len = orig_len - (offset - orig_offset);
   len = ROUND_DOWN (len, page_size);
 
