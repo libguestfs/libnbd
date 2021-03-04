@@ -61,6 +61,7 @@
 struct connection {
     ev_io watcher;
     struct nbd_handle *nbd;
+    bool can_zero;
 };
 
 struct request {
@@ -79,9 +80,35 @@ static int64_t offset;
 static int64_t written;
 static bool debug;
 
+static void start_request(struct request *r);
 static void start_read(struct request *r);
+static void start_write(struct request *r);
+static void start_zero(struct request *r);
 static int read_completed(void *user_data, int *error);
-static int write_completed(void *user_data, int *error);
+static int request_completed(void *user_data, int *error);
+
+/* Return true iff data is all zero bytes.
+ *
+ * Based on Rusty Russell's memeqzero:
+ * https://rusty.ozlabs.org/?p=560
+ */
+static bool
+is_zero (const unsigned char *data, size_t len)
+{
+  const unsigned char *p = data;
+  size_t i;
+
+  for (i = 0; i < 16; i++) {
+    if (len == 0)
+        return true;
+    if (*p)
+      return false;
+    p++;
+    len--;
+  }
+
+  return memcmp (data, p, len) == 0;
+}
 
 static inline int
 get_fd(struct connection *c)
@@ -104,15 +131,24 @@ get_events(struct connection *c)
     return events;
 }
 
+/* Start async copy or zero request. */
 static void
-start_read(struct request *r)
+start_request(struct request *r)
 {
-    int64_t cookie;
-
     assert (offset < size);
 
     r->length = MIN (REQUEST_SIZE, size - offset);
     r->offset = offset;
+
+    start_read (r);
+
+    offset += r->length;
+}
+
+static void
+start_read(struct request *r)
+{
+    int64_t cookie;
 
     DEBUG ("start read offset=%ld len=%ld", r->offset, r->length);
 
@@ -123,38 +159,64 @@ start_read(struct request *r)
         0);
     if (cookie == -1)
         FAIL ("Cannot start read: %s", nbd_get_error ());
-
-    offset += r->length;
 }
 
 static int
 read_completed (void *user_data, int *error)
 {
     struct request *r = (struct request *)user_data;
-    int64_t cookie;
 
-    DEBUG ("read completed, starting write offset=%ld len=%ld",
-           r->offset, r->length);
+    DEBUG ("read completed offset=%ld len=%ld", r->offset, r->length);
 
-    cookie = nbd_aio_pwrite (
-        dst.nbd, r->data, r->length, r->offset,
-        (nbd_completion_callback) { .callback=write_completed,
-                                    .user_data=r },
-        0);
-    if (cookie == -1)
-        FAIL ("Cannot start write: %s", nbd_get_error ());
+    if (dst.can_zero && is_zero (r->data, r->length))
+        start_zero (r);
+    else
+        start_write (r);
 
     return 1;
 }
 
+static void
+start_write(struct request *r)
+{
+    int64_t cookie;
+
+    DEBUG ("start write offset=%ld len=%ld", r->offset, r->length);
+
+    cookie = nbd_aio_pwrite (
+        dst.nbd, r->data, r->length, r->offset,
+        (nbd_completion_callback) { .callback=request_completed,
+                                    .user_data=r },
+        0);
+    if (cookie == -1)
+        FAIL ("Cannot start write: %s", nbd_get_error ());
+}
+
+static void
+start_zero(struct request *r)
+{
+    int64_t cookie;
+
+    DEBUG ("start zero offset=%ld len=%ld", r->offset, r->length);
+
+    cookie = nbd_aio_zero (
+        dst.nbd, r->length, r->offset,
+        (nbd_completion_callback) { .callback=request_completed,
+                                    .user_data=r },
+        0);
+    if (cookie == -1)
+        FAIL ("Cannot start zero: %s", nbd_get_error ());
+}
+
+/* Called when async copy or zero request completed. */
 static int
-write_completed (void *user_data, int *error)
+request_completed (void *user_data, int *error)
 {
     struct request *r = (struct request *)user_data;
 
     written += r->length;
 
-    DEBUG ("write completed offset=%ld len=%ld", r->offset, r->length);
+    DEBUG ("request completed offset=%ld len=%ld", r->offset, r->length);
 
     if (written == size) {
         /* The last write completed. Stop all watchers and break out
@@ -168,7 +230,7 @@ write_completed (void *user_data, int *error)
 
     /* If we have data to read, start a new read. */
     if (offset < size)
-        start_read(r);
+        start_request(r);
 
     return 1;
 }
@@ -239,6 +301,10 @@ main (int argc, char *argv[])
     if (size > nbd_get_size (dst.nbd))
         FAIL ("Destinatio is not large enough\n");
 
+    /* Check destination server capabilities. */
+
+    dst.can_zero = nbd_can_zero (dst.nbd) > 0;
+
     /* Start the copy "loop".  When request completes, it starts the
      * next request, until entire image was copied. */
 
@@ -249,7 +315,7 @@ main (int argc, char *argv[])
         if (r->data == NULL)
             FAIL ("Cannot allocate buffer: %s", strerror (errno));
 
-        start_read(r);
+        start_request(r);
     }
 
     /* Start watching events on src and dst handles. */
