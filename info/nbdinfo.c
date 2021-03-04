@@ -58,9 +58,9 @@ DEFINE_VECTOR_TYPE (uint32_vector, uint32_t)
 static int collect_context (void *opaque, const char *name);
 static int collect_export (void *opaque, const char *name,
                            const char *desc);
-static void list_one_export (struct nbd_handle *nbd, const char *desc,
+static bool list_one_export (struct nbd_handle *nbd, const char *desc,
                              bool first, bool last);
-static void list_all_exports (struct nbd_handle *nbd1, const char *uri);
+static bool list_all_exports (struct nbd_handle *nbd1, const char *uri);
 static void print_json_string (const char *);
 static char *get_content (struct nbd_handle *, int64_t size);
 static int extent_callback (void *user_data, const char *metacontext,
@@ -124,6 +124,7 @@ main (int argc, char *argv[])
   int tls_negotiated;
   char *output = NULL;
   size_t output_len = 0;
+  bool list_okay = true;
 
   progname = argv[0];
 
@@ -336,9 +337,9 @@ main (int argc, char *argv[])
     }
 
     if (!list_all)
-      list_one_export (nbd, NULL, true, true);
+      list_okay = list_one_export (nbd, NULL, true, true);
     else
-      list_all_exports (nbd, argv[optind]);
+      list_okay = list_all_exports (nbd, argv[optind]);
 
     if (json_output)
       fprintf (fp, "}\n");
@@ -365,7 +366,7 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  exit (EXIT_SUCCESS);
+  exit (list_okay ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 static int
@@ -398,7 +399,7 @@ collect_export (void *opaque, const char *name, const char *desc)
   return 0;
 }
 
-static void
+static bool
 list_one_export (struct nbd_handle *nbd, const char *desc,
                  bool first, bool last)
 {
@@ -424,7 +425,7 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
       nbd_opt_go (nbd) == -1) {
     fprintf (stderr, "%s: %s: %s\n", progname, nbd_get_export_name (nbd),
              nbd_get_error ());
-    return;
+    return false;
   }
   size = nbd_get_size (nbd);
   if (size == -1) {
@@ -599,12 +600,14 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
   free (content);
   free (export_name);
   free (export_desc);
+  return true;
 }
 
-static void
+static bool
 list_all_exports (struct nbd_handle *nbd1, const char *uri)
 {
   size_t i;
+  bool list_okay = true;
 
   if (export_list.size == 0 && json_output)
     fprintf (fp, "\"exports\": []\n");
@@ -639,14 +642,16 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
     }
 
     /* List the metadata of this export. */
-    list_one_export (nbd2, export_list.ptr[i].desc, i == 0,
-                     i + 1 == export_list.size);
+    if (!list_one_export (nbd2, export_list.ptr[i].desc, i == 0,
+                          i + 1 == export_list.size))
+      list_okay = false;
 
     if (probe_content) {
       nbd_shutdown (nbd2, 0);
       nbd_close (nbd2);
     }
   }
+  return list_okay;
 }
 
 static void
