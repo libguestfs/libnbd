@@ -306,6 +306,11 @@ starting a command.
 See
 L<https://github.com/libguestfs/libnbd/blob/master/examples/glib-main-loop.c>
 
+=head2 libev integration
+
+See
+L<https://github.com/libguestfs/libnbd/blob/master/examples/copy-libev.c>
+
 =head1 ERROR HANDLING
 
 When any API call returns an error (C<-1> or C<NULL> depending on the
