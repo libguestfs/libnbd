@@ -248,13 +248,19 @@ start_extents (struct request *r)
 static void
 next_extent (struct request *r)
 {
-    uint32_t limit = MIN (REQUEST_SIZE, size - offset);
+    uint32_t limit;
     uint32_t length = 0;
     bool is_zero;
 
     assert (extents);
 
     is_zero = extents[extents_pos + 1] & LIBNBD_STATE_ZERO;
+
+    /* Zero can be much faster, so try to zero entire extent. */
+    if (is_zero && dst.can_zero)
+        limit = MIN (EXTENTS_SIZE, size - offset);
+    else
+        limit = MIN (REQUEST_SIZE, size - offset);
 
     while (length < limit) {
         DEBUG ("e%d: offset=%ld len=%ld zero=%d",
