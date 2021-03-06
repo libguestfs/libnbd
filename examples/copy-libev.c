@@ -119,16 +119,20 @@ get_fd(struct connection *c)
 static inline int
 get_events(struct connection *c)
 {
-    int events = 0;
     unsigned dir = nbd_aio_get_direction (c->nbd);
 
-    if (dir & LIBNBD_AIO_DIRECTION_WRITE)
-        events |= EV_WRITE;
+    switch (dir) {
+        case LIBNBD_AIO_DIRECTION_READ:
+            return EV_READ;
+        case LIBNBD_AIO_DIRECTION_WRITE:
+            return EV_WRITE;
+        case LIBNBD_AIO_DIRECTION_BOTH:
+            return EV_READ | EV_WRITE;
+        default:
+            return 0;
+    }
 
-    if (dir & LIBNBD_AIO_DIRECTION_READ)
-        events |= EV_READ;
 
-    return events;
 }
 
 /* Start async copy or zero request. */
@@ -241,11 +245,15 @@ io_cb (struct ev_loop *loop, ev_io *w, int revents)
 {
     struct connection *c = (struct connection *)w;
 
-    if (revents & EV_WRITE)
-        nbd_aio_notify_write (c->nbd);
+    /* Based on lib/poll.c, we need to prefer read over write, and avoid
+     * invoking both notify_read() and notify_write(), since notify_read() may
+     * change the state of the handle.
+     */
 
     if (revents & EV_READ)
         nbd_aio_notify_read (c->nbd);
+    else if (revents & EV_WRITE)
+        nbd_aio_notify_write (c->nbd);
 }
 
 static inline void
