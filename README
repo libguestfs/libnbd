@@ -148,7 +148,7 @@ When testing use:
 For development ideas, see the TODO file.
 
 The upstream git repository is:
-https://github.com/libguestfs/libnbd
+https://gitlab.com/nbdkit/libnbd
 
 Please send patches to the libguestfs mailing list:
 https://www.redhat.com/mailman/listinfo/libguestfs
@@ -156,4 +156,4 @@ https://www.redhat.com/mailman/listinfo/libguestfs
 For further information, see:
 http://libguestfs.org/
 https://github.com/NetworkBlockDevice/nbd/blob/master/doc/proto.md
-https://github.com/libguestfs/nbdkit
+https://gitlab.com/nbdkit/nbdkit

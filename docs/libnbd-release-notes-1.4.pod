@@ -13,7 +13,7 @@ libnbd 1.4.0 was released on 25 August 2020.
 
 There were no security issues found in this release.  If you find a
 security issue, please read F<SECURITY> in the source (online here:
-L<https://github.com/libguestfs/libnbd/blob/master/SECURITY>).  To
+L<https://gitlab.com/nbdkit/libnbd/blob/master/SECURITY>).  To
 find out about previous security issues in libnbd, see
 L<libnbd-security(3)>.
 

@@ -304,7 +304,7 @@ starting a command.
 =head2 glib2 integration
 
 See
-L<https://github.com/libguestfs/libnbd/blob/master/examples/glib-main-loop.c>
+L<https://gitlab.com/nbdkit/libnbd/blob/master/examples/glib-main-loop.c>
 
 =head1 ERROR HANDLING
 
@@ -602,7 +602,7 @@ to read as zero).
 
 There is a full example of requesting meta context and using block
 status available at
-L<https://github.com/libguestfs/libnbd/blob/master/interop/dirty-bitmap.c>
+L<https://gitlab.com/nbdkit/libnbd/blob/master/interop/dirty-bitmap.c>
 
 =back
 
@@ -639,7 +639,7 @@ and measure how adjusting the limit up and down affects performance
 for your local configuration.
 
 There is a full example using multiple in-flight requests available at
-L<https://github.com/libguestfs/libnbd/blob/master/examples/threaded-reads-and-writes.c>
+L<https://gitlab.com/nbdkit/libnbd/blob/master/examples/threaded-reads-and-writes.c>
 
 =head2 Multi-conn
 

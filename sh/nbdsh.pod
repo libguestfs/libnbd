@@ -116,7 +116,7 @@ Display the package name and version and exit.
 
 There are some example nbdsh scripts in the libnbd source repository
 under F<sh/examples> or see
-L<https://github.com/libguestfs/libnbd/tree/master/sh/examples>.
+L<https://gitlab.com/nbdkit/libnbd/tree/master/sh/examples>.
 
 =head2 Using libnbd directly from Python
 
@@ -131,7 +131,7 @@ which imports the C<nbd> module:
 
 There are some example Python scripts in the libnbd source repository
 under F<python/examples> or see
-L<https://github.com/libguestfs/libnbd/tree/master/python/examples>.
+L<https://gitlab.com/nbdkit/libnbd/tree/master/python/examples>.
 
 =head1 SEE ALSO
 
