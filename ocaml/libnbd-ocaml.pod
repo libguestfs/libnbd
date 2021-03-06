@@ -40,7 +40,7 @@ compatible with errors in the OCaml C<Unix> module unfortunately.
 
 This directory contains examples written in OCaml:
 
-L<https://github.com/libguestfs/libnbd/tree/master/ocaml/examples>
+L<https://gitlab.com/nbdkit/libnbd/tree/master/ocaml/examples>
 
 =head1 SEE ALSO
 

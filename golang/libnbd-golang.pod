@@ -46,7 +46,7 @@ C<(ret, LibnbdError)>.
 
 This directory contains examples written in Go:
 
-L<https://github.com/libguestfs/libnbd/tree/master/golang/examples>
+L<https://gitlab.com/nbdkit/libnbd/tree/master/golang/examples>
 
 =head1 SEE ALSO
 
