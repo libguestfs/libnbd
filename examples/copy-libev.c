@@ -13,7 +13,7 @@
  *
  * To debug it:
  *
- *     LIBNBD_DEBUG=1 ./copy-ev ...
+ *     COPY_LIBEV_DEBUG=1 ./copy-ev ...
  */
 
 #include <assert.h>
@@ -68,6 +68,8 @@ struct request {
     int64_t offset;
     size_t length;
     unsigned char *data;
+    size_t index;
+    ev_tstamp started;
 };
 
 static struct ev_loop *loop;
@@ -141,6 +143,7 @@ start_request(struct request *r)
 {
     assert (offset < size);
 
+    r->started = ev_now (loop);
     r->length = MIN (REQUEST_SIZE, size - offset);
     r->offset = offset;
 
@@ -154,7 +157,8 @@ start_read(struct request *r)
 {
     int64_t cookie;
 
-    DEBUG ("start read offset=%ld len=%ld", r->offset, r->length);
+    DEBUG ("r%d: start read offset=%ld len=%ld",
+           r->index, r->offset, r->length);
 
     cookie = nbd_aio_pread (
         src.nbd, r->data, r->length, r->offset,
@@ -170,7 +174,8 @@ read_completed (void *user_data, int *error)
 {
     struct request *r = (struct request *)user_data;
 
-    DEBUG ("read completed offset=%ld len=%ld", r->offset, r->length);
+    DEBUG ("r%d: read completed offset=%ld len=%ld",
+           r->index, r->offset, r->length);
 
     if (dst.can_zero && is_zero (r->data, r->length))
         start_zero (r);
@@ -185,7 +190,8 @@ start_write(struct request *r)
 {
     int64_t cookie;
 
-    DEBUG ("start write offset=%ld len=%ld", r->offset, r->length);
+    DEBUG ("r%d: start write offset=%ld len=%ld",
+           r->index, r->offset, r->length);
 
     cookie = nbd_aio_pwrite (
         dst.nbd, r->data, r->length, r->offset,
@@ -201,7 +207,8 @@ start_zero(struct request *r)
 {
     int64_t cookie;
 
-    DEBUG ("start zero offset=%ld len=%ld", r->offset, r->length);
+    DEBUG ("r%d: start zero offset=%ld len=%ld",
+           r->index, r->offset, r->length);
 
     cookie = nbd_aio_zero (
         dst.nbd, r->length, r->offset,
@@ -220,7 +227,8 @@ request_completed (void *user_data, int *error)
 
     written += r->length;
 
-    DEBUG ("request completed offset=%ld len=%ld", r->offset, r->length);
+    DEBUG ("r%d: request completed offset=%ld len=%ld time=%.6f",
+           r->index, r->offset, r->length, ev_now (loop) - r->started);
 
     if (written == size) {
         /* The last write completed. Stop all watchers and break out
@@ -294,7 +302,7 @@ main (int argc, char *argv[])
     if (dst.nbd == NULL)
         FAIL ("Cannot create destination: %s", nbd_get_error ());
 
-    debug = nbd_get_debug (src.nbd);
+    debug = getenv ("COPY_LIBEV_DEBUG") != NULL;
 
     /* Connecting is fast, so use the syncronous API. */
 
@@ -319,6 +327,7 @@ main (int argc, char *argv[])
     for (i = 0; i < MAX_REQUESTS && offset < size; i++) {
         struct request *r = &requests[i];
 
+        r->index = i;
         r->data = malloc (REQUEST_SIZE);
         if (r->data == NULL)
             FAIL ("Cannot allocate buffer: %s", strerror (errno));
