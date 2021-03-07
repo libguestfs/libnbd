@@ -66,6 +66,19 @@ struct connection {
     bool can_extents;
 };
 
+enum request_state {
+    IDLE,       /* Not used yet. */
+    EXTENTS,    /* Getting extents from source. */
+    READ,       /* Read from source. */
+    WRITE,      /* Write to destiation. */
+    ZERO,       /* Write zeroes to destiation. */
+    SLEEP       /* Waiting for extents completion. */
+};
+
+static const char *state_names[] = {
+    "idle", "extents", "read", "write", "zero", "sleep"
+};
+
 struct request {
     ev_timer watcher;       /* For starting on next loop iteration. */
     int64_t offset;
@@ -74,7 +87,7 @@ struct request {
     unsigned char *data;
     size_t index;
     ev_tstamp started;
-    bool waiting;           /* Waiting for extents completion. */
+    enum request_state state;
 };
 
 static struct ev_loop *loop;
@@ -133,6 +146,12 @@ is_zero (const unsigned char *data, size_t len)
   }
 
   return memcmp (data, p, len) == 0;
+}
+
+static inline const char *
+request_state (struct request *r)
+{
+    return state_names[r->state];
 }
 
 static inline int
@@ -198,15 +217,16 @@ extents_completed (void *user_data, int *error)
         src.can_extents = false;
     }
 
-    /* Start requests waiting for extents completion on the next loop
-     * iteration, to avoid deadlock if we need to start a read.
+    /* Start the request to process recvievd extents. This must be done on the
+     * next loop iteration, to avoid deadlock if we need to start a read.
      */
+    start_request_soon(r);
+
+    /* Wake up requests waiting for extents completion */
     for (i = 0; i < MAX_REQUESTS; i++) {
         struct request *r = &requests[i];
-        if (r->waiting) {
-            r->waiting = false;
+        if (r->state == SLEEP)
             start_request_soon (r);
-       }
     }
 
     return 1;
@@ -219,7 +239,8 @@ start_extents (struct request *r)
     int64_t cookie;
 
     if (extents_in_progress) {
-        r->waiting = true;
+        /* Sleep until extents request completes. */
+        r->state = SLEEP;
         return true;
     }
 
@@ -238,7 +259,7 @@ start_extents (struct request *r)
         return false;
     }
 
-    r->waiting = true;
+    r->state = EXTENTS;
     extents_in_progress = true;
 
     return true;
@@ -315,6 +336,7 @@ next_extent (struct request *r)
 static inline void
 start_request_soon (struct request *r)
 {
+    r->state = IDLE;
     ev_timer_init (&r->watcher, start_request_cb, 0, 0);
     ev_timer_start (loop, &r->watcher);
 }
@@ -339,8 +361,6 @@ start_request(struct request *r)
     /* If needed, get more extents from server. */
     if (src.can_extents && extents == NULL && start_extents (r))
         return;
-
-    DEBUG ("r%d: start request offset=%ld", r->index, offset);
 
     if (src.can_extents) {
         /* Handle the next extent. */
@@ -368,6 +388,8 @@ static void
 start_read(struct request *r)
 {
     int64_t cookie;
+
+    r->state = READ;
 
     DEBUG ("r%d: start read offset=%ld len=%ld",
            r->index, r->offset, r->length);
@@ -402,6 +424,8 @@ start_write(struct request *r)
 {
     int64_t cookie;
 
+    r->state = WRITE;
+
     DEBUG ("r%d: start write offset=%ld len=%ld",
            r->index, r->offset, r->length);
 
@@ -418,6 +442,8 @@ static void
 start_zero(struct request *r)
 {
     int64_t cookie;
+
+    r->state = ZERO;
 
     DEBUG ("r%d: start zero offset=%ld len=%ld",
            r->index, r->offset, r->length);
@@ -439,8 +465,9 @@ request_completed (void *user_data, int *error)
 
     written += r->length;
 
-    DEBUG ("r%d: request completed offset=%ld len=%ld time=%.6f",
-           r->index, r->offset, r->length, ev_now (loop) - r->started);
+    DEBUG ("r%d: %s completed offset=%ld len=%ld, time=%.6f",
+           r->index, request_state (r), r->offset, r->length,
+           ev_now (loop) - r->started);
 
     if (written == size) {
         /* The last write completed. Stop all watchers and break out
