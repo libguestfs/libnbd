@@ -42,6 +42,7 @@
 #define MAX_REQUESTS 16
 #define REQUEST_SIZE (1024 * 1024)
 #define EXTENTS_SIZE (128 * 1024 * 1024)
+#define GIB (1024 * 1024 * 1024)
 
 #define MIN(a,b) (a) < (b) ? (a) : (b)
 
@@ -115,6 +116,8 @@ static int64_t size;
 static int64_t offset;
 static int64_t written;
 static bool debug;
+static ev_tstamp started;
+static ev_timer progress;
 
 static inline void start_request_soon (struct request *r);
 static void start_request_cb (struct ev_loop *loop, ev_timer *w, int revents);
@@ -505,6 +508,36 @@ io_cb (struct ev_loop *loop, ev_io *w, int revents)
         nbd_aio_notify_write (c->nbd);
 }
 
+static void
+progress_cb (struct ev_loop *loop, ev_timer *w, int revents)
+{
+    ev_tstamp duration = ev_now (loop) - started;
+
+    printf ("[ %6.2f%% ] %.2f GiB, %.2f seconds, %.2f GiB/s      %c",
+            (double) written / size * 100,
+            (double) size / GIB,
+            duration,
+            (double) written / GIB / duration,
+            revents ? '\r' : '\n');
+
+    fflush (stdout);
+}
+
+static void
+start_progress ()
+{
+    started = ev_now (loop);
+    ev_timer_init (&progress, progress_cb, 0, 0.1);
+    ev_timer_start (loop, &progress);
+}
+
+static void
+finish_progress ()
+{
+    ev_now_update (loop);
+    progress_cb (loop, &progress, 0);
+}
+
 static inline void
 update_watcher (struct connection *c)
 {
@@ -534,6 +567,8 @@ main (int argc, char *argv[])
 
     if (argc != 3)
         FAIL ("Usage: %s src-uri dst-uri", PROG);
+
+    start_progress ();
 
     src.nbd = nbd_create ();
     if (src.nbd == NULL)
@@ -619,6 +654,8 @@ main (int argc, char *argv[])
     nbd_close (src.nbd);
 
     /* We can free requests data here, but it is not really needed. */
+
+    finish_progress ();
 
     return 0;
 }
