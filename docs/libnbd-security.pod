@@ -22,6 +22,12 @@ L<https://www.redhat.com/archives/libguestfs/2019-September/msg00128.html>
 See the full announcement here:
 L<https://www.redhat.com/archives/libguestfs/2019-October/msg00060.html>
 
+=head2 CVE-2021-20286
+denial of service when using L<nbd_set_opt_mode(3)>
+
+See the full announcement here:
+L<https://listman.redhat.com/archives/libguestfs/2021-March/msg00092.html>
+
 =head1 SEE ALSO
 
 L<libnbd(3)>.
@@ -34,4 +40,4 @@ Richard W.M. Jones
 
 =head1 COPYRIGHT
 
-Copyright (C) 2019 Red Hat Inc.
+Copyright (C) 2019-2021 Red Hat Inc.
