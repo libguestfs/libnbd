@@ -68,7 +68,7 @@ EXTRA_DIST = \
 	$(sources) \
 	$(NULL)
 
-if HAVE_OCAML
+if HAVE_OCAMLC
 
 stamp-generator: generator $(states_code)
 	rm -f $@
