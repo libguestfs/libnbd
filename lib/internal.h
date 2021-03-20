@@ -94,6 +94,9 @@ struct nbd_handle {
   /* Lock protecting concurrent access to the handle. */
   pthread_mutex_t lock;
 
+  /* Private data, for the application to use. */
+  _Atomic uintptr_t private_data;
+
   char *export_name;            /* Export name, never NULL. */
 
   /* TLS settings. */

@@ -24,6 +24,7 @@ EXTRA_DIST = \
 	test_100_handle.ml \
 	test_110_defaults.ml \
 	test_120_set_non_defaults.ml \
+	test_130_private_data.ml \
 	test_200_connect_command.ml \
 	test_210_opt_abort.ml \
 	test_220_opt_list.ml \
@@ -50,6 +51,7 @@ tests_bc = \
 	test_100_handle.bc \
 	test_110_defaults.bc \
 	test_120_set_non_defaults.bc \
+	test_130_private_data.bc \
 	test_200_connect_command.bc \
 	test_210_opt_abort.bc \
 	test_220_opt_list.bc \
@@ -73,6 +75,7 @@ tests_opt = \
 	test_100_handle.opt \
 	test_110_defaults.opt \
 	test_120_set_non_defaults.opt \
+	test_130_private_data.opt \
 	test_200_connect_command.opt \
 	test_210_opt_abort.opt \
 	test_220_opt_list.opt \

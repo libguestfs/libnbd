@@ -53,7 +53,7 @@ and ocaml_arg_to_string = function
   | SizeT _ -> "int" (* OCaml int type is always sufficient for counting *)
   | String _ -> "string"
   | StringList _ -> "string list"
-  | UInt _ -> "int"
+  | UInt _ | UIntPtr _ -> "int"
   | UInt32 _ -> "int32"
   | UInt64 _ -> "int64"
 
@@ -67,7 +67,7 @@ and ocaml_ret_to_string = function
   | RCookie -> "cookie"
   | RSizeT -> "int"
   | RString -> "string"
-  | RUInt -> "int"
+  | RUInt | RUIntPtr -> "int"
   | REnum { enum_prefix } -> enum_prefix ^ ".t"
   | RFlags { flag_prefix } -> flag_prefix ^ ".t list"
 
@@ -112,6 +112,7 @@ let ocaml_name_of_arg = function
   | UInt n -> n
   | UInt32 n -> n
   | UInt64 n -> n
+  | UIntPtr n -> n
 
 let ocaml_name_of_optarg = function
   | OClosure { cbname } -> cbname
@@ -677,7 +678,7 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
        pr "  abort ();\n" (* XXX *)
     | StringList n ->
        pr "  char **%s = (char **) nbd_internal_ocaml_string_list (%sv);\n" n n
-    | UInt n ->
+    | UInt n | UIntPtr n ->
        pr "  unsigned %s = Int_val (%sv);\n" n n
     | UInt32 n ->
        pr "  uint32_t %s = Int32_val (%sv);\n" n n
@@ -717,7 +718,7 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
   (match ret with
    | RBool -> pr "  rv = Val_bool (r);\n"
    | RErr -> pr "  rv = Val_unit;\n"
-   | RFd | RInt | RSizeT | RUInt -> pr "  rv = Val_int (r);\n"
+   | RFd | RInt | RSizeT | RUInt | RUIntPtr -> pr "  rv = Val_int (r);\n"
    | REnum { enum_prefix } -> pr "  rv = Val_%s (r);\n" enum_prefix
    | RFlags { flag_prefix } -> pr "  rv = Val_%s (r);\n" flag_prefix
    | RInt64 | RCookie -> pr "  rv = caml_copy_int64 (r);\n"
@@ -748,7 +749,8 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
     | SockAddrAndLen _
     | UInt _
     | UInt32 _
-    | UInt64 _ -> ()
+    | UInt64 _
+    | UIntPtr _ -> ()
   ) args;
 
   pr "  CAMLreturn (rv);\n";

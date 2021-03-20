@@ -64,6 +64,7 @@ and arg =
 | UInt of string           (** small unsigned int *)
 | UInt32 of string         (** 32 bit unsigned int *)
 | UInt64 of string         (** 64 bit unsigned int *)
+| UIntPtr of string        (** uintptr_t in C, same as UInt in non-C *)
 and optarg =
 | OClosure of closure      (** optional closure *)
 | OFlags of string * flags * string list option (** optional flags, uint32_t
@@ -81,6 +82,7 @@ and ret =
 | RString                  (** return a newly allocated string,
                                caller frees, NULL for error *)
 | RUInt                    (** return a bitmask, no error possible *)
+| RUIntPtr                 (** uintptr_t in C, same as RUInt in non-C *)
 | REnum of enum            (** return an enum, no error possible *)
 | RFlags of flags          (** return bitmask of flags, no error possible *)
 and closure = {

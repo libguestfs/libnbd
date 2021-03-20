@@ -188,6 +188,7 @@ Makefile.in
 /tests/opt-list
 /tests/opt-list-meta
 /tests/pki/
+/tests/private-data
 /tests/read-only-flag
 /tests/read-write-flag
 /tests/server-death

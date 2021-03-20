@@ -64,6 +64,7 @@ check_PROGRAMS += \
 	debug-environment \
 	version \
 	export-name \
+	private-data \
 	$(NULL)
 
 TESTS += \
@@ -75,6 +76,7 @@ TESTS += \
 	debug-environment \
 	version \
 	export-name \
+	private-data \
 	$(NULL)
 
 # Even though we have a compile.c, we do not want make to create a 'compile'
@@ -121,6 +123,11 @@ export_name_SOURCES = export-name.c
 export_name_CPPFLAGS = -I$(top_srcdir)/include
 export_name_CFLAGS = $(WARNINGS_CFLAGS)
 export_name_LDADD = $(top_builddir)/lib/libnbd.la
+
+private_data_SOURCES = private-data.c
+private_data_CPPFLAGS = -I$(top_srcdir)/include
+private_data_CFLAGS = $(WARNINGS_CFLAGS)
+private_data_LDADD = $(top_builddir)/lib/libnbd.la
 
 if HAVE_CXX
 

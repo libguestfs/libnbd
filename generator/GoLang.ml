@@ -61,6 +61,7 @@ let go_name_of_arg = function
   | UInt n -> n
   | UInt32 n -> n
   | UInt64 n -> n
+  | UIntPtr n -> n
 
 let go_arg_type = function
   | Bool _ -> "bool"
@@ -82,6 +83,7 @@ let go_arg_type = function
   | UInt _ -> "uint"
   | UInt32 _ -> "uint32"
   | UInt64 _ -> "uint64"
+  | UIntPtr _ -> "uint"
 
 let go_name_of_optarg = function
   | OClosure { cbname } -> sprintf "%sCallback" (camel_case cbname)
@@ -98,10 +100,11 @@ let go_ret_type = function
   | RCookie -> Some "uint64"
   | RSizeT -> Some "uint"
   | RString -> Some "*string"
-  (* RUInt returns (type, error) for consistency, but the error is
-   * always nil unless h is closed
+  (* RUInt | RUIntPtr returns (type, error) for consistency, but the
+   * error is always nil unless h is closed
    *)
   | RUInt -> Some "uint"
+  | RUIntPtr -> Some "uint"
   | REnum { enum_prefix } -> Some (camel_case enum_prefix)
   | RFlags { flag_prefix } -> Some (camel_case flag_prefix)
 
@@ -109,7 +112,7 @@ let go_ret_error = function
   | RErr -> None
   | RBool -> Some "false"
   | RStaticString | RString -> Some "nil"
-  | RFd | RInt | RInt64 | RCookie | RSizeT | RUInt
+  | RFd | RInt | RInt64 | RCookie | RSizeT | RUInt | RUIntPtr
   | REnum _ | RFlags _ -> Some "0"
 
 let go_ret_c_errcode = function
@@ -117,7 +120,7 @@ let go_ret_c_errcode = function
   | RStaticString -> Some "nil"
   | RErr | RFd | RInt | RInt64 | RCookie | RSizeT -> Some "-1"
   | RString -> Some "nil"
-  | RUInt | REnum _ | RFlags _ -> None
+  | RUInt | RUIntPtr | REnum _ | RFlags _ -> None
 
 (* We need a wrapper around every function (except Close) to
  * handle errors because cgo calls are sequence points and
@@ -285,6 +288,8 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
        pr "    c_%s := C.uint32_t (%s)\n" n n
     | UInt64 n ->
        pr "    c_%s := C.uint64_t (%s)\n" n n
+    | UIntPtr n ->
+       pr "    c_%s := C.uintptr_t (%s)\n" n n
   ) args;
   if optargs <> [] then (
     List.iter (
@@ -333,7 +338,7 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
     | SockAddrAndLen (n, len) -> pr ", c_%s, c_%s" n len
     | String n -> pr ", c_%s" n
     | StringList n -> pr ", &c_%s[0]" n
-    | UInt n -> pr ", c_%s" n
+    | UInt n | UIntPtr n -> pr ", c_%s" n
     | UInt32 n -> pr ", c_%s" n
     | UInt64 n -> pr ", c_%s" n
   ) args;
@@ -388,6 +393,8 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
       pr "    C.free (unsafe.Pointer (ret))\n";
       pr "    return &r, nil\n"
    | RUInt ->
+      pr "    return uint (ret), nil\n"
+   | RUIntPtr ->
       pr "    return uint (ret), nil\n"
    | REnum { enum_prefix } ->
       pr "    return %s (ret), nil\n" (camel_case enum_prefix)

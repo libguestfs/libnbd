@@ -190,6 +190,23 @@ nbd_unlocked_get_handle_name (struct nbd_handle *h)
   return copy;
 }
 
+uintptr_t
+nbd_unlocked_set_private_data (struct nbd_handle *h, uintptr_t data)
+{
+  uintptr_t old_data;
+
+  /* atomic_exchange? XXX */
+  old_data = h->private_data;
+  h->private_data = data;
+  return old_data;
+}
+
+uintptr_t
+nbd_unlocked_get_private_data (struct nbd_handle *h)
+{
+  return h->private_data;
+}
+
 int
 nbd_unlocked_set_export_name (struct nbd_handle *h, const char *export_name)
 {

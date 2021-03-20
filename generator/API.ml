@@ -54,6 +54,7 @@ and arg =
 | UInt of string
 | UInt32 of string
 | UInt64 of string
+| UIntPtr of string
 and optarg =
 | OClosure of closure
 | OFlags of string * flags * string list option
@@ -68,6 +69,7 @@ and ret =
 | RSizeT
 | RString
 | RUInt
+| RUIntPtr
 | REnum of enum
 | RFlags of flags
 and closure = {
@@ -315,6 +317,37 @@ L<nbd_set_handle_name(3)> then this returns the name that was set.
 Otherwise it will return a generic name like C<\"nbd1\">,
 C<\"nbd2\">, etc.";
     see_also = [Link "set_handle_name"];
+  };
+
+  "set_private_data", {
+    default_call with
+    args = [ UIntPtr "private_data" ]; ret = RUIntPtr;
+    is_locked = false; may_set_error = false;
+    shortdesc = "set the per-handle private data";
+    longdesc = "\
+Handles contain a private data field for applications to use
+for any purpose.
+
+When calling libnbd from C, the type of this field is C<uintptr_t> so
+it can be used to store an unsigned integer or a pointer.
+
+In non-C bindings it can be used to store an unsigned integer.
+
+This function sets the value of this field and returns the old value
+(or 0 if it was not previously set).";
+    see_also = [Link "get_private_data"];
+  };
+
+  "get_private_data", {
+    default_call with
+    args = []; ret = RUIntPtr;
+    is_locked = false; may_set_error = false;
+    shortdesc = "get the per-handle private data";
+    longdesc = "\
+Return the value of the private data field set previously
+by a call to L<nbd_set_private_data(3)>
+(or 0 if it was not previously set).";
+    see_also = [Link "set_private_data"];
   };
 
   "set_export_name", {
@@ -2972,6 +3005,10 @@ let first_version = [
   "clear_meta_contexts", (1, 6);
   "opt_list_meta_context", (1, 6);
   "aio_opt_list_meta_context", (1, 6);
+
+  (* Added in 1.7.x development cycle, will be stable and supported in 1.8. *)
+  "set_private_data", (1, 8);
+  "get_private_data", (1, 8);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

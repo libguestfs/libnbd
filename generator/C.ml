@@ -68,7 +68,7 @@ let errcode_of_ret =
   function
   | RBool | RErr | RFd | RInt | RInt64 | RCookie | RSizeT -> Some "-1"
   | RStaticString | RString -> Some "NULL"
-  | RUInt | REnum _ | RFlags _ -> None (* errors not possible *)
+  | RUInt | RUIntPtr | REnum _ | RFlags _ -> None (* errors not possible *)
 
 let type_of_ret =
   function
@@ -78,6 +78,7 @@ let type_of_ret =
   | RStaticString -> "const char *"
   | RString -> "char *"
   | RUInt -> "unsigned"
+  | RUIntPtr -> "uintptr_t"
   | RFlags _ -> "uint32_t"
 
 let rec name_of_arg = function
@@ -101,6 +102,7 @@ let rec name_of_arg = function
 | UInt n -> [n]
 | UInt32 n -> [n]
 | UInt64 n -> [n]
+| UIntPtr n -> [n]
 
 let rec print_arg_list ?(wrap = false) ?maxcol ?handle ?types ?(parens = true)
           ?closure_style args optargs =
@@ -182,6 +184,9 @@ and print_arg_list' ?(handle = false) ?(types = true) ?(closure_style = Direct)
          pr "%s" n
       | UInt64 n ->
          if types then pr "uint64_t ";
+         pr "%s" n
+      | UIntPtr n ->
+         if types then pr "uintptr_t ";
          pr "%s" n
   ) args;
   List.iter (
@@ -627,7 +632,7 @@ let generate_lib_api_c () =
       | BytesOut _ | BytesPersistOut _
       | Bool _ | Closure _ | Enum _ | Flags _ | Fd _ | Int _
       | Int64 _ | SizeT _
-      | SockAddrAndLen _ | UInt _ | UInt32 _ | UInt64 _ -> ()
+      | SockAddrAndLen _ | UInt _ | UInt32 _ | UInt64 _ | UIntPtr _ -> ()
     ) args;
     pr "    debug (h, \"enter:";
     List.iter (
@@ -651,6 +656,7 @@ let generate_lib_api_c () =
       | UInt n -> pr " %s=%%u" n
       | UInt32 n -> pr " %s=%%\" PRIu32 \"" n
       | UInt64 n -> pr " %s=%%\" PRIu64 \"" n
+      | UIntPtr n -> pr " %s=%%\" PRIuPTR \"" n
     ) args;
     List.iter (
       function
@@ -673,7 +679,7 @@ let generate_lib_api_c () =
       | SockAddrAndLen (_, len) -> pr ", (int) %s" len
       | Path n | String n | StringList n ->
          pr ", %s_printable ? %s_printable : \"\"" n n
-      | UInt n | UInt32 n | UInt64 n -> pr ", %s" n
+      | UInt n | UInt32 n | UInt64 n | UIntPtr n -> pr ", %s" n
     ) args;
     List.iter (
       function
@@ -693,7 +699,7 @@ let generate_lib_api_c () =
       | BytesOut _ | BytesPersistOut _
       | Bool _ | Closure _ | Enum _ | Flags _ | Fd _ | Int _
       | Int64 _ | SizeT _
-      | SockAddrAndLen _ | UInt _ | UInt32 _ | UInt64 _ -> ()
+      | SockAddrAndLen _ | UInt _ | UInt32 _ | UInt64 _ | UIntPtr _ -> ()
     ) args;
     pr "  }\n"
   (* Print the trace when we leave a call with debugging enabled. *)
@@ -714,7 +720,7 @@ let generate_lib_api_c () =
         pr "          nbd_internal_printable_string (ret);\n"
      | RBool | RErr | RFd | RInt
      | RInt64 | RCookie | RSizeT
-     | RUInt | REnum _ | RFlags _ -> ()
+     | RUInt | RUIntPtr | REnum _ | RFlags _ -> ()
     );
     pr "      debug (h, \"leave: ret=\" ";
     (match ret with
@@ -724,13 +730,14 @@ let generate_lib_api_c () =
      | RStaticString | RString ->
         pr "\"%%s\", ret_printable ? ret_printable : \"\""
      | RUInt | RFlags _ -> pr "\"%%u\", ret"
+     | RUIntPtr -> pr "\"%%\" PRIuPTR, ret"
     );
     pr ");\n";
     (match ret with
      | RStaticString | RString -> pr "      free (ret_printable);\n"
      | RBool | RErr | RFd | RInt
      | RInt64 | RCookie | RSizeT
-     | RUInt | REnum _ | RFlags _ -> ()
+     | RUInt | REnum _ | RFlags _ | RUIntPtr -> ()
     );
     pr "    }\n";
     pr "  }\n"
@@ -878,6 +885,8 @@ let generate_docs_nbd_pod name { args; optargs; ret;
       pr "returned string to avoid a memory leak.\n";
    | RUInt ->
       pr "This call returns a bitmask.\n";
+   | RUIntPtr ->
+      pr "This call returns a C<uintptr_t>.\n";
    | REnum { enum_prefix } ->
       pr "This call returns one of the LIBNBD_%s_* values.\n" enum_prefix;
    | RFlags { flag_prefix } ->

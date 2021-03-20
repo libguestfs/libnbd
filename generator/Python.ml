@@ -308,7 +308,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | StringList n ->
        pr "  PyObject *py_%s;\n" n;
        pr "  char **%s = NULL;\n" n
-    | UInt n -> pr "  unsigned int %s;\n" n
+    | UInt n | UIntPtr n -> pr "  unsigned int %s;\n" n
     | UInt32 n ->
        pr "  uint32_t %s_u32;\n" n;
        pr "  unsigned int %s; /* really uint32_t */\n" n
@@ -349,7 +349,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | SockAddrAndLen (n, _) -> pr " \"O\""
     | String n -> pr " \"s\""
     | StringList n -> pr " \"O\""
-    | UInt n -> pr " \"I\""
+    | UInt n | UIntPtr n -> pr " \"I\""
     | UInt32 n -> pr " \"I\""
     | UInt64 n -> pr " \"K\""
   ) args;
@@ -375,7 +375,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | SockAddrAndLen (n, _) -> pr ", &%s" n
     | String n -> pr ", &%s" n
     | StringList n -> pr ", &py_%s" n
-    | UInt n -> pr ", &%s" n
+    | UInt n | UIntPtr n -> pr ", &%s" n
     | UInt32 n -> pr ", &%s" n
     | UInt64 n -> pr ", &%s" n
   ) args;
@@ -446,7 +446,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | StringList n ->
        pr "  %s = nbd_internal_py_get_string_list (py_%s);\n" n n;
        pr "  if (!%s) goto out;\n" n
-    | UInt _ -> ()
+    | UInt _ | UIntPtr _ -> ()
     | UInt32 n -> pr "  %s_u32 = %s;\n" n n
     | UInt64 n -> pr "  %s_u64 = %s;\n" n n
   ) args;
@@ -471,7 +471,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | SockAddrAndLen (n, _) -> pr ", /* XXX */ (void *) %s, 0" n
     | String n -> pr ", %s" n
     | StringList n -> pr ", %s" n
-    | UInt n -> pr ", %s" n
+    | UInt n | UIntPtr n -> pr ", %s" n
     | UInt32 n -> pr ", %s_u32" n
     | UInt64 n -> pr ", %s_u64" n
   ) args;
@@ -520,6 +520,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | String _
     | StringList _
     | UInt _
+    | UIntPtr _
     | UInt32 _
     | UInt64 _ -> ()
   ) args;
@@ -533,7 +534,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | RErr ->
        pr "  py_ret = Py_None;\n";
        pr "  Py_INCREF (py_ret);\n"
-    | RFd | RInt | REnum _ | RFlags _ | RSizeT | RUInt ->
+    | RFd | RInt | REnum _ | RFlags _ | RSizeT | RUInt | RUIntPtr ->
        pr "  py_ret = PyLong_FromLong (ret);\n"
     | RInt64 | RCookie ->
        pr "  py_ret = PyLong_FromLongLong (ret);\n"
@@ -565,6 +566,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | UInt _ -> ()
     | UInt32 _ -> ()
     | UInt64 _ -> ()
+    | UIntPtr _ -> ()
   ) args;
   List.iter (
     function
@@ -806,6 +808,7 @@ class NBD(object):
           | UInt n -> n, None, None
           | UInt32 n -> n, None, None
           | UInt64 n -> n, None, None
+          | UIntPtr n -> n, None, None
         ) args in
       let optargs =
         List.map (
