@@ -72,6 +72,17 @@ states such as created, connected to a remote server, handshaking,
 idle and ready to issue commands, or busy sending or receiving
 commands.
 
+Handles have a name used in debugging messages.  The name is normally
+generated (C<nbd1>, C<nbd2> etc) but you can set a friendly name with
+L<nbd_set_handle_name(3)>.  Also there is a private field in the
+handle for use by the application, see L<nbd_set_private_data(3)>.
+
+When you have finished with the handle you must call L<nbd_close(3)>
+which closes the underlying socket (if necessary) and frees up all
+associated resources.
+
+=head1 SYNCHRONOUS VS ASYNCHRONOUS API
+
 There are two levels of API available.  A simple high level
 synchronous API lets you give the handle high level instructions like
 “connect to the server”, “read a block”, “write a block”, etc.  Each
@@ -450,6 +461,19 @@ systemd socket activation allowing libnbd to pass a socket to the
 subprocess.  This works very similarly to L<nbd_connect_command(3)>
 described above, but you must use
 L<nbd_connect_systemd_socket_activation(3)> instead.
+
+=head2 Connecting to any socket
+
+If none of the other nbd_connect* methods are suitable you can create
+a connected socket yourself and pass it to L<nbd_connect_socket(3)>.
+
+One use for this is in fuzzing where we use L<socketpair(2)> to create
+the socket, then fork, then have the test harness in the child process
+connected to libnbd over the socket pair (see:
+L<https://gitlab.com/nbdkit/libnbd/-/blob/master/fuzzing/libnbd-fuzz-wrapper.c>).
+
+Another use is to connect libnbd to an address family that it does not
+support natively, such as XDP or IB.
 
 =head1 CONTROLLING NEGOTIATION
 
