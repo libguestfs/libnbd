@@ -548,7 +548,7 @@ echo
 feature "TLS support ............................ " \
         test "x$HAVE_GNUTLS_TRUE" = "x"
 feature "NBD URI support ........................ " \
-        test "x$LIBXML2_LIBS" != "x"
+        test "x$HAVE_LIBXML2_TRUE" = "x"
 feature "FUSE support ........................... " \
         test "x$HAVE_FUSE_TRUE" = "x"
 feature "Manual pages ........................... " \
