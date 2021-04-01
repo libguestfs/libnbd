@@ -82,8 +82,6 @@ export CAML_LD_LIBRARY_PATH
 
 # For golang.
 export GOLANG="@GOLANG@"
-prepend GOPATH "$b/golang":"$s/golang"
-export GOPATH
 if [ -z "$CGO_CFLAGS" ]; then
     CGO_CFLAGS="-I$s/include -I$b"
 else

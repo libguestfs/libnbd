@@ -468,14 +468,6 @@ AS_IF([test "x$enable_golang" != "xno"],[
 
             # Print the version to help with debugging.
             $GOLANG version
-
-            # Substitute some golang environment.
-            GOOS=`$GOLANG env GOOS`
-            GOARCH=`$GOLANG env GOARCH`
-            GOROOT=`$GOLANG env GOROOT`
-            AC_SUBST([GOOS])
-            AC_SUBST([GOARCH])
-            AC_SUBST([GOROOT])
         ],[
             AC_MSG_RESULT([no])
             AC_MSG_WARN([golang ($GOLANG) is installed but not usable])
