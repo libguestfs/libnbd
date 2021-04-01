@@ -24,12 +24,14 @@ EXTRA_DIST = \
 
 if HAVE_GOLANG
 
-noinst_SCRIPTS = get_size read_first_sector
+noinst_SCRIPTS = get_size/get_size read_first_sector/read_first_sector
 
-get_size: get_size.go
-	$(top_builddir)/run go build $<
+get_size/get_size: get_size/get_size.go
+	cd get_size && go build -o get_size
 
-read_first_sector: read_first_sector.go
-	$(top_builddir)/run go build $<
+read_first_sector/read_first_sector: read_first_sector/read_first_sector.go
+	cd read_first_sector && go build -o read_first_sector
 
 endif HAVE_GOLANG
+
+CLEANFILES += get_size/get_size read_first_sector/read_first_sector

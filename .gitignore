@@ -74,8 +74,8 @@ Makefile.in
 /generator/generator
 /generator/generator-cache.v1
 /generator/stamp-generator
-/golang/examples/get_size
-/golang/examples/read_first_sector
+/golang/examples/get_size/get_size
+/golang/examples/read_first_sector/read_first_sector
 /golang/libnbd-golang.3
 /html/*.?.html
 /include/libnbd.h
