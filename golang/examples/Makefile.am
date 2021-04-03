@@ -19,8 +19,11 @@ include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
 	LICENSE-FOR-EXAMPLES \
-	get_size.go \
-	read_first_sector.go
+	get_size/go.mod \
+	get_size/get_size.go \
+	read_first_sector/go.mod \
+	read_first_sector/read_first_sector.go \
+	$(NULL)
 
 if HAVE_GOLANG
 
