@@ -25,6 +25,14 @@
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <netdb.h>
+
+#ifdef HAVE_LINUX_VM_SOCKETS_H
+#include <linux/vm_sockets.h>
+#endif
 
 #include "internal.h"
 #include "vector.h"
@@ -335,6 +343,158 @@ cleanup:
   return ret;
 }
 
+/* This is best effort.  If we didn't save enough information when
+ * connecting then return NULL but try to set errno and the error
+ * string to something useful.
+ */
+
+static int append_query_params (char **query_params,
+                                const char *key, const char *value);
+
+char *
+nbd_unlocked_get_uri (struct nbd_handle *h)
+{
+  xmlURI uri = { 0 };
+  bool using_tls;
+  char *server = NULL;
+  char *query_params = NULL;
+  char *path = NULL;
+  char *ret = NULL;
+
+  if (h->tls == 2)              /* TLS == require */
+    using_tls = true;
+  else if (h->tls_negotiated)
+    using_tls = true;
+  else
+    using_tls = false;
+
+  /* Set scheme, server or socket. */
+  if (h->hostname && h->port) {
+    uri.scheme = using_tls ? "nbds" : "nbd";
+    if (asprintf (&server, "%s:%s", h->hostname, h->port) == -1) {
+      set_error (errno, "asprintf");
+      goto out;
+    }
+    uri.server = server;
+  }
+
+  else if (h->connaddrlen > 0) {
+    switch (h->connaddr.ss_family) {
+    case AF_INET:
+    case AF_INET6: {
+      int err;
+      char host[NI_MAXHOST];
+      char serv[NI_MAXSERV];
+
+      uri.scheme = using_tls ? "nbds" : "nbd";
+      err = getnameinfo ((struct sockaddr *) &h->connaddr, h->connaddrlen,
+                         host, sizeof host, serv, sizeof serv, NI_NUMERICHOST);
+      if (err != 0) {
+        set_error (0, "getnameinfo: %s", gai_strerror (err));
+        goto out;
+      }
+      if (asprintf (&server, "%s:%s", host, serv) == -1) {
+        set_error (errno, "asprintf");
+        goto out;
+      }
+      uri.server = server;
+      break;
+    }
+
+    case AF_UNIX: {
+      struct sockaddr_un *sun = (struct sockaddr_un *) &h->connaddr;
+
+      if (sun->sun_path[0] == '\0') {
+        /* Unix domain sockets in the abstract namespace are in theory
+         * supported in NBD URIs, but libxml2 cannot handle them so
+         * libnbd cannot use them here or in nbd_connect_uri.
+         */
+        set_error (EPROTONOSUPPORT, "Unix domain sockets in the "
+                   "abstract namespace are not yet supported");
+        goto out;
+      }
+
+      uri.scheme = using_tls ? "nbds+unix" : "nbd+unix";
+      if (append_query_params (&query_params, "socket", sun->sun_path) == -1)
+        goto out;
+      /* You have to set this otherwise xmlSaveUri generates bogus
+       * URIs "nbd+unix:/?socket=..."
+       */
+      uri.server = "";
+      break;
+    }
+
+#ifdef AF_VSOCK
+    case AF_VSOCK: {
+      struct sockaddr_vm *svm = (struct sockaddr_vm *) &h->connaddr;
+
+      uri.scheme = using_tls ? "nbds+vsock" : "nbd+vsock";
+      if (asprintf (&server, "%u:%u", svm->svm_cid, svm->svm_port) == -1) {
+        set_error (errno, "asprintf");
+        goto out;
+      }
+      uri.server = server;
+      break;
+    }
+#endif
+
+    default:
+      set_error (EAFNOSUPPORT,
+                 "address family %d not supported", h->connaddr.ss_family);
+      goto out;
+    }
+  }
+
+  else {
+    set_error (EINVAL, "cannot construct a URI for this connection type");
+    goto out;
+  }
+
+  /* Set other fields. */
+  if (h->tls_username)
+    uri.user = h->tls_username;
+  if (h->export_name) {
+    if (asprintf (&path, "/%s", h->export_name) == -1) {
+      set_error (errno, "asprintf");
+      goto out;
+    }
+    uri.path = path;
+  }
+  if (h->tls_psk_file) {
+    if (append_query_params (&query_params,
+                             "tls-psk-file", h->tls_psk_file) == -1)
+      goto out;
+  }
+
+  uri.query_raw = query_params;
+
+  /* Construct the final URI and return it. */
+  ret = (char *) xmlSaveUri (&uri);
+  if (ret == NULL)
+    set_error (errno, "xmlSaveUri failed");
+ out:
+  free (server);
+  free (query_params);
+  free (path);
+  return ret;
+}
+
+static int
+append_query_params (char **query_params, const char *key, const char *value)
+{
+  char *old_query_params = *query_params;
+
+  if (asprintf (query_params, "%s%s%s=%s",
+                old_query_params ? : "",
+                old_query_params ? "&" : "",
+                key, value) == -1) {
+    set_error (errno, "asprintf");
+    return -1;
+  }
+  free (old_query_params);
+  return 0;
+}
+
 #else /* !HAVE_LIBXML2 */
 
 #define NOT_SUPPORTED_ERROR \
@@ -352,6 +512,13 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
 {
   set_error (ENOTSUP, NOT_SUPPORTED_ERROR);
   return -1;
+}
+
+char *
+nbd_unlocked_get_uri (struct nbd_handle *h)
+{
+  set_error (ENOTSUP, NOT_SUPPORTED_ERROR);
+  return NULL;
 }
 
 #endif /* !HAVE_LIBXML2 */

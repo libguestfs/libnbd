@@ -1380,10 +1380,14 @@ test whether this is the case with L<nbd_supports_uri(3)>.
 
 Support for URIs that require TLS will fail if libnbd was not
 compiled with gnutls; you can test whether this is the case
-with L<nbd_supports_tls(3)>.";
+with L<nbd_supports_tls(3)>.
+
+=head2 Constructing a URI from an existing connection
+
+See L<nbd_get_uri(3)>.";
     see_also = [URLLink "https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md";
                 Link "set_export_name"; Link "set_tls";
-                Link "set_opt_mode"];
+                Link "set_opt_mode"; Link "get_uri"];
   };
 
   "connect_unix", {
@@ -2875,7 +2879,30 @@ to support TLS encryption, or false if not.";
     longdesc = "\
 Returns true if libnbd was compiled with libxml2 which is required
 to support NBD URIs, or false if not.";
-    see_also = [Link "connect_uri"; Link "aio_connect_uri"];
+    see_also = [Link "connect_uri"; Link "aio_connect_uri";
+                Link "get_uri"];
+  };
+
+  "get_uri", {
+    default_call with
+    args = []; ret = RString;
+    permitted_states = [ Connecting; Negotiating; Connected; Closed; Dead ];
+    shortdesc = "construct an NBD URI for a connection";
+    longdesc = "\
+This makes a best effort attempt to construct an NBD URI which
+could be used to connect back to this server (using
+L<nbd_connect_uri(3)>).
+
+In some cases there is not enough information in the handle
+to successfully create a URI (eg. if you connected with
+L<nbd_connect_socket(3)>).  In such cases the call returns
+C<NULL> and further diagnostic information is available
+via L<nbd_get_errno(3)> and L<nbd_get_error(3)> as usual.
+
+Even if a URI is returned it is not guaranteed to work, and
+it may not be optimal.";
+    see_also = [Link "connect_uri"; Link "aio_connect_uri";
+                Link "supports_uri"];
   };
 ]
 
@@ -3009,6 +3036,7 @@ let first_version = [
   (* Added in 1.7.x development cycle, will be stable and supported in 1.8. *)
   "set_private_data", (1, 8);
   "get_private_data", (1, 8);
+  "get_uri", (1, 8);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

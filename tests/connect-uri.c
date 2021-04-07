@@ -35,6 +35,7 @@ main (int argc, char *argv[])
   struct nbd_handle *nbd;
   pid_t pid;
   size_t i;
+  char *get_uri;
 
 #ifdef SOCKET
   unlink (SOCKET);
@@ -88,6 +89,22 @@ main (int argc, char *argv[])
       exit (EXIT_FAILURE);
     }
   }
+
+  /* Usually the URI returned by nbd_get_uri should be the same as the
+   * one passed to nbd_connect_uri, or at least it will be in our test
+   * cases.
+   */
+  get_uri = nbd_get_uri (nbd);
+  if (get_uri == NULL) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (strcmp (URI, get_uri) != 0) {
+    fprintf (stderr, "%s: connect URI %s != get URI %s\n",
+             argv[0], URI, get_uri);
+    exit (EXIT_FAILURE);
+  }
+  free (get_uri);
 
   if (nbd_shutdown (nbd, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());

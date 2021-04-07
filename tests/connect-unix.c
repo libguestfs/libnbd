@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -36,6 +37,7 @@ main (int argc, char *argv[])
   struct nbd_handle *nbd;
   pid_t pid;
   size_t i;
+  char *actual_uri, *expected_uri;
 
   if (mkstemp (socket) == -1) {
     perror (socket);
@@ -76,6 +78,24 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+
+  /* libnbd should be able to construct a URI for this connection. */
+  if (asprintf (&expected_uri, "nbd+unix:///?socket=%s", socket) == -1) {
+    perror ("asprintf");
+    exit (EXIT_FAILURE);
+  }
+  actual_uri = nbd_get_uri (nbd);
+  if (actual_uri == NULL) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (strcmp (actual_uri, expected_uri) != 0) {
+    fprintf (stderr, "%s: actual URI %s != expected URI %s\n",
+             argv[0], actual_uri, expected_uri);
+    exit (EXIT_FAILURE);
+  }
+  free (actual_uri);
+  free (expected_uri);
 
   if (nbd_shutdown (nbd, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
