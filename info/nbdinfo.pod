@@ -23,6 +23,7 @@ L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>):
  export="":
          export-size: 1048576
          content: data
+         uri: nbd://localhost:10809/
          is_rotational: false
          is_read_only: false
          can_cache: true
@@ -38,7 +39,7 @@ L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>):
          block_size_maximum: 33554432
 
 For an NBD server on a local Unix domain socket you would use a
-command such as this (with the same output as above):
+command such as this (with similar output to above):
 
  $ nbdinfo "nbd+unix:///?socket=/tmp/unixsock"
 
@@ -63,6 +64,7 @@ the I<--json> parameter:
      {
        "export-name": "",
        "content": "DOS/MBR boot sector; partition 1 : ID=0xc, start-CHS (0x3ff,254,63), end-CHS (0x3ff,254,63), startsector 2048, 4148704 sectors",
+       "uri": "nbd://localhost:10809/",
        "is_rotational": false,
        "is_read_only": true,
        "can_cache": true,
@@ -200,4 +202,4 @@ Eric Blake
 
 =head1 COPYRIGHT
 
-Copyright (C) 2020 Red Hat Inc.
+Copyright (C) 2020-2021 Red Hat Inc.

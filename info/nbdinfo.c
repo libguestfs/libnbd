@@ -407,6 +407,7 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
   char *export_name = NULL;
   char *export_desc = NULL;
   char *content = NULL;
+  char *uri = NULL;
   int is_rotational, is_read_only;
   int can_cache, can_df, can_fast_zero, can_flush, can_fua,
     can_multi_conn, can_trim, can_zero;
@@ -432,6 +433,8 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
     fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+
+  uri = nbd_get_uri (nbd);
 
   /* Prefer the server's version of the name, if available */
   export_name = nbd_get_canonical_export_name (nbd);
@@ -475,6 +478,8 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
     fprintf (fp, "\texport-size: %" PRIi64 "\n", size);
     if (content)
       fprintf (fp, "\tcontent: %s\n", content);
+    if (uri)
+      fprintf (fp, "\turi: %s\n", uri);
     if (show_context) {
       fprintf (fp, "\tcontexts:\n");
       for (i = 0; i < contexts.size; ++i)
@@ -530,6 +535,12 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
     if (content) {
       fprintf (fp, "\t\"content\": ");
       print_json_string (content);
+      fprintf (fp, ",\n");
+    }
+
+    if (uri) {
+      fprintf (fp, "\t\"uri\": ");
+      print_json_string (uri);
       fprintf (fp, ",\n");
     }
 
@@ -600,6 +611,7 @@ list_one_export (struct nbd_handle *nbd, const char *desc,
   free (content);
   free (export_name);
   free (export_desc);
+  free (uri);
   return true;
 }
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2020 Red Hat Inc.
+# Copyright (C) 2020-2021 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -22,14 +22,25 @@ set -e
 set -x
 
 requires nbdkit --version
-requires nbdkit memory --version
+requires nbdkit file --version
 
-out=info-text.out
+# This test requires nbdkit >= 1.22.
+minor=$( nbdkit --dump-config | grep ^version_minor | cut -d= -f2 )
+requires test $minor -gt 22
+
+out=info-list-uris.out
 cleanup_fn rm -f $out
 
-nbdkit -U - memory size=1M \
-       --run '$VG nbdinfo "nbd+unix:///?socket=$unixsocket"' > $out
+# nbdinfo --list is not very stable in the particular case where
+# exports come and go while it is running.  This happens if we set the
+# directory to be the current directory since other tests create
+# temporary files here.  So point this to a more stable directory.
+
+nbdkit -U - file dir=$srcdir/../examples \
+       --run '$VG nbdinfo --list "$uri"' > $out
 cat $out
-grep "export-size: $((1024*1024))" $out
-grep "uri: nbd+unix:///?socket=" $out
-sed -n '/contexts:/ { N; p; q }; $ q1' $out
+
+# We expect to see URIs corresponding to some well-known files
+# (ie. exports) in the examples directory.
+grep "uri: nbd+unix:///LICENSE-FOR-EXAMPLES?socket=" $out
+grep "uri: nbd+unix:///get-size.c?socket=" $out

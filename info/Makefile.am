@@ -22,6 +22,7 @@ info_sh_files = \
 	info-list-json.sh \
 	info-list-qemu.sh \
 	info-list-json-qemu.sh \
+	info-list-uris.sh \
 	info-json.sh \
 	info-oldstyle.sh \
 	info-null.sh \
