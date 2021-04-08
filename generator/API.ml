@@ -3045,7 +3045,8 @@ let pod_of_link = function
 let verify_link =
   let pages = List.map fst handle_calls in
   function
-  | Link "create" | Link "close" -> ()
+  | Link "create" | Link "close"
+  | Link "get_error" | Link "get_errno" -> ()
   | Link page ->
      if not (List.mem page pages) then
        failwithf "verify_link: page nbd_%s does not exist" page
