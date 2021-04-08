@@ -84,7 +84,8 @@ endif HAVE_POD
 if HAVE_GOLANG
 
 all-local: $(source_files)
-	cd src/$(pkg) && $(GOLANG) build
+	cd src/$(pkg) && \
+	$(abs_top_builddir)/run $(GOLANG) build
 
 TESTS_ENVIRONMENT = pkg=$(pkg) abs_top_srcdir=$(abs_top_srcdir) LIBNBD_DEBUG=1
 LOG_COMPILER = $(top_builddir)/run
