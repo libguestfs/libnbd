@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2021 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-/* Test that (only simple) programs can be compiled by an ANSI C
+/* Test that (only simple) programs can be compiled by an ISO C99
  * compiler.
  */
 

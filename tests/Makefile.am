@@ -58,7 +58,7 @@ LOG_COMPILER = $(top_builddir)/run
 check_PROGRAMS += \
 	compile-header-only \
 	compile-c \
-	compile-ansi-c \
+	compile-iso-c99 \
 	close-null \
 	debug \
 	debug-environment \
@@ -69,7 +69,7 @@ check_PROGRAMS += \
 TESTS += \
 	compile-header-only \
 	compile-c \
-	compile-ansi-c \
+	compile-iso-c99 \
 	close-null \
 	debug \
 	debug-environment \
@@ -90,12 +90,12 @@ compile_c_CPPFLAGS = -I$(top_srcdir)/include
 compile_c_CFLAGS = $(WARNINGS_CFLAGS)
 compile_c_LDADD = $(top_builddir)/lib/libnbd.la
 
-compile_ansi_c_SOURCES = compile-ansi-c.c
-compile_ansi_c_CPPFLAGS = \
+compile_iso_c99_SOURCES = compile-iso-c99.c
+compile_iso_c99_CPPFLAGS = \
 	-I$(top_srcdir)/include \
-	-std=c90 -pedantic
-compile_ansi_c_CFLAGS = $(WARNINGS_CFLAGS)
-compile_ansi_c_LDADD = $(top_builddir)/lib/libnbd.la
+	-std=c99 -pedantic
+compile_iso_c99_CFLAGS = $(WARNINGS_CFLAGS)
+compile_iso_c99_LDADD = $(top_builddir)/lib/libnbd.la
 
 close_null_SOURCES = close-null.c
 close_null_CPPFLAGS = -I$(top_srcdir)/include
