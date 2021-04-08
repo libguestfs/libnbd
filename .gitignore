@@ -151,6 +151,7 @@ Makefile.in
 /sh/nbdsh.1
 /stamp-h1
 /test-driver
+/tests/aio-connect
 /tests/aio-parallel
 /tests/aio-parallel-load
 /tests/aio-parallel-load-tls
