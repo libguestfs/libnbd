@@ -4,9 +4,13 @@ nbdinfo - display information and metadata about NBD servers and exports
 
 =head1 SYNOPSIS
 
- nbdinfo [--json] [--map] [--size] NBD-URI
+ nbdinfo [--json] NBD-URI
 
- nbdinfo -L|--list NBD-URI
+ nbdinfo --size [--json] NBD-URI
+
+ nbdinfo --map [--json] NBD-URI
+
+ nbdinfo -L|--list [--json] NBD-URI
 
  nbdinfo --help
 
@@ -43,14 +47,6 @@ command such as this (with similar output to above):
 
  $ nbdinfo "nbd+unix:///?socket=/tmp/unixsock"
 
-=head2 Size
-
-To display only the size in bytes of the NBD export (useful for
-scripting) use the I<--size> parameter:
-
- $ nbdinfo --size nbd://localhost
- 1048576
-
 =head2 JSON output
 
 To display the output as JSON (eg. for scripting with L<jq(1)>) add
@@ -82,6 +78,14 @@ the I<--json> parameter:
      }
    ]
  }
+
+=head2 Size
+
+To display only the size in bytes of the NBD export (useful for
+scripting) use the I<--size> parameter:
+
+ $ nbdinfo --size nbd://localhost
+ 1048576
 
 =head2 Map
 
@@ -118,7 +122,20 @@ protocol.
 =head2 List all exports
 
 To list all the exports available on an NBD server use the I<--list>
-(I<-L>) option.
+(I<-L>) option.  To get parseable JSON output, add I<--json>.
+
+For example:
+
+ $ nbdkit file dir=. --run 'nbdinfo --list "$uri"'
+ protocol: newstyle-fixed without TLS
+ export="Fedora-Workstation-Live-x86_64-29-1.2.iso":
+     export-size: 1931476992
+     uri: nbd://localhost:10809/Fedora-Workstation-Live-x86_64-29-1.2.iso
+     [...]
+ export="debian-10.4.0-amd64-DVD-1.iso":
+     export-size: 3955556352
+     uri: nbd://localhost:10809/debian-10.4.0-amd64-DVD-1.iso
+     [...]
 
 =head2 Alternative tools
 
