@@ -416,10 +416,10 @@ let generate_lib_unlocked_h () =
   pr "\n";
   pr "#endif /* LIBNBD_UNLOCKED_H */\n"
 
-let permitted_state_text permitted_states =
+let permitted_state_text ?(fold=false) permitted_states =
   assert (permitted_states <> []);
-  String.concat
-    ", or "
+  let sep = if fold then ", or\n" else ", or " in
+  String.concat sep
     (List.map (
          function
          | Created -> "newly created"
@@ -913,7 +913,7 @@ let generate_docs_nbd_pod name { args; optargs; ret;
     pr "=head1 HANDLE STATE\n";
     pr "\n";
     pr "The handle must be\n";
-    pr "%s,\n" (permitted_state_text permitted_states);
+    pr "%s,\n" (permitted_state_text ~fold:true permitted_states);
     pr "otherwise this call will return an error.\n";
     pr "\n"
   );
