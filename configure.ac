@@ -15,7 +15,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-AC_INIT([libnbd],[1.7.5])
+AC_INIT([libnbd],[1.7.6])
 
 AC_CONFIG_MACRO_DIR([m4])
 m4_ifdef([AC_USE_SYSTEM_EXTENSIONS],[],
