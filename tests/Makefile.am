@@ -87,7 +87,7 @@ compile_header_only_CPPFLAGS = -I$(top_srcdir)/include
 compile_header_only_CFLAGS = $(WARNINGS_CFLAGS)
 compile_header_only_LDADD = $(top_builddir)/lib/libnbd.la
 
-compile_c_SOURCES = compile.c
+compile_c_SOURCES = compile-c.c
 compile_c_CPPFLAGS = -I$(top_srcdir)/include
 compile_c_CFLAGS = $(WARNINGS_CFLAGS)
 compile_c_LDADD = $(top_builddir)/lib/libnbd.la
