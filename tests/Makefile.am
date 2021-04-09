@@ -432,12 +432,12 @@ connect_unix_CPPFLAGS = -I$(top_srcdir)/include
 connect_unix_CFLAGS = $(WARNINGS_CFLAGS)
 connect_unix_LDADD = $(top_builddir)/lib/libnbd.la
 
-connect_tcp_SOURCES = connect-tcp.c
+connect_tcp_SOURCES = connect-tcp.c pick-a-port.c pick-a-port.h
 connect_tcp_CPPFLAGS = -I$(top_srcdir)/include
 connect_tcp_CFLAGS = $(WARNINGS_CFLAGS)
 connect_tcp_LDADD = $(top_builddir)/lib/libnbd.la
 
-aio_connect_SOURCES = aio-connect.c
+aio_connect_SOURCES = aio-connect.c pick-a-port.c pick-a-port.h
 aio_connect_CPPFLAGS = -I$(top_srcdir)/include
 aio_connect_CFLAGS = $(WARNINGS_CFLAGS)
 aio_connect_LDADD = $(top_builddir)/lib/libnbd.la

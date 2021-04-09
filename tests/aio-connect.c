@@ -25,12 +25,13 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
 #include <libnbd.h>
+
+#include "pick-a-port.h"
 
 #define PIDFILE "aio-connect.pid"
 
@@ -38,7 +39,7 @@ int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
-  int port;
+  int port = pick_a_port ();
   char port_str[16];
   pid_t pid;
   size_t i;
@@ -46,10 +47,6 @@ main (int argc, char *argv[])
   char *actual_uri, *expected_uri;
 
   unlink (PIDFILE);
-
-  /* Pick a port at random, hope it's free. */
-  srand (time (NULL) + getpid ());
-  port = 32768 + (rand () & 32767);
 
   snprintf (port_str, sizeof port_str, "%d", port);
 

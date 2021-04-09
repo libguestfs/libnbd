@@ -123,6 +123,8 @@ Optional, only needed to run the test suite:
 
  * flake8 to keep Python code formatted uniformly.
 
+ * ss (from iproute) for TCP-based tests.
+
 
 DOWNLOAD TARBALLS
 =================
