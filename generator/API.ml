@@ -2890,7 +2890,7 @@ to support NBD URIs, or false if not.";
     shortdesc = "construct an NBD URI for a connection";
     longdesc = "\
 This makes a best effort attempt to construct an NBD URI which
-could be used to connect back to this server (using
+could be used to connect back to the same server (using
 L<nbd_connect_uri(3)>).
 
 In some cases there is not enough information in the handle
