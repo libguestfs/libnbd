@@ -164,6 +164,7 @@ Makefile.in
 /tests/compile-header-only
 /tests/compile-iso-c99
 /tests/connect-tcp
+/tests/connect-tcp6
 /tests/connect-tls-certs
 /tests/connect-tls-psk
 /tests/connect-unix

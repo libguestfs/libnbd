@@ -158,8 +158,6 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   int i, r;
   int ret = -1;
   const char *unixsocket = NULL;
-  char port_str[32];
-  uint32_t cid, svm_port;
 
   uri = xmlParseURI (raw_uri);
   if (!uri) {
@@ -287,14 +285,35 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
     goto cleanup;
 
   switch (transport) {
-  case tcp:                     /* TCP */
+  case tcp: {                   /* TCP */
+    char port_str[32];
+    char *server;
+    size_t server_len;
+
     snprintf (port_str, sizeof port_str,
               "%d", uri->port > 0 ? uri->port : 10809);
-    if (nbd_unlocked_aio_connect_tcp (h, uri->server ? : "localhost",
-                                      port_str) == -1)
+
+    /* If the uri->server field is NULL, substitute "localhost".  This
+     * would be unusual and probably doesn't happen in reality. XXX
+     */
+    server = uri->server ? : "localhost";
+    server_len = strlen (server);
+
+    /* For a literal IPv6 address, the uri->server field will contain
+     * "[addr]" and we must remove the brackets before passing it to
+     * getaddrinfo in the state machine.
+     */
+    if (server_len >= 2 && server[0] == '[' && server[server_len-1] == ']') {
+      server_len -= 2;
+      server++;
+      server[server_len] = '\0';
+    }
+
+    if (nbd_unlocked_aio_connect_tcp (h, server, port_str) == -1)
       goto cleanup;
 
     break;
+  }
 
   case unix_sock:               /* Unix domain socket */
     if (nbd_unlocked_aio_connect_unix (h, unixsocket) == -1)
@@ -302,7 +321,9 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
 
     break;
 
-  case vsock:                   /* AF_VSOCK */
+  case vsock: {                 /* AF_VSOCK */
+    uint32_t cid, svm_port;
+
     /* Server, if present, must be the numeric CID.  Else we
      * assume the host (2).
      */
@@ -329,6 +350,7 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
       goto cleanup;
 
     break;
+  }
   }
 
   ret = 0;
@@ -370,8 +392,18 @@ nbd_unlocked_get_uri (struct nbd_handle *h)
 
   /* Set scheme, server or socket. */
   if (h->hostname && h->port) {
+    int r;
+
     uri.scheme = using_tls ? "nbds" : "nbd";
-    if (asprintf (&server, "%s:%s", h->hostname, h->port) == -1) {
+    /* We must try to guess here if the hostname is really an IPv6
+     * numeric address.  Regular hostnames or IPv4 addresses wouldn't
+     * contain ':'.
+     */
+    if (strchr (h->hostname, ':') == NULL)
+      r = asprintf (&server, "%s:%s", h->hostname, h->port);
+    else
+      r = asprintf (&server, "[%s]:%s", h->hostname, h->port);
+    if (r == -1) {
       set_error (errno, "asprintf");
       goto out;
     }
@@ -382,7 +414,7 @@ nbd_unlocked_get_uri (struct nbd_handle *h)
     switch (h->connaddr.ss_family) {
     case AF_INET:
     case AF_INET6: {
-      int err;
+      int r, err;
       char host[NI_MAXHOST];
       char serv[NI_MAXSERV];
 
@@ -393,7 +425,11 @@ nbd_unlocked_get_uri (struct nbd_handle *h)
         set_error (0, "getnameinfo: %s", gai_strerror (err));
         goto out;
       }
-      if (asprintf (&server, "%s:%s", host, serv) == -1) {
+      if (h->connaddr.ss_family == AF_INET)
+        r = asprintf (&server, "%s:%s", host, serv);
+      else /* AF_INET6 */
+        r = asprintf (&server, "[%s]:%s", host, serv);
+      if (r == -1) {
         set_error (errno, "asprintf");
         goto out;
       }

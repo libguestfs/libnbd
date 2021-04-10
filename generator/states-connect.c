@@ -137,7 +137,7 @@ STATE_MACHINE {
   r = getaddrinfo (h->hostname, h->port, &h->hints, &h->result);
   if (r != 0) {
     SET_NEXT_STATE (%^START);
-    set_error (0, "getaddrinfo: %s:%s: %s",
+    set_error (0, "getaddrinfo: hostname \"%s\" port \"%s\": %s",
                h->hostname, h->port, gai_strerror (r));
     return -1;
   }

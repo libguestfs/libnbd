@@ -19,6 +19,7 @@ include $(top_srcdir)/subdir-rules.mk
 
 CLEANFILES += \
 	connect-tcp.pid \
+	connect-tcp6.pid \
 	connect-unix.pid \
 	connect-uri-nbd.pid \
 	connect-uri-nbd-unix.pid \
@@ -179,6 +180,7 @@ check_PROGRAMS += \
 	opt-list-meta \
 	connect-unix \
 	connect-tcp \
+	connect-tcp6 \
 	aio-connect \
 	aio-parallel \
 	aio-parallel-load \
@@ -220,6 +222,7 @@ TESTS += \
 	opt-list-meta \
 	connect-unix \
 	connect-tcp \
+	connect-tcp6 \
 	aio-connect \
 	aio-parallel.sh \
 	aio-parallel-load.sh \
@@ -442,6 +445,17 @@ connect_tcp_SOURCES = \
 connect_tcp_CPPFLAGS = -I$(top_srcdir)/include
 connect_tcp_CFLAGS = $(WARNINGS_CFLAGS)
 connect_tcp_LDADD = $(top_builddir)/lib/libnbd.la
+
+connect_tcp6_SOURCES = \
+	connect-tcp6.c \
+	pick-a-port.c \
+	pick-a-port.h \
+	requires.c \
+	requires.h \
+	$(NULL)
+connect_tcp6_CPPFLAGS = -I$(top_srcdir)/include
+connect_tcp6_CFLAGS = $(WARNINGS_CFLAGS)
+connect_tcp6_LDADD = $(top_builddir)/lib/libnbd.la
 
 aio_connect_SOURCES = \
 	aio-connect.c \
