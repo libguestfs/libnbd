@@ -76,6 +76,10 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+  if (nbd_supports_uri (nbd) != 1) {
+    fprintf (stderr, "skip: compiled without URI support\n");
+    exit (77);
+  }
 
   addr.sin_family = AF_INET;
   addr.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
