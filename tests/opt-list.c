@@ -29,6 +29,8 @@
 
 #include <libnbd.h>
 
+#include "requires.h"
+
 struct progress {
   int id;
   int visit;
@@ -125,10 +127,7 @@ main (int argc, char *argv[])
   struct progress p;
 
   /* Quick check that nbdkit is new enough */
-  if (system ("nbdkit sh --dump-plugin | grep -q has_list_exports=1")) {
-    fprintf (stderr, "skipping: nbdkit too old for this test\n");
-    exit (77);
-  }
+  requires ("nbdkit sh --dump-plugin | grep -q has_list_exports=1");
 
   /* First pass: server fails NBD_OPT_LIST. */
   nbd = prepare (0);

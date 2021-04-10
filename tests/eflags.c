@@ -26,6 +26,8 @@
 
 #include <libnbd.h>
 
+#include "requires.h"
+
 #ifndef value
 #define value true
 #endif
@@ -48,11 +50,8 @@ main (int argc, char *argv[])
   char plugin_path[256];
   char key_param[32];
 
-#ifdef require
-  if (system ("nbdkit --dump-plugin sh | grep -q " require)) {
-    fprintf (stderr, "skipping: nbdkit lacks support for '%s'\n", require);
-    exit (77);
-  }
+#ifdef requirement
+  requires ("nbdkit --dump-plugin sh | grep -q " requirement);
 #endif
 
   snprintf (plugin_path, sizeof plugin_path, "%s/eflags-plugin.sh",

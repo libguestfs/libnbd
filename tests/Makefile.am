@@ -258,70 +258,70 @@ read_write_flag_CPPFLAGS = -I$(top_srcdir)/include
 read_write_flag_CFLAGS = $(WARNINGS_CFLAGS)
 read_write_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_flush_flag_SOURCES = eflags.c
+can_flush_flag_SOURCES = eflags.c requires.c requires.h
 can_flush_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_flush \
 	$(NULL)
 can_flush_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_flush_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_not_flush_flag_SOURCES = eflags.c
+can_not_flush_flag_SOURCES = eflags.c requires.c requires.h
 can_not_flush_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_flush -Dvalue=false \
 	$(NULL)
 can_not_flush_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_flush_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_fua_flag_SOURCES = eflags.c
+can_fua_flag_SOURCES = eflags.c requires.c requires.h
 can_fua_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_fua -Dvalue=native \
 	$(NULL)
 can_fua_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_fua_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_not_fua_flag_SOURCES = eflags.c
+can_not_fua_flag_SOURCES = eflags.c requires.c requires.h
 can_not_fua_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_fua -Dvalue=none \
 	$(NULL)
 can_not_fua_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_fua_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-is_rotational_flag_SOURCES = eflags.c
+is_rotational_flag_SOURCES = eflags.c requires.c requires.h
 is_rotational_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=is_rotational \
 	$(NULL)
 is_rotational_flag_CFLAGS = $(WARNINGS_CFLAGS)
 is_rotational_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-is_not_rotational_flag_SOURCES = eflags.c
+is_not_rotational_flag_SOURCES = eflags.c requires.c requires.h
 is_not_rotational_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=is_rotational -Dvalue=false \
 	$(NULL)
 is_not_rotational_flag_CFLAGS = $(WARNINGS_CFLAGS)
 is_not_rotational_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_trim_flag_SOURCES = eflags.c
+can_trim_flag_SOURCES = eflags.c requires.c requires.h
 can_trim_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_trim \
 	$(NULL)
 can_trim_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_trim_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_not_trim_flag_SOURCES = eflags.c
+can_not_trim_flag_SOURCES = eflags.c requires.c requires.h
 can_not_trim_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_trim -Dvalue=false \
 	$(NULL)
 can_not_trim_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_trim_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_zero_flag_SOURCES = eflags.c
+can_zero_flag_SOURCES = eflags.c requires.c requires.h
 can_zero_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_zero \
 	$(NULL)
 can_zero_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_zero_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_not_zero_flag_SOURCES = eflags.c
+can_not_zero_flag_SOURCES = eflags.c requires.c requires.h
 can_not_zero_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_zero -Dvalue=false \
 	-Dfilter='"--filter=nozero"' \
@@ -329,62 +329,62 @@ can_not_zero_flag_CPPFLAGS = \
 can_not_zero_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_zero_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_fast_zero_flag_SOURCES = eflags.c
+can_fast_zero_flag_SOURCES = eflags.c requires.c requires.h
 can_fast_zero_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_fast_zero \
-	-Drequire='"has_can_fast_zero=1"' \
+	-Drequirement='"has_can_fast_zero=1"' \
 	$(NULL)
 can_fast_zero_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_fast_zero_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_not_fast_zero_flag_SOURCES = eflags.c
+can_not_fast_zero_flag_SOURCES = eflags.c requires.c requires.h
 can_not_fast_zero_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_fast_zero -Dvalue=false \
-	-Drequire='"has_can_fast_zero=1"' \
+	-Drequirement='"has_can_fast_zero=1"' \
 	$(NULL)
 can_not_fast_zero_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_fast_zero_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_df_flag_SOURCES = eflags.c
+can_df_flag_SOURCES = eflags.c requires.c requires.h
 can_df_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_df \
 	$(NULL)
 can_df_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_df_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_not_df_flag_SOURCES = eflags.c
+can_not_df_flag_SOURCES = eflags.c requires.c requires.h
 can_not_df_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_df -Dvalue=false -Dno_sr \
 	$(NULL)
 can_not_df_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_df_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_multi_conn_flag_SOURCES = eflags.c
+can_multi_conn_flag_SOURCES = eflags.c requires.c requires.h
 can_multi_conn_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_multi_conn \
 	$(NULL)
 can_multi_conn_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_multi_conn_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_not_multi_conn_flag_SOURCES = eflags.c
+can_not_multi_conn_flag_SOURCES = eflags.c requires.c requires.h
 can_not_multi_conn_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_multi_conn -Dvalue=false \
 	$(NULL)
 can_not_multi_conn_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_multi_conn_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_cache_flag_SOURCES = eflags.c
+can_cache_flag_SOURCES = eflags.c requires.c requires.h
 can_cache_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_cache -Dvalue=native \
-	-Drequire='"has_can_cache=1"' \
+	-Drequirement='"has_can_cache=1"' \
 	$(NULL)
 can_cache_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_cache_flag_LDADD = $(top_builddir)/lib/libnbd.la
 
-can_not_cache_flag_SOURCES = eflags.c
+can_not_cache_flag_SOURCES = eflags.c requires.c requires.h
 can_not_cache_flag_CPPFLAGS = \
 	-I$(top_srcdir)/include -Dflag=can_cache -Dvalue=none \
-	-Drequire='"has_can_cache=1"' \
+	-Drequirement='"has_can_cache=1"' \
 	$(NULL)
 can_not_cache_flag_CFLAGS = $(WARNINGS_CFLAGS)
 can_not_cache_flag_LDADD = $(top_builddir)/lib/libnbd.la
@@ -394,7 +394,7 @@ oldstyle_CPPFLAGS = -I$(top_srcdir)/include
 oldstyle_CFLAGS = $(WARNINGS_CFLAGS)
 oldstyle_LDADD = $(top_builddir)/lib/libnbd.la
 
-newstyle_limited_SOURCES = newstyle-limited.c
+newstyle_limited_SOURCES = newstyle-limited.c requires.c requires.h
 newstyle_limited_CPPFLAGS = -I$(top_srcdir)/include
 newstyle_limited_CFLAGS = $(WARNINGS_CFLAGS)
 newstyle_limited_LDADD = $(top_builddir)/lib/libnbd.la
@@ -404,7 +404,7 @@ opt_abort_CPPFLAGS = -I$(top_srcdir)/include
 opt_abort_CFLAGS = $(WARNINGS_CFLAGS)
 opt_abort_LDADD = $(top_builddir)/lib/libnbd.la
 
-opt_list_SOURCES = opt-list.c
+opt_list_SOURCES = opt-list.c requires.c requires.h
 opt_list_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-DSCRIPT='"$(abs_srcdir)/opt-list.sh"' \
@@ -432,12 +432,24 @@ connect_unix_CPPFLAGS = -I$(top_srcdir)/include
 connect_unix_CFLAGS = $(WARNINGS_CFLAGS)
 connect_unix_LDADD = $(top_builddir)/lib/libnbd.la
 
-connect_tcp_SOURCES = connect-tcp.c pick-a-port.c pick-a-port.h
+connect_tcp_SOURCES = \
+	connect-tcp.c \
+	pick-a-port.c \
+	pick-a-port.h \
+	requires.c \
+	requires.h \
+	$(NULL)
 connect_tcp_CPPFLAGS = -I$(top_srcdir)/include
 connect_tcp_CFLAGS = $(WARNINGS_CFLAGS)
 connect_tcp_LDADD = $(top_builddir)/lib/libnbd.la
 
-aio_connect_SOURCES = aio-connect.c pick-a-port.c pick-a-port.h
+aio_connect_SOURCES = \
+	aio-connect.c \
+	pick-a-port.c \
+	pick-a-port.h \
+	requires.c \
+	requires.h \
+	$(NULL)
 aio_connect_CPPFLAGS = -I$(top_srcdir)/include
 aio_connect_CFLAGS = $(WARNINGS_CFLAGS)
 aio_connect_LDADD = $(top_builddir)/lib/libnbd.la

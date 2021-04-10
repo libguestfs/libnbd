@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include "requires.h"
 #include "pick-a-port.h"
 
 static int
@@ -52,11 +53,7 @@ pick_a_port (void)
   int port;
 
   /* This requires the 'ss' utility, else we skip the whole test. */
-  if (system ("ss --version") != 0) {
-    printf ("Test skipped because 'ss' utility (from 'iproute') "
-            "is not installed.\n");
-    exit (77);
-  }
+  requires ("ss --version");
 
   /* Start from a random port number to make it less likely that two
    * parallel tests will conflict.

@@ -29,6 +29,8 @@
 
 #include <libnbd.h>
 
+#include "requires.h"
+
 #define SIZE 65536
 #define XSTR(s) #s
 #define STR(s) XSTR(s)
@@ -116,10 +118,7 @@ main (int argc, char *argv[])
   progname = argv[0];
 
   /* Quick check that nbdkit is new enough */
-  if (system ("nbdkit eval --dump-plugin | grep -q has_list_exports=1")) {
-    fprintf (stderr, "skipping: nbdkit too old for this test\n");
-    exit (77);
-  }
+  requires ("nbdkit eval --dump-plugin | grep -q has_list_exports=1");
 
   /* Initial sanity check that we can't require TLS */
   nbd = nbd_create ();
