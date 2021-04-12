@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2021 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -48,7 +48,10 @@ cb (void *opaque, const char *metacontext, uint64_t offset,
 
   /* libnbd does not actually verify that a server is fully compliant
    * to the spec; the asserts marked [qemu-nbd] are thus dependent on
-   * the fact that qemu-nbd is compliant.
+   * the fact that qemu-nbd is compliant.  Furthermore, qemu 5.2 and
+   * 6.0 disagree on whether base:allocation includes the hole bit for
+   * the zeroes at 512k (both answers are compliant); but we care more
+   * that the zeroes show up in the dirty bitmap
    */
   assert (offset == 0);
   assert (!*error || (data->fail && data->count == 1 && *error == EPROTO));
@@ -57,19 +60,34 @@ cb (void *opaque, const char *metacontext, uint64_t offset,
   if (strcmp (metacontext, LIBNBD_CONTEXT_BASE_ALLOCATION) == 0) {
     assert (!data->seen_base); /* [qemu-nbd] */
     data->seen_base = true;
-    assert (len == (data->req_one ? 2 : 8)); /* [qemu-nbd] */
+    if (data->req_one)
+      assert (len == 2); /* [qemu-nbd] */
+    else
+      assert ((len & 1) == 0 && len > 2); /* [qemu-nbd] */
 
     /* Data block offset 0 size 128k */
     assert (entries[0] == 131072); assert (entries[1] == 0);
     if (!data->req_one) {
-      /* hole|zero offset 128k size 384k */
-      assert (entries[2] == 393216); assert (entries[3] == (LIBNBD_STATE_HOLE|
-                                                            LIBNBD_STATE_ZERO));
-      /* allocated zero offset 512k size 64k */
-      assert (entries[4] ==  65536); assert (entries[5] == LIBNBD_STATE_ZERO);
-      /* hole|zero offset 576k size 448k */
-      assert (entries[6] == 458752); assert (entries[7] == (LIBNBD_STATE_HOLE|
-                                                            LIBNBD_STATE_ZERO));
+      if (len == 4) {
+        /* hole|zero offset 128k size 896k */
+        assert (entries[2] == 917504);
+        assert (entries[3] == (LIBNBD_STATE_HOLE|
+                               LIBNBD_STATE_ZERO));
+      }
+      else {
+        assert (len == 8);
+        /* hole|zero offset 128k size 384k */
+        assert (entries[2] == 393216);
+        assert (entries[3] == (LIBNBD_STATE_HOLE|
+                               LIBNBD_STATE_ZERO));
+        /* allocated zero offset 512k size 64k */
+        assert (entries[4] ==  65536);
+        assert (entries[5] == LIBNBD_STATE_ZERO);
+        /* hole|zero offset 576k size 448k */
+        assert (entries[6] == 458752);
+        assert (entries[7] == (LIBNBD_STATE_HOLE|
+                               LIBNBD_STATE_ZERO));
+      }
     }
   }
   else if (strcmp (metacontext, bitmap) == 0) {
