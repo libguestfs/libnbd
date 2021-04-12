@@ -40,12 +40,13 @@ cleanup_fn rm -f $files
 # Create file with intentionally different written areas vs. dirty areas
 qemu-img create -f qcow2 dirty-bitmap.qcow2 1M
 qemu-io -f qcow2 -c 'w 0 64k' dirty-bitmap.qcow2
-cat <<'EOF' | qemu-kvm -machine none,accel=tcg -nodefaults -nographic -qmp stdio
+cat <<'EOF' |
 {'execute':'qmp_capabilities'}
 {'execute':'blockdev-add','arguments':{'node-name':'n','driver':'qcow2','file':{'driver':'file','filename':'dirty-bitmap.qcow2'}}}
 {'execute':'block-dirty-bitmap-add','arguments':{'node':'n','name':'bitmap0','persistent':true}}
 {'execute':'quit'}
 EOF
+    qemu-kvm -nodefaults -nographic -qmp stdio -machine none,accel=tcg
 qemu-io -f qcow2 -c 'w 64k 64k' -c 'w -z 512k 64k' dirty-bitmap.qcow2
 
 # Run the test.
