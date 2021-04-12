@@ -22,6 +22,7 @@ set -e
 set -x
 
 requires qemu-nbd --version
+requires bash -c 'qemu-nbd --help | grep pid-file'
 requires truncate --version
 requires jq --version
 
