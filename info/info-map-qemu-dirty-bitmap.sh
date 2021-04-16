@@ -27,7 +27,7 @@ set -x
 requires qemu-img --version
 requires qemu-io --version
 requires qemu-nbd --version
-requires qemu-kvm --version
+requires_qemu
 requires tr --version
 
 # This test uses the qemu-nbd -B option.
@@ -50,7 +50,7 @@ cat <<'EOF' |
 {'execute':'block-dirty-bitmap-add','arguments':{'node':'n','name':'bitmap0','persistent':true}}
 {'execute':'quit'}
 EOF
-    qemu-kvm -nodefaults -nographic -qmp stdio -machine none,accel=tcg
+    $QEMU_BINARY -nodefaults -nographic -qmp stdio -machine none,accel=tcg
 qemu-io -f qcow2 -c 'w 64k 64k' -c 'w -z 512k 64k' $f
 
 # We have to run qemu-nbd and attempt to clean it up afterwards.

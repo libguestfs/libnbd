@@ -23,6 +23,7 @@ set -x
 
 requires_root
 requires nbdkit --exit-with-parent --version
+requires test -r /sys/module/nbd
 requires nbd-client --version
 # /dev/nbd0 must not be in use.
 requires_not nbd-client -c /dev/nbd0
