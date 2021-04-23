@@ -21,6 +21,8 @@ EXTRA_DIST = \
 	dirty-bitmap.sh \
 	interop-qemu-storage-daemon.sh \
 	list-exports-nbd-config \
+	list-exports-test-dir/disk1 \
+	list-exports-test-dir/disk2 \
 	structured-read.sh \
 	$(NULL)
 
@@ -189,10 +191,12 @@ if HAVE_NBDKIT
 check_PROGRAMS += \
 	interop-nbdkit \
 	socket-activation-nbdkit \
+	list-exports-nbdkit \
 	$(NULL)
 TESTS += \
 	interop-nbdkit \
 	socket-activation-nbdkit \
+	list-exports-nbdkit \
 	$(NULL)
 
 # See above comment about files in ../tests/Makefile.am
@@ -308,6 +312,29 @@ socket_activation_nbdkit_CPPFLAGS = \
 	$(NULL)
 socket_activation_nbdkit_CFLAGS = $(WARNINGS_CFLAGS)
 socket_activation_nbdkit_LDADD = $(top_builddir)/lib/libnbd.la
+
+# This test requires nbdkit >= 1.22, checked at runtime.
+list_exports_nbdkit_SOURCES = \
+	list-exports.c \
+	requires.c \
+	../tests/requires.h \
+	$(NULL)
+list_exports_nbdkit_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/tests \
+	-DSERVER=\"$(NBDKIT)\" \
+	-DSERVER_PARAMS='"-s", "--exit-with-parent", "file", "dir=$(builddir)/list-exports-test-dir"' \
+	-DEXPORTS='"disk1", "disk2"' \
+	-DDESCRIPTIONS='"", ""' \
+	-DSKIP_CHECK=' requires ("nbdkit file --version"); requires ("minor=`nbdkit --dump-config | grep ^version_minor | cut -d= -f2`; echo $$minor; test $$minor -ge 22"); ' \
+	$(NULL)
+list_exports_nbdkit_CFLAGS = $(WARNINGS_CFLAGS)
+list_exports_nbdkit_LDADD = $(top_builddir)/lib/libnbd.la
+
+# XXX automake subdir-objects is broken, use a workaround instead.
+BUILT_SOURCES = requires.c
+requires.c: $(top_srcdir)/tests/requires.c
+	ln -s -f $(top_srcdir)/tests/$@
 
 endif HAVE_NBDKIT
 
