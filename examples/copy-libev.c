@@ -215,11 +215,32 @@ extent_callback (void *user_data, const char *metacontext, uint64_t offset,
     return 1;
 }
 
+static inline void put_to_sleep (struct request *r)
+{
+    DEBUG ("r%zu: sleeping", r->index);
+    r->state = SLEEP;
+}
+
+static void wake_up_requests ()
+{
+    /* Start requests on the next loop iteration to avoid a deadlock if
+     * this is called from source nbd callback, and we need to start a
+     * read.
+     */
+    for (int i = 0; i < MAX_REQUESTS; i++) {
+        struct request *r = &requests[i];
+        if (r->state == SLEEP) {
+            DEBUG ("r%zu: woke up time=%.6f",
+                   r->index, ev_now (loop) - r->started);
+            start_request_soon (r);
+        }
+    }
+}
+
 static int
 extents_completed (void *user_data, int *error)
 {
     struct request *r = (struct request *)user_data;
-    int i;
 
     DEBUG ("r%zu: extents completed time=%.6f",
            r->index, ev_now (loop) - r->started);
@@ -234,14 +255,10 @@ extents_completed (void *user_data, int *error)
     /* Start the request to process recvievd extents. This must be done on the
      * next loop iteration, to avoid deadlock if we need to start a read.
      */
-    start_request_soon(r);
+    start_request_soon (r);
 
-    /* Wake up requests waiting for extents completion */
-    for (i = 0; i < MAX_REQUESTS; i++) {
-        struct request *r = &requests[i];
-        if (r->state == SLEEP)
-            start_request_soon (r);
-    }
+    /* Also wake up requests waiting for extents completion */
+    wake_up_requests ();
 
     return 1;
 }
@@ -370,7 +387,7 @@ start_request(struct request *r)
     /* If needed, get more extents from server. */
     if (src.can_extents && extents == NULL) {
         if (extents_in_progress) {
-            r->state = SLEEP;
+            put_to_sleep (r);
             return;
         }
 
