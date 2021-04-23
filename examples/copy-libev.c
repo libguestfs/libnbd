@@ -93,25 +93,23 @@ struct request {
     enum request_state state;
 };
 
+struct extent {
+    uint32_t length;
+    bool zero;
+};
+
 static struct ev_loop *loop;
 static ev_prepare prepare;
 static struct connection src;
 static struct connection dst;
 static struct request requests[MAX_REQUESTS];
 
-/* List of extents received from source server. Using the same format returned
- * by libnbd, array of uint32_t pairs. The first item is the length of the
- * extent, and the second is the extent flags.
- *
- * The number of extents is extents_len / 2. extents_pos is the index of the
- * current extent.
- *
- * extents_in_progress flag is set when we start asynchronous block status
- * request.
- */
-static uint32_t *extents;
+/* List of extents received from source server. */
+static struct extent *extents;
 static size_t extents_len;
 static size_t extents_pos;
+
+/* Set when we start asynchronous block status request. */
 static bool extents_in_progress;
 
 static int64_t size;
@@ -193,15 +191,26 @@ extent_callback (void *user_data, const char *metacontext, uint64_t offset,
         return 1;
     }
 
-    extents = malloc (nr_entries * sizeof *extents);
+    /* Libnbd returns uint32_t pair (length, flags) for each extent. */
+    extents_len = nr_entries / 2;
+
+    extents = malloc (extents_len * sizeof *extents);
     if (extents == NULL)
         FAIL ("Cannot allocated extents: %s", strerror (errno));
 
-    memcpy (extents, entries, nr_entries * sizeof *extents);
-    extents_len = nr_entries;
+    /* Copy libnbd entries to extents array. */
+    for (int i = 0, j = 0; i < extents_len; i++, j=i*2) {
+        extents[i].length = entries[j];
+
+        /* Libnbd exposes both ZERO and HOLE flags. We care only about
+         * ZERO status, meaning we can copy this extent using efficinet
+         * zero method.
+         */
+        extents[i].zero = (entries[j + 1] & LIBNBD_STATE_ZERO) != 0;
+    }
 
     DEBUG ("r%zu: received %zu extents for %s",
-           r->index, nr_entries / 2, metacontext);
+           r->index, extents_len, metacontext);
 
     return 1;
 }
@@ -281,7 +290,7 @@ next_extent (struct request *r)
 
     assert (extents);
 
-    is_zero = extents[extents_pos + 1] & LIBNBD_STATE_ZERO;
+    is_zero = extents[extents_pos].zero;
 
     /* Zero can be much faster, so try to zero entire extent. */
     if (is_zero && dst.can_zero)
@@ -291,30 +300,30 @@ next_extent (struct request *r)
 
     while (length < limit) {
         DEBUG ("e%zu: offset=%" PRIi64 " len=%" PRIu32 " zero=%d",
-               extents_pos / 2, offset, extents[extents_pos], is_zero);
+               extents_pos, offset, extents[extents_pos].length, is_zero);
 
         /* If this extent is too large, steal some data from it to
          * complete the request.
          */
-        if (length + extents[extents_pos] > limit) {
+        if (length + extents[extents_pos].length > limit) {
             uint32_t stolen = limit - length;
 
-            extents[extents_pos] -= stolen;
+            extents[extents_pos].length -= stolen;
             length += stolen;
             break;
         }
 
         /* Consume the entire extent and start looking at the next one. */
-        length += extents[extents_pos];
-        extents[extents_pos] = 0;
+        length += extents[extents_pos].length;
+        extents[extents_pos].length = 0;
 
-        if (extents_pos + 2 == extents_len)
+        if (extents_pos + 1 == extents_len)
             break;
 
-        extents_pos += 2;
+        extents_pos++;
 
         /* If next extent is different, we are done. */
-        if ((extents[extents_pos + 1] & LIBNBD_STATE_ZERO) != is_zero)
+        if (extents[extents_pos].zero != is_zero)
             break;
     }
 
@@ -329,7 +338,7 @@ next_extent (struct request *r)
 
     offset += length;
 
-    if (extents_pos + 2 == extents_len && extents[extents_pos] == 0) {
+    if (extents_pos + 1 == extents_len && extents[extents_pos].length == 0) {
         /* Processed all extents, clear extents. */
         DEBUG ("r%zu: consumed all extents offset=%" PRIi64, r->index, offset);
         free (extents);
