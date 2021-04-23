@@ -252,12 +252,6 @@ start_extents (struct request *r)
     size_t count = MIN (EXTENTS_SIZE, size - offset);
     int64_t cookie;
 
-    if (extents_in_progress) {
-        /* Sleep until extents request completes. */
-        r->state = SLEEP;
-        return true;
-    }
-
     DEBUG ("r%zu: start extents offset=%" PRIi64 " count=%zu",
            r->index, offset, count);
 
@@ -374,8 +368,15 @@ start_request(struct request *r)
     r->started = ev_now (loop);
 
     /* If needed, get more extents from server. */
-    if (src.can_extents && extents == NULL && start_extents (r))
-        return;
+    if (src.can_extents && extents == NULL) {
+        if (extents_in_progress) {
+            r->state = SLEEP;
+            return;
+        }
+
+        if (start_extents (r))
+            return;
+    }
 
     if (src.can_extents) {
         /* Handle the next extent. */
