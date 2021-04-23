@@ -26,7 +26,7 @@ requires hexdump --version
 
 # This test requires nbdkit >= 1.22.
 minor=$( nbdkit --dump-config | grep ^version_minor | cut -d= -f2 )
-requires test $minor -gt 22
+requires test $minor -ge 22
 
 file=copy-nbd-to-hexdump.file
 cleanup_fn rm -f $file
