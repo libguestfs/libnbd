@@ -87,8 +87,9 @@ main (int argc, char *argv[])
 
   progname = argv[0];
 
-#ifdef SKIP_CHECK
-  SKIP_CHECK
+  /* Check requirements or skip the test. */
+#ifdef REQUIRES
+  REQUIRES
 #endif
 
   /* Create a sparse temporary file. */

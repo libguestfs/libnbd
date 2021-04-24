@@ -33,6 +33,8 @@
 
 #include <libnbd.h>
 
+#include "../tests/requires.h"
+
 #define SIZE (1024*1024)
 
 #if CERTS || PSK
@@ -53,6 +55,11 @@ main (int argc, char *argv[])
   char buf[512];
   int r = -1;
   size_t i;
+
+  /* Check requirements or skip the test. */
+#ifdef REQUIRES
+  REQUIRES
+#endif
 
   /* Create a large sparse temporary file. */
   fd = mkstemp (tmpfile);
