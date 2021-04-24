@@ -31,6 +31,9 @@ LOG_COMPILER = $(top_builddir)/run
 check_PROGRAMS =
 TESTS =
 
+#----------------------------------------------------------------------
+# Test interoperability with nbd-server.
+
 if HAVE_NBD_SERVER
 
 check_PROGRAMS += \
@@ -64,25 +67,30 @@ list_exports_nbd_server_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_NBD_SERVER
 
+#----------------------------------------------------------------------
+# Test interoperability with qemu-nbd.
+
 if HAVE_QEMU_NBD
 
 check_PROGRAMS += \
 	interop-qemu-nbd \
-	dirty-bitmap \
 	list-exports-qemu-nbd \
 	socket-activation-qemu-nbd \
+	dirty-bitmap \
 	structured-read \
 	$(NULL)
 TESTS += \
 	interop-qemu-nbd \
-	dirty-bitmap.sh \
 	list-exports-qemu-nbd \
 	socket-activation-qemu-nbd \
+	dirty-bitmap.sh \
 	structured-read.sh \
 	$(NULL)
 
-# tls tests assume the pre-existence of files created in ../tests/Makefile.am,
-# so we can only run them under the same conditions used there
+# tls tests assume the pre-existence of files created in
+# ../tests/Makefile.am, so we can only run them under the same
+# conditions used there.
+#
 # XXX Make the tls file creation independent of HAVE_NBDKIT
 if HAVE_NBDKIT
 if HAVE_GNUTLS
@@ -144,11 +152,6 @@ interop_qemu_nbd_tls_psk_CPPFLAGS = \
 interop_qemu_nbd_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
 interop_qemu_nbd_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
 
-dirty_bitmap_SOURCES = dirty-bitmap.c
-dirty_bitmap_CPPFLAGS = -I$(top_srcdir)/include
-dirty_bitmap_CFLAGS = $(WARNINGS_CFLAGS)
-dirty_bitmap_LDADD = $(top_builddir)/lib/libnbd.la
-
 list_exports_qemu_nbd_SOURCES = list-exports.c
 list_exports_qemu_nbd_CPPFLAGS = \
 	-I$(top_srcdir)/include \
@@ -170,6 +173,11 @@ socket_activation_qemu_nbd_CPPFLAGS = \
 socket_activation_qemu_nbd_CFLAGS = $(WARNINGS_CFLAGS)
 socket_activation_qemu_nbd_LDADD = $(top_builddir)/lib/libnbd.la
 
+dirty_bitmap_SOURCES = dirty-bitmap.c
+dirty_bitmap_CPPFLAGS = -I$(top_srcdir)/include
+dirty_bitmap_CFLAGS = $(WARNINGS_CFLAGS)
+dirty_bitmap_LDADD = $(top_builddir)/lib/libnbd.la
+
 structured_read_SOURCES = structured-read.c
 structured_read_CPPFLAGS = -I$(top_srcdir)/include
 structured_read_CFLAGS = $(WARNINGS_CFLAGS)
@@ -177,14 +185,22 @@ structured_read_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_QEMU_NBD
 
+#----------------------------------------------------------------------
+# Test interoperability with qemu-storage-daemon.
+#
 # We treat qemu-storage-daemon as effectively the same as qemu-nbd
-# since they use the same code, but there is a single test to make
-# sure we can use it.  It was too complicated to extend interop.c to
-# support q-s-d (since it doesn't support stdin/stdio or systemd
-# socket activation) so there is a unique script to test it.
+# (above) since they use the same code.  But there is a single test to
+# make sure we can use it.
+
 if HAVE_QEMU_STORAGE_DAEMON
+# It was too complicated to extend interop.c to support q-s-d (since
+# it doesn't support stdin/stdio or systemd socket activation) so use
+# this shell script instead.
 TESTS += interop-qemu-storage-daemon.sh
 endif HAVE_QEMU_STORAGE_DAEMON
+
+#----------------------------------------------------------------------
+# Test interoperability with nbdkit.
 
 if HAVE_NBDKIT
 
