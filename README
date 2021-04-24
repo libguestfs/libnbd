@@ -113,8 +113,6 @@ Optional, only needed to run the test suite:
 
  * qemu, qemu-io, qemu-img for interoperability testing.
 
- * glib2 for examples that interoperate with the glib main loop.
-
  * psktool and certtool (part of GnuTLS) for testing TLS support.
 
  * valgrind if you want to run the tests under valgrind.
@@ -124,6 +122,12 @@ Optional, only needed to run the test suite:
  * flake8 to keep Python code formatted uniformly.
 
  * ss (from iproute) for TCP-based tests.
+
+Optional, only needed to run some examples:
+
+ * glib2 for examples that interoperate with the glib main loop.
+
+ * libev for examples that interoperate with the libev library.
 
 
 DOWNLOAD TARBALLS
