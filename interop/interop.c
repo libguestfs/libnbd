@@ -44,16 +44,24 @@
 #endif
 #endif
 
+#ifdef NEEDS_TMPFILE
+#define TMPFILE tmp
+static char tmp[] = "/tmp/nbdXXXXXX";
+
+static void
+unlink_tmpfile (void)
+{
+  unlink (TMPFILE);
+}
+#endif /* NEEDS_TMPFILE */
+
 int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
-  char tmpfile[] = "/tmp/nbdXXXXXX";
   char *args[] = { SERVER, SERVER_PARAMS, NULL };
-  int fd;
   int64_t actual_size;
   char buf[512];
-  int r = -1;
   size_t i;
 
   /* Check requirements or skip the test. */
@@ -62,24 +70,27 @@ main (int argc, char *argv[])
 #endif
 
   /* Create a large sparse temporary file. */
-  fd = mkstemp (tmpfile);
+#ifdef NEEDS_TMPFILE
+  int fd = mkstemp (TMPFILE);
   if (fd == -1 ||
       ftruncate (fd, SIZE) == -1 ||
       close (fd) == -1) {
-    perror (tmpfile);
-    goto out;
+    perror (TMPFILE);
+    exit (EXIT_FAILURE);
   }
+  atexit (unlink_tmpfile);
+#endif
 
   nbd = nbd_create ();
   if (nbd == NULL) {
     fprintf (stderr, "%s\n", nbd_get_error ());
-    goto out;
+    exit (EXIT_FAILURE);
   }
 
 #ifdef EXPORT_NAME
   if (nbd_set_export_name (nbd, EXPORT_NAME) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
-    goto out;
+    exit (EXIT_FAILURE);
   }
 #endif
 
@@ -124,7 +135,7 @@ main (int argc, char *argv[])
 #endif
   if (NBD_CONNECT (nbd, args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
-    goto out;
+    exit (EXIT_FAILURE);
   }
 
 #if TLS
@@ -133,7 +144,7 @@ main (int argc, char *argv[])
       fprintf (stderr,
                "%s: TLS required, but not negotiated on the connection\n",
                argv[0]);
-      goto out;
+      exit (EXIT_FAILURE);
     }
   }
   else if (TLS_MODE == LIBNBD_TLS_ALLOW) {
@@ -142,14 +153,14 @@ main (int argc, char *argv[])
       fprintf (stderr,
                "%s: TLS disabled, but connection didn't fall back to plaintext\n",
                argv[0]);
-      goto out;
+      exit (EXIT_FAILURE);
     }
 #else // !TLS_FALLBACK
     if (nbd_get_tls_negotiated (nbd) != 1) {
       fprintf (stderr,
                "%s: TLS allowed, but not negotiated on the connection\n",
                argv[0]);
-      goto out;
+      exit (EXIT_FAILURE);
     }
 #endif
   }
@@ -158,17 +169,17 @@ main (int argc, char *argv[])
   actual_size = nbd_get_size (nbd);
   if (actual_size == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
-    goto out;
+    exit (EXIT_FAILURE);
   }
   if (actual_size != SIZE) {
     fprintf (stderr, "%s: actual size %" PRIi64 " <> expected size %d",
              argv[0], actual_size, SIZE);
-    goto out;
+    exit (EXIT_FAILURE);
   }
 
   if (nbd_pread (nbd, buf, sizeof buf, 0, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
-    goto out;
+    exit (EXIT_FAILURE);
   }
 
   /* XXX In future test more operations here. */
@@ -183,15 +194,11 @@ main (int argc, char *argv[])
    */
   if (nbd_shutdown (nbd, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
-    goto out;
+    exit (EXIT_FAILURE);
   }
 #endif
 
   nbd_close (nbd);
 
-  r = 0;
- out:
-  unlink (tmpfile);
-
-  exit (r == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
+  exit (EXIT_SUCCESS);
 }

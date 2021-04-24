@@ -29,6 +29,17 @@
 
 #include "../tests/requires.h"
 
+#ifdef NEEDS_TMPFILE
+#define TMPFILE tmp
+static char tmp[] = "/tmp/nbdXXXXXX";
+
+static void
+unlink_tmpfile (void)
+{
+  unlink (TMPFILE);
+}
+#endif /* NEEDS_TMPFILE */
+
 static const char *exports[] = { EXPORTS };
 #define nr_exports  (sizeof exports / sizeof exports[0])
 static const char *descriptions[nr_exports] = { DESCRIPTIONS };
@@ -81,8 +92,6 @@ int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
-  char tmpfile[] = "/tmp/nbdXXXXXX";
-  int fd;
   size_t i = 0;
 
   progname = argv[0];
@@ -92,19 +101,21 @@ main (int argc, char *argv[])
   REQUIRES
 #endif
 
+#ifdef NEEDS_TMPFILE
   /* Create a sparse temporary file. */
-  fd = mkstemp (tmpfile);
+  int fd = mkstemp (TMPFILE);
   if (fd == -1 ||
       ftruncate (fd, 1024) == -1 ||
       close (fd) == -1) {
-    perror (tmpfile);
+    perror (TMPFILE);
     exit (EXIT_FAILURE);
   }
+  atexit (unlink_tmpfile);
+#endif
 
   nbd = nbd_create ();
   if (nbd == NULL) {
     fprintf (stderr, "%s\n", nbd_get_error ());
-    unlink (tmpfile);
     exit (EXIT_FAILURE);
   }
 
@@ -122,12 +133,8 @@ main (int argc, char *argv[])
       nbd_opt_list (nbd, (nbd_list_callback) {
           .callback = append, .user_data = &i}) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
-    unlink (tmpfile);
     exit (EXIT_FAILURE);
   }
-
-  /* We don't need the temporary file any longer. */
-  unlink (tmpfile);
 
   /* Check for expected number of exports. */
   if (i != nr_exports) {
