@@ -378,7 +378,7 @@ list_exports_nbdkit_SOURCES = \
 list_exports_nbdkit_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/tests \
-	-DREQUIRES=' requires ("nbdkit file --version"); requires ("minor=`nbdkit --dump-config | grep ^version_minor | cut -d= -f2`; echo $$minor; test $$minor -ge 22"); ' \
+	-DREQUIRES=' requires ("$(NBDKIT) file --version"); requires ("minor=`$(NBDKIT) --dump-config | grep ^version_minor | cut -d= -f2`; echo $$minor; test $$minor -ge 22"); ' \
 	-DSERVER=\"$(NBDKIT)\" \
 	-DSERVER_PARAMS='"-s", "--exit-with-parent", "file", "dir=$(srcdir)/list-exports-test-dir"' \
 	-DEXPORTS='"disk1", "disk2"' \
