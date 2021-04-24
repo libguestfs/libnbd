@@ -16,12 +16,14 @@
  *     COPY_LIBEV_DEBUG=1 ./copy-ev ...
  */
 
-#include <assert.h>
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
+#include <assert.h>
 
 #include <libnbd.h>
 
@@ -198,7 +200,7 @@ extent_callback (void *user_data, const char *metacontext, uint64_t offset,
     memcpy (extents, entries, nr_entries * sizeof *extents);
     extents_len = nr_entries;
 
-    DEBUG ("r%d: received %d extents for %s",
+    DEBUG ("r%zu: received %zu extents for %s",
            r->index, nr_entries / 2, metacontext);
 
     return 1;
@@ -210,13 +212,13 @@ extents_completed (void *user_data, int *error)
     struct request *r = (struct request *)user_data;
     int i;
 
-    DEBUG ("r%d: extents completed time=%.6f",
+    DEBUG ("r%zu: extents completed time=%.6f",
            r->index, ev_now (loop) - r->started);
 
     extents_in_progress = false;
 
     if (extents == NULL) {
-        DEBUG ("r%d: received no extents, disabling extents", r->index);
+        DEBUG ("r%zu: received no extents, disabling extents", r->index);
         src.can_extents = false;
     }
 
@@ -247,7 +249,8 @@ start_extents (struct request *r)
         return true;
     }
 
-    DEBUG ("r%d: start extents offset=%ld count=%ld", r->index, offset, count);
+    DEBUG ("r%zu: start extents offset=%" PRIi64 " count=%zu",
+           r->index, offset, count);
 
     cookie = nbd_aio_block_status (
         src.nbd, count, offset,
@@ -287,7 +290,7 @@ next_extent (struct request *r)
         limit = MIN (REQUEST_SIZE, size - offset);
 
     while (length < limit) {
-        DEBUG ("e%d: offset=%ld len=%ld zero=%d",
+        DEBUG ("e%zu: offset=%" PRIi64 " len=%" PRIu32 " zero=%d",
                extents_pos / 2, offset, extents[extents_pos], is_zero);
 
         /* If this extent is too large, steal some data from it to
@@ -321,14 +324,14 @@ next_extent (struct request *r)
     r->length = length;
     r->zero = is_zero;
 
-    DEBUG ("r%d: extent offset=%ld len=%ld zero=%d",
+    DEBUG ("r%zu: extent offset=%" PRIi64 " len=%zu zero=%d",
            r->index, r->offset, r->length, r->zero);
 
     offset += length;
 
     if (extents_pos + 2 == extents_len && extents[extents_pos] == 0) {
         /* Processed all extents, clear extents. */
-        DEBUG ("r%d: consumed all extents offset=%ld", r->index, offset);
+        DEBUG ("r%zu: consumed all extents offset=%" PRIi64, r->index, offset);
         free (extents);
         extents = NULL;
         extents_pos = 0;
@@ -394,7 +397,7 @@ start_read(struct request *r)
 
     r->state = READ;
 
-    DEBUG ("r%d: start read offset=%ld len=%ld",
+    DEBUG ("r%zu: start read offset=%" PRIi64 " len=%zu",
            r->index, r->offset, r->length);
 
     cookie = nbd_aio_pread (
@@ -411,7 +414,7 @@ read_completed (void *user_data, int *error)
 {
     struct request *r = (struct request *)user_data;
 
-    DEBUG ("r%d: read completed offset=%ld len=%ld",
+    DEBUG ("r%zu: read completed offset=%" PRIi64 " len=%zu",
            r->index, r->offset, r->length);
 
     if (dst.can_zero && is_zero (r->data, r->length))
@@ -429,7 +432,7 @@ start_write(struct request *r)
 
     r->state = WRITE;
 
-    DEBUG ("r%d: start write offset=%ld len=%ld",
+    DEBUG ("r%zu: start write offset=%" PRIi64 " len=%zu",
            r->index, r->offset, r->length);
 
     cookie = nbd_aio_pwrite (
@@ -448,7 +451,7 @@ start_zero(struct request *r)
 
     r->state = ZERO;
 
-    DEBUG ("r%d: start zero offset=%ld len=%ld",
+    DEBUG ("r%zu: start zero offset=%" PRIi64 " len=%zu",
            r->index, r->offset, r->length);
 
     cookie = nbd_aio_zero (
@@ -468,7 +471,7 @@ request_completed (void *user_data, int *error)
 
     written += r->length;
 
-    DEBUG ("r%d: %s completed offset=%ld len=%ld, time=%.6f",
+    DEBUG ("r%zu: %s completed offset=%" PRIi64 " len=%zu, time=%.6f",
            r->index, request_state (r), r->offset, r->length,
            ev_now (loop) - r->started);
 
