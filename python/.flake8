@@ -1,0 +1,6 @@
+[flake8]
+# Print the source code generating the error/warning in question.
+show_source = True
+
+# Count the number of occurrences of each error/warning code and print a report.
+statistics = True
