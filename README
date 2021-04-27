@@ -92,7 +92,7 @@ Optional:
 
  * Python >= 3.3 to build the Python 3 bindings and NBD shell (nbdsh).
 
- * FUSE to build the nbdfuse program.
+ * FUSE 3 to build the nbdfuse program.
 
  * bash-completion >= 1.99 for tab completion.
 

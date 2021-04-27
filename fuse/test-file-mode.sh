@@ -35,7 +35,7 @@ fi
 pidfile=test-file-mode.pid
 mp=test-file-mode
 data=test-file-mode.data
-cleanup_fn fusermount -u $mp
+cleanup_fn fusermount3 -u $mp
 cleanup_fn rm -f $pidfile $mp $data
 
 touch $mp

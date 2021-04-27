@@ -38,7 +38,7 @@ pidfile=test-qcow2.pid
 mp=test-qcow2.d
 data=test-qcow2.data
 qcow2=test-qcow2.qcow2
-cleanup_fn fusermount -u $mp
+cleanup_fn fusermount3 -u $mp
 cleanup_fn rm -rf $mp
 cleanup_fn rm -f $pidfile $data $qcow2
 
@@ -61,5 +61,7 @@ if ! test -f $pidfile; then
     echo "$0: nbdfuse PID file $pidfile was not created"
     exit 1
 fi
+
+ls -al $mp
 
 cmp $data $mp/nbd

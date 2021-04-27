@@ -35,7 +35,7 @@ fi
 pidfile=test-nbdkit.pid
 mp=test-nbdkit.d
 data=test-nbdkit.data
-cleanup_fn fusermount -u $mp
+cleanup_fn fusermount3 -u $mp
 cleanup_fn rm -rf $mp
 cleanup_fn rm -f $pidfile $data
 
@@ -54,6 +54,8 @@ if ! test -f $pidfile; then
     echo "$0: nbdfuse PID file $pidfile was not created"
     exit 1
 fi
+
+ls -al $mp
 
 dd if=/dev/urandom of=$data bs=1M count=10
 # Use a weird block size when writing.  It's a bit pointless because

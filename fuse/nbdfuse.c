@@ -36,12 +36,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#define FUSE_USE_VERSION 26
-
+#define FUSE_USE_VERSION 35
 #include <fuse.h>
-#ifdef HAVE_FUSE_LOWLEVEL_H
-#include <fuse_lowlevel.h>
-#endif
 
 #include <libnbd.h>
 
@@ -55,15 +51,17 @@ static bool file_mode = false;
 static char *mountpoint, *filename;
 static const char *pidfile;
 static char *fuse_options;
-static struct fuse_chan *ch;
 static struct fuse *fuse;
+static struct fuse_session *fuse_session;
 static struct timespec start_t;
 static uint64_t size;
 
-static int nbdfuse_getattr (const char *path, struct stat *stbuf);
+static int nbdfuse_getattr (const char *path, struct stat *stbuf,
+                            struct fuse_file_info *fi);
 static int nbdfuse_readdir (const char *path, void *buf,
                             fuse_fill_dir_t filler,
-                            off_t offset, struct fuse_file_info *fi);
+                            off_t offset, struct fuse_file_info *fi,
+                            enum fuse_readdir_flags flags);
 static int nbdfuse_open (const char *path, struct fuse_file_info *fi);
 static int nbdfuse_read (const char *path, char *buf,
                          size_t count, off_t offset,
@@ -182,7 +180,6 @@ main (int argc, char *argv[])
   int64_t ssize;
   const char *s;
   struct fuse_args fuse_args = FUSE_ARGS_INIT (0, NULL);
-  struct sigaction sa;
   FILE *fp;
 
   for (;;) {
@@ -455,43 +452,25 @@ main (int argc, char *argv[])
   }
 
   /* Create the FUSE mountpoint. */
-  ch = fuse_mount (mountpoint, &fuse_args);
-  if (ch == NULL) {
-    fprintf (stderr,
-             "%s: fuse_mount failed: see error messages above\n", argv[0]);
-    exit (EXIT_FAILURE);
-  }
-
-  /* Set FD_CLOEXEC on the channel.  Some versions of libfuse don't do
-   * this.
-   */
-  fd = fuse_chan_fd (ch);
-  if (fd >= 0) {
-    int flags = fcntl (fd, F_GETFD, 0);
-    if (flags >= 0)
-      fcntl (fd, F_SETFD, flags | FD_CLOEXEC);
-  }
-
-  /* Create the FUSE handle. */
-  fuse = fuse_new (ch, &fuse_args,
-                   &fuse_operations, sizeof fuse_operations, NULL);
+  fuse = fuse_new (&fuse_args, &fuse_operations, sizeof fuse_operations, NULL);
   if (!fuse) {
     perror ("fuse_new");
     exit (EXIT_FAILURE);
   }
   fuse_opt_free_args (&fuse_args);
 
-  /* Catch signals since they can leave the mountpoint in a funny
-   * state.  To exit the program callers must use ‘fusermount -u’.  We
-   * also must be careful not to call exit(2) in this program until we
-   * have unmounted the filesystem below.
+  fuse_session = fuse_get_session (fuse);
+
+  fuse_set_signal_handlers (fuse_session);
+
+  /* After successful fuse_mount we must be careful not to call
+   * exit(2) in this program until we have unmounted the filesystem
+   * below.
    */
-  memset (&sa, 0, sizeof sa);
-  sa.sa_handler = SIG_IGN;
-  sa.sa_flags = SA_RESTART;
-  sigaction (SIGPIPE, &sa, NULL);
-  sigaction (SIGINT, &sa, NULL);
-  sigaction (SIGQUIT, &sa, NULL);
+  if (fuse_mount (fuse, mountpoint) == -1) {
+    perror ("fuse_mount");
+    exit (EXIT_FAILURE);
+  }
 
   /* Ready to serve, write pidfile. */
   if (pidfile) {
@@ -504,11 +483,18 @@ main (int argc, char *argv[])
 
   /* Enter the main loop. */
   r = fuse_loop (fuse);
-  if (r != 0)
+  if (r < 0) {
+    errno = -r;
     perror ("fuse_loop");
+  }
+  else if (r > 0) {
+    fprintf (stderr, "%s: fuse_loop: fuse loop terminated by signal %d\n",
+             argv[0], r);
+  }
 
   /* Close FUSE. */
-  fuse_unmount (mountpoint, ch);
+  fuse_remove_signal_handlers (fuse_session);
+  fuse_unmount (fuse);
   fuse_destroy (fuse);
 
   /* Close NBD handle. */
@@ -541,11 +527,12 @@ check_nbd_error (void)
 }
 
 static int
-nbdfuse_getattr (const char *path, struct stat *statbuf)
+nbdfuse_getattr (const char *path, struct stat *statbuf,
+                 struct fuse_file_info *fi)
 {
   const int mode = readonly ? 0444 : 0666;
 
-  memset (statbuf, 0, sizeof (struct stat));
+  memset (statbuf, 0, sizeof *statbuf);
 
   /* We're probably making some Linux-specific assumptions here, but
    * this file is not usually compiled on non-Linux systems (perhaps
@@ -577,14 +564,15 @@ nbdfuse_getattr (const char *path, struct stat *statbuf)
 static int
 nbdfuse_readdir (const char *path, void *buf,
                  fuse_fill_dir_t filler,
-                 off_t offset, struct fuse_file_info *fi)
+                 off_t offset, struct fuse_file_info *fi,
+                 enum fuse_readdir_flags flags)
 {
   if (strcmp (path, "/") != 0)
     return -ENOENT;
 
-  filler (buf, ".", NULL, 0);
-  filler (buf, "..", NULL, 0);
-  filler (buf, filename, NULL, 0);
+  filler (buf, ".", NULL, 0, 0);
+  filler (buf, "..", NULL, 0, 0);
+  filler (buf, filename, NULL, 0, 0);
 
   return 0;
 }
