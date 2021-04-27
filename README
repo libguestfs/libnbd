@@ -144,7 +144,7 @@ Install the valgrind program and development headers.
 
 Use:
 
-    ./configure --enable-gcc-warnings
+    ./configure --enable-gcc-warnings --enable-python-code-style
 
 When testing use:
 

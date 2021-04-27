@@ -38,7 +38,10 @@ EXTRA_DIST = \
 	$(srcdir)/t/*.py \
 	$(NULL)
 
-TESTS = pycodestyle.sh
+TESTS =
+if ENABLE_PYCODESTYLE
+TESTS += pycodestyle.sh
+endif
 
 if HAVE_PYTHON
 

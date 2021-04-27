@@ -454,6 +454,14 @@ AS_IF([test "x$enable_python" != "xno"],[
 AM_CONDITIONAL([HAVE_PYTHON],
     [test "x$PYTHON" != "xno" && test "x$have_python_module" = "x1" ])
 
+dnl Use --enable-python-code-style to enable flake8 tests.
+AC_ARG_ENABLE([python-code-style],
+    [AS_HELP_STRING([--ensable-python-code-style],
+                    [disable Python code style checks (developers only)])],
+    [enable_pycodestyle=$enableval],
+    [enable_pycodestyle=no])
+AM_CONDITIONAL([ENABLE_PYCODESTYLE],[test "x$enable_pycodestyle" = "xyes"])
+
 dnl Golang.
 AC_ARG_ENABLE([golang],
     AS_HELP_STRING([--disable-golang], [disable Go language bindings]),
