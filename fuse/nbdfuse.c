@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <assert.h>
 #include <signal.h>
 #include <time.h>
 #include <sys/types.h>
@@ -96,8 +97,8 @@ usage (FILE *fp, int exitcode)
 "Other modes:\n"
 "\n"
 #endif
+"    nbdfuse MOUNTPOINT[/FILENAME] [ CMD [ARGS ...] ]\n"
 "    nbdfuse MOUNTPOINT[/FILENAME] --command CMD [ARGS ...]\n"
-"    nbdfuse MOUNTPOINT[/FILENAME] --socket-activation CMD [ARGS ...]\n"
 "    nbdfuse MOUNTPOINT[/FILENAME] --fd N\n"
 "    nbdfuse MOUNTPOINT[/FILENAME] --tcp HOST PORT\n"
 "    nbdfuse MOUNTPOINT[/FILENAME] --unix SOCKET\n"
@@ -145,7 +146,8 @@ main (int argc, char *argv[])
     MODE_URI,
     MODE_COMMAND,
     MODE_FD,
-    MODE_SOCKET_ACTIVATION,
+    MODE_SQUARE_BRACKET, /* [ CMD ], same as --socket-activation*/
+    MODE_SOCKET_ACTIVATION, /* --socket-activation */
     MODE_TCP,
     MODE_UNIX,
     MODE_VSOCK,
@@ -290,6 +292,10 @@ main (int argc, char *argv[])
     mode = MODE_COMMAND;
     optind++;
   }
+  else if (strcmp (argv[optind], "[") == 0) {
+    mode = MODE_SQUARE_BRACKET;
+    optind++;
+  }
   else if (strcmp (argv[optind], "--socket-activation") == 0 ||
            strcmp (argv[optind], "--systemd-socket-activation") == 0) {
     mode = MODE_SOCKET_ACTIVATION;
@@ -347,6 +353,10 @@ main (int argc, char *argv[])
     if (argc - optind < 1)
       usage (stderr, EXIT_FAILURE);
     break;
+  case MODE_SQUARE_BRACKET:
+    if (argc - optind < 2 || strcmp (argv[argc-1], "]") != 0)
+      usage (stderr, EXIT_FAILURE);
+    break;
   }
   /* At this point we know the command line is valid, and so can start
    * opening FUSE and libnbd.
@@ -375,6 +385,13 @@ main (int argc, char *argv[])
     }
     break;
 
+  case MODE_SQUARE_BRACKET:
+    /* This is the same as MODE_SOCKET_ACTIVATION but we must eat the
+     * closing square bracket on the command line.
+     */
+    assert (strcmp (argv[argc-1], "]") == 0); /* checked above */
+    argv[argc-1] = NULL;
+    /*FALLTHROUGH */
   case MODE_SOCKET_ACTIVATION:
     if (nbd_connect_systemd_socket_activation (nbd, &argv[optind]) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());

@@ -22,6 +22,7 @@ EXTRA_DIST = \
 	test-file-mode.sh \
 	test-long-options.sh \
 	test-nbdkit.sh \
+	test-nbdkit-command.sh \
 	test-qcow2.sh \
 	test-short-options.sh \
 	test-version.sh \
@@ -66,6 +67,7 @@ TESTS += \
 	test-version.sh \
 	test-file-mode.sh \
 	test-nbdkit.sh \
+	test-nbdkit-command.sh \
 	test-qcow2.sh \
 	$(NULL)
 

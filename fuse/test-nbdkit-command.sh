@@ -16,7 +16,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-# Test nbdfuse [ nbdkit ] (using systemd socket activation).
+# Test nbdfuse --command nbdkit.
 
 . ../tests/functions.sh
 
@@ -32,15 +32,16 @@ if ! test -r /dev/urandom; then
     exit 77
 fi
 
-pidfile=test-nbdkit.pid
-mp=test-nbdkit.d
-data=test-nbdkit.data
+pidfile=test-nbdkit-command.pid
+mp=test-nbdkit-command.d
+data=test-nbdkit-command.data
 cleanup_fn fusermount3 -u $mp
 cleanup_fn rm -rf $mp
 cleanup_fn rm -f $pidfile $data
 
 mkdir -p $mp
-$VG nbdfuse -P $pidfile $mp [ nbdkit --exit-with-parent memory size=10M ] &
+$VG nbdfuse -P $pidfile $mp \
+        --command nbdkit -s --exit-with-parent memory size=10M &
 
 # Wait for the pidfile to appear.
 for i in {1..60}; do

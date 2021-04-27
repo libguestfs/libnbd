@@ -9,9 +9,9 @@ nbdfuse - present a network block device in a FUSE filesystem
 
 Other modes:
 
- nbdfuse MOUNTPOINT[/FILENAME] --command CMD [ARGS ...]
+ nbdfuse MOUNTPOINT[/FILENAME] [ CMD [ARGS ...] ]
 
- nbdfuse MOUNTPOINT[/FILENAME] --socket-activation CMD [ARGS ...]
+ nbdfuse MOUNTPOINT[/FILENAME] --command CMD [ARGS ...]
 
  nbdfuse MOUNTPOINT[/FILENAME] --fd N
 
@@ -33,8 +33,9 @@ mounting over any regular file called F<MOUNTPOINT> (the existing
 contents of the file do not matter).
 
 The NBD server itself can be local or remote.  The server can be
-specified as an NBD URI (like C<nbd://localhost>) or in various other
-ways (see L</MODES>).
+specified as an NBD URI (like C<nbd://localhost>), or as an NBD server
+running as a subprocess of nbdfuse (using S<C<[ ... ]>>), or in
+various other ways (see L</MODES>).
 
 Use C<fusermount3 -u MOUNTPOINT> to unmount the filesystem after you
 have used it.
@@ -62,11 +63,12 @@ remote NBD server.  After using it, unmount it:
 
 =head2 Use nbdkit to create a file backed by a temporary RAM disk
 
-L<nbdkit(1)> has an I<-s> option allowing it to serve over
-stdin/stdout.  You can combine this with nbdfuse as follows:
+Using S<C<[ ... ]>> you can run an NBD server as a subprocess.  In
+this example L<nbdkit(1)> is used to create a temporary file backed by
+a RAM disk:
 
  $ mkdir dir
- $ nbdfuse dir/ramdisk --command nbdkit -s memory 1G &
+ $ nbdfuse dir/ramdisk [ nbdkit --exit-with-parent memory 1G ] &
  $ ls -l dir/
  total 0
  -rw-rw-rw-. 1 nbd nbd 1073741824 Jan  1 10:10 ramdisk
@@ -84,13 +86,11 @@ discarded:
 
 =head2 Use qemu-nbd to read and modify a qcow2 file
 
-L<qemu-nbd(8)> cannot serve over stdin/stdout, but it can use systemd
-socket activation.  You can combine this with nbdfuse and use it to
-open any file format which qemu understands:
+You can use L<qemu-nbd(8)> as a subprocess to open any file format
+which qemu understands:
 
  $ mkdir dir
- $ nbdfuse dir/file.raw \
-           --socket-activation qemu-nbd -f qcow2 file.qcow2 &
+ $ nbdfuse dir/file.raw [ qemu-nbd -f qcow2 file.qcow2 ] &
  $ ls -l dir/
  total 0
  -rw-rw-rw-. 1 nbd nbd 1073741824 Jan  1 10:10 file.raw
@@ -110,8 +110,9 @@ virtual files:
 
  $ mkdir dir
  $ nbdfuse dir/disk.iso \
-       --command nbdkit -s curl --filter=xz \
-                        http://builder.libguestfs.org/fedora-30.xz &
+       [ nbdkit --exit-with-parent \
+                curl --filter=xz \
+                http://builder.libguestfs.org/fedora-30.xz ] &
  $ ls -l dir/
  total 0
  -rw-rw-rw-. 1 nbd nbd 6442450944 Jan  1 10:10 disk.iso
@@ -203,25 +204,26 @@ Other modes are:
 
 =over 4
 
+=item B<[> CMD [ARGS ...] B<]>
+
+Run an NBD server as a subprocess.  In this mode an NBD server can be
+run directly from the command line with nbdfuse communicating with the
+server over a socket.  This requires that the NBD server supports
+systemd socket activation.  See L</EXAMPLES> above and
+L<nbd_connect_systemd_socket_activation(3)>.
+
 =item B<--command> CMD [ARGS ...]
 
 Select command mode.  In this mode an NBD server can be run directly
 from the command line with nbdfuse communicating with the server over
 the server’s stdin/stdout.  Normally you would use this with
-C<nbdkit -s>.  See L</EXAMPLES> above and L<nbd_connect_command(3)>.
+C<nbdkit -s>.  See L<nbd_connect_command(3)>.
 
 =item B<--fd> N
 
 Select file descriptor mode.  In this mode a connected socket is
 passed to nbdfuse.  nbdfuse connects to the socket on the numbered
 file descriptor.  See also L<nbd_connect_socket(3)>.
-
-=item B<--socket-activation> CMD [ARGS ...]
-
-Select systemd socket activation mode.  This is similar to
-I<--command>, but is used for servers like L<qemu-nbd(8)> which
-support systemd socket activation.  See L</EXAMPLES> above and
-L<nbd_connect_systemd_socket_activation(3)>.
 
 =item B<--tcp> HOST PORT
 
