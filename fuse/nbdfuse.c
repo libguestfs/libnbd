@@ -450,6 +450,12 @@ main (int argc, char *argv[])
   }
   size = (uint64_t) ssize;
 
+  /* If the remote NBD server is readonly, then act as if the '-r'
+   * flag was given on the nbdfuse command line.
+   */
+  if (nbd_is_read_only (nbd) > 0)
+    readonly = true;
+
   /* This is just used to give an unchanging time when they stat in
    * the mountpoint.
    */
