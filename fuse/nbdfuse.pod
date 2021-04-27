@@ -23,13 +23,10 @@ Other modes:
 
 =head1 DESCRIPTION
 
-nbdfuse presents a Network Block Device as a local file inside a FUSE
-filesystem.
-
-The FUSE filesystem is mounted at F<MOUNTPOINT> and contains a single
-virtual file called F<FILENAME> (defaulting to F<nbd>).  Reads and
-writes to the virtual file or device are turned into reads and writes
-to the NBD device.
+nbdfuse is used to mount a Network Block Device (NBD) in the local
+filesystem.  The NBD virtual file is mounted at F<MOUNTPOINT/FILENAME>
+(defaulting to F<MOUNTPOINT/nbd>).  Reads and writes to the virtual
+file are turned into reads and writes to the NBD device.
 
 In nbdfuse E<ge> 1.6 you can also create a "naked" mountpoint by
 mounting over any regular file called F<MOUNTPOINT> (the existing
