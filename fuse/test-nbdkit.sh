@@ -23,6 +23,7 @@
 set -e
 set -x
 
+requires fusermount3 --version
 requires nbdkit --exit-with-parent --version
 requires cmp --version
 requires dd --version

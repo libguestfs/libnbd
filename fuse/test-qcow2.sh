@@ -24,6 +24,7 @@
 set -e
 set -x
 
+requires fusermount3 --version
 requires qemu-nbd --version
 requires qemu-img --version
 requires cmp --version

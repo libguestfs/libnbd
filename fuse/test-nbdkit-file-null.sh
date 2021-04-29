@@ -23,6 +23,7 @@
 set -e
 set -x
 
+requires fusermount3 --version
 requires nbdkit --exit-with-parent --version
 
 pidfile=test-nbdkit-file-null.pid
