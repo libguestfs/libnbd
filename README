@@ -111,6 +111,8 @@ Optional, only needed to run the test suite:
 
  * coreutils or standard Unix tools such as cmp, dd, stat, truncate.
 
+ * libdl (dlopen, dlclose etc) to test this functionality.
+
  * qemu, qemu-io, qemu-img for interoperability testing.
 
  * psktool and certtool (part of GnuTLS) for testing TLS support.

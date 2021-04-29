@@ -177,6 +177,7 @@ Makefile.in
 /tests/connect-uri-nbds-unix
 /tests/debug
 /tests/debug-environment
+/tests/dlopen
 /tests/errors
 /tests/export-name
 /tests/functions.sh

@@ -109,6 +109,13 @@ AC_CHECK_FUNCS([strerrordesc_np])
 dnl Check for sys_errlist (optional).
 AC_CHECK_DECLS([sys_errlist])
 
+dnl Check for libdl/dlopen (optional - only used to test if the library
+dnl can be used with libdl).
+AC_CHECK_LIB([dl],[dlopen],[have_libdl=yes],[have_libdl=no])
+AC_CHECK_HEADERS([dlfcn.h],[have_dlfcn=yes],[have_dlfcn=no])
+AM_CONDITIONAL([HAVE_LIBDL],
+               [test "x$have_libdl" = "xyes" && test "x$have_dlfcn" = "xyes"])
+
 dnl Check for GnuTLS (optional, for TLS support).
 AC_ARG_WITH([gnutls],
     [AS_HELP_STRING([--without-gnutls],

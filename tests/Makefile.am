@@ -142,6 +142,22 @@ compile_cxx_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_CXX
 
+if HAVE_LIBDL
+
+check_PROGRAMS += dlopen
+TESTS += dlopen
+
+dlopen_SOURCES = dlopen.c
+dlopen_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-DLIBRARY=\"$(top_builddir)/lib/.libs/libnbd.so.0\" \
+	$(NULL)
+dlopen_CFLAGS = $(WARNINGS_CFLAGS) $(PTHREAD_CFLAGS)
+dlopen_LDADD = -ldl $(PTHREAD_LIBS)
+
+endif
+
+
 #----------------------------------------------------------------------
 # The following tests require nbdkit as an NBD server to test against.
 
