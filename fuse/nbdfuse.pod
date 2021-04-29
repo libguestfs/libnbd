@@ -21,6 +21,10 @@ Other modes:
 
  nbdfuse MOUNTPOINT[/FILENAME] --vsock CID PORT
 
+To unmount:
+
+ fusermount3 -u MOUNTPOINT
+
 =head1 DESCRIPTION
 
 nbdfuse is used to mount a Network Block Device (NBD) in the local
