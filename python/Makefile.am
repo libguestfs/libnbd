@@ -32,6 +32,7 @@ generator_built = \
 EXTRA_DIST = \
 	examples/LICENSE-FOR-EXAMPLES \
 	examples/checksum.py \
+	.flake8 \
 	$(generator_built) \
 	nbdsh.py \
 	pycodestyle.sh \
