@@ -59,6 +59,16 @@ errors_init (void)
 static void
 errors_free (void)
 {
+  struct last_error *last_error = pthread_getspecific (errors_key);
+
+  /* "No destructor functions shall be invoked by
+   * pthread_key_delete().  Any destructor function that may have been
+   * associated with key shall no longer be called upon thread exit."
+   */
+  if (last_error != NULL) {
+    free (last_error->error);
+    free (last_error);
+  }
   pthread_key_delete (errors_key);
 }
 
