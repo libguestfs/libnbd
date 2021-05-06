@@ -247,6 +247,28 @@ PKG_CHECK_MODULES([LIBEV], [libev], [
         AC_MSG_WARN([ev.h not found, some examples will not be compiled])
     ])
 ])
+
+AS_IF([test "x$LIBEV_LIBS" != "x"], [
+    old_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS $LIBEV_CFLAGS -Werror=strict-aliasing -O2"
+    AC_MSG_CHECKING([if the compiler is new enough for good aliasing rules])
+    AC_COMPILE_IFELSE([
+        AC_LANG_PROGRAM([
+            #include <ev.h>
+
+            static void cb (struct ev_loop *l, ev_timer *t, int e) { }
+            static ev_timer timer;
+        ], [
+            ev_timer_init (&timer, cb, 0, .1);
+        ])
+    ], [
+        AC_MSG_RESULT([yes])
+    ], [
+        AC_MSG_RESULT([no])
+        LIBEV_CFLAGS="$LIBEV_CFLAGS -Wno-strict-aliasing"
+    ])
+    CFLAGS="$old_CFLAGS"
+])
 AM_CONDITIONAL([HAVE_LIBEV], [test "x$LIBEV_LIBS" != "x"])
 
 dnl FUSE 3 is optional to build the nbdfuse program.
