@@ -1,4 +1,4 @@
-#!/bin/sh -
+#!/bin/bash -
 # nbd client library in userspace
 # Copyright (C) 2013-2020 Red Hat Inc.
 #
