@@ -38,7 +38,11 @@ if HAVE_FUSE
 
 bin_PROGRAMS = nbdfuse
 
-nbdfuse_SOURCES = nbdfuse.c
+nbdfuse_SOURCES = \
+	nbdfuse.c \
+	nbdfuse.h \
+	operations.c \
+	$(NULL)
 nbdfuse_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/common/utils \
