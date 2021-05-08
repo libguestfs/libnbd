@@ -62,5 +62,5 @@ nbdkit -U - null --run '
 
     # We have to explicitly unmount it here else nbdfuse will
     # never exit and nbdkit will hang.
-    fusermount -u $mp
+    fusermount3 -u $mp
 '
