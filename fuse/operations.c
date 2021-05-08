@@ -36,6 +36,7 @@
 #include <libnbd.h>
 
 #include "nbdfuse.h"
+#include "minmax.h"
 
 #define MAX_REQUEST_SIZE (32 * 1024 * 1024)
 
@@ -200,6 +201,48 @@ nbdfuse_release (const char *path, struct fuse_file_info *fi)
   return nbdfuse_fsync (path, 0, fi);
 }
 
+/* Punch a hole or write zeros. */
+static int
+nbdfuse_fallocate (const char *path, int mode, off_t offset, off_t len,
+                   struct fuse_file_info *fi)
+{
+  if (readonly)
+    return -EACCES;
+
+  if (mode & FALLOC_FL_PUNCH_HOLE) {
+    if (!nbd_can_trim (nbd))
+      return -EOPNOTSUPP;       /* Trim not supported. */
+    else {
+      CHECK_NBD_ERROR (nbd_trim (nbd, len, offset, 0));
+      return 0;
+    }
+  }
+  /* As of FUSE 35 this is not supported by the kernel module and it
+   * always returns EOPNOTSUPP.
+   */
+  else if (mode & FALLOC_FL_ZERO_RANGE) {
+    /* If the backend doesn't support writing zeroes then we can
+     * emulate it.
+     */
+    if (!nbd_can_zero (nbd)) {
+      static char zerobuf[4096];
+
+      while (len > 0) {
+        off_t n = MIN (len, sizeof zerobuf);
+        CHECK_NBD_ERROR (nbd_pwrite (nbd, zerobuf, n, offset, 0));
+        len -= n;
+      }
+      return 0;
+    }
+    else {
+      CHECK_NBD_ERROR (nbd_zero (nbd, len, offset, 0));
+      return 0;
+    }
+  }
+  else
+    return -EOPNOTSUPP;
+}
+
 struct fuse_operations nbdfuse_operations = {
   .getattr           = nbdfuse_getattr,
   .readdir           = nbdfuse_readdir,
@@ -208,4 +251,5 @@ struct fuse_operations nbdfuse_operations = {
   .write             = nbdfuse_write,
   .fsync             = nbdfuse_fsync,
   .release           = nbdfuse_release,
+  .fallocate         = nbdfuse_fallocate,
 };

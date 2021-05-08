@@ -21,13 +21,15 @@ EXTRA_DIST = \
 	nbdfuse.pod \
 	test-file-mode.sh \
 	test-long-options.sh \
-	test-nbdkit.sh \
 	test-nbdkit-command.sh \
 	test-nbdkit-file-null.sh \
+	test-nbdkit.sh \
 	test-qcow2.sh \
 	test-short-options.sh \
+	test-trim.sh \
 	test-unix.sh \
 	test-version.sh \
+	test-zero.sh \
 	$(NULL)
 
 TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 EXPECTED_VERSION=$(VERSION)
@@ -45,6 +47,7 @@ nbdfuse_SOURCES = \
 	$(NULL)
 nbdfuse_CPPFLAGS = \
 	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/common/include \
 	-I$(top_srcdir)/common/utils \
 	$(NULL)
 nbdfuse_CFLAGS = $(WARNINGS_CFLAGS) $(FUSE_CFLAGS)
@@ -77,6 +80,8 @@ TESTS += \
 	test-nbdkit-file-null.sh \
 	test-unix.sh \
 	test-qcow2.sh \
+	test-trim.sh \
+	test-zero.sh \
 	$(NULL)
 
 check-valgrind:
