@@ -7,8 +7,6 @@ nbdfuse - present a network block device in a FUSE filesystem
  nbdfuse [-o FUSE-OPTION] [-P PIDFILE] [-r]
          MOUNTPOINT[/FILENAME] URI
 
-Other modes:
-
  nbdfuse MOUNTPOINT[/FILENAME] [ CMD [ARGS ...] ]
 
  nbdfuse MOUNTPOINT[/FILENAME] --command CMD [ARGS ...]
