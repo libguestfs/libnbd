@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2020 Red Hat Inc.
+# Copyright (C) 2020-2021 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -31,4 +31,4 @@ nbdkit -U - memory size=1M \
        --run '$VG nbdinfo "nbd+unix:///?socket=$unixsocket"' > $out
 cat $out
 grep "export-size: $((1024*1024))" $out
-sed -n '/contexts:/ { N; p; q }; $ q1' $out
+sed -n '/contexts:/ { N; p; q }' $out | grep .
