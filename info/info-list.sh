@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2020 Red Hat Inc.
+# Copyright (C) 2020-2021 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -37,7 +37,7 @@ cat $out
 grep 'export="hello":' $out
 grep 'description: world' $out
 grep 'export-size: 1048576' $out
-sed -n '/contexts:/ { N; p; q }; $ q1' $out
+sed -n '/contexts:/ { N; p; q }' $out | grep .
 
 # ...and again with the export name included
 nbdkit -U - -e hello --filter=exportname memory 1M \
@@ -49,4 +49,4 @@ cat $out
 grep 'export="hello":' $out
 grep 'description: world' $out
 grep 'export-size: 1048576' $out
-sed -n '/contexts:/ { N; p; q }; $ q1' $out
+sed -n '/contexts:/ { N; p; q }' $out | grep .
