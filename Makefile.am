@@ -62,6 +62,7 @@ maintainer-check-extra-dist:
 	@zcat $(PACKAGE_NAME)-$(VERSION).tar.gz | tar tf - | sort | \
 	    sed 's,^$(PACKAGE_NAME)-$(VERSION)/,,' > tarfiles
 	@git ls-files | \
+      grep -v -e '^\.gitlab-ci.yml' -e '^ci/' | \
 	    sort > gitfiles
 	@comm -13 tarfiles gitfiles > comm-out
 	@echo Checking for differences between EXTRA_DIST and git ...
