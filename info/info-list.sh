@@ -37,7 +37,7 @@ cat $out
 grep 'export="hello":' $out
 grep 'description: world' $out
 grep 'export-size: 1048576' $out
-sed -n '/contexts:/ { N; p; q }' $out | grep .
+sed -n '/contexts:/ { N; p; q; }' $out | grep .
 
 # ...and again with the export name included
 nbdkit -U - -e hello --filter=exportname memory 1M \
@@ -49,4 +49,4 @@ cat $out
 grep 'export="hello":' $out
 grep 'description: world' $out
 grep 'export-size: 1048576' $out
-sed -n '/contexts:/ { N; p; q }' $out | grep .
+sed -n '/contexts:/ { N; p; q; }' $out | grep .

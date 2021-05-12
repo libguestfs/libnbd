@@ -31,4 +31,4 @@ nbdkit -U - memory size=1M \
        --run '$VG nbdinfo "nbd+unix:///?socket=$unixsocket"' > $out
 cat $out
 grep "export-size: $((1024*1024))" $out
-sed -n '/contexts:/ { N; p; q }' $out | grep .
+sed -n '/contexts:/ { N; p; q; }' $out | grep .
