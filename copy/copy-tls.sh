@@ -28,7 +28,7 @@ set -x
 requires test "x$PSKTOOL" != "x"
 requires nbdkit --exit-with-parent --version
 requires bash -c "nbdkit --dump-config | grep tls=yes"
-requires cmp --version
+requires cmp /dev/null /dev/null
 
 pskfile=copy-tls.psk
 pidfile1=copy-tls.pid1

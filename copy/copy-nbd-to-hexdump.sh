@@ -22,7 +22,7 @@ set -e
 set -x
 
 requires nbdkit --exit-with-parent --version
-requires hexdump --version
+requires hexdump -C /dev/null
 
 # This test requires nbdkit >= 1.22.
 minor=$( nbdkit --dump-config | grep ^version_minor | cut -d= -f2 )

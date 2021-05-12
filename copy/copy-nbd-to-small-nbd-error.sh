@@ -22,7 +22,6 @@ set -e
 set -x
 
 requires nbdkit --exit-with-parent --version
-requires stat --version
 
 pidfile1=copy-nbd-to-nbd-error.pid1
 pidfile2=copy-nbd-to-nbd-error.pid2

@@ -22,7 +22,7 @@ set -e
 set -x
 
 requires nbdkit --exit-with-parent --version
-requires cmp --version
+requires cmp /dev/null /dev/null
 
 pidfile=copy-nbd-to-null.pid
 file=copy-nbd-to-null.file

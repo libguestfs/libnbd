@@ -21,7 +21,7 @@
 set -e
 set -x
 
-requires dd --version
+requires dd if=/dev/null of=/dev/null
 requires test -r /dev/urandom
 
 file=copy-progress-bar.file
