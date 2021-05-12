@@ -557,8 +557,10 @@ file_synch_zero (struct rw *rw, uint64_t offset, uint64_t count, bool allocate)
 
   if (rwf->can_punch_hole && rwf->can_fallocate) {
     if (file_punch_hole (rwf->fd, offset, count)) {
+#ifdef __linux__
       if (fallocate (rwf->fd, 0, offset, count))
           return true;
+#endif
 
       rwf->can_fallocate = false;
     } else {
