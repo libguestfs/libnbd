@@ -4,7 +4,7 @@ nbdfuse - present a network block device in a FUSE filesystem
 
 =head1 SYNOPSIS
 
- nbdfuse [-o FUSE-OPTION] [-P PIDFILE] [-r]
+ nbdfuse [-o FUSE-OPTION] [-P PIDFILE] [-r] [-s]
          MOUNTPOINT[/FILENAME] URI
 
  nbdfuse MOUNTPOINT[/FILENAME] [ CMD [ARGS ...] ]
@@ -191,6 +191,10 @@ to unmount the mountpoint which will cause nbdfuse to exit cleanly.
 
 Access the network block device read-only.  The virtual file will have
 read-only permissions, and any writes will return errors.
+
+=item B<-s>
+
+Use single-threaded FUSE operations.
 
 =item B<-V>
 

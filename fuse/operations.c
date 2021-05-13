@@ -16,6 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+/* FUSE operations invoked by the kernel.
+ *
+ * Note these may be called in parallel from multiple threads, so any
+ * shared state needs to be read-only or else protected by mutexes.
+ * libnbd calls are OK.
+ */
+
 #include <config.h>
 
 #include <stdio.h>

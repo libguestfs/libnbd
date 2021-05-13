@@ -61,7 +61,7 @@ usage (FILE *fp, int exitcode)
 "Mount NBD server as a virtual file:\n"
 "\n"
 #ifdef HAVE_LIBXML2
-"    nbdfuse [-o FUSE-OPTION] [-P PIDFILE] [-r] MOUNTPOINT[/FILENAME] URI\n"
+"    nbdfuse [-o FUSE-OPTION] [-P PIDFILE] [-r] [-s] MOUNTPOINT[/FILENAME] URI\n"
 "\n"
 "Other modes:\n"
 "\n"
@@ -141,7 +141,7 @@ main (int argc, char *argv[])
    * first non-option argument (the mountpoint) and then we parse the
    * rest of the command line without getopt.
    */
-  const char *short_options = "+o:P:rV";
+  const char *short_options = "+o:P:rsV";
   const struct option long_options[] = {
     { "fuse-help",          no_argument,       NULL, FUSE_HELP_OPTION },
     { "help",               no_argument,       NULL, HELP_OPTION },
@@ -158,9 +158,11 @@ main (int argc, char *argv[])
   int c, fd, r;
   size_t i;
   uint32_t cid, port;
+  bool singlethread = false;
   int64_t ssize;
   const char *s;
   struct fuse_args fuse_args = FUSE_ARGS_INIT (0, NULL);
+  struct fuse_loop_config fuse_loop_config;
   FILE *fp;
 
   for (;;) {
@@ -201,6 +203,10 @@ main (int argc, char *argv[])
 
     case 'r':
       readonly = true;
+      break;
+
+    case 's':
+      singlethread = true;
       break;
 
     case 'V':
@@ -485,7 +491,15 @@ main (int argc, char *argv[])
   }
 
   /* Enter the main loop. */
-  r = fuse_loop (fuse);
+  if (!singlethread) {
+    memset (&fuse_loop_config, 0, sizeof fuse_loop_config);
+    fuse_loop_config.clone_fd = 0;
+    fuse_loop_config.max_idle_threads = 10;
+    r = fuse_loop_mt (fuse, &fuse_loop_config);
+  }
+  else {
+    r = fuse_loop (fuse);
+  }
   if (r < 0) {
     errno = -r;
     perror ("fuse_loop");
