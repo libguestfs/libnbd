@@ -38,10 +38,8 @@ nbdcopy:
 
 nbdfuse:
  - If you write beyond the end of the virtual file, it returns EIO.
- - Implement trim/discard.
- - Implement write_zeroes.
  - Implement block_status.
- - Could be made multithreaded for improved performance.
+ - Improve multithread performance by using multi-conn.
 
 nbdinfo:
  - 'nbdinfo --map' needs --offset and --length parameters for mapping

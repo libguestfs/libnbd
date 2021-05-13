@@ -441,6 +441,11 @@ main (int argc, char *argv[])
   if (nbd_is_read_only (nbd) > 0)
     readonly = true;
 
+  /* Create the background thread which is used to dispatch NBD
+   * operations.
+   */
+  start_operations_thread ();
+
   /* This is just used to give an unchanging time when they stat in
    * the mountpoint.
    */

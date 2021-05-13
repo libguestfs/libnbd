@@ -36,5 +36,6 @@ extern char *filename;
 extern uint64_t size;
 
 extern struct fuse_operations nbdfuse_operations;
+extern void start_operations_thread (void);
 
 #endif /* LIBNBD_NBDFUSE_H */
