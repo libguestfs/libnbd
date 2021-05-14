@@ -23,6 +23,14 @@ To unmount:
 
  fusermount3 -u MOUNTPOINT
 
+Other options:
+
+ nbdfuse --help
+
+ nbdfuse --fuse-help
+
+ nbdfuse -V|--version
+
 =head1 DESCRIPTION
 
 nbdfuse is used to mount a Network Block Device (NBD) in the local
