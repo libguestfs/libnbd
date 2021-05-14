@@ -44,7 +44,7 @@ cleanup_fn rm -rf $mp $pidfile $out
 
 mkdir $mp
 
-export mp pidfile out
+export mp pidfile out prog="$0"
 nbdkit -U - \
        sh - \
        --run '
@@ -61,7 +61,7 @@ for i in {1..60}; do
     sleep 1
 done
 if ! test -f $pidfile; then
-    echo "$0: nbdfuse PID file $pidfile was not created"
+    echo "$prog: nbdfuse PID file $pidfile was not created"
     exit 1
 fi
 

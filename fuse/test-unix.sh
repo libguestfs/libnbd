@@ -42,7 +42,7 @@ mkdir $mp
 
 # Run nbdkit with the null plugin using a Unix domain socket, then
 # connect nbdfuse to the socket using --unix.
-export mp pidfile
+export mp pidfile prog="$0"
 nbdkit -U - null --run '
     nbdfuse -P $pidfile $mp --unix "$unixsocket" &
 
@@ -54,7 +54,7 @@ nbdkit -U - null --run '
         sleep 1
     done
     if ! test -f $pidfile; then
-        echo "$0: nbdfuse PID file $pidfile was not created"
+        echo "$prog: nbdfuse PID file $pidfile was not created"
         exit 1
     fi
 
