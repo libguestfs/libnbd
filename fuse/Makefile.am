@@ -19,6 +19,7 @@ include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
 	nbdfuse.pod \
+	test-errors.sh \
 	test-file-mode.sh \
 	test-long-options.sh \
 	test-nbdkit-command.sh \
@@ -84,6 +85,7 @@ TESTS += \
 	test-qcow2.sh \
 	test-trim.sh \
 	test-zero.sh \
+	test-errors.sh \
 	$(NULL)
 
 check-valgrind:
