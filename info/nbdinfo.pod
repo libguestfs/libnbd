@@ -55,7 +55,7 @@ scripting) use the I<--size> parameter:
 To display the output as JSON (eg. for scripting with L<jq(1)>) add
 the I<--json> parameter:
 
- $ nbdinfo --json nbd://localhost | jq
+ $ nbdinfo --json nbd://localhost | jq .
  {
    "protocol": "newstyle-fixed",
    "TLS": false,

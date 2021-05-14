@@ -34,7 +34,7 @@ nbdkit -U - data data='1 @131072 2' size=1M \
        --run '$VG nbdinfo --map --json "$uri"' > $out
 
 cat $out
-jq < $out
+jq . < $out
 
 test $( jq -r '.[0].offset' < $out ) -eq 0
 test $( jq -r '.[0].length' < $out ) -eq 32768
