@@ -39,3 +39,21 @@
   ...
   fun:_dl_allocate_tls
 }
+
+# Same as above, but for glibc 2.34.
+{
+  glibc_4
+  Memcheck:Leak
+  fun:malloc
+  ...
+  fun:allocate_dtv_entry
+}
+
+# This is another leak from pthread_create added in glibc 2.34.
+{
+  glibc_5
+  Memcheck:Leak
+  fun:malloc
+  ...
+  fun:__printf_chk
+}
