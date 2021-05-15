@@ -242,8 +242,8 @@ wait_for_completion (size_t index, struct completion *completion,
   } while (0)
 
 /* Wraps calls to sync libnbd functions and check the error. */
-#define CHECK_NBD_SYNC_ERROR(CALL)                                      \
-  do { if ((CALL) == -1) return report_nbd_error (); } while (0)
+//#define CHECK_NBD_SYNC_ERROR(CALL)
+//  do { if ((CALL) == -1) return report_nbd_error (); } while (0)
 
 static int
 nbdfuse_getattr (const char *path, struct stat *statbuf,
@@ -389,46 +389,6 @@ nbdfuse_fsync (const char *path, int datasync, struct fuse_file_info *fi)
   return 0;
 }
 
-/* This is called on the last close of a file. */
-static int
-nbdfuse_release (const char *path, struct fuse_file_info *fi)
-{
-  time_t st;
-  size_t i;
-
-  DEBUG_OPERATION ("release", "path=%s", path);
-
-  /* We do a synchronous flush here to be on the safe side, but it's
-   * not strictly necessary.
-   */
-  if (!readonly && nbd_can_flush (nbd.ptr[0]))
-    CHECK_NBD_SYNC_ERROR (nbd_flush (nbd.ptr[0], 0));
-
-  /* Wait until there are no more commands in flight or until a
-   * timeout is reached.
-   */
-  time (&st);
-  while (1) {
-    if (time (NULL) - st > RELEASE_TIMEOUT)
-      break;
-    for (i = 0; i < nbd.size; ++i) {
-      if (nbd_aio_in_flight (nbd.ptr[i]) > 0)
-        break;
-    }
-    if (i == nbd.size) /* no commands in flight */
-      break;
-
-    /* Signal to the operations thread to work. */
-    for (i = 0; i < nbd.size; ++i) {
-      pthread_mutex_lock (&threads[i].start_mutex);
-      pthread_cond_signal (&threads[i].start_cond);
-      pthread_mutex_unlock (&threads[i].start_mutex);
-    }
-  }
-
- return 0;
-}
-
 /* Punch a hole or write zeros. */
 static int
 nbdfuse_fallocate (const char *path, int mode, off_t offset, off_t len,
@@ -475,6 +435,38 @@ nbdfuse_fallocate (const char *path, int mode, off_t offset, off_t len,
     return -EOPNOTSUPP;
 }
 
+/* This is called when the filesystem is unmounted. */
+static void
+nbdfuse_destroy (void *data)
+{
+  time_t st;
+  size_t i;
+
+  DEBUG_OPERATION ("destroy", "(no parameters)");
+
+  /* Wait until there are no more commands in flight or until a
+   * timeout is reached.
+   */
+  time (&st);
+  while (time (NULL) - st <= RELEASE_TIMEOUT) {
+    for (i = 0; i < nbd.size; ++i) {
+      if (nbd_aio_in_flight (nbd.ptr[i]) > 0)
+        break;
+    }
+    if (i == nbd.size) /* no commands in flight */
+      break;
+
+    /* Signal to the operations thread to work. */
+    for (i = 0; i < nbd.size; ++i) {
+      pthread_mutex_lock (&threads[i].start_mutex);
+      pthread_cond_signal (&threads[i].start_cond);
+      pthread_mutex_unlock (&threads[i].start_mutex);
+    }
+
+    sleep (1);
+  }
+}
+
 struct fuse_operations nbdfuse_operations = {
   .getattr           = nbdfuse_getattr,
   .readdir           = nbdfuse_readdir,
@@ -482,6 +474,6 @@ struct fuse_operations nbdfuse_operations = {
   .read              = nbdfuse_read,
   .write             = nbdfuse_write,
   .fsync             = nbdfuse_fsync,
-  .release           = nbdfuse_release,
   .fallocate         = nbdfuse_fallocate,
+  .destroy           = nbdfuse_destroy,
 };
