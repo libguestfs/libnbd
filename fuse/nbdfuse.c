@@ -376,7 +376,7 @@ main (int argc, char *argv[])
      */
     assert (strcmp (argv[argc-1], "]") == 0); /* checked above */
     argv[argc-1] = NULL;
-    /*FALLTHROUGH */
+    /*FALLTHROUGH*/
   case MODE_SOCKET_ACTIVATION:
     if (nbd_connect_systemd_socket_activation (nbd, &argv[optind]) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
