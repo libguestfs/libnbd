@@ -95,13 +95,13 @@ operations_thread (void *arg)
   while (1) {
     /* Sleep until a command is in flight. */
     pthread_mutex_lock (&start_mutex);
-    while (nbd_aio_in_flight (nbd) == 0)
+    while (nbd_aio_in_flight (nbd.ptr[0]) == 0)
       pthread_cond_wait (&start_cond, &start_mutex);
     pthread_mutex_unlock (&start_mutex);
 
     /* Dispatch work while there are commands in flight. */
-    while (nbd_aio_in_flight (nbd) > 0)
-      nbd_poll (nbd, -1);
+    while (nbd_aio_in_flight (nbd.ptr[0]) > 0)
+      nbd_poll (nbd.ptr[0], -1);
   }
 
   /*NOTREACHED*/
@@ -170,7 +170,7 @@ wait_for_completion (struct completion *completion, int64_t cookie)
    *  1 => completed successfully
    * -1 => error
    */
-  r = nbd_aio_command_completed (nbd, cookie);
+  r = nbd_aio_command_completed (nbd.ptr[0], cookie);
   assert (r != 0);
   return r;
 }
@@ -275,7 +275,7 @@ nbdfuse_read (const char *path, char *buf,
   if (offset + count > size)
     count = size - offset;
 
-  CHECK_NBD_ASYNC_ERROR (nbd_aio_pread (nbd, buf, count, offset, cb, 0));
+  CHECK_NBD_ASYNC_ERROR (nbd_aio_pread (nbd.ptr[0], buf, count, offset, cb, 0));
 
   return (int) count;
 }
@@ -301,7 +301,7 @@ nbdfuse_write (const char *path, const char *buf,
   if (offset + count > size)
     count = size - offset;
 
-  CHECK_NBD_ASYNC_ERROR (nbd_aio_pwrite (nbd, buf, count, offset, cb, 0));
+  CHECK_NBD_ASYNC_ERROR (nbd_aio_pwrite (nbd.ptr[0], buf, count, offset, cb, 0));
 
   return (int) count;
 }
@@ -315,8 +315,8 @@ nbdfuse_fsync (const char *path, int datasync, struct fuse_file_info *fi)
   /* If the server doesn't support flush then the operation is
    * silently ignored.
    */
-  if (nbd_can_flush (nbd))
-    CHECK_NBD_ASYNC_ERROR (nbd_aio_flush (nbd, cb, 0));
+  if (nbd_can_flush (nbd.ptr[0]))
+    CHECK_NBD_ASYNC_ERROR (nbd_aio_flush (nbd.ptr[0], cb, 0));
 
   return 0;
 }
@@ -330,15 +330,15 @@ nbdfuse_release (const char *path, struct fuse_file_info *fi)
   /* We do a synchronous flush here to be on the safe side, but it's
    * not strictly necessary.
    */
-  if (!readonly && nbd_can_flush (nbd))
-    CHECK_NBD_SYNC_ERROR (nbd_flush (nbd, 0));
+  if (!readonly && nbd_can_flush (nbd.ptr[0]))
+    CHECK_NBD_SYNC_ERROR (nbd_flush (nbd.ptr[0], 0));
 
   /* Wait until there are no more commands in flight or until a
    * timeout is reached.
    */
   time (&st);
   while (1) {
-    if (nbd_aio_in_flight (nbd) == 0)
+    if (nbd_aio_in_flight (nbd.ptr[0]) == 0)
       break;
     if (time (NULL) - st > RELEASE_TIMEOUT)
       break;
@@ -361,10 +361,10 @@ nbdfuse_fallocate (const char *path, int mode, off_t offset, off_t len,
     return -EACCES;
 
   if (mode & FALLOC_FL_PUNCH_HOLE) {
-    if (!nbd_can_trim (nbd))
+    if (!nbd_can_trim (nbd.ptr[0]))
       return -EOPNOTSUPP;       /* Trim not supported. */
     else {
-      CHECK_NBD_ASYNC_ERROR (nbd_aio_trim (nbd, len, offset, cb, 0));
+      CHECK_NBD_ASYNC_ERROR (nbd_aio_trim (nbd.ptr[0], len, offset, cb, 0));
       return 0;
     }
   }
@@ -375,18 +375,19 @@ nbdfuse_fallocate (const char *path, int mode, off_t offset, off_t len,
     /* If the backend doesn't support writing zeroes then we can
      * emulate it.
      */
-    if (!nbd_can_zero (nbd)) {
+    if (!nbd_can_zero (nbd.ptr[0])) {
       static char zerobuf[4096];
 
       while (len > 0) {
         off_t n = MIN (len, sizeof zerobuf);
-        CHECK_NBD_ASYNC_ERROR (nbd_aio_pwrite (nbd, zerobuf, n, offset, cb, 0));
+        CHECK_NBD_ASYNC_ERROR (nbd_aio_pwrite (nbd.ptr[0], zerobuf, n, offset,
+                                               cb, 0));
         len -= n;
       }
       return 0;
     }
     else {
-      CHECK_NBD_ASYNC_ERROR (nbd_aio_zero (nbd, len, offset, cb, 0));
+      CHECK_NBD_ASYNC_ERROR (nbd_aio_zero (nbd.ptr[0], len, offset, cb, 0));
       return 0;
     }
   }

@@ -40,7 +40,7 @@
 #include "version.h"
 #include "nbdfuse.h"
 
-struct nbd_handle *nbd;
+handles nbd = empty_vector;
 bool readonly;
 bool file_mode = false;
 struct timespec start_t;
@@ -163,6 +163,7 @@ main (int argc, char *argv[])
   int c, r;
   size_t i;
   bool singlethread = false;
+  struct nbd_handle *h;
   int64_t ssize;
   const char *s;
   struct fuse_args fuse_args = FUSE_ARGS_INIT (0, NULL);
@@ -352,9 +353,13 @@ main (int argc, char *argv[])
    */
 
   /* Create the libnbd handle and connect to it. */
-  nbd = create_and_connect (mode, argc, argv);
+  h = create_and_connect (mode, argc, argv);
+  if (handles_append (&nbd, h) == -1) {
+    perror ("realloc");
+    exit (EXIT_FAILURE);
+  }
 
-  ssize = nbd_get_size (nbd);
+  ssize = nbd_get_size (nbd.ptr[0]);
   if (ssize == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
@@ -364,7 +369,7 @@ main (int argc, char *argv[])
   /* If the remote NBD server is readonly, then act as if the '-r'
    * flag was given on the nbdfuse command line.
    */
-  if (nbd_is_read_only (nbd) > 0)
+  if (nbd_is_read_only (nbd.ptr[0]) > 0)
     readonly = true;
 
   /* Create the background thread which is used to dispatch NBD
@@ -446,7 +451,7 @@ main (int argc, char *argv[])
   fuse_destroy (fuse);
 
   /* Close NBD handle. */
-  nbd_close (nbd);
+  nbd_close (nbd.ptr[0]);
 
   free (mountpoint);
   free (filename);

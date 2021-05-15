@@ -28,7 +28,11 @@
 #define FUSE_USE_VERSION 35
 #include <fuse.h>
 
-extern struct nbd_handle *nbd;
+#include "vector.h"
+
+DEFINE_VECTOR_TYPE (handles, struct nbd_handle *)
+
+extern handles nbd;
 extern bool readonly;
 extern bool file_mode;
 extern struct timespec start_t;
