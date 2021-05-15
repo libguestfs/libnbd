@@ -47,6 +47,7 @@ bool file_mode = false;
 struct timespec start_t;
 char *filename;
 uint64_t size;
+bool verbose = false;
 
 static char *mountpoint;
 static const char *pidfile;
@@ -169,7 +170,7 @@ main (int argc, char *argv[])
    * first non-option argument (the mountpoint) and then we parse the
    * rest of the command line without getopt.
    */
-  const char *short_options = "+C:o:P:rsV";
+  const char *short_options = "+C:do:P:rsvV";
   const struct option long_options[] = {
     { "fuse-help",          no_argument,       NULL, FUSE_HELP_OPTION },
     { "help",               no_argument,       NULL, HELP_OPTION },
@@ -180,6 +181,7 @@ main (int argc, char *argv[])
     { "readonly",           no_argument,       NULL, 'r' },
     { "read-only",          no_argument,       NULL, 'r' },
     { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
+    { "verbose",            no_argument,       NULL, 'v' },
     { "version",            no_argument,       NULL, 'V' },
 
     { NULL }
@@ -245,6 +247,10 @@ main (int argc, char *argv[])
 
     case 's':
       singlethread = true;
+      break;
+
+    case 'v': case 'd':
+      verbose = true;
       break;
 
     case 'V':
@@ -408,6 +414,8 @@ main (int argc, char *argv[])
     }
   }
   connections = (unsigned) nbd.size;
+  if (verbose)
+    fprintf (stderr, "nbdfuse: connections=%u\n", connections);
 
   ssize = nbd_get_size (nbd.ptr[0]);
   if (ssize == -1) {
@@ -527,6 +535,7 @@ create_and_connect (enum mode mode, int argc, char **argv)
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+  nbd_set_debug (h, verbose);
 
   /* Connect to the NBD server synchronously. */
   switch (mode) {

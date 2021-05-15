@@ -51,6 +51,12 @@
 /* Number of seconds to wait for commands to complete when closing the file. */
 #define RELEASE_TIMEOUT 5
 
+#define DEBUG_OPERATION(name, fs, ...)                                  \
+  do {                                                                  \
+    if (verbose)                                                        \
+      fprintf (stderr, "nbdfuse: %s: " fs "\n", name, ##__VA_ARGS__);   \
+  } while (0)
+
 /* This operations background threads run while nbdfuse is running and
  * is responsible for dispatching AIO commands.
  *
@@ -245,6 +251,8 @@ nbdfuse_getattr (const char *path, struct stat *statbuf,
 {
   const int mode = readonly ? 0444 : 0666;
 
+  DEBUG_OPERATION ("getattr", "path=%s", path);
+
   memset (statbuf, 0, sizeof *statbuf);
 
   /* We're probably making some Linux-specific assumptions here, but
@@ -280,6 +288,8 @@ nbdfuse_readdir (const char *path, void *buf,
                  off_t offset, struct fuse_file_info *fi,
                  enum fuse_readdir_flags flags)
 {
+  DEBUG_OPERATION ("readdir", "path=%s", path);
+
   if (strcmp (path, "/") != 0)
     return -ENOENT;
 
@@ -297,6 +307,8 @@ nbdfuse_readdir (const char *path, void *buf,
 static int
 nbdfuse_open (const char *path, struct fuse_file_info *fi)
 {
+  DEBUG_OPERATION ("open", "path=%s, flags=%d", path, fi->flags);
+
   if (!file_mode && (path[0] != '/' || strcmp (path+1, filename) != 0))
     return -ENOENT;
 
@@ -311,6 +323,9 @@ nbdfuse_read (const char *path, char *buf,
               size_t count, off_t offset,
               struct fuse_file_info *fi)
 {
+  DEBUG_OPERATION ("read", "path=%s, buf=%p, count=%zu, offset=%" PRIi64,
+                   path, buf, count, (int64_t) offset);
+
   if (!file_mode && (path[0] != '/' || strcmp (path+1, filename) != 0))
     return -ENOENT;
 
@@ -333,6 +348,9 @@ nbdfuse_write (const char *path, const char *buf,
                size_t count, off_t offset,
                struct fuse_file_info *fi)
 {
+  DEBUG_OPERATION ("write", "path=%s, buf=%p, count=%zu, offset=%" PRIi64,
+                   path, buf, count, (int64_t) offset);
+
   /* Probably shouldn't happen because of nbdfuse_open check. */
   if (readonly)
     return -EACCES;
@@ -357,6 +375,8 @@ nbdfuse_write (const char *path, const char *buf,
 static int
 nbdfuse_fsync (const char *path, int datasync, struct fuse_file_info *fi)
 {
+  DEBUG_OPERATION ("fsync", "path=%s, datasync=%d", path, datasync);
+
   if (readonly)
     return 0;
 
@@ -375,6 +395,8 @@ nbdfuse_release (const char *path, struct fuse_file_info *fi)
 {
   time_t st;
   size_t i;
+
+  DEBUG_OPERATION ("release", "path=%s", path);
 
   /* We do a synchronous flush here to be on the safe side, but it's
    * not strictly necessary.
@@ -412,6 +434,10 @@ static int
 nbdfuse_fallocate (const char *path, int mode, off_t offset, off_t len,
                    struct fuse_file_info *fi)
 {
+  DEBUG_OPERATION ("fallocate", "path=%s, mode=%d, "
+                   "offset=%" PRIi64 ", len=%" PRIi64,
+                   path, mode, (int64_t) offset, (int64_t) len);
+
   if (readonly)
     return -EACCES;
 

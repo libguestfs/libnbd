@@ -39,6 +39,7 @@ extern bool file_mode;
 extern struct timespec start_t;
 extern char *filename;
 extern uint64_t size;
+extern bool verbose;
 
 extern struct fuse_operations nbdfuse_operations;
 extern void start_operations_threads (void);

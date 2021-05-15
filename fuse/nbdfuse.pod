@@ -4,8 +4,8 @@ nbdfuse - present a network block device in a FUSE filesystem
 
 =head1 SYNOPSIS
 
- nbdfuse [-C N|--connections N] [-o FUSE-OPTION] [-P PIDFILE]
-         [-r] [-s]
+ nbdfuse [-C N|--connections N] [-d] [-o FUSE-OPTION] [-P PIDFILE]
+         [-r] [-s] [-v|--verbose]
          MOUNTPOINT[/FILENAME] URI
 
  nbdfuse MOUNTPOINT[/FILENAME] [ CMD [ARGS ...] ]
@@ -214,6 +214,16 @@ read-only permissions, and any writes will return errors.
 =item B<-s>
 
 Use single-threaded FUSE operations.
+
+=item B<-v>
+
+=item B<--verbose>
+
+=item B<-d>
+
+Enable verbose messages to stderr.  This enables libnbd debugging and
+other messages.  The I<-d> option is an alias, used for compatibility
+with other FUSE programs.
 
 =item B<-V>
 
