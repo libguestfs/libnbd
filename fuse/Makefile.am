@@ -25,6 +25,7 @@ EXTRA_DIST = \
 	test-nbdkit-command.sh \
 	test-nbdkit-file-null.sh \
 	test-nbdkit.sh \
+	test-parallel.sh \
 	test-pattern.sh \
 	test-qcow2.sh \
 	test-short-options.sh \
@@ -81,6 +82,7 @@ TESTS += \
 	test-nbdkit-command.sh \
 	test-nbdkit-file-null.sh \
 	test-pattern.sh \
+	test-parallel.sh \
 	test-unix.sh \
 	test-qcow2.sh \
 	test-trim.sh \
