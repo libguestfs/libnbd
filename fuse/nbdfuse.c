@@ -41,6 +41,7 @@
 #include "nbdfuse.h"
 
 handles nbd = empty_vector;
+unsigned connections = 4;
 bool readonly;
 bool file_mode = false;
 struct timespec start_t;
@@ -129,6 +130,28 @@ is_regular_file (const char *path)
   return S_ISREG (statbuf.st_mode);
 }
 
+/* Which modes support multi-conn?  We cannot connect multiple times
+ * to subprocesses (since we'd have to launch multiple subprocesses).
+ */
+static bool
+mode_is_multi_conn_compatible (enum mode mode)
+{
+  switch (mode) {
+  case MODE_COMMAND:
+  case MODE_SQUARE_BRACKET:
+  case MODE_SOCKET_ACTIVATION:
+  case MODE_FD:
+    return false;
+  case MODE_URI:
+  case MODE_TCP:
+  case MODE_UNIX:
+  case MODE_VSOCK:
+    return true;
+  default:
+    abort ();
+  }
+}
+
 static struct nbd_handle *create_and_connect (enum mode mode,
                                               int argc, char **argv);
 
@@ -146,11 +169,12 @@ main (int argc, char *argv[])
    * first non-option argument (the mountpoint) and then we parse the
    * rest of the command line without getopt.
    */
-  const char *short_options = "+o:P:rsV";
+  const char *short_options = "+C:o:P:rsV";
   const struct option long_options[] = {
     { "fuse-help",          no_argument,       NULL, FUSE_HELP_OPTION },
     { "help",               no_argument,       NULL, HELP_OPTION },
     { "long-options",       no_argument,       NULL, LONG_OPTIONS },
+    { "connections",        required_argument, NULL, 'C' },
     { "pidfile",            required_argument, NULL, 'P' },
     { "pid-file",           required_argument, NULL, 'P' },
     { "readonly",           no_argument,       NULL, 'r' },
@@ -197,6 +221,15 @@ main (int argc, char *argv[])
           printf ("-%c\n", short_options[i]);
       }
       exit (EXIT_SUCCESS);
+
+    case 'C':
+      if (sscanf (optarg, "%u", &connections) != 1 ||
+          connections < 1 || connections > 1024) {
+        fprintf (stderr, "%s: --connections parameter must be an unsigned integer >= 1\n",
+                 argv[0]);
+        exit (EXIT_FAILURE);
+      }
+      break;
 
     case 'o':
       fuse_opt_add_opt_escaped (&fuse_options, optarg);
@@ -359,6 +392,23 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  /* If the server supports multi-conn, and we are able to, try to
+   * open more handles.
+   */
+  if (connections > 1 &&
+      mode_is_multi_conn_compatible (mode) &&
+      nbd_can_multi_conn (nbd.ptr[0]) >= 1) {
+    if (handles_reserve (&nbd, connections-1) == -1) {
+      perror ("realloc");
+      exit (EXIT_FAILURE);
+    }
+    for (i = 2; i <= connections; ++i) {
+      h = create_and_connect (mode, argc, argv);
+      handles_append (&nbd, h); /* reserved above, so can't fail */
+    }
+  }
+  connections = (unsigned) nbd.size;
+
   ssize = nbd_get_size (nbd.ptr[0]);
   if (ssize == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
@@ -372,10 +422,10 @@ main (int argc, char *argv[])
   if (nbd_is_read_only (nbd.ptr[0]) > 0)
     readonly = true;
 
-  /* Create the background thread which is used to dispatch NBD
+  /* Create the background threads which are used to dispatch NBD
    * operations.
    */
-  start_operations_thread ();
+  start_operations_threads ();
 
   /* This is just used to give an unchanging time when they stat in
    * the mountpoint.
@@ -450,8 +500,9 @@ main (int argc, char *argv[])
   fuse_unmount (fuse);
   fuse_destroy (fuse);
 
-  /* Close NBD handle. */
-  nbd_close (nbd.ptr[0]);
+  /* Close NBD handle(s). */
+  for (i = 0; i < nbd.size; ++i)
+    nbd_close (nbd.ptr[i]);
 
   free (mountpoint);
   free (filename);

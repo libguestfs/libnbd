@@ -33,6 +33,7 @@
 DEFINE_VECTOR_TYPE (handles, struct nbd_handle *)
 
 extern handles nbd;
+extern unsigned connections;
 extern bool readonly;
 extern bool file_mode;
 extern struct timespec start_t;
@@ -40,6 +41,6 @@ extern char *filename;
 extern uint64_t size;
 
 extern struct fuse_operations nbdfuse_operations;
-extern void start_operations_thread (void);
+extern void start_operations_threads (void);
 
 #endif /* LIBNBD_NBDFUSE_H */

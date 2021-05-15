@@ -51,12 +51,15 @@
 /* Number of seconds to wait for commands to complete when closing the file. */
 #define RELEASE_TIMEOUT 5
 
-/* This operations background thread runs while nbdfuse is running and
+/* This operations background threads run while nbdfuse is running and
  * is responsible for dispatching AIO commands.
  *
  * The commands themselves are initiated by the FUSE threads (by
  * calling eg. nbd_aio_pread), and then those threads call
  * wait_for_completion() which waits for the command to retire.
+ *
+ * Commands are distributed to operations threads round-robin (we
+ * could be smarter about this).
  *
  * A condition variable is signalled by any FUSE thread when it has
  * started a new AIO command and wants the operations thread to start
@@ -66,22 +69,43 @@
  */
 static void *operations_thread (void *);
 
-void
-start_operations_thread (void)
-{
-  int err;
-  pthread_t t;
+static struct thread {
+  size_t n;
+  pthread_t thread;
+  pthread_mutex_t start_mutex;
+  pthread_cond_t start_cond;
+} *threads;
 
-  err = pthread_create (&t, NULL, operations_thread, NULL);
-  if (err != 0) {
-    errno = err;
-    perror ("nbdfuse: pthread_create");
+void
+start_operations_threads (void)
+{
+  size_t i;
+
+  threads = calloc (nbd.size, sizeof (struct thread));
+  if (threads == NULL) {
+    perror ("calloc");
     exit (EXIT_FAILURE);
   }
-}
 
-static pthread_mutex_t start_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t start_cond = PTHREAD_COND_INITIALIZER;
+  for (i = 0; i < nbd.size; ++i) {
+    int err;
+
+    threads[i].n = i;
+    err = pthread_create (&threads[i].thread, NULL,
+                          operations_thread, &threads[i]);
+    if (err != 0) {
+      errno = err;
+      perror ("nbdfuse: pthread_create");
+      exit (EXIT_FAILURE);
+    }
+    if ((err = pthread_mutex_init (&threads[i].start_mutex, NULL)) != 0 ||
+        (err = pthread_cond_init (&threads[i].start_cond, NULL)) != 0) {
+      errno = err;
+      perror ("nbdfuse: mutex/cond init");
+      exit (EXIT_FAILURE);
+    }
+  }
+}
 
 struct completion {
   pthread_mutex_t mutex;
@@ -92,16 +116,20 @@ struct completion {
 static void *
 operations_thread (void *arg)
 {
+  struct thread *thread = arg;
+  size_t n = thread->n;
+  struct nbd_handle *h = nbd.ptr[n];
+
   while (1) {
     /* Sleep until a command is in flight. */
-    pthread_mutex_lock (&start_mutex);
-    while (nbd_aio_in_flight (nbd.ptr[0]) == 0)
-      pthread_cond_wait (&start_cond, &start_mutex);
-    pthread_mutex_unlock (&start_mutex);
+    pthread_mutex_lock (&thread->start_mutex);
+    while (nbd_aio_in_flight (h) == 0)
+      pthread_cond_wait (&thread->start_cond, &thread->start_mutex);
+    pthread_mutex_unlock (&thread->start_mutex);
 
     /* Dispatch work while there are commands in flight. */
-    while (nbd_aio_in_flight (nbd.ptr[0]) > 0)
-      nbd_poll (nbd.ptr[0], -1);
+    while (nbd_aio_in_flight (h) > 0)
+      nbd_poll (h, -1);
   }
 
   /*NOTREACHED*/
@@ -142,15 +170,32 @@ report_nbd_error (void)
     return -EIO;
 }
 
+/* Round-robin assignment of commands to operation threads (and
+ * therefore to NBD handle "owned" by that thread).
+ */
+static size_t
+next_thread (void)
+{
+  static _Atomic size_t n = 0;
+
+  if (nbd.size == 1)
+    return 0;
+  else {
+    size_t i = n++;
+    return i % (nbd.size - 1);
+  }
+}
+
 static int
-wait_for_completion (struct completion *completion, int64_t cookie)
+wait_for_completion (size_t index, struct completion *completion,
+                     int64_t cookie)
 {
   int r;
 
   /* Signal to the operations thread to start work, in case it is sleeping. */
-  pthread_mutex_lock (&start_mutex);
-  pthread_cond_signal (&start_cond);
-  pthread_mutex_unlock (&start_mutex);
+  pthread_mutex_lock (&threads[index].start_mutex);
+  pthread_cond_signal (&threads[index].start_cond);
+  pthread_mutex_unlock (&threads[index].start_mutex);
 
   /* Wait until the completion_callback sets the completed flag.
    *
@@ -170,7 +215,7 @@ wait_for_completion (struct completion *completion, int64_t cookie)
    *  1 => completed successfully
    * -1 => error
    */
-  r = nbd_aio_command_completed (nbd.ptr[0], cookie);
+  r = nbd_aio_command_completed (nbd.ptr[index], cookie);
   assert (r != 0);
   return r;
 }
@@ -182,8 +227,11 @@ wait_for_completion (struct completion *completion, int64_t cookie)
       { PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, false };   \
     nbd_completion_callback cb =                                        \
       { .callback = completion_callback, .user_data = &completion };    \
+    size_t index = next_thread ();                                      \
+    struct nbd_handle *h = nbd.ptr[index];                              \
     int64_t cookie = (CALL);                                            \
-    if (cookie == -1 || wait_for_completion (&completion, cookie) == -1) \
+    if (cookie == -1 ||                                                 \
+        wait_for_completion (index, &completion, cookie) == -1)         \
       return report_nbd_error ();                                       \
   } while (0)
 
@@ -275,7 +323,7 @@ nbdfuse_read (const char *path, char *buf,
   if (offset + count > size)
     count = size - offset;
 
-  CHECK_NBD_ASYNC_ERROR (nbd_aio_pread (nbd.ptr[0], buf, count, offset, cb, 0));
+  CHECK_NBD_ASYNC_ERROR (nbd_aio_pread (h, buf, count, offset, cb, 0));
 
   return (int) count;
 }
@@ -301,7 +349,7 @@ nbdfuse_write (const char *path, const char *buf,
   if (offset + count > size)
     count = size - offset;
 
-  CHECK_NBD_ASYNC_ERROR (nbd_aio_pwrite (nbd.ptr[0], buf, count, offset, cb, 0));
+  CHECK_NBD_ASYNC_ERROR (nbd_aio_pwrite (h, buf, count, offset, cb, 0));
 
   return (int) count;
 }
@@ -316,7 +364,7 @@ nbdfuse_fsync (const char *path, int datasync, struct fuse_file_info *fi)
    * silently ignored.
    */
   if (nbd_can_flush (nbd.ptr[0]))
-    CHECK_NBD_ASYNC_ERROR (nbd_aio_flush (nbd.ptr[0], cb, 0));
+    CHECK_NBD_ASYNC_ERROR (nbd_aio_flush (h, cb, 0));
 
   return 0;
 }
@@ -326,6 +374,7 @@ static int
 nbdfuse_release (const char *path, struct fuse_file_info *fi)
 {
   time_t st;
+  size_t i;
 
   /* We do a synchronous flush here to be on the safe side, but it's
    * not strictly necessary.
@@ -338,15 +387,21 @@ nbdfuse_release (const char *path, struct fuse_file_info *fi)
    */
   time (&st);
   while (1) {
-    if (nbd_aio_in_flight (nbd.ptr[0]) == 0)
-      break;
     if (time (NULL) - st > RELEASE_TIMEOUT)
+      break;
+    for (i = 0; i < nbd.size; ++i) {
+      if (nbd_aio_in_flight (nbd.ptr[i]) > 0)
+        break;
+    }
+    if (i == nbd.size) /* no commands in flight */
       break;
 
     /* Signal to the operations thread to work. */
-    pthread_mutex_lock (&start_mutex);
-    pthread_cond_signal (&start_cond);
-    pthread_mutex_unlock (&start_mutex);
+    for (i = 0; i < nbd.size; ++i) {
+      pthread_mutex_lock (&threads[i].start_mutex);
+      pthread_cond_signal (&threads[i].start_cond);
+      pthread_mutex_unlock (&threads[i].start_mutex);
+    }
   }
 
  return 0;
@@ -364,7 +419,7 @@ nbdfuse_fallocate (const char *path, int mode, off_t offset, off_t len,
     if (!nbd_can_trim (nbd.ptr[0]))
       return -EOPNOTSUPP;       /* Trim not supported. */
     else {
-      CHECK_NBD_ASYNC_ERROR (nbd_aio_trim (nbd.ptr[0], len, offset, cb, 0));
+      CHECK_NBD_ASYNC_ERROR (nbd_aio_trim (h, len, offset, cb, 0));
       return 0;
     }
   }
@@ -380,14 +435,13 @@ nbdfuse_fallocate (const char *path, int mode, off_t offset, off_t len,
 
       while (len > 0) {
         off_t n = MIN (len, sizeof zerobuf);
-        CHECK_NBD_ASYNC_ERROR (nbd_aio_pwrite (nbd.ptr[0], zerobuf, n, offset,
-                                               cb, 0));
+        CHECK_NBD_ASYNC_ERROR (nbd_aio_pwrite (h, zerobuf, n, offset, cb, 0));
         len -= n;
       }
       return 0;
     }
     else {
-      CHECK_NBD_ASYNC_ERROR (nbd_aio_zero (nbd.ptr[0], len, offset, cb, 0));
+      CHECK_NBD_ASYNC_ERROR (nbd_aio_zero (h, len, offset, cb, 0));
       return 0;
     }
   }

@@ -4,7 +4,8 @@ nbdfuse - present a network block device in a FUSE filesystem
 
 =head1 SYNOPSIS
 
- nbdfuse [-o FUSE-OPTION] [-P PIDFILE] [-r] [-s]
+ nbdfuse [-C N|--connections N] [-o FUSE-OPTION] [-P PIDFILE]
+         [-r] [-s]
          MOUNTPOINT[/FILENAME] URI
 
  nbdfuse MOUNTPOINT[/FILENAME] [ CMD [ARGS ...] ]
@@ -143,6 +144,24 @@ world that would be the preferred method.
 =item B<--help>
 
 Display brief command line help and exit.
+
+=item B<-C> N
+
+=item B<--connections> N
+
+If multi-conn is used, use N connections to the server.  The default
+is 4.
+
+Multi-conn is enabled by default when possible.  Modes which run a
+subprocess, such as I<--command> are not able to use multi-conn.  Mode
+I<--fd> also cannot use multi-conn.  Also the server must advertise
+multi-conn (use L<nbdinfo(1)> to query what the server supports).
+
+=item B<-C 1>
+
+=item B<--connections 1>
+
+Disable multi-conn.  Only use a single connection to the NBD server.
 
 =item B<--fuse-help>
 
