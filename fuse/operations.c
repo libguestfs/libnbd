@@ -131,11 +131,11 @@ operations_thread (void *arg)
     pthread_mutex_lock (&thread->start_mutex);
     while (nbd_aio_in_flight (h) == 0)
       pthread_cond_wait (&thread->start_cond, &thread->start_mutex);
-    pthread_mutex_unlock (&thread->start_mutex);
 
     /* Dispatch work while there are commands in flight. */
     while (nbd_aio_in_flight (h) > 0)
       nbd_poll (h, -1);
+    pthread_mutex_unlock (&thread->start_mutex);
   }
 
   /*NOTREACHED*/
