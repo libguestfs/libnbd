@@ -1,6 +1,6 @@
 =head1 NAME
 
-nbdfuse - present a network block device in a FUSE filesystem
+nbdfuse - mount a network block device in the local filesystem
 
 =head1 SYNOPSIS
 
