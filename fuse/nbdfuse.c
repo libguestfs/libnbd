@@ -53,6 +53,17 @@ static char *fuse_options;
 static struct fuse *fuse;
 static struct fuse_session *fuse_session;
 
+enum mode {
+  MODE_URI,                  /* URI */
+  MODE_COMMAND,              /* --command */
+  MODE_FD,                   /* --fd */
+  MODE_SQUARE_BRACKET,       /* [ CMD ], same as --socket-activation*/
+  MODE_SOCKET_ACTIVATION,    /* --socket-activation */
+  MODE_TCP,                  /* --tcp */
+  MODE_UNIX,                 /* --unix */
+  MODE_VSOCK,                /* --vsock */
+};
+
 static void __attribute__((noreturn))
 usage (FILE *fp, int exitcode)
 {
@@ -118,19 +129,13 @@ is_regular_file (const char *path)
   return S_ISREG (statbuf.st_mode);
 }
 
+static struct nbd_handle *create_and_connect (enum mode mode,
+                                              int argc, char **argv);
+
 int
 main (int argc, char *argv[])
 {
-  enum {
-    MODE_URI,
-    MODE_COMMAND,
-    MODE_FD,
-    MODE_SQUARE_BRACKET, /* [ CMD ], same as --socket-activation*/
-    MODE_SOCKET_ACTIVATION, /* --socket-activation */
-    MODE_TCP,
-    MODE_UNIX,
-    MODE_VSOCK,
-  } mode = MODE_URI;
+  enum mode mode = MODE_URI;
   enum {
     HELP_OPTION = CHAR_MAX + 1,
     FUSE_HELP_OPTION,
@@ -155,9 +160,8 @@ main (int argc, char *argv[])
 
     { NULL }
   };
-  int c, fd, r;
+  int c, r;
   size_t i;
-  uint32_t cid, port;
   bool singlethread = false;
   int64_t ssize;
   const char *s;
@@ -347,86 +351,8 @@ main (int argc, char *argv[])
    * opening FUSE and libnbd.
    */
 
-  /* Create the libnbd handle. */
-  nbd = nbd_create ();
-  if (nbd == NULL) {
-    fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-
-  /* Connect to the NBD server synchronously. */
-  switch (mode) {
-  case MODE_URI:
-    if (nbd_connect_uri (nbd, argv[optind]) == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    break;
-
-  case MODE_COMMAND:
-    if (nbd_connect_command (nbd, &argv[optind]) == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    break;
-
-  case MODE_SQUARE_BRACKET:
-    /* This is the same as MODE_SOCKET_ACTIVATION but we must eat the
-     * closing square bracket on the command line.
-     */
-    assert (strcmp (argv[argc-1], "]") == 0); /* checked above */
-    argv[argc-1] = NULL;
-    /*FALLTHROUGH*/
-  case MODE_SOCKET_ACTIVATION:
-    if (nbd_connect_systemd_socket_activation (nbd, &argv[optind]) == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    break;
-
-  case MODE_FD:
-    if (sscanf (argv[optind], "%d", &fd) != 1) {
-      fprintf (stderr, "%s: could not parse file descriptor: %s\n\n",
-               argv[0], argv[optind]);
-      exit (EXIT_FAILURE);
-    }
-    if (nbd_connect_socket (nbd, fd) == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    break;
-
-  case MODE_TCP:
-    if (nbd_connect_tcp (nbd, argv[optind], argv[optind+1]) == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    break;
-
-  case MODE_UNIX:
-    if (nbd_connect_unix (nbd, argv[optind]) == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    break;
-
-  case MODE_VSOCK:
-    if (sscanf (argv[optind], "%" SCNu32, &cid) != 1) {
-      fprintf (stderr, "%s: could not parse vsock cid: %s\n\n",
-               argv[0], argv[optind]);
-      exit (EXIT_FAILURE);
-    }
-    if (sscanf (argv[optind+1], "%" SCNu32, &port) != 1) {
-      fprintf (stderr, "%s: could not parse vsock port: %s\n\n",
-               argv[0], argv[optind]);
-      exit (EXIT_FAILURE);
-    }
-    if (nbd_connect_vsock (nbd, cid, port) == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    break;
-  }
+  /* Create the libnbd handle and connect to it. */
+  nbd = create_and_connect (mode, argc, argv);
 
   ssize = nbd_get_size (nbd);
   if (ssize == -1) {
@@ -527,4 +453,98 @@ main (int argc, char *argv[])
   free (fuse_options);
 
   exit (r == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
+}
+
+/* Called from main() above to create an NBD handle and connect to it.
+ * For multi-conn, this may be called several times.
+ */
+static struct nbd_handle *
+create_and_connect (enum mode mode, int argc, char **argv)
+{
+  int fd;
+  uint32_t cid, port;
+  struct nbd_handle *h;
+
+  /* Create the libnbd handle. */
+  h = nbd_create ();
+  if (h == NULL) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  /* Connect to the NBD server synchronously. */
+  switch (mode) {
+  case MODE_URI:
+    if (nbd_connect_uri (h, argv[optind]) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    break;
+
+  case MODE_COMMAND:
+    if (nbd_connect_command (h, &argv[optind]) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    break;
+
+  case MODE_SQUARE_BRACKET:
+    /* This is the same as MODE_SOCKET_ACTIVATION but we must eat the
+     * closing square bracket on the command line.
+     */
+    assert (strcmp (argv[argc-1], "]") == 0); /* checked above */
+    argv[argc-1] = NULL;
+    /*FALLTHROUGH*/
+  case MODE_SOCKET_ACTIVATION:
+    if (nbd_connect_systemd_socket_activation (h, &argv[optind]) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    break;
+
+  case MODE_FD:
+    if (sscanf (argv[optind], "%d", &fd) != 1) {
+      fprintf (stderr, "%s: could not parse file descriptor: %s\n\n",
+               argv[0], argv[optind]);
+      exit (EXIT_FAILURE);
+    }
+    if (nbd_connect_socket (h, fd) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    break;
+
+  case MODE_TCP:
+    if (nbd_connect_tcp (h, argv[optind], argv[optind+1]) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    break;
+
+  case MODE_UNIX:
+    if (nbd_connect_unix (h, argv[optind]) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    break;
+
+  case MODE_VSOCK:
+    if (sscanf (argv[optind], "%" SCNu32, &cid) != 1) {
+      fprintf (stderr, "%s: could not parse vsock cid: %s\n\n",
+               argv[0], argv[optind]);
+      exit (EXIT_FAILURE);
+    }
+    if (sscanf (argv[optind+1], "%" SCNu32, &port) != 1) {
+      fprintf (stderr, "%s: could not parse vsock port: %s\n\n",
+               argv[0], argv[optind]);
+      exit (EXIT_FAILURE);
+    }
+    if (nbd_connect_vsock (h, cid, port) == -1) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    break;
+  }
+
+  return h;
 }
