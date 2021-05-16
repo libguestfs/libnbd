@@ -82,10 +82,23 @@ static struct thread {
   pthread_cond_t start_cond;
 } *threads;
 
+static pthread_barrier_t barrier;
+
 void
 start_operations_threads (void)
 {
   size_t i;
+  int err;
+
+  /* This barrier is used to ensure all operations threads have
+   * started up before we leave this function.
+   */
+  err = pthread_barrier_init (&barrier, NULL, nbd.size + 1);
+  if (err != 0) {
+    errno = err;
+    perror ("nbdfuse: pthread_barrier_init");
+    exit (EXIT_FAILURE);
+  }
 
   threads = calloc (nbd.size, sizeof (struct thread));
   if (threads == NULL) {
@@ -94,8 +107,6 @@ start_operations_threads (void)
   }
 
   for (i = 0; i < nbd.size; ++i) {
-    int err;
-
     threads[i].n = i;
     err = pthread_create (&threads[i].thread, NULL,
                           operations_thread, &threads[i]);
@@ -111,6 +122,10 @@ start_operations_threads (void)
       exit (EXIT_FAILURE);
     }
   }
+
+  /* Wait on the barrier. */
+  pthread_barrier_wait (&barrier);
+  pthread_barrier_destroy (&barrier);
 }
 
 struct completion {
@@ -126,19 +141,23 @@ operations_thread (void *arg)
   size_t n = thread->n;
   struct nbd_handle *h = nbd.ptr[n];
 
+  pthread_mutex_lock (&thread->start_mutex);
+
+  /* Signal to the main thread that we have initialized. */
+  pthread_barrier_wait (&barrier);
+
   while (1) {
     /* Sleep until a command is in flight. */
-    pthread_mutex_lock (&thread->start_mutex);
     while (nbd_aio_in_flight (h) == 0)
       pthread_cond_wait (&thread->start_cond, &thread->start_mutex);
 
     /* Dispatch work while there are commands in flight. */
     while (nbd_aio_in_flight (h) > 0)
       nbd_poll (h, -1);
-    pthread_mutex_unlock (&thread->start_mutex);
   }
 
   /*NOTREACHED*/
+  pthread_mutex_unlock (&thread->start_mutex);
   return NULL;
 }
 
