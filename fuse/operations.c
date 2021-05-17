@@ -66,20 +66,22 @@
  *
  * Commands are distributed to operations threads round-robin (we
  * could be smarter about this).
- *
- * A condition variable is signalled by any FUSE thread when it has
- * started a new AIO command and wants the operations thread to start
- * processing (if it isn't doing so already).  To signal completion we
- * use a completion callback which signals a per-thread completion
- * condition.
  */
 static void *operations_thread (void *);
 
 static struct thread {
   size_t n;
   pthread_t thread;
-  pthread_mutex_t start_mutex;
-  pthread_cond_t start_cond;
+
+  /* This counts the number of commands in flight.  The condition is
+   * used to allow the operations thread to process commands when
+   * in_flight goes from 0 -> 1.  This is roughly equivalent to
+   * nbd_aio_in_flight, but we need to count it ourselves in order to
+   * use the condition.
+   */
+  _Atomic size_t in_flight;
+  pthread_mutex_t in_flight_mutex;
+  pthread_cond_t in_flight_cond;
 } *threads;
 
 static pthread_barrier_t barrier;
@@ -108,17 +110,18 @@ start_operations_threads (void)
 
   for (i = 0; i < nbd.size; ++i) {
     threads[i].n = i;
+    threads[i].in_flight = 0;
+    if ((err = pthread_mutex_init (&threads[i].in_flight_mutex, NULL)) != 0 ||
+        (err = pthread_cond_init (&threads[i].in_flight_cond, NULL)) != 0) {
+      errno = err;
+      perror ("nbdfuse: mutex/cond init");
+      exit (EXIT_FAILURE);
+    }
     err = pthread_create (&threads[i].thread, NULL,
                           operations_thread, &threads[i]);
     if (err != 0) {
       errno = err;
       perror ("nbdfuse: pthread_create");
-      exit (EXIT_FAILURE);
-    }
-    if ((err = pthread_mutex_init (&threads[i].start_mutex, NULL)) != 0 ||
-        (err = pthread_cond_init (&threads[i].start_cond, NULL)) != 0) {
-      errno = err;
-      perror ("nbdfuse: mutex/cond init");
       exit (EXIT_FAILURE);
     }
   }
@@ -132,6 +135,7 @@ struct completion {
   pthread_mutex_t mutex;
   pthread_cond_t cond;
   bool completed;
+  struct thread *thread;
 } completion;
 
 static void *
@@ -141,23 +145,22 @@ operations_thread (void *arg)
   size_t n = thread->n;
   struct nbd_handle *h = nbd.ptr[n];
 
-  pthread_mutex_lock (&thread->start_mutex);
-
   /* Signal to the main thread that we have initialized. */
   pthread_barrier_wait (&barrier);
 
   while (1) {
-    /* Sleep until a command is in flight. */
-    while (nbd_aio_in_flight (h) == 0)
-      pthread_cond_wait (&thread->start_cond, &thread->start_mutex);
+    /* Sleep until at least one command is in flight. */
+    pthread_mutex_lock (&thread->in_flight_mutex);
+    while (thread->in_flight == 0)
+      pthread_cond_wait (&thread->in_flight_cond, &thread->in_flight_mutex);
+    pthread_mutex_unlock (&thread->in_flight_mutex);
 
     /* Dispatch work while there are commands in flight. */
-    while (nbd_aio_in_flight (h) > 0)
+    while (thread->in_flight > 0)
       nbd_poll (h, -1);
   }
 
   /*NOTREACHED*/
-  pthread_mutex_unlock (&thread->start_mutex);
   return NULL;
 }
 
@@ -170,9 +173,17 @@ completion_callback (void *vp, int *error)
   struct completion *completion = vp;
 
   pthread_mutex_lock (&completion->mutex);
+
   /* Mark the command as completed. */
   completion->completed = true;
   pthread_cond_signal (&completion->cond);
+
+  /* We have to decrement this here so that the caller (the operations
+   * thread) does not reenter nbd_poll.
+   */
+  assert (completion->thread->in_flight >= 1);
+  completion->thread->in_flight--;
+
   pthread_mutex_unlock (&completion->mutex);
 
   /* Don't retire the command.  We want to get the error indication in
@@ -218,9 +229,10 @@ wait_for_completion (size_t index, struct completion *completion,
   int r;
 
   /* Signal to the operations thread to start work, in case it is sleeping. */
-  pthread_mutex_lock (&threads[index].start_mutex);
-  pthread_cond_signal (&threads[index].start_cond);
-  pthread_mutex_unlock (&threads[index].start_mutex);
+  pthread_mutex_lock (&threads[index].in_flight_mutex);
+  threads[index].in_flight++;
+  pthread_cond_signal (&threads[index].in_flight_cond);
+  pthread_mutex_unlock (&threads[index].in_flight_mutex);
 
   /* Wait until the completion_callback sets the completed flag.
    *
@@ -248,11 +260,12 @@ wait_for_completion (size_t index, struct completion *completion,
 /* Wrap calls to any asynch command and check the error. */
 #define CHECK_NBD_ASYNC_ERROR(CALL)                                     \
   do {                                                                  \
+    size_t index = next_thread ();                                      \
     struct completion completion =                                      \
-      { PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, false };   \
+      { PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER,            \
+        false, &threads[index] };                                       \
     nbd_completion_callback cb =                                        \
       { .callback = completion_callback, .user_data = &completion };    \
-    size_t index = next_thread ();                                      \
     struct nbd_handle *h = nbd.ptr[index];                              \
     int64_t cookie = (CALL);                                            \
     if (cookie == -1 ||                                                 \
@@ -469,7 +482,7 @@ nbdfuse_destroy (void *data)
   time (&st);
   while (time (NULL) - st <= RELEASE_TIMEOUT) {
     for (i = 0; i < nbd.size; ++i) {
-      if (nbd_aio_in_flight (nbd.ptr[i]) > 0)
+      if (threads[i].in_flight > 0)
         break;
     }
     if (i == nbd.size) /* no commands in flight */
@@ -477,9 +490,9 @@ nbdfuse_destroy (void *data)
 
     /* Signal to the operations thread to work. */
     for (i = 0; i < nbd.size; ++i) {
-      pthread_mutex_lock (&threads[i].start_mutex);
-      pthread_cond_signal (&threads[i].start_cond);
-      pthread_mutex_unlock (&threads[i].start_mutex);
+      pthread_mutex_lock (&threads[i].in_flight_mutex);
+      pthread_cond_signal (&threads[i].in_flight_cond);
+      pthread_mutex_unlock (&threads[i].in_flight_mutex);
     }
 
     sleep (1);
