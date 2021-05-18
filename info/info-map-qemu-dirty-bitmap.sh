@@ -27,6 +27,7 @@ set -x
 requires qemu-img --version
 requires qemu-io --version
 requires qemu-nbd --version
+requires bash -c 'qemu-nbd --help | grep pid-file'
 requires_qemu
 requires tr --version
 
