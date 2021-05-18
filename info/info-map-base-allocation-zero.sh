@@ -22,6 +22,7 @@ set -e
 set -x
 
 requires nbdkit --version
+requires nbdkit -U - null --run 'test "$uri" != ""'
 
 out=info-base-allocation-zero.out
 cleanup_fn rm -f $out

@@ -22,6 +22,7 @@ set -e
 set -x
 
 requires nbdkit --version
+requires nbdkit -U - null --run 'test "$uri" != ""'
 requires jq --version
 
 out=info-base-allocation-json.out

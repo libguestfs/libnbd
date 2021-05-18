@@ -23,6 +23,7 @@ set -x
 
 requires nbdkit --version
 requires nbdkit memory --version
+requires nbdkit -U - null --run 'test "$uri" != ""'
 requires jq --version
 
 out=info-json.out

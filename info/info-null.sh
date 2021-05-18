@@ -23,6 +23,7 @@ set -x
 
 requires nbdkit --version
 requires nbdkit null --version
+requires nbdkit -U - null --run 'test "$uri" != ""'
 
 out=info-null.out
 cleanup_fn rm -f $out
