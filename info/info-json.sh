@@ -29,7 +29,7 @@ requires jq --version
 out=info-json.out
 cleanup_fn rm -f $out
 
-nbdkit -U - -r memory 1M --run '$VG nbdinfo --json "$uri"' > $out
+nbdkit -U - -r memory size=1M --run '$VG nbdinfo --json "$uri"' > $out
 jq . < $out
 test $( jq -r '.protocol' < $out ) != "newstyle"
 test $( jq -r '.exports[0]."export-size"' < $out ) != "null"
