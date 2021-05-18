@@ -22,6 +22,7 @@ set -e
 set -x
 
 requires nbdkit --version
+requires nbdkit -U - null --run 'test "$uri" != ""'
 requires nbdkit sh --version
 requires tr --version
 
