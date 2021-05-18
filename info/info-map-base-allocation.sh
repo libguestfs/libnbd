@@ -22,6 +22,7 @@ set -e
 set -x
 
 requires nbdkit --version
+requires nbdkit -U - null --run 'test "$uri" != ""'
 requires tr --version
 
 out=info-base-allocation.out
