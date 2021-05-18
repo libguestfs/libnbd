@@ -97,6 +97,27 @@ requires_qemu ()
     fi
 }
 
+# Test host kernel is Linux and minimum version.
+#
+# It's usually better to test features rather than using this, but
+# there are cases where testing features of the current kernel is too
+# hard.
+requires_linux_kernel_version ()
+{
+    local kver
+    local min="$1"
+
+    # Test the host kernel is Linux.
+    requires test "$(uname -s)" = "Linux"
+
+    # Test that it's the minimum version.
+    # https://stackoverflow.com/a/24067243
+    requires cut --version
+    requires sort -V /dev/null
+    kver=$(uname -r | cut -d. -f1-2)
+    requires test "$(printf "$kver\n$min" | sort -V | head -n 1)" = "$min"
+}
+
 # Tests that run under check-root should use this.
 requires_root ()
 {
