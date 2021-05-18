@@ -195,11 +195,13 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
       tls = true;
       socket_required = false;
     }
-    else goto unknown_scheme;
+    else {
+      set_error (EINVAL, "unknown NBD URI scheme: %s", uri->scheme);
+      goto cleanup;
+    }
   }
   else {
-  unknown_scheme:
-    set_error (EINVAL, "unknown URI scheme: %s", uri->scheme ? : "NULL");
+    set_error (EINVAL, "NBD URI does not have a scheme, valid NBD URIs should start with nbd://, nbds://, nbd+unix:// or similar");
     goto cleanup;
   }
 
