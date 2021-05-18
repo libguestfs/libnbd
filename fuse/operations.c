@@ -41,6 +41,13 @@
 #include <sys/stat.h>
 #include <pthread.h>
 
+#ifdef HAVE_STDATOMIC_H
+#include <stdatomic.h>
+#else
+/* Rely on ints being atomic enough on the platform. */
+#define _Atomic /**/
+#endif
+
 #include <libnbd.h>
 
 #include "nbdfuse.h"
