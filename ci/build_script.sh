@@ -29,12 +29,7 @@ main() {
        return 0
     fi
 
-    if ! $MAKE check
-    then
-        find . -name test-suite.log -exec grep -l '^X\?FAIL:' '{}' \+ | \
-            xargs cat
-        exit 1
-    fi
+    $MAKE check
 
     if test "$CHECK_VALGRIND" = "force"
     then

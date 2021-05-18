@@ -1,5 +1,6 @@
 variables:
   GIT_DEPTH: 100
+  DOCKER_DRIVER: overlay2
 
 stages:
   - containers
@@ -32,9 +33,8 @@ stages:
   after_script:
     - docker logout
 
-.native_build_job:
+.base_build_job:
   stage: builds
-  image: $CI_REGISTRY_IMAGE/$NAME:latest
   cache:
     paths:
       - ccache/
@@ -43,6 +43,20 @@ stages:
     - *script_variables
   script:
     - ci/build_script.sh
+  artifacts:
+    paths:
+      - "config.log"
+      - "**/test-suite.log"
+    public: true
+    when: always
+
+.native_build_job:
+  extends: .base_build_job
+  image: $CI_REGISTRY_IMAGE/$NAME:latest
+
+.cross_build_job:
+  extends: .base_build_job
+  image: $CI_REGISTRY_IMAGE/$NAME-cross-$CROSS:latest
 
 # Jobs that we delegate to Cirrus CI because they require an operating
 # system other than Linux. These jobs will only run if the required
@@ -82,18 +96,6 @@ stages:
     - cirrus-run -v --show-build-log always ci/cirrus/$NAME.yml
   rules:
     - if: "$CIRRUS_GITHUB_REPO && $CIRRUS_API_TOKEN"
-
-.cross_build_job:
-  stage: builds
-  image: $CI_REGISTRY_IMAGE/$NAME-cross-$CROSS:latest
-  cache:
-    paths:
-      - ccache/
-    key: "$CI_JOB_NAME"
-  before_script:
-    - *script_variables
-  script:
-    - ci/build_script.sh
 
 # Native container build jobs
 
