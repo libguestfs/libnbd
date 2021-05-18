@@ -24,6 +24,10 @@ set -x
 requires nbdkit --version
 requires nbdkit memory --version
 
+# This test requires nbdkit >= 1.12.
+minor=$( nbdkit --dump-config | grep ^version_minor | cut -d= -f2 )
+requires test $minor -ge 12
+
 out=info-text.out
 cleanup_fn rm -f $out
 
