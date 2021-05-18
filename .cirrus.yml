@@ -1,0 +1,3 @@
+# This file is here only for Cirrus CI to notice this repository
+# The builds are run automatically using cirrus-ci command
+# See ci/README.rst for details
