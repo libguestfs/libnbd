@@ -119,7 +119,12 @@ if HAVE_OCAMLOPT
 	  mlnbd.cmxa $< -o $@
 endif
 
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 OCAMLRUNPARAM=b
+TESTS_ENVIRONMENT = \
+	LIBNBD_DEBUG=1 \
+	MALLOC_CHECK_=1 \
+	MALLOC_PERTURB_=$(shell bash -c 'echo $$(( 1 + (RANDOM & 255) ))') \
+	OCAMLRUNPARAM=b \
+	$(NULL)
 LOG_COMPILER = $(top_builddir)/run
 TESTS = $(tests_bc)
 if HAVE_OCAMLOPT

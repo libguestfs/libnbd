@@ -97,12 +97,6 @@ export CGO_LDFLAGS
 # This implements complete pointer checking in cgo.
 export GODEBUG=cgocheck=2
 
-# This is a cheap way to find some use-after-free and uninitialized
-# read problems when using glibc.
-export MALLOC_CHECK_=1
-random_val="$(@AWK@ 'BEGIN{srand(); print 1+int(255*rand())}' < /dev/null)"
-export MALLOC_PERTURB_=$random_val
-
 # Allow dependent packages to be compiled against local libnbd.
 prepend PKG_CONFIG_PATH "$b/lib/local"
 export PKG_CONFIG_PATH

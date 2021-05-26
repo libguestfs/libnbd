@@ -47,7 +47,13 @@ nbdsh.1: nbdsh.pod $(top_builddir)/podwrapper.pl
 
 endif HAVE_POD
 
-TESTS_ENVIRONMENT = LIBNBD_DEBUG=1 NBDKIT_DEBUG=1 EXPECTED_VERSION=$(VERSION)
+TESTS_ENVIRONMENT = \
+	LIBNBD_DEBUG=1 \
+	NBDKIT_DEBUG=1 \
+	MALLOC_CHECK_=1 \
+	MALLOC_PERTURB_=$(shell bash -c 'echo $$(( 1 + (RANDOM & 255) ))') \
+	EXPECTED_VERSION=$(VERSION) \
+	$(NULL)
 LOG_COMPILER = $(top_builddir)/run
 TESTS = \
 	test-help.sh \

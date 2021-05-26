@@ -87,7 +87,13 @@ all-local: $(source_files)
 	cd src/$(pkg) && \
 	$(abs_top_builddir)/run $(GOLANG) build
 
-TESTS_ENVIRONMENT = pkg=$(pkg) abs_top_srcdir=$(abs_top_srcdir) LIBNBD_DEBUG=1
+TESTS_ENVIRONMENT = \
+	LIBNBD_DEBUG=1 \
+	MALLOC_CHECK_=1 \
+	MALLOC_PERTURB_=$(shell bash -c 'echo $$(( 1 + (RANDOM & 255) ))') \
+	pkg=$(pkg) \
+	abs_top_srcdir=$(abs_top_srcdir) \
+	$(NULL)
 LOG_COMPILER = $(top_builddir)/run
 TESTS = run-tests.sh
 
