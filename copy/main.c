@@ -321,10 +321,6 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* If multi-conn is not supported, force connections to 1. */
-  if (! src->ops->can_multi_conn (src) || ! dst->ops->can_multi_conn (dst))
-    connections = 1;
-
   /* Calculate the number of threads from the number of connections. */
   if (threads == 0) {
     long t;
@@ -379,15 +375,26 @@ main (int argc, char *argv[])
              synchronous ? "true" : "false");
   }
 
-  /* If multi-conn is enabled on either side, then at this point we
+  /* If using multiple connections, then at this point we
    * need to ask the backend to open the extra connections.
+   *
+   * Using multiple connections when the server does not report
+   * can_multi_conn is not safe in general, but is safe for the special
+   * access pattern in nbdcopy.
+   *
+   * - We split the image to 128m segments, and every segment is written
+   *   by single worker.
+   *
+   * - Writes do not overlap, and are never partial block that another
+   *   worker may modify at the same time.
+   *
+   * - We never read from the destination so we don't have caching
+   *   synchronization issue between clients.
    */
   if (connections > 1) {
     assert (threads == connections);
-    if (src->ops->can_multi_conn (src))
-      src->ops->start_multi_conn (src);
-    if (dst->ops->can_multi_conn (dst))
-      dst->ops->start_multi_conn (dst);
+    src->ops->start_multi_conn (src);
+    dst->ops->start_multi_conn (dst);
   }
 
   /* If the source is NBD and we couldn't negotiate meta
