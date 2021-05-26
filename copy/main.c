@@ -105,7 +105,7 @@ main (int argc, char *argv[])
     { "flush",              no_argument,       NULL, FLUSH_OPTION },
     { "no-extents",         no_argument,       NULL, NO_EXTENTS_OPTION },
     { "progress",           optional_argument, NULL, 'p' },
-    { "request-size",       optional_argument, NULL, REQUEST_SIZE_OPTION },
+    { "request-size",       required_argument, NULL, REQUEST_SIZE_OPTION },
     { "requests",           required_argument, NULL, 'R' },
     { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
     { "sparse",             required_argument, NULL, 'S' },
