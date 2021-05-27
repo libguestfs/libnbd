@@ -22,6 +22,7 @@ EXTRA_DIST = \
 	copy-file-to-file.sh \
 	copy-file-to-nbd.sh \
 	copy-file-to-null.sh \
+	copy-file-to-qcow2.sh \
 	copy-nbd-to-block.sh \
 	copy-nbd-to-file.sh \
 	copy-nbd-to-hexdump.sh \
@@ -54,6 +55,7 @@ TESTS_ENVIRONMENT = \
 	MALLOC_PERTURB_=$(shell bash -c 'echo $$(( 1 + (RANDOM & 255) ))') \
 	EXPECTED_VERSION=$(VERSION) \
 	PSKTOOL=$(PSKTOOL) \
+	QEMU_NBD=$(QEMU_NBD) \
 	$(NULL)
 LOG_COMPILER = $(top_builddir)/run
 TESTS =
@@ -133,6 +135,10 @@ TESTS += \
 	test-verbose.sh \
 	test-version.sh \
 	$(NULL)
+
+if HAVE_QEMU_NBD
+TESTS += copy-file-to-qcow2.sh
+endif
 
 if HAVE_GNUTLS
 if HAVE_PSKTOOL
