@@ -656,8 +656,9 @@ list_all_exports (struct nbd_handle *nbd1, const char *uri)
 }
 
 static void
-print_json_string (const char *s)
+print_json_string (const char *str)
 {
+  const unsigned char *s = (const unsigned char *)str;
   fputc ('"', fp);
   for (; *s; s++) {
     switch (*s) {
