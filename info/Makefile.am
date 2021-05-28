@@ -28,6 +28,7 @@ info_sh_files = \
 	info-null.sh \
 	info-size.sh \
 	info-text.sh \
+	info-uri.sh \
 	info-description.sh \
 	info-description-qemu.sh \
 	info-map-base-allocation.sh \
