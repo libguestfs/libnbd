@@ -36,8 +36,6 @@
 #include "vector.h"
 #include "version.h"
 
-DEFINE_VECTOR_TYPE (string_vector, char *)
-
 static const char *progname;
 static FILE *fp;
 static bool list_all = false;
@@ -45,6 +43,8 @@ static bool probe_content, content_flag, no_content_flag;
 static bool json_output = false;
 static const char *map = NULL;
 static bool size_only = false;
+
+DEFINE_VECTOR_TYPE (string_vector, char *)
 
 struct export {
   char *name;
@@ -119,9 +119,6 @@ main (int argc, char *argv[])
   int c;
   size_t i;
   struct nbd_handle *nbd;
-  int64_t size;
-  const char *protocol;
-  int tls_negotiated;
   char *output = NULL;
   size_t output_len = 0;
   bool list_okay = true;
@@ -259,6 +256,8 @@ main (int argc, char *argv[])
   }
 
   if (size_only) {              /* --size (!list_all) */
+    int64_t size;
+
     size = nbd_get_size (nbd);
     if (size == -1) {
       fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
@@ -268,6 +267,7 @@ main (int argc, char *argv[])
     fprintf (fp, "%" PRIi64 "\n", size);
   }
   else if (map) {               /* --map (!list_all) */
+    int64_t size;
     uint32_vector entries = empty_vector;
     uint64_t offset, align, max_len;
     size_t prev_entries_size;
@@ -312,6 +312,9 @@ main (int argc, char *argv[])
     free (entries.ptr);
   }
   else {                        /* not --size or --map */
+    const char *protocol;
+    int tls_negotiated;
+
     /* Print per-connection fields. */
     protocol = nbd_get_protocol (nbd);
     tls_negotiated = nbd_get_tls_negotiated (nbd);
