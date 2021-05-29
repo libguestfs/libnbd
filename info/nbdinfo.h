@@ -36,6 +36,10 @@ extern bool size_only;
 /* map.c */
 extern void do_map (void);
 
+/* show.c */
+extern bool show_one_export (struct nbd_handle *nbd, const char *desc,
+                             bool first, bool last);
+
 /* size.c */
 extern void do_size (void);
 

@@ -62,6 +62,7 @@ nbdinfo_SOURCES = \
 	nbdinfo.h \
 	main.c \
 	map.c \
+	show.c \
 	size.c \
 	utils.c \
 	$(NULL)
