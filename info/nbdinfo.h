@@ -33,6 +33,11 @@ extern bool json_output;
 extern const char *map;
 extern bool size_only;
 
+/* list.c */
+extern void collect_exports (void);
+extern bool list_all_exports (const char *uri);
+extern void free_exports (void);
+
 /* map.c */
 extern void do_map (void);
 

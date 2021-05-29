@@ -60,6 +60,7 @@ TESTS =
 
 nbdinfo_SOURCES = \
 	nbdinfo.h \
+	list.c \
 	main.c \
 	map.c \
 	show.c \

@@ -37,6 +37,9 @@ DEFINE_VECTOR_TYPE (string_vector, char *)
 static int collect_context (void *opaque, const char *name);
 static char *get_content (struct nbd_handle *, int64_t size);
 
+/* NB: Don't use global nbd handle since this can be called indirectly
+ * from list_all_exports with a newly created handle.
+ */
 bool
 show_one_export (struct nbd_handle *nbd, const char *desc,
                  bool first, bool last)
