@@ -27,8 +27,6 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <limits.h>
-#include <errno.h>
-#include <assert.h>
 
 #include <libnbd.h>
 
