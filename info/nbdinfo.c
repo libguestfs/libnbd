@@ -367,6 +367,8 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  free (output);
+
   exit (list_okay ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
