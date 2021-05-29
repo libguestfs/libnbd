@@ -58,7 +58,12 @@ TESTS_ENVIRONMENT = \
 LOG_COMPILER = $(top_builddir)/run
 TESTS =
 
-nbdinfo_SOURCES = nbdinfo.c
+nbdinfo_SOURCES = \
+	nbdinfo.h \
+	main.c \
+	map.c \
+	utils.c \
+	$(NULL)
 nbdinfo_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/common/include \
