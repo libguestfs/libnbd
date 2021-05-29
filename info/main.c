@@ -249,17 +249,8 @@ main (int argc, char *argv[])
       nbd_opt_abort (nbd);
   }
 
-  if (size_only) {              /* --size (!list_all) */
-    int64_t size;
-
-    size = nbd_get_size (nbd);
-    if (size == -1) {
-      fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-
-    fprintf (fp, "%" PRIi64 "\n", size);
-  }
+  if (size_only)                /* --size (!list_all) */
+    do_size ();
   else if (map)                 /* --map (!list_all) */
     do_map ();
   else {                        /* not --size or --map */

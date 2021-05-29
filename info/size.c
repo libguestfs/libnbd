@@ -1,4 +1,4 @@
-/* NBD client library in userspace.
+/* NBD client library in userspace
  * Copyright (C) 2020-2021 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
@@ -16,30 +16,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef NBDINFO_H
-#define NBDINFO_H
+#include <config.h>
 
 #include <stdio.h>
-#include <stdbool.h>
+#include <stdlib.h>
+#include <inttypes.h>
 
 #include <libnbd.h>
 
-extern const char *progname;
-extern struct nbd_handle *nbd;
-extern FILE *fp;
-extern bool list_all;
-extern bool probe_content;
-extern bool json_output;
-extern const char *map;
-extern bool size_only;
+#include "nbdinfo.h"
 
-/* map.c */
-extern void do_map (void);
+void
+do_size (void)
+{
+  int64_t size;
 
-/* size.c */
-extern void do_size (void);
+  size = nbd_get_size (nbd);
+  if (size == -1) {
+    fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
 
-/* utils.c */
-extern void print_json_string (const char *);
-
-#endif /* NBDINFO_H */
+  fprintf (fp, "%" PRIi64 "\n", size);
+}
