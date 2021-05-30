@@ -21,6 +21,12 @@ The key features are:
 
  * Shell (nbdsh) for command line and scripting.
 
+ * Copying tool (nbdcopy) for high performance copying and streaming.
+
+ * Query tool (nbdinfo) to query NBD servers.
+
+ * FUSE support (nbdfuse) to mount NBD in the local filesystem.
+
 For documentation, see the ‘docs/’ and ‘examples/’ subdirectories.
 
 
@@ -60,8 +66,8 @@ want to run these tests, do:
 
 Requirements:
 
- * Linux, FreeBSD or OpenBSD.  Other OSes may also work but we have
-   only tested these three.
+ * Linux, FreeBSD or OpenBSD.
+   Other OSes may also work but we have only tested these three.
 
  * GCC or Clang
 
@@ -69,22 +75,27 @@ Requirements:
 
  * bash
 
-Required for building from git, optional for tarballs:
+Required for building from git, optional for building from tarballs:
 
- * OCaml (ocamlc, the bytecode compiler) is required to run the
-   generator, which is needed for building from git.  However it is
+ * OCaml (ocamlc, the bytecode compiler) is required to generate some
+   source files, which is needed to build from git.  However ocamlc is
    _not_ needed if building from the official tarballs from
    http://download.libguestfs.org/libnbd/ because those contain the
    generated files.
 
+Recommended - if not present, some features will be disabled:
+
+ * GnuTLS is recommended for TLS support.
+
+   If not available then you will not be able to access encrypted
+   servers and some APIs related to TLS will always return an error.
+
+ * libxml2 is recommended for NBD URI support.
+
+   If not available then a few APIs related to URIs will always return
+   an error, and the nbdinfo tool is not built.
+
 Optional:
-
- * GnuTLS is recommended for TLS support.  If not available then you
-   will not be able to access encrypted servers and some APIs related
-   to TLS will always return an error.
-
- * libxml2 is recommended for NBD URI support.  If not available then
-   a few APIs related to URIs will always return an error.
 
  * Perl Pod::Man and Pod::Simple to generate the documentation.
 
@@ -94,9 +105,9 @@ Optional:
 
  * FUSE 3 to build the nbdfuse program.
 
- * bash-completion >= 1.99 for tab completion.
-
  * go and cgo, for compiling the golang bindings and tests.
+
+ * bash-completion >= 1.99 for tab completion.
 
 Optional, only needed to run the test suite:
 
@@ -115,7 +126,7 @@ Optional, only needed to run the test suite:
 
  * qemu, qemu-io, qemu-img for interoperability testing.
 
- * psktool and certtool (part of GnuTLS) for testing TLS support.
+ * certtool and psktool (part of GnuTLS) for testing TLS support.
 
  * valgrind if you want to run the tests under valgrind.
 
@@ -158,10 +169,16 @@ For development ideas, see the TODO file.
 The upstream git repository is:
 https://gitlab.com/nbdkit/libnbd
 
-Please send patches to the libguestfs mailing list:
+Patches are accepted either by email to the upstream mailing list:
 https://www.redhat.com/mailman/listinfo/libguestfs
+or by Merge Request on gitlab.com
 
-For further information, see:
+If you want to fuzz the library see fuzzing/README.
+
+
+OTHER LINKS
+===========
+
 http://libguestfs.org/
 https://github.com/NetworkBlockDevice/nbd/blob/master/doc/proto.md
 https://gitlab.com/nbdkit/nbdkit
