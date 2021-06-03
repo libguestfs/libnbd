@@ -23,7 +23,7 @@ set -x
 
 requires nbdkit --exit-with-parent --version
 requires cmp /dev/null /dev/null
-requires hexdump --version
+requires hexdump -C /dev/null
 
 pidfile1=copy-nbd-to-nbd.pid1
 pidfile2=copy-nbd-to-nbd.pid2

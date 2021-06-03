@@ -22,7 +22,7 @@ set -e
 set -x
 
 requires nbdkit --exit-with-parent --version
-requires hexdump --version
+requires hexdump -C /dev/null
 requires stat --version
 
 file=copy-nbd-to-file.file

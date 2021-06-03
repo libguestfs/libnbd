@@ -27,7 +27,7 @@ set -x
 requires fusermount3 --version
 requires dd --version
 requires dd iflag=count_bytes,skip_bytes </dev/null
-requires hexdump --version
+requires hexdump -C /dev/null
 requires nbdkit --version
 requires nbdkit pattern --version
 
