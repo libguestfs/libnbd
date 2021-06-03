@@ -74,7 +74,9 @@ usage (FILE *fp, int exitcode)
 "Mount NBD server as a virtual file:\n"
 "\n"
 #ifdef HAVE_LIBXML2
-"    nbdfuse [-o FUSE-OPTION] [-P PIDFILE] [-r] [-s] MOUNTPOINT[/FILENAME] URI\n"
+"    nbdfuse [-C N|--connections N] [-d] [-o FUSE-OPTION] [-P PIDFILE]\n"
+"            [-r] [-s] [-v]\n"
+"            MOUNTPOINT[/FILENAME] URI\n"
 "\n"
 "Other modes:\n"
 "\n"
