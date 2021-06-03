@@ -30,6 +30,7 @@ Makefile.in
 /bash/nbdcopy
 /bash/nbdfuse
 /bash/nbdinfo
+/common/utils/test-vector
 /compile
 /config.cache
 /config.guess

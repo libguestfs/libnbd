@@ -47,3 +47,12 @@ libutils_la_CFLAGS = \
 	$(NULL)
 libutils_la_LIBADD = \
 	$(NULL)
+
+# Unit tests.
+
+TESTS = test-vector
+check_PROGRAMS = test-vector
+
+test_vector_SOURCES = test-vector.c vector.c vector.h
+test_vector_CPPFLAGS = -I$(srcdir)
+test_vector_CFLAGS = $(WARNINGS_CFLAGS)
