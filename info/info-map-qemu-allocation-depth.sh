@@ -26,7 +26,7 @@ set -x
 
 requires qemu-img --version
 requires qemu-io --version
-requires qemu-nbd -A --version
+requires $QEMU_NBD -A --pid-file=test.pid --version
 requires tr --version
 
 base=info-map-qemu-allocation-depth
@@ -59,20 +59,10 @@ pid=$base.pid
 cleanup_fn rm -f $sock $pid
 rm -f $sock $pid
 
-qemu-nbd -t --socket=$sock --pid-file=$pid -f qcow2 -A $f4 &
+$QEMU_NBD -t --socket=$sock --pid-file=$pid -f qcow2 -A $f4 &
 cleanup_fn kill $!
 
-# Wait for qemu-nbd to start up.
-for i in {1..60}; do
-    if test -f $pid; then
-        break
-    fi
-    sleep 1
-done
-if ! test -f $pid; then
-    echo "$0: qemu-nbd did not start up"
-    exit 1
-fi
+wait_for_pidfile qemu-nbd $pid
 
 $VG nbdinfo --map=qemu:allocation-depth "nbd+unix://?socket=$sock" > $out
 cat $out

@@ -21,8 +21,7 @@
 set -e
 set -x
 
-requires $QEMU_NBD --version
-requires bash -c "$QEMU_NBD --help | grep pid-file"
+requires $QEMU_NBD --pid-file=test.pid --version
 requires qemu-img --version
 requires cmp --version
 requires dd --version
@@ -55,20 +54,10 @@ qemu-img create -f qcow2 $qcow2 $size
 
 # Run qemu-nbd as a separate process so that we can copy to and from
 # the single process in two separate operations.
-qemu-nbd -f qcow2 -t --socket=$sock --pid-file=$pidfile $qcow2 &
+$QEMU_NBD -f qcow2 -t --socket=$sock --pid-file=$pidfile $qcow2 &
 cleanup_fn kill $!
 
-# Wait for qemu-nbd to start up.
-for i in {1..60}; do
-    if test -f $pidfile; then
-        break
-    fi
-    sleep 1
-done
-if ! test -f $pidfile; then
-    echo "$0: qemu-nbd did not start up"
-    exit 1
-fi
+wait_for_pidfile qemu-nbd $pid
 
 $VG nbdcopy $file "nbd+unix:///?socket=$sock"
 $VG nbdcopy "nbd+unix:///?socket=$sock" $file2

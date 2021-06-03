@@ -158,3 +158,22 @@ pick_unused_port ()
     done
     echo picked unused port $port
 }
+
+# Wait for qemu-nbd to start up.
+wait_for_pidfile ()
+{
+    local binary=$1
+    local pid=$2
+
+    for i in {1..60}; do
+        if test -f $pid; then
+            break
+        fi
+        sleep 1
+    done
+
+    if ! test -f $pid; then
+        echo "$0: $binary did not start up"
+        exit 1
+    fi
+}

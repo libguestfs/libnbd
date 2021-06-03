@@ -21,8 +21,7 @@
 set -e
 set -x
 
-requires qemu-nbd --version
-requires bash -c 'qemu-nbd --help | grep pid-file'
+requires $QEMU_NBD --pid-file=test.pid --version
 requires truncate --version
 
 img=info-list-qemu.img
@@ -33,20 +32,10 @@ cleanup_fn rm -f $img $out $pid $sock
 rm -f $img $out $pid $sock
 
 truncate -s 1M $img
-qemu-nbd -t --socket=$sock --pid-file=$pid -x "hello" -D "world" $img &
+$QEMU_NBD -t --socket=$sock --pid-file=$pid -x "hello" -D "world" $img &
 cleanup_fn kill $!
 
-# Wait for qemu-nbd to start up.
-for i in {1..60}; do
-    if test -f $pid; then
-        break
-    fi
-    sleep 1
-done
-if ! test -f $pid; then
-    echo "$0: qemu-nbd did not start up"
-    exit 1
-fi
+wait_for_pidfile qemu-nbd $pid
 
 # Test twice, once with an export name not on the list,...
 $VG nbdinfo "nbd+unix://?socket=$sock" --list > $out

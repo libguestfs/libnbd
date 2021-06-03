@@ -54,6 +54,7 @@ TESTS_ENVIRONMENT = \
 	MALLOC_CHECK_=1 \
 	MALLOC_PERTURB_=$(shell bash -c 'echo $$(( 1 + (RANDOM & 255) ))') \
 	EXPECTED_VERSION=$(VERSION) \
+	QEMU_NBD=$(QEMU_NBD) \
 	$(NULL)
 LOG_COMPILER = $(top_builddir)/run
 TESTS =
