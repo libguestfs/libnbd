@@ -1,0 +1,172 @@
+=head1 NAME
+
+libnbd-release-notes-1.8 - release notes for libnbd 1.8
+
+=head1 DESCRIPTION
+
+These are the release notes for libnbd stable release 1.8.
+This describes the major changes since 1.6.
+
+libnbd 1.8.0 was released on B<XX XXXXXX 2021>.
+
+libnbd is now hosted on gitlab:
+L<https://listman.redhat.com/archives/libguestfs/2021-February/msg00021.html>
+
+=head2 Security
+
+If you find a security issue, please read F<SECURITY> in the source
+(online here:
+L<https://gitlab.com/nbdkit/libnbd/blob/master/SECURITY>).  To
+find out about previous security issues in libnbd, see
+L<libnbd-security(3)>.
+
+There was one security bug found in libnbd during this
+release cycle.
+
+=head3 CVE-2021-20286
+denial of service when using L<nbd_set_opt_mode(3)>
+
+See the full announcement here:
+L<https://listman.redhat.com/archives/libguestfs/2021-March/msg00092.html>
+(Found and fixed by Eric Blake).
+
+=head2 New APIs
+
+=over 4
+
+=item L<nbd_get_private_data(3)>
+
+=item L<nbd_set_private_data(3)>
+
+These calls allow you to store either an unsigned integer or a pointer
+in the handle for the application to use for its own purpose.
+
+=item L<nbd_get_uri(3)>
+
+This call constructs an NBD URI which can be used to connect back to
+the same server (using L<nbd_connect_uri(3)> or from other tools that
+support the NBD URI standard).
+
+=back
+
+=head2 Enhancements to existing APIs
+
+IPv6 numeric URIs (like C<nbd://[::1]/>) are now supported.
+
+libnbd gives a better error message if the server backlog overflows
+(thanks Xin Long, Lukas Doktor, Eric Blake, Martin Kletzander).
+
+=head2 New features
+
+Continuous integration (CI) tests now run on every commit and merge
+request to the upstream repository (Martin Kletzander).
+
+=head2 Tools
+
+A great deal of work has been done to improve the performance of
+L<nbdcopy(1)> (Nir Soffer, Eric Blake).
+
+On Linux, nbdcopy now uses readahead when reading from files, and
+takes steps to preserve the host page cache.
+
+nbdcopy new I<--request-size> option to allow controlling the size of
+requests made to NBD servers.  Adjusting this can affect performance
+(Nir Soffer).
+
+nbdcopy now supports C<null:> pseudo-target, where it discards the
+output.  This is useful for benchmarking.
+
+nbdcopy new I<-v> flag to enable libnbd and other debugging.
+
+L<nbdinfo(1)> I<--list> (which lists all exports of a server) no
+longer exits early if one of the exports is inaccessible or there is a
+recoverable error (Eric Blake).
+
+nbdinfo now prints the URI of each export in the output making it
+easier to connect back to each export.
+
+L<nbdfuse(1)> is now multithreaded and supports issuing parallel NBD
+commands on a single connection as well as multi-conn, and other
+enhancements have been made.  This resulted in around 50% performance
+improvement when tested with fio.
+
+nbdfuse now supports nbdcopy-style C<[ CMD ]>, eg:
+ nbdfuse dir/ramdisk [ nbdkit memory 1G ]
+
+nbdfuse now supports trimming.  Also it supports fast zeroing, but
+this requires a forthcoming kernel patch before it will work.
+
+nbdfuse sets the virtual file permissions appropriately if the NBD
+export is read-only.
+
+nbdfuse new I<-v> flag to enable libnbd and other debugging.
+
+=head2 Tests
+
+Added a test of interoperability with L<qemu-storage-daemon(1)>.  Note
+that qemu-storage-daemon was broken in qemu 6.0.0 so this test can
+fail unless you update to a fixed version (thanks Stefan Hajnoczi,
+Daniel Berrangé).
+
+Added a test of nbdcopy with TLS which was previously untested.
+
+Python code style tests are now opt-in using
+ ./configure --enable-python-code-style
+
+More tests should now run on FreeBSD and not be skipped.
+
+nbdfuse tests now ensure that errors from NBD are transmitted through
+FUSE back to the local client.
+
+C<MALLOC_CHECK_> and C<MALLOC_PERTURB_> are only enabled when running
+the tests, not when running libnbd programs from the build directory.
+This makes it easier to do benchmarks.
+
+=head2 Other improvements and bug fixes
+
+The minimum C compiler is now ISO C99 (previously ANSI C90).
+
+FUSE 3 (instead of FUSE 2) is now required to build nbdfuse.
+
+The library tries harder not to leak thread-local storage memory on
+dlclose or exit.  (Because of the design of Linux it is not always
+possible to avoid this, especially in multithreaded programs.)
+
+Fix the progress bar in L<nbdcopy(1)>.
+
+UTF-8 export names are now processed and displayed properly by
+L<nbdinfo(1)>.
+
+The I<--help> output of nbdcopy, nbdfuse and nbdinfo now displays a
+brief summary of all options and has some examples.
+
+The generator now only requires ocamlc, not ocamlfind
+(Abhay Raj Singh).
+
+Golang bindings now use and require golang modules.
+
+=head2 Documentation
+
+Document using libnbd with the Meson build system.
+
+Added Python examples.
+
+Add example of how to integrate libnbd with libev (Nir Soffer).
+
+=head1 SEE ALSO
+
+L<libnbd(3)>.
+
+=head1 AUTHORS
+
+Eric Blake
+
+Richard W.M. Jones
+
+Martin Kletzander
+
+Nir Soffer
+
+=head1 COPYRIGHT
+
+Copyright (C) 2021 Red Hat Inc.
