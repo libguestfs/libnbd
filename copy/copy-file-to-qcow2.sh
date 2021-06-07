@@ -22,6 +22,7 @@ set -e
 set -x
 
 requires $QEMU_NBD --version
+requires bash -c "$QEMU_NBD --help | grep pid-file"
 requires qemu-img --version
 requires cmp --version
 requires dd --version
