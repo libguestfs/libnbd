@@ -608,7 +608,7 @@ TESTS += \
 	connect-uri-nbd-unix \
 	$(NULL)
 
-RANDOM1 := $(shell bash -c "echo $$(( 32768 + (RANDOM & 16383) ))")
+RANDOM1 := $(shell bash -c 'echo $$(( 32768 + (RANDOM & 16383) ))')
 connect_uri_nbd_SOURCES = connect-uri.c
 connect_uri_nbd_CPPFLAGS = \
 	-I$(top_srcdir)/include \
@@ -640,7 +640,7 @@ TESTS += \
 	connect-uri-nbds-unix \
 	$(NULL)
 
-RANDOM2 := $(shell bash -c "echo $$(( 32768 + (RANDOM & 16383) ))")
+RANDOM2 := $(shell bash -c 'echo $$(( 32768 + (RANDOM & 16383) ))')
 connect_uri_nbds_SOURCES = connect-uri.c
 connect_uri_nbds_CPPFLAGS = \
 	-I$(top_srcdir)/include \
@@ -671,7 +671,7 @@ TESTS += \
 	connect-uri-nbds-psk \
 	$(NULL)
 
-RANDOM3 := $(shell bash -c "echo $$(( 32768 + (RANDOM & 16383) ))")
+RANDOM3 := $(shell bash -c 'echo $$(( 32768 + (RANDOM & 16383) ))')
 connect_uri_nbds_psk_SOURCES = connect-uri.c
 connect_uri_nbds_psk_CPPFLAGS = \
 	-I$(top_srcdir)/include \
