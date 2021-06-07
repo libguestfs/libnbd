@@ -36,8 +36,8 @@ sock2=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
 cleanup_fn rm -f $pidfile1 $pidfile2 $sock1 $sock2
 cleanup_fn nbd-client -d /dev/nbd0
 
-nbdkit --exit-with-parent -f -v -P $pidfile1 -U $sock1 pattern 10M &
-nbdkit --exit-with-parent -f -v -P $pidfile2 -U $sock2 memory 5M &
+nbdkit --exit-with-parent -f -v -P $pidfile1 -U $sock1 pattern size=10M &
+nbdkit --exit-with-parent -f -v -P $pidfile2 -U $sock2 memory size=5M &
 # Wait for the pidfiles to appear.
 for i in {1..60}; do
     if test -f $pidfile1 && test -f $pidfile2; then

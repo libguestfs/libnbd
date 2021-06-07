@@ -35,7 +35,7 @@ cleanup_fn rm -f $pidfile $sock
 cleanup_fn nbd-client -d /dev/nbd0
 
 # Run an nbdkit server to act as the backing for /dev/nbd0.
-nbdkit --exit-with-parent -f -v -P $pidfile -U $sock pattern 5M &
+nbdkit --exit-with-parent -f -v -P $pidfile -U $sock pattern size=5M &
 # Wait for the pidfile to appear.
 for i in {1..60}; do
     if test -f $pidfile; then
