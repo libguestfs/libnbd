@@ -428,6 +428,14 @@ nbdfuse_fsync (const char *path, int datasync, struct fuse_file_info *fi)
   return 0;
 }
 
+#ifndef FALLOC_FL_PUNCH_HOLE
+# define FALLOC_FL_PUNCH_HOLE 0
+#endif
+
+#ifndef FALLOC_FL_ZERO_RANGE
+# define FALLOC_FL_ZERO_RANGE 0
+#endif
+
 /* Punch a hole or write zeros. */
 static int
 nbdfuse_fallocate (const char *path, int mode, off_t offset, off_t len,
