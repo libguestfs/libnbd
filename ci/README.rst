@@ -4,8 +4,8 @@ Continuous Integration
 This document provides describes the continuous integration setup for this
 repository.
 
-The main script that is executed is ``ci/build_script.sh`` and should contain
-all necessary checks to be performed, although some of them might be run
+The main script that is executed is ``ci/build.sh`` and should contain all
+necessary checks to be performed, although some of them might be run
 conditionally.
 
 lcitool

@@ -20,4 +20,4 @@ build_task:
     - git fetch origin "$CI_COMMIT_REF_NAME"
     - git reset --hard "$CI_COMMIT_SHA"
   build_script:
-    - ci/build_script.sh
+    - ci/build.sh

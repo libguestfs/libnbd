@@ -42,7 +42,7 @@ stages:
   before_script:
     - *script_variables
   script:
-    - ci/build_script.sh
+    - ci/build.sh
   artifacts:
     paths:
       - "config.log"
