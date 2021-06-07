@@ -22,6 +22,7 @@ set -e
 set -x
 
 requires_root
+requires_caps cap_sys_admin
 requires nbdkit --exit-with-parent --version
 requires test -r /sys/module/nbd
 requires nbd-client --version
