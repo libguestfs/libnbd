@@ -159,14 +159,6 @@ x64-debian-10:
   variables:
     NAME: debian-10
 
-x64-debian-10-clang:
-  extends: .native_build_job
-  needs:
-    - x64-debian-10-container
-  variables:
-    NAME: debian-10
-    CC: clang
-
 x64-debian-sid:
   extends: .native_build_job
   needs:
