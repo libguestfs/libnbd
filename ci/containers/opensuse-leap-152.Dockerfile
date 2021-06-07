@@ -2,7 +2,7 @@
 #
 #  $ lcitool dockerfile opensuse-leap-152 libnbd
 #
-# https://gitlab.com/libvirt/libvirt-ci/-/commit/5fd2cdeb8958df86a81b639fd096f626d0f5dbd0
+# https://gitlab.com/libvirt/libvirt-ci/-/commit/7f787787a85647c3045ebfa6634966b4b96d5d99
 
 FROM registry.opensuse.org/opensuse/leap:15.2
 
@@ -14,8 +14,8 @@ RUN zypper update -y && \
            ca-certificates \
            ccache \
            clang \
-           coreutils \
            diffutils \
+           fuse3 \
            fuse3-devel \
            gcc \
            gcc-c++ \
@@ -35,13 +35,17 @@ RUN zypper update -y && \
            nbd \
            ocaml \
            ocaml-findlib \
+           ocaml-ocamldoc \
+           perl \
+           perl-Pod-Simple \
            perl-base \
            pkgconfig \
            python3-devel \
            python3-flake8 \
-           qemu-kvm \
+           qemu \
            qemu-tools \
-           sed && \
+           sed \
+           util-linux && \
     zypper clean --all && \
     rpm -qa | sort > /packages.txt && \
     mkdir -p /usr/libexec/ccache-wrappers && \

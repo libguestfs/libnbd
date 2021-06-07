@@ -2,7 +2,7 @@
 #
 #  $ lcitool dockerfile centos-8 libnbd
 #
-# https://gitlab.com/libvirt/libvirt-ci/-/commit/5fd2cdeb8958df86a81b639fd096f626d0f5dbd0
+# https://gitlab.com/libvirt/libvirt-ci/-/commit/7f787787a85647c3045ebfa6634966b4b96d5d99
 
 FROM docker.io/library/centos:8
 
@@ -18,8 +18,8 @@ RUN dnf update -y && \
         ca-certificates \
         ccache \
         clang \
-        coreutils-single \
         diffutils \
+        fuse3 \
         fuse3-devel \
         gcc \
         gcc-c++ \
@@ -27,8 +27,8 @@ RUN dnf update -y && \
         glib2-devel \
         glibc-devel \
         glibc-langpack-en \
-        gnutls \
         gnutls-devel \
+        gnutls-utils \
         golang \
         iproute \
         jq \
@@ -39,13 +39,17 @@ RUN dnf update -y && \
         nbdkit \
         ocaml \
         ocaml-findlib \
+        ocamldoc \
         perl \
+        perl-Pod-Simple \
+        perl-podlators \
         pkgconfig \
         python3-devel \
         python3-flake8 \
         qemu-img \
         qemu-kvm \
-        sed && \
+        sed \
+        util-linux && \
     dnf autoremove -y && \
     dnf clean all -y && \
     rpm -qa | sort > /packages.txt && \

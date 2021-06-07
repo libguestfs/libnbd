@@ -2,7 +2,7 @@
 #
 #  $ lcitool dockerfile fedora-34 libnbd
 #
-# https://gitlab.com/libvirt/libvirt-ci/-/commit/5fd2cdeb8958df86a81b639fd096f626d0f5dbd0
+# https://gitlab.com/libvirt/libvirt-ci/-/commit/7f787787a85647c3045ebfa6634966b4b96d5d99
 
 FROM registry.fedoraproject.org/fedora:34
 
@@ -24,8 +24,8 @@ exec "$@"' > /usr/bin/nosync && \
         ca-certificates \
         ccache \
         clang \
-        coreutils \
         diffutils \
+        fuse3 \
         fuse3-devel \
         gcc \
         gcc-c++ \
@@ -33,8 +33,8 @@ exec "$@"' > /usr/bin/nosync && \
         glib2-devel \
         glibc-devel \
         glibc-langpack-en \
-        gnutls \
         gnutls-devel \
+        gnutls-utils \
         golang \
         iproute \
         jq \
@@ -46,13 +46,17 @@ exec "$@"' > /usr/bin/nosync && \
         nbdkit \
         ocaml \
         ocaml-findlib \
+        ocamldoc \
+        perl-Pod-Simple \
         perl-base \
+        perl-podlators \
         pkgconfig \
         python3-devel \
         python3-flake8 \
+        qemu \
         qemu-img \
-        qemu-kvm \
-        sed && \
+        sed \
+        util-linux && \
     nosync dnf autoremove -y && \
     nosync dnf clean all -y && \
     rpm -qa | sort > /packages.txt && \

@@ -2,7 +2,7 @@
 #
 #  $ lcitool dockerfile debian-10 libnbd
 #
-# https://gitlab.com/libvirt/libvirt-ci/-/commit/5fd2cdeb8958df86a81b639fd096f626d0f5dbd0
+# https://gitlab.com/libvirt/libvirt-ci/-/commit/7f787787a85647c3045ebfa6634966b4b96d5d99
 
 FROM docker.io/library/debian:10-slim
 
@@ -14,12 +14,13 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
             autoconf \
             automake \
             bash-completion \
+            bsdmainutils \
             ca-certificates \
             ccache \
             clang \
-            coreutils \
             diffutils \
             flake8 \
+            fuse3 \
             g++ \
             gcc \
             git \
@@ -41,10 +42,12 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
             nbdkit \
             ocaml \
             ocaml-findlib \
+            ocaml-nox \
+            perl \
             perl-base \
             pkgconf \
             python3-dev \
-            qemu-kvm \
+            qemu \
             qemu-utils \
             sed && \
     eatmydata apt-get autoremove -y && \
