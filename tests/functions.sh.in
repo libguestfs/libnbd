@@ -118,6 +118,16 @@ requires_linux_kernel_version ()
     requires test "$(printf "$kver\n$min" | sort -V | head -n 1)" = "$min"
 }
 
+# requires_fuse
+#
+# Check for fusermount3 and accessibility of /dev/fuse.  That is not the best
+# way to check that it is going to work, but so far it is enough.
+requires_fuse ()
+{
+    requires test -r /dev/fuse
+    requires fusermount3 --version
+}
+
 # Tests that run under check-root should use this.
 requires_root ()
 {

@@ -23,11 +23,10 @@
 set -e
 set -x
 
-requires fusermount3 --version
+requires_fuse
 requires nbdkit --exit-with-parent --version
 requires cmp --version
 requires dd --version
-requires test -r /dev/fuse
 
 if ! test -r /dev/urandom; then
     echo "$0: test skipped: /dev/urandom not readable"

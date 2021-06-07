@@ -23,7 +23,7 @@
 set -e
 set -x
 
-requires fusermount3 --version
+requires_fuse
 requires nbdkit --exit-with-parent --version
 
 # Difficult to arrange for this test to be run this test under

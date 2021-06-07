@@ -23,7 +23,7 @@
 set -e
 set -x
 
-requires fusermount3 --version
+requires_fuse
 requires fallocate --version
 requires dd --version
 requires nbdkit --version

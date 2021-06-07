@@ -28,7 +28,7 @@ set -x
 # https://git.kernel.org/pub/scm/linux/kernel/git/mszeredi/fuse.git/log/?h=for-next
 requires_linux_kernel_version 5.14
 
-requires fusermount3 --version
+requires_fuse
 requires fallocate --version
 requires dd --version
 requires nbdkit --version

@@ -24,7 +24,7 @@
 set -e
 set -x
 
-requires fusermount3 --version
+requires_fuse
 requires dd --version
 requires dd iflag=count_bytes,skip_bytes </dev/null
 requires hexdump -C /dev/null
