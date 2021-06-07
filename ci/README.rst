@@ -57,13 +57,21 @@ this case from the root of the repository:
 
 .. code-block:: shell
 
-    podman run -it --rm -v .:/repo:z -w /repo libnbd-fedora-rawhide bash
+    podman run -it --rm --userns=keep-id -v .:/repo:z -w /repo libnbd-fedora-rawhide bash
+
+or
+
+.. code-block:: shell
+
+    docker run -it --rm --user $UID:$UID -v $PWD:/repo:z -w /repo libnbd-fedora-rawhide bash
 
 which will bind-mount the current directory (root of the repository in our case)
 onto /repo inside the container and also use that path as the working directory
 (just so you do not have to ``cd /repo`` before any commands. This example
 illustrates running bash, which can be used to debug any issues in the build,
-but any command can be specified, for example the build script directly.
+but any command can be specified, for example the build script directly.  It
+also runs the command under a user with the same UID as the user running the
+command (even with the same UID).
 
 Since the directory is bind-mounted any changes will be visible in your local
 repository and vice versa. That is useful when you want to, for example, make a
