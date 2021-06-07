@@ -3,6 +3,8 @@
 set -e
 
 main() {
+    MAKE="${MAKE-make -j $(getconf _NPROCESSORS_ONLN)}"
+
     autoreconf -if
 
     CONFIG_ARGS="\
@@ -20,13 +22,14 @@ main() {
        CONFIG_ARGS="$CONFIG_ARGS --enable-golang"
     fi
 
-    ./configure $CONFIG_ARGS
+    ./configure $CONFIGURE_OPTS $CONFIG_ARGS
 
     $MAKE
 
     if test -n "$CROSS"
     then
-       return 0
+        echo "Possibly run tests with an emulator in the future"
+        return 0
     fi
 
     $MAKE check
