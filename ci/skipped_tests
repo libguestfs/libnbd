@@ -1,0 +1,12 @@
+# Old nbd-server and built without syslog support, tests deadlock, old qemu-img version
+^Ubuntu-18\.04$;interop/interop-nbd-server interop/list-exports-nbd-server interop/structured-read.sh
+^openSUSE Leap-15;interop/interop-nbd-server interop/list-exports-nbd-server
+
+# Similar for Tumbleweed, except tests do not deadlock, only limit to version 2021* for now
+^openSUSE Tumbleweed-2021;interop/interop-nbd-server interop/list-exports-nbd-server
+
+# Debian 10 has weird golang issues (old golang anyway) and old qemu-img
+^Debian GNU/Linux-10;golang/run-tests.sh interop/structured-read.sh
+
+# CentOS (stream) 8 probably has an older, buggy version of nbdkit and is not updated
+^CentOS .*8$;info/info-uri.sh info/info-list-uris.sh interop/list-exports-nbdkit
