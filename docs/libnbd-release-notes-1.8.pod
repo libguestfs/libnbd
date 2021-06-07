@@ -7,7 +7,7 @@ libnbd-release-notes-1.8 - release notes for libnbd 1.8
 These are the release notes for libnbd stable release 1.8.
 This describes the major changes since 1.6.
 
-libnbd 1.8.0 was released on B<XX XXXXXX 2021>.
+libnbd 1.8.0 was released on B<7 June 2021>.
 
 libnbd is now hosted on gitlab:
 L<https://listman.redhat.com/archives/libguestfs/2021-February/msg00021.html>
@@ -39,7 +39,7 @@ L<https://listman.redhat.com/archives/libguestfs/2021-March/msg00092.html>
 =item L<nbd_set_private_data(3)>
 
 These calls allow you to store either an unsigned integer or a pointer
-in the handle for the application to use for its own purpose.
+in the handle for the application to use for its own purposes.
 
 =item L<nbd_get_uri(3)>
 
@@ -51,7 +51,7 @@ support the NBD URI standard).
 
 =head2 Enhancements to existing APIs
 
-IPv6 numeric URIs (like C<nbd://[::1]/>) are now supported.
+Numeric IPv6 URIs (like C<nbd://[::1]/>) are now supported.
 
 libnbd gives a better error message if the server backlog overflows
 (thanks Xin Long, Lukas Doktor, Eric Blake, Martin Kletzander).
