@@ -183,6 +183,7 @@ Makefile.in
 /tests/export-name
 /tests/functions.sh
 /tests/get-size
+/tests/get-version
 /tests/is-not-rotational-flag
 /tests/is-rotational-flag
 /tests/keys.psk
@@ -201,5 +202,4 @@ Makefile.in
 /tests/shutdown-flags
 /tests/synch-parallel
 /tests/synch-parallel-tls
-/tests/version
 /valgrind/suppressions

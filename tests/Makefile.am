@@ -68,7 +68,7 @@ check_PROGRAMS += \
 	close-null \
 	debug \
 	debug-environment \
-	version \
+	get-version \
 	export-name \
 	private-data \
 	$(NULL)
@@ -80,7 +80,7 @@ TESTS += \
 	close-null \
 	debug \
 	debug-environment \
-	version \
+	get-version \
 	export-name \
 	private-data \
 	$(NULL)
@@ -120,10 +120,10 @@ debug_environment_CPPFLAGS = -I$(top_srcdir)/include
 debug_environment_CFLAGS = $(WARNINGS_CFLAGS)
 debug_environment_LDADD = $(top_builddir)/lib/libnbd.la
 
-version_SOURCES = version.c
-version_CPPFLAGS = -I$(top_srcdir)/include
-version_CFLAGS = $(WARNINGS_CFLAGS)
-version_LDADD = $(top_builddir)/lib/libnbd.la
+get_version_SOURCES = get-version.c
+get_version_CPPFLAGS = -I$(top_srcdir)/include
+get_version_CFLAGS = $(WARNINGS_CFLAGS)
+get_version_LDADD = $(top_builddir)/lib/libnbd.la
 
 export_name_SOURCES = export-name.c
 export_name_CPPFLAGS = -I$(top_srcdir)/include
