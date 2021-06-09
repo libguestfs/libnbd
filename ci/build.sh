@@ -32,6 +32,12 @@ main() {
         return 0
     fi
 
+    if test "$(uname)" != "Linux"
+    then
+        echo "Tests are temporarily skipped on non-Linux platforms"
+        return 0
+    fi
+
     # Add a way to run all the tests, even the skipped ones, with an environment
     # variable, so that it can be set fora branch or fork in GitLab.
     if test "$SKIPPED_TESTS" != "force"
