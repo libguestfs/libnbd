@@ -24,10 +24,10 @@ EXTRA_DIST = \
 
 if HAVE_BASH_COMPLETION
 
-dist_bashcomp_DATA = nbdfuse nbdsh
+bashcomp_DATA = nbdfuse nbdsh
 
 if HAVE_LIBXML2
-dist_bashcomp_DATA += nbdcopy nbdinfo
+bashcomp_DATA += nbdcopy nbdinfo
 endif HAVE_LIBXML2
 
 
