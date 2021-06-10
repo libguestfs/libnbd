@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2020 Red Hat Inc.
+# Copyright (C) 2020-2021 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -84,7 +84,7 @@ if [ "$(tr -s ' ' < $out)" != "\
  3145728 2097152 3 backing depth 3
  5242880 1048576 1 local
  6291456 1048576 2 backing depth 2
- 7340032 1048576 0 unallocated" ]; then
+ 7340032 1048576 0 absent" ]; then
     echo "$0: unexpected output from nbdinfo --map"
     exit 1
 fi

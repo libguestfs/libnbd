@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2020 Red Hat Inc.
+# Copyright (C) 2020-2021 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -36,9 +36,9 @@ nbdkit -U - data data='1 @131072 2' size=1M \
 
 cat $out
 
-if [ "$(tr -s ' ' < $out)" != " 0 32768 0 allocated
+if [ "$(tr -s ' ' < $out)" != " 0 32768 0 data
  32768 98304 3 hole,zero
- 131072 32768 0 allocated
+ 131072 32768 0 data
  163840 884736 3 hole,zero" ]; then
     echo "$0: unexpected output from nbdinfo --map"
     exit 1

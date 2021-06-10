@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2020 Red Hat Inc.
+# Copyright (C) 2020-2021 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -40,7 +40,7 @@ jq . < $out
 test $( jq -r '.[0].offset' < $out ) -eq 0
 test $( jq -r '.[0].length' < $out ) -eq 32768
 test $( jq -r '.[0].type' < $out ) -eq 0
-test $( jq -r '.[0].description' < $out ) = "allocated"
+test $( jq -r '.[0].description' < $out ) = "data"
 
 test $( jq -r '.[3].offset' < $out ) -eq 163840
 test $( jq -r '.[3].length' < $out ) -eq 884736

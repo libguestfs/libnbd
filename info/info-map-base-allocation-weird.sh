@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2020 Red Hat Inc.
+# Copyright (C) 2020-2021 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -45,7 +45,7 @@ EOF
 cat $out
 
 if [ "$(tr -s ' ' < $out)" != " 0 16 1 hole
- 16 4 0 allocated
+ 16 4 0 data
  20 12 1 hole" ]; then
     echo "$0: unexpected output from nbdinfo --map"
     exit 1

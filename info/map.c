@@ -202,7 +202,7 @@ extent_description (const char *metacontext, uint32_t type)
 
   if (strcmp (metacontext, "base:allocation") == 0) {
     switch (type) {
-    case 0: return strdup ("allocated");
+    case 0: return strdup ("data");
     case 1: return strdup ("hole");
     case 2: return strdup ("zero");
     case 3: return strdup ("hole,zero");
@@ -216,7 +216,7 @@ extent_description (const char *metacontext, uint32_t type)
   }
   else if (strcmp (metacontext, "qemu:allocation-depth") == 0) {
     switch (type) {
-    case 0: return strdup ("unallocated");
+    case 0: return strdup ("absent");
     case 1: return strdup ("local");
     default:
       if (asprintf (&ret, "backing depth %u", type) == -1) {

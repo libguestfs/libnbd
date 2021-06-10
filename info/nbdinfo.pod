@@ -93,7 +93,7 @@ To show a map of which areas of the disk are allocated and sparse, use
 the I<--map> option:
 
  $ nbdinfo --map nbd://localhost/
-       0  1048576  0  allocated
+       0  1048576  0  data
  1048576  1048576  3  hole,zero
 
 The fields are: start, size, type, description (optional).
@@ -106,7 +106,7 @@ To get parseable JSON output, add I<--json>:
 
  $ nbdinfo --map --json nbd://localhost/
  [{ "offset": 0, "length": 1048576,
-    "type": 0, "description": "allocated" },
+    "type": 0, "description": "data" },
   { "offset": 1048576, "length": 1048576,
     "type": 3, "description": "hole,zero" }]
 
