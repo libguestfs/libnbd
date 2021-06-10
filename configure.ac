@@ -96,7 +96,7 @@ AC_CHECK_HEADERS([\
     stdatomic.h \
     sys/endian.h])
 
-AC_CHECK_HEADERS([linux/vm_sockets.h], [], [], [#include <sys/socket.h>])
+AC_CHECK_HEADERS([linux/vm_sockets.h sys/vsock.h], [], [], [#include <sys/socket.h>])
 
 dnl posix_fadvise helps to optimise linear reads and writes (optional).
 AC_CHECK_FUNCS([posix_fadvise])
