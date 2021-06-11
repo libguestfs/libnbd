@@ -148,7 +148,7 @@ AS_IF([test "$GNUTLS_LIBS" != ""],[
     old_LIBS="$LIBS"
     LIBS="$GNUTLS_LIBS $LIBS"
     AC_CHECK_FUNCS([\
-	gnutls_session_set_verify_cert])
+        gnutls_session_set_verify_cert])
     LIBS="$old_LIBS"
 ])
 
@@ -412,11 +412,11 @@ AS_IF([test "x$enable_python" != "xno"],[
     AC_CHECK_PROG([PYTHON],[python3],[python3],[no])
 
     if test "x$PYTHON" != "xno"; then
-	AC_MSG_CHECKING([Python version])
+        AC_MSG_CHECKING([Python version])
         PYTHON_VERSION_MAJOR=`$PYTHON -c "import sys; print (sys.version_info@<:@0@:>@)"`
         PYTHON_VERSION_MINOR=`$PYTHON -c "import sys; print (sys.version_info@<:@1@:>@)"`
         PYTHON_VERSION="$PYTHON_VERSION_MAJOR.$PYTHON_VERSION_MINOR"
-	AC_MSG_RESULT([$PYTHON_VERSION])
+        AC_MSG_RESULT([$PYTHON_VERSION])
 
         # Debian: python-3.2.pc
         PKG_CHECK_MODULES([PYTHON], [python-"$PYTHON_VERSION"],[
@@ -443,13 +443,13 @@ AS_IF([test "x$enable_python" != "xno"],[
 
         AC_ARG_WITH([python-installdir],
                     [AS_HELP_STRING([--with-python-installdir],
-	                [directory to install python modules @<:@default=check@:>@])],
-			[PYTHON_INSTALLDIR="$withval"
-	                 AC_MSG_NOTICE([Python install dir $PYTHON_INSTALLDIR])],
-			[PYTHON_INSTALLDIR=check])
+                        [directory to install python modules @<:@default=check@:>@])],
+                        [PYTHON_INSTALLDIR="$withval"
+                         AC_MSG_NOTICE([Python install dir $PYTHON_INSTALLDIR])],
+                        [PYTHON_INSTALLDIR=check])
 
         if test "x$PYTHON_INSTALLDIR" = "xcheck"; then
-	    PYTHON_INSTALLDIR=
+            PYTHON_INSTALLDIR=
             AC_MSG_CHECKING([for Python site-packages path])
             if test -z "$PYTHON_INSTALLDIR"; then
                 PYTHON_INSTALLDIR=`$PYTHON -c "import distutils.sysconfig; \
