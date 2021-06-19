@@ -50,7 +50,7 @@ bool flush;                     /* --flush flag */
 unsigned max_requests = 64;     /* --requests */
 bool progress;                  /* -p flag */
 int progress_fd = -1;           /* --progress=FD */
-unsigned request_size = MAX_REQUEST_SIZE;  /* --request-size */
+unsigned request_size = 1<<18;  /* --request-size */
 unsigned sparse_size = 4096;    /* --sparse */
 bool synchronous;               /* --synchronous flag */
 unsigned threads;               /* --threads */
