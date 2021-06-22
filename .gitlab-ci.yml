@@ -224,6 +224,7 @@ x64-opensuse-leap-152:
     - x64-opensuse-leap-152-container
   variables:
     NAME: opensuse-leap-152
+    CHECK_VALGRIND: skip
 
 x64-opensuse-tumbleweed:
   extends: .native_build_job
@@ -231,6 +232,7 @@ x64-opensuse-tumbleweed:
     - x64-opensuse-tumbleweed-container
   variables:
     NAME: opensuse-tumbleweed
+    CHECK_VALGRIND: skip
 
 x64-ubuntu-1804:
   extends: .native_build_job
@@ -246,6 +248,7 @@ x64-ubuntu-2004:
     - x64-ubuntu-2004-container
   variables:
     NAME: ubuntu-2004
+    CHECK_VALGRIND: skip
 
 x64-freebsd-12-build:
   extends: .cirrus_build_job

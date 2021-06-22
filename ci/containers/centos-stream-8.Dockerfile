@@ -2,7 +2,7 @@
 #
 #  $ lcitool dockerfile centos-stream-8 libnbd
 #
-# https://gitlab.com/libvirt/libvirt-ci/-/commit/7f787787a85647c3045ebfa6634966b4b96d5d99
+# https://gitlab.com/libvirt/libvirt-ci/-/commit/4a5cf5007ce3bb5e330b9f3361c5931b072ebe28
 
 FROM quay.io/centos/centos:stream8
 
@@ -49,7 +49,8 @@ RUN dnf update -y && \
         qemu-img \
         qemu-kvm \
         sed \
-        util-linux && \
+        util-linux \
+        valgrind && \
     dnf autoremove -y && \
     dnf clean all -y && \
     rpm -qa | sort > /packages.txt && \

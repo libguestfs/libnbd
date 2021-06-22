@@ -2,7 +2,7 @@
 #
 #  $ lcitool dockerfile ubuntu-2004 libnbd
 #
-# https://gitlab.com/libvirt/libvirt-ci/-/commit/7f787787a85647c3045ebfa6634966b4b96d5d99
+# https://gitlab.com/libvirt/libvirt-ci/-/commit/4a5cf5007ce3bb5e330b9f3361c5931b072ebe28
 
 FROM docker.io/library/ubuntu:20.04
 
@@ -49,7 +49,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
             python3-dev \
             qemu \
             qemu-utils \
-            sed && \
+            sed \
+            valgrind && \
     eatmydata apt-get autoremove -y && \
     eatmydata apt-get autoclean -y && \
     sed -Ei 's,^# (en_US\.UTF-8 .*)$,\1,' /etc/locale.gen && \

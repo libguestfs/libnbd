@@ -2,7 +2,7 @@
 #
 #  $ lcitool dockerfile fedora-rawhide libnbd
 #
-# https://gitlab.com/libvirt/libvirt-ci/-/commit/7f787787a85647c3045ebfa6634966b4b96d5d99
+# https://gitlab.com/libvirt/libvirt-ci/-/commit/4a5cf5007ce3bb5e330b9f3361c5931b072ebe28
 
 FROM registry.fedoraproject.org/fedora:rawhide
 
@@ -54,10 +54,11 @@ exec "$@"' > /usr/bin/nosync && \
         pkgconfig \
         python3-devel \
         python3-flake8 \
-        qemu \
         qemu-img \
+        qemu-kvm \
         sed \
-        util-linux && \
+        util-linux \
+        valgrind && \
     nosync dnf autoremove -y && \
     nosync dnf clean all -y && \
     rpm -qa | sort > /packages.txt && \

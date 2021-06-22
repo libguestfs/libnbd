@@ -2,7 +2,7 @@
 #
 #  $ lcitool dockerfile opensuse-tumbleweed libnbd
 #
-# https://gitlab.com/libvirt/libvirt-ci/-/commit/7f787787a85647c3045ebfa6634966b4b96d5d99
+# https://gitlab.com/libvirt/libvirt-ci/-/commit/4a5cf5007ce3bb5e330b9f3361c5931b072ebe28
 
 FROM registry.opensuse.org/opensuse/tumbleweed:latest
 
@@ -46,7 +46,8 @@ RUN zypper update -y && \
            qemu \
            qemu-tools \
            sed \
-           util-linux && \
+           util-linux \
+           valgrind && \
     zypper clean --all && \
     rpm -qa | sort > /packages.txt && \
     mkdir -p /usr/libexec/ccache-wrappers && \

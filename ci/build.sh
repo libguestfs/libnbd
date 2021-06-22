@@ -2,42 +2,7 @@
 
 set -e
 
-main() {
-    MAKE="${MAKE-make -j $(getconf _NPROCESSORS_ONLN)}"
-
-    autoreconf -if
-
-    CONFIG_ARGS="\
---enable-gcc-warnings \
---enable-fuse \
---enable-ocaml \
---enable-python \
---enable-golang \
---with-gnutls \
---with-libxml2 \
-"
-
-    if test "$GOLANG" != "skip"
-    then
-       CONFIG_ARGS="$CONFIG_ARGS --enable-golang"
-    fi
-
-    ./configure $CONFIGURE_OPTS $CONFIG_ARGS
-
-    $MAKE
-
-    if test -n "$CROSS"
-    then
-        echo "Possibly run tests with an emulator in the future"
-        return 0
-    fi
-
-    if test "$(uname)" != "Linux"
-    then
-        echo "Tests are temporarily skipped on non-Linux platforms"
-        return 0
-    fi
-
+skip_tests() {
     # Add a way to run all the tests, even the skipped ones, with an environment
     # variable, so that it can be set fora branch or fork in GitLab.
     if test "$SKIPPED_TESTS" != "force"
@@ -79,12 +44,9 @@ main() {
             done
         done
     fi
+}
 
-    # We do not want the check to cause complete failure as we need to clean up
-    # the skipped test cases
-    failed=0
-    $MAKE check || failed=1
-
+restore_tests() {
     find . -name '*_skipped_test' -print | while read test_case_bckup
     do
         test_case="${test_case_bckup%_skipped_test}"
@@ -93,13 +55,57 @@ main() {
         rm -f "${test_case}"
         mv -f "${test_case_bckup}" "${test_case}"
     done
+}
 
-    # Now it is safe to fail
-    test "$failed" -eq 0
+run_checks() {
+    skip_tests
+    failed=0
+    ${MAKE} "$@" || failed=1
+    restore_tests
+    return $failed
+}
 
-    if test "$CHECK_VALGRIND" = "force"
+main() {
+    MAKE="${MAKE-make -j $(getconf _NPROCESSORS_ONLN)}"
+
+    autoreconf -if
+
+    CONFIG_ARGS="\
+--enable-gcc-warnings \
+--enable-fuse \
+--enable-ocaml \
+--enable-python \
+--enable-golang \
+--with-gnutls \
+--with-libxml2 \
+"
+
+    if test "$GOLANG" != "skip"
     then
-        $MAKE check-valgrind
+       CONFIG_ARGS="$CONFIG_ARGS --enable-golang"
+    fi
+
+    ./configure $CONFIGURE_OPTS $CONFIG_ARGS
+
+    $MAKE
+
+    if test -n "$CROSS"
+    then
+        echo "Possibly run tests with an emulator in the future"
+        return 0
+    fi
+
+    if test "$(uname)" != "Linux"
+    then
+        echo "Tests are temporarily skipped on non-Linux platforms"
+        return 0
+    fi
+
+    run_checks check
+
+    if test "$CHECK_VALGRIND" != "skip"
+    then
+        run_checks check-valgrind
     fi
 
     if test "$DIST" != "skip"
