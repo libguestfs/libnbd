@@ -95,7 +95,7 @@ TESTS += \
 	test-errors.sh \
 	$(NULL)
 
+endif HAVE_FUSE
+
 check-valgrind:
 	LIBNBD_VALGRIND=1 $(MAKE) check
-
-endif HAVE_FUSE
