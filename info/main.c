@@ -283,7 +283,7 @@ main (int argc, char *argv[])
     perror ("fclose");
     exit (EXIT_FAILURE);
   }
-  if (puts (output) == EOF) {
+  if (fputs (output, stdout) == EOF) {
     fprintf (stderr, "%s: ", progname);
     perror ("puts");
     exit (EXIT_FAILURE);
