@@ -38,6 +38,7 @@
 DEFINE_VECTOR_TYPE (uint32_vector, uint32_t)
 
 static void print_extents (uint32_vector *entries);
+static void print_totals (uint32_vector *entries, int64_t size);
 static int extent_callback (void *user_data, const char *metacontext,
                             uint64_t offset,
                             uint32_t *entries, size_t nr_entries,
@@ -89,7 +90,10 @@ do_map (void)
       offset += entries.ptr[i];
   }
 
-  print_extents (&entries);
+  if (!totals)
+    print_extents (&entries);
+  else
+    print_totals (&entries, size);
   free (entries.ptr);
 }
 
@@ -193,6 +197,82 @@ print_one_extent (uint64_t offset, uint64_t len, uint32_t type)
   }
 
   free (descr);
+}
+
+/* --map --totals suboption */
+static void
+print_totals (uint32_vector *entries, int64_t size)
+{
+  uint32_t type;
+  bool comma = false;
+
+  /* This is necessary to avoid a divide by zero below, but if the
+   * size of the export is zero then we know we will not print any
+   * information below so return quickly.
+   */
+  if (size == 0) {
+    if (json_output) fprintf (fp, "[]\n");
+    return;
+  }
+
+  if (json_output) fprintf (fp, "[\n");
+
+  /* In the outer loop assume we have already printed all entries with
+   * entry type < type.  Count all instances of type and at the same
+   * time find the next type that exists > type.
+   */
+  type = 0;
+  for (;;) {
+    uint64_t next_type = (uint64_t)UINT32_MAX + 1;
+    uint64_t c = 0;
+    size_t i;
+
+    for (i = 0; i < entries->size; i += 2) {
+      uint32_t t = entries->ptr[i+1];
+
+      if (t == type)
+        c += entries->ptr[i];
+      else if (type < t && t < next_type)
+        next_type = t;
+    }
+
+    if (c > 0) {
+      char *descr = extent_description (map, type);
+      double percent = 100.0 * c / size;
+
+      if (!json_output) {
+        fprintf (fp, "%10" PRIu64 " %5.1f %3" PRIu32,
+                 c, percent, type);
+        if (descr)
+          fprintf (fp, " %s", descr);
+        fprintf (fp, "\n");
+      }
+      else {
+        if (comma)
+          fprintf (fp, ",\n");
+
+        fprintf (fp,
+                 "{ \"size\": %" PRIu64 ", "
+                 "\"percent\": %g, "
+                 "\"type\": %" PRIu32,
+                 c, percent, type);
+        if (descr) {
+          fprintf (fp, ", \"description\": ");
+          print_json_string (descr);
+        }
+        fprintf (fp, " }");
+        comma = true;
+      }
+
+      free (descr);
+    }
+
+    if (next_type == (uint64_t)UINT32_MAX + 1)
+      break;
+    type = next_type;
+  }
+
+  if (json_output) fprintf (fp, "\n]\n");
 }
 
 static char *

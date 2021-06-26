@@ -42,6 +42,7 @@ bool probe_content = false;     /* --content / --no-content option */
 bool json_output = false;       /* --json option */
 const char *map = NULL;         /* --map option */
 bool size_only = false;         /* --size option */
+bool totals = false;            /* --totals option */
 
 static void __attribute__((noreturn))
 usage (FILE *fp, int exitcode)
@@ -52,7 +53,7 @@ usage (FILE *fp, int exitcode)
 "\n"
 "    nbdinfo [--json] NBD-URI\n"
 "    nbdinfo --size [--json] NBD-URI\n"
-"    nbdinfo --map [--json] NBD-URI\n"
+"    nbdinfo --map [--totals] [--json] NBD-URI\n"
 "    nbdinfo -L|--list [--json] NBD-URI\n"
 "\n"
 "Other options:\n"
@@ -87,6 +88,7 @@ main (int argc, char *argv[])
     JSON_OPTION,
     MAP_OPTION,
     SIZE_OPTION,
+    TOTALS_OPTION,
   };
   const char *short_options = "LV";
   const struct option long_options[] = {
@@ -99,6 +101,8 @@ main (int argc, char *argv[])
     { "map",                optional_argument, NULL, MAP_OPTION },
     { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
     { "size",               no_argument,       NULL, SIZE_OPTION },
+    { "total",              no_argument,       NULL, TOTALS_OPTION },
+    { "totals",             no_argument,       NULL, TOTALS_OPTION },
     { "version",            no_argument,       NULL, 'V' },
     { NULL }
   };
@@ -155,6 +159,10 @@ main (int argc, char *argv[])
       size_only = true;
       break;
 
+    case TOTALS_OPTION:
+      totals = true;
+      break;
+
     case 'L':
       list_all = true;
       break;
@@ -182,6 +190,11 @@ main (int argc, char *argv[])
   if (content_flag && no_content_flag) {
     fprintf (stderr, "%s: you cannot use %s and %s together.\n",
              progname, "--content", "--no-content");
+    exit (EXIT_FAILURE);
+  }
+  if (totals && !map) {
+    fprintf (stderr, "%s: you must use --totals only with --map option.\n",
+             progname);
     exit (EXIT_FAILURE);
   }
 
