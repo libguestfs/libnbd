@@ -30,9 +30,14 @@ extern FILE *fp;
 extern bool list_all;
 extern bool probe_content;
 extern bool json_output;
+extern const char *can;
 extern const char *map;
 extern bool size_only;
 extern bool totals;
+
+/* can.c */
+extern int can_exit_code;
+extern void do_can (void);
 
 /* list.c */
 extern void collect_exports (void);
