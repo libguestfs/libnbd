@@ -214,6 +214,10 @@ to unmount the mountpoint which will cause nbdfuse to exit cleanly.
 Access the network block device read-only.  The virtual file will have
 read-only permissions, and any writes will return errors.
 
+If the remote NBD server is read-only then this flag is added
+automatically.  (Check C<is_read_only:> field in the output of
+L<nbdinfo(1)>).
+
 =item B<-s>
 
 Use single-threaded FUSE operations.
