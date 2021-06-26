@@ -243,19 +243,20 @@ Display the package name and version and exit.
 
 =head1 MODES
 
-Modes are used to select the NBD server.  The default mode uses an NBD
-URI (see L<nbd_connect_uri(3)> and
+Modes are used to select the NBD server.  Possible modes are:
+
+=over 4
+
+=item nbdfuse MOUNTPOINT URI
+
+This mode uses an NBD URI (see L<nbd_connect_uri(3)> and
 L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>).
 For example this specifies a TLS-encrypted connection to
 C<example.com> port C<10809>, with export name C<disk>:
 
  nbdfuse dir nbds://example.com/disk
 
-Other modes are:
-
-=over 4
-
-=item B<[> CMD [ARGS ...] B<]>
+=item nbdfuse MOUNTPOINT B<[> CMD [ARGS ...] B<]>
 
 Run an NBD server as a subprocess.  In this mode an NBD server can be
 run directly from the command line with nbdfuse communicating with the
@@ -263,30 +264,30 @@ server over a socket.  This requires that the NBD server supports
 systemd socket activation.  See L</EXAMPLES> above and
 L<nbd_connect_systemd_socket_activation(3)>.
 
-=item B<--command> CMD [ARGS ...]
+=item nbdfuse MOUNTPOINT B<--command> CMD [ARGS ...]
 
 Select command mode.  In this mode an NBD server can be run directly
 from the command line with nbdfuse communicating with the server over
 the server’s stdin/stdout.  Normally you would use this with
 C<nbdkit -s>.  See L<nbd_connect_command(3)>.
 
-=item B<--fd> N
+=item nbdfuse MOUNTPOINT B<--fd> N
 
 Select file descriptor mode.  In this mode a connected socket is
 passed to nbdfuse.  nbdfuse connects to the socket on the numbered
 file descriptor.  See also L<nbd_connect_socket(3)>.
 
-=item B<--tcp> HOST PORT
+=item nbdfuse MOUNTPOINT B<--tcp> HOST PORT
 
 Select TCP mode.  Connect to an NBD server on a host and port over an
 unencrypted TCP socket.  See also L<nbd_connect_tcp(3)>.
 
-=item B<--unix> SOCKET
+=item nbdfuse MOUNTPOINT B<--unix> SOCKET
 
 Select Unix mode.  Connect to an NBD server on a Unix domain socket.
 See also L<nbd_connect_unix(3)>.
 
-=item B<--vsock> CID PORT
+=item nbdfuse MOUNTPOINT B<--vsock> CID PORT
 
 Select vsock mode.  Connect to an NBD server on a C<AF_VSOCK> socket.
 See also L<nbd_connect_vsock(3)>.
