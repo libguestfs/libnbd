@@ -18,6 +18,11 @@
 include $(top_srcdir)/subdir-rules.mk
 
 info_sh_files = \
+	info-can.sh \
+	info-can-connect.sh \
+	info-can-read.sh \
+	info-can-zero.sh \
+	info-is-read-only.sh \
 	info-list.sh \
 	info-list-json.sh \
 	info-list-qemu.sh \
@@ -63,6 +68,7 @@ TESTS =
 
 nbdinfo_SOURCES = \
 	nbdinfo.h \
+	can.c \
 	list.c \
 	main.c \
 	map.c \

@@ -40,6 +40,7 @@ FILE *fp;                       /* output file descriptor */
 bool list_all = false;          /* --list option */
 bool probe_content = false;     /* --content / --no-content option */
 bool json_output = false;       /* --json option */
+const char *can = NULL;         /* --is/--can option */
 const char *map = NULL;         /* --map option */
 bool size_only = false;         /* --size option */
 bool totals = false;            /* --totals option */
@@ -53,6 +54,8 @@ usage (FILE *fp, int exitcode)
 "\n"
 "    nbdinfo [--json] NBD-URI\n"
 "    nbdinfo --size [--json] NBD-URI\n"
+"    nbdinfo --is read-only|rotational NBD-URI\n"
+"    nbdinfo --can cache|connect|... NBD-URI\n"
 "    nbdinfo --map [--totals] [--json] NBD-URI\n"
 "    nbdinfo -L|--list [--json] NBD-URI\n"
 "\n"
@@ -66,6 +69,8 @@ usage (FILE *fp, int exitcode)
 "    nbdinfo nbd://localhost\n"
 "    nbdinfo \"nbd+unix:///?socket=/tmp/unixsock\"\n"
 "    nbdinfo --size nbd://example.com\n"
+"    nbdinfo --can connect nbd://example.com\n"
+"    nbdinfo --is read-only nbd://example.com\n"
 "    nbdinfo --map nbd://example.com\n"
 "    nbdinfo --json nbd://example.com\n"
 "    nbdinfo --list nbd://example.com\n"
@@ -86,6 +91,7 @@ main (int argc, char *argv[])
     CONTENT_OPTION,
     NO_CONTENT_OPTION,
     JSON_OPTION,
+    CAN_OPTION,
     MAP_OPTION,
     SIZE_OPTION,
     TOTALS_OPTION,
@@ -93,8 +99,10 @@ main (int argc, char *argv[])
   const char *short_options = "LV";
   const struct option long_options[] = {
     { "help",               no_argument,       NULL, HELP_OPTION },
+    { "can",                required_argument, NULL, CAN_OPTION },
     { "content",            no_argument,       NULL, CONTENT_OPTION },
     { "no-content",         no_argument,       NULL, NO_CONTENT_OPTION },
+    { "is",                 required_argument, NULL, CAN_OPTION },
     { "json",               no_argument,       NULL, JSON_OPTION },
     { "list",               no_argument,       NULL, 'L' },
     { "long-options",       no_argument,       NULL, LONG_OPTIONS },
@@ -151,6 +159,10 @@ main (int argc, char *argv[])
       no_content_flag = true;
       break;
 
+    case CAN_OPTION:
+      can = optarg;
+      break;
+
     case MAP_OPTION:
       map = optarg ? optarg : "base:allocation";
       break;
@@ -181,7 +193,7 @@ main (int argc, char *argv[])
     usage (stderr, EXIT_FAILURE);
 
   /* You cannot combine certain options. */
-  if (!!list_all + !!map + !!size_only > 1) {
+  if (!!list_all + !!can + !!map + !!size_only > 1) {
     fprintf (stderr,
              "%s: you cannot use --list, --map and --size together.\n",
              progname);
@@ -203,6 +215,8 @@ main (int argc, char *argv[])
   if (content_flag)
     probe_content = true;
   if (no_content_flag)
+    probe_content = false;
+  if (can)
     probe_content = false;
   if (map)
     probe_content = false;
@@ -227,7 +241,7 @@ main (int argc, char *argv[])
   nbd_set_uri_allow_local_file (nbd, true); /* Allow ?tls-psk-file. */
 
   /* Set optional modes in the handle. */
-  if (!map && !size_only) {
+  if (!can && !map && !size_only) {
     nbd_set_opt_mode (nbd, true);
     nbd_set_full_info (nbd, true);
   }
@@ -246,6 +260,8 @@ main (int argc, char *argv[])
 
   if (size_only)                /* --size (!list_all) */
     do_size ();
+  else if (can)                 /* --is/--can (!list_all) */
+    do_can ();
   else if (map)                 /* --map (!list_all) */
     do_map ();
   else {                        /* not --size or --map */
@@ -304,5 +320,6 @@ main (int argc, char *argv[])
 
   free (output);
 
+  if (can) exit (can_exit_code);
   exit (list_okay ? EXIT_SUCCESS : EXIT_FAILURE);
 }

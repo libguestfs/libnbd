@@ -8,6 +8,10 @@ nbdinfo - display information and metadata about NBD servers and exports
 
  nbdinfo --size [--json] NBD-URI
 
+ nbdinfo --is read-only|rotational NBD-URI
+
+ nbdinfo --can cache|connect|... NBD-URI
+
  nbdinfo --map [--totals] [--json] NBD-URI
 
  nbdinfo -L|--list [--json] NBD-URI
@@ -86,6 +90,66 @@ scripting) use the I<--size> parameter:
 
  $ nbdinfo --size nbd://localhost
  1048576
+
+=head2 Test for flags
+
+Use one of the options below to test NBD flags.  The command does not
+print anything.  Instead it exits with success (S<exit code 0>) if
+true, or failure (S<exit code 2>) if false.  (Other exit codes
+indicate an error querying the flag).  You can use it in shell scripts
+like this:
+
+ if nbdinfo --is read-only nbd://localhost ||
+    ! nbdinfo --can trim nbd://localhost
+ then
+     error "the device must support writing and trimming"
+ fi
+
+=over 4
+
+=item nbdinfo --is read-only URI
+
+Test if the server export is read-only.
+
+=item nbdinfo --can write URI
+
+For convenience this is the opposite of I<--is read-only>.
+
+=item nbdinfo --can read URI
+
+All NBD servers must support read, so this always exits with success
+(unless there is a failure connecting to the URI).
+
+=item nbdinfo --can connect URI
+
+Test if we can connect to the NBD URI.
+
+=item nbdinfo --is rotational URI
+
+Test if the server export is backed by something which behaves like a
+rotating disk: accessing nearby blocks may be faster than random
+access and requests should be sorted to improve performance.  Many
+servers do not or cannot report this accurately.
+
+=item nbdinfo --can cache URI
+
+=item nbdinfo --can df URI
+
+=item nbdinfo --can fast-zero URI
+
+=item nbdinfo --can flush URI
+
+=item nbdinfo --can fua URI
+
+=item nbdinfo --can multi-conn URI
+
+=item nbdinfo --can trim URI
+
+=item nbdinfo --can zero URI
+
+Test other properties of the NBD server export.
+
+=back
 
 =head2 Map
 
@@ -181,6 +245,40 @@ API can be used for more complex queries.
 
 Display brief command line help and exit.
 
+=item B<--can cache>
+
+=item B<--can connect>
+
+=item B<--can df>
+
+=item B<--can fast-zero>
+
+=item B<--can flush>
+
+=item B<--can fua>
+
+=item B<--can multi-conn>
+
+=item B<--can read>
+
+=item B<--can trim>
+
+=item B<--can write>
+
+=item B<--can zero>
+
+Test properties of the NBD server export.  The command does not print
+anything.  Instead it exits with success (S<exit code 0>) if true, or
+failure (S<exit code 2>) if false.  (Other exit codes indicate an
+error querying the flag).
+
+For further information see the L<NBD
+protocol|https://github.com/NetworkBlockDevice/nbd/blob/master/doc/proto.md>
+and the following libnbd functions: L<nbd_can_cache(3)>,
+L<nbd_can_df(3)>, L<nbd_can_fast_zero(3)>, L<nbd_can_flush(3)>,
+L<nbd_can_fua(3)>, L<nbd_can_multi_conn(3)>, L<nbd_can_trim(3)>,
+L<nbd_can_zero(3)>, L<nbd_is_read_only(3)>.
+
 =item B<--content>
 
 =item B<--no-content>
@@ -196,6 +294,20 @@ the content.  To prevent content probing, use I<--no-content>.
 When using I<--list>, the default is I<--no-content> (since
 downloading from each export is expensive).  To enable content probing
 use I<--list --content>.
+
+=item B<--is read-only>
+
+=item B<--is rotational>
+
+Test if the NBD server export is read-only and rotational.  The
+command does not print anything.  Instead it exits with success
+(S<exit code 0>) if true, or failure (S<exit code 2>) if false.
+(Other exit codes indicate an error querying the flag).
+
+For further information see the L<NBD
+protocol|https://github.com/NetworkBlockDevice/nbd/blob/master/doc/proto.md>
+and the following libnbd functions: L<nbd_is_read_only(3)>,
+L<nbd_is_rotational(3)>.
 
 =item B<--json>
 
