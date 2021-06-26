@@ -64,16 +64,29 @@
       fprintf (stderr, "nbdfuse: %s: " fs "\n", name, ##__VA_ARGS__);   \
   } while (0)
 
-/* This operations background threads run while nbdfuse is running and
- * is responsible for dispatching AIO commands.
+/* NOTES ON THE THREAD MODEL
  *
- * The commands themselves are initiated by the FUSE threads (by
- * calling eg. nbd_aio_pread), and then those threads call
- * wait_for_completion() which waits for the command to retire.
+ * Once nbdfuse is up and running there will be some number of FUSE
+ * threads (controlled by fuse itself, see -o max_idle_threads) and a
+ * static number of operations background threads.  Under load there
+ * should be more FUSE threads than operations threads -- things work
+ * more efficiently when this is the case.
  *
- * Commands are distributed to operations threads round-robin (we
- * could be smarter about this).
+ * The NBD commands are initiated by the FUSE threads (eg. by calling
+ * functions like nbd_aio_pread).  The FUSE thread then calls
+ * wait_for_completion() which blocks the FUSE thread waiting for the
+ * command to retire.
+ *
+ * Commands are distributed to operations threads (currently round-
+ * robin, but we could be smarter about this).
+ *
+ * An operation thread handles a single NBD connection but possibly
+ * multiple commands in flight.  It is a loop which waits on a
+ * condition for at least one command to be in flight, then loops
+ * calling nbd_poll while there are commands in flight, then goes back
+ * to waiting on the condition.
  */
+
 static void *operations_thread (void *);
 
 static struct thread {
