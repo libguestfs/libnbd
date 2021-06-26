@@ -32,6 +32,7 @@ extern bool probe_content;
 extern bool json_output;
 extern const char *map;
 extern bool size_only;
+extern bool totals;
 
 /* list.c */
 extern void collect_exports (void);

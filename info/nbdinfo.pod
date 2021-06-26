@@ -8,7 +8,7 @@ nbdinfo - display information and metadata about NBD servers and exports
 
  nbdinfo --size [--json] NBD-URI
 
- nbdinfo --map [--json] NBD-URI
+ nbdinfo --map [--totals] [--json] NBD-URI
 
  nbdinfo -L|--list [--json] NBD-URI
 
@@ -119,6 +119,35 @@ other maps too:
 For more information on NBD maps, see I<Metadata querying> in the NBD
 protocol.
 
+=head2 Map totals
+
+Using S<I<--map --totals>> performs the same operation as I<--map> but
+displays a summary of the total size of each type of allocation, in
+bytes and as a percentage (of the virtual size of the export).  This
+is useful for estimating how much real storage is used on the server,
+or might be required when copying a sparse image with L<nbdcopy(1)>.
+
+In the example below, half (50.0%) of the disk is allocated data and
+half is unallocated:
+
+ $ nbdinfo --map --totals nbd://localhost/
+ 1048576  50.0  0  data
+ 1048576  50.0  3  hole,zero
+
+The fields are: total size in bytes, percentage of the virtual size,
+type, description (optional).
+
+You can also get the same information in parseable form using I<--json>:
+
+ $ nbdinfo --map --totals --json nbd://localhost/
+ [{ "size": 1048576, "percent": 50,
+    "type": 0, "description": "data" },
+  { "size": 1048576, "percent": 50,
+    "type": 3, "description": "hole,zero" }]
+
+As with the I<--map> option, by default this shows the
+C<"base:allocation"> map, but you can show the summary for other maps.
+
 =head2 List all exports
 
 To list all the exports available on an NBD server use the I<--list>
@@ -179,7 +208,7 @@ The output is displayed in JSON format.
 Display the map (usually whether parts of the disk are allocated or
 sparse) of the given export.  This displays the C<"base:allocation">
 map by default, you can choose a different map with the optional
-parameter.
+parameter.  Using S<I<--map --totals>> displays a summary.
 
 =item B<-L>
 
@@ -187,6 +216,11 @@ parameter.
 
 List all the exports on an NBD server.  The export name in the NBD URI
 is ignored.
+
+=item B<--totals>
+
+Use S<I<--map --totals>> to display a summary.  See L</Map totals>
+above.
 
 =item B<--size>
 

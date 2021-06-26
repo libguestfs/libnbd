@@ -38,6 +38,8 @@ info_sh_files = \
 	info-map-base-allocation-zero.sh \
 	info-map-qemu-dirty-bitmap.sh \
 	info-map-qemu-allocation-depth.sh \
+	info-map-totals.sh \
+	info-map-totals-json.sh \
 	info-atomic-output.sh \
 	$(NULL)
 
