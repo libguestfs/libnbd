@@ -241,7 +241,7 @@ print_totals (uint32_vector *entries, int64_t size)
       double percent = 100.0 * c / size;
 
       if (!json_output) {
-        fprintf (fp, "%10" PRIu64 " %5.1f %3" PRIu32,
+        fprintf (fp, "%10" PRIu64 " %5.1f%% %3" PRIu32,
                  c, percent, type);
         if (descr)
           fprintf (fp, " %s", descr);
