@@ -36,8 +36,8 @@ nbdkit -U - data data='1 @131072 2' size=1M \
 
 cat $out
 
-if [ "$(tr -s ' ' < $out)" != " 65536 6.2 0 data
- 983040 93.8 3 hole,zero" ]; then
+if [ "$(tr -s ' ' < $out)" != " 65536 6.2% 0 data
+ 983040 93.8% 3 hole,zero" ]; then
     echo "$0: unexpected output from nbdinfo --map"
     exit 1
 fi

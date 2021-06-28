@@ -195,8 +195,8 @@ In the example below, half (50.0%) of the disk is allocated data and
 half is unallocated:
 
  $ nbdinfo --map --totals nbd://localhost/
- 1048576  50.0  0  data
- 1048576  50.0  3  hole,zero
+ 1048576  50.0%  0  data
+ 1048576  50.0%  3  hole,zero
 
 The fields are: total size in bytes, percentage of the virtual size,
 type, description (optional).
