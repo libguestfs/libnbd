@@ -41,6 +41,8 @@ struct py_aio_buffer {
 
 extern char **nbd_internal_py_get_string_list (PyObject *);
 extern void nbd_internal_py_free_string_list (char **);
+extern int nbd_internal_py_get_sockaddr (PyObject *,
+    struct sockaddr_storage *, socklen_t *);
 extern struct py_aio_buffer *nbd_internal_py_get_aio_buffer (PyObject *);
 
 static inline struct nbd_handle *
@@ -300,10 +302,9 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | SizeT n ->
        pr "  Py_ssize_t %s;\n" n
     | SockAddrAndLen (n, _) ->
-       pr "  /* XXX Complicated - Python uses a tuple of different\n";
-       pr "   * lengths for the different socket types.\n";
-       pr "   */\n";
-       pr "  PyObject *%s;\n" n
+       pr "  PyObject *%s;\n" n;
+       pr "  struct sockaddr_storage %s_sa;\n" n;
+       pr "  socklen_t %s_len;\n" n;
     | String n -> pr "  const char *%s;\n" n
     | StringList n ->
        pr "  PyObject *py_%s;\n" n;
@@ -440,8 +441,10 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  %s = PyBytes_AS_STRING (py_%s);\n" n n;
        pr "  assert (%s != NULL);\n" n
     | SizeT n -> ()
-    | SockAddrAndLen _ ->
-       pr "  abort (); /* XXX SockAddrAndLen not implemented */\n";
+    | SockAddrAndLen (n, _) ->
+       pr "  if (nbd_internal_py_get_sockaddr (%s, &%s_sa, &%s_len) == -1)\n"
+         n n n;
+       pr "    goto out;\n"
     | String _ -> ()
     | StringList n ->
        pr "  %s = nbd_internal_py_get_string_list (py_%s);\n" n n;
@@ -468,7 +471,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Int64 n -> pr ", %s_i64" n
     | Path n -> pr ", %s" n
     | SizeT n -> pr ", (size_t)%s" n
-    | SockAddrAndLen (n, _) -> pr ", /* XXX */ (void *) %s, 0" n
+    | SockAddrAndLen (n, _) -> pr ", (struct sockaddr *) &%s_sa, %s_len" n n
     | String n -> pr ", %s" n
     | StringList n -> pr ", %s" n
     | UInt n | UIntPtr n -> pr ", %s" n

@@ -81,9 +81,13 @@ TESTS_ENVIRONMENT = \
 	LIBNBD_DEBUG=1 \
 	MALLOC_CHECK_=1 \
 	MALLOC_PERTURB_=$(shell bash -c 'echo $$(( 1 + (RANDOM & 255) ))') \
+	PYTHON="$(PYTHON)" \
 	$(NULL)
 LOG_COMPILER = $(top_builddir)/run
-TESTS += run-python-tests
+TESTS += \
+	python-aio-connect-unix.sh \
+	run-python-tests \
+	$(NULL)
 
 endif HAVE_NBDKIT
 
