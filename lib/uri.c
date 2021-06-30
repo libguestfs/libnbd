@@ -422,7 +422,8 @@ nbd_unlocked_get_uri (struct nbd_handle *h)
 
       uri.scheme = using_tls ? "nbds" : "nbd";
       err = getnameinfo ((struct sockaddr *) &h->connaddr, h->connaddrlen,
-                         host, sizeof host, serv, sizeof serv, NI_NUMERICHOST);
+                         host, sizeof host, serv, sizeof serv,
+                         NI_NUMERICHOST | NI_NUMERICSERV);
       if (err != 0) {
         set_error (0, "getnameinfo: %s", gai_strerror (err));
         goto out;

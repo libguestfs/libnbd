@@ -155,6 +155,7 @@ Makefile.in
 /stamp-h1
 /test-driver
 /tests/aio-connect
+/tests/aio-connect-port
 /tests/aio-parallel
 /tests/aio-parallel-load
 /tests/aio-parallel-load-tls
