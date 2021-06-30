@@ -203,6 +203,7 @@ check_PROGRAMS += \
 	connect-tcp \
 	connect-tcp6 \
 	aio-connect \
+	aio-connect-port \
 	aio-parallel \
 	aio-parallel-load \
 	synch-parallel \
@@ -251,6 +252,9 @@ TESTS += \
 	meta-base-allocation \
 	closure-lifetimes \
 	$(NULL)
+
+# This test is compiled but not run because it requires a fixed port:
+#	aio-connect-port
 
 errors_SOURCES = errors.c
 errors_CPPFLAGS = -I$(top_srcdir)/include
@@ -488,6 +492,11 @@ aio_connect_SOURCES = \
 aio_connect_CPPFLAGS = -I$(top_srcdir)/include
 aio_connect_CFLAGS = $(WARNINGS_CFLAGS)
 aio_connect_LDADD = $(top_builddir)/lib/libnbd.la
+
+aio_connect_port_SOURCES = aio-connect-port.c
+aio_connect_port_CPPFLAGS = -I$(top_srcdir)/include
+aio_connect_port_CFLAGS = $(WARNINGS_CFLAGS)
+aio_connect_port_LDADD = $(top_builddir)/lib/libnbd.la
 
 aio_parallel_SOURCES = aio-parallel.c
 aio_parallel_CPPFLAGS = \
