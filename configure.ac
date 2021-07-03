@@ -66,7 +66,12 @@ AC_ARG_ENABLE([gcc-warnings],
       [gcc_warnings=no]
 )
 if test "x$gcc_warnings" = "xyes"; then
-    WARNINGS_CFLAGS="-Wall -Wvla -Werror"
+    # Enable normal GCC warnings and a few more:
+    #  - Warn about variable length arrays on stack.
+    WARNINGS_CFLAGS="-Wall -Werror"
+    AC_C_COMPILE_FLAGS([WARNINGS_CFLAGS],
+                       [-Wvla],
+                       [$CFLAGS -Werror])
     AC_SUBST([WARNINGS_CFLAGS])
 fi
 
