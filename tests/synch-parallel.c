@@ -166,17 +166,23 @@ main (int argc, char *argv[])
   exit (errors == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
+#define BUFFER_SIZE 16384
+
 static void *
 start_thread (void *arg)
 {
   struct thread_status *status = arg;
   struct nbd_handle *nbd;
-  char buf[16384];
+  char *buf;
   int cmd;
   uint64_t offset;
   time_t t;
 
-  memset (buf, 0, sizeof buf);
+  buf = calloc (BUFFER_SIZE, 1);
+  if (buf == NULL) {
+    perror ("calloc");
+    exit (EXIT_FAILURE);
+  }
 
   nbd = nbd_create ();
   if (nbd == NULL) {
@@ -222,23 +228,23 @@ start_thread (void *arg)
       break;
 
     /* Issue a synchronous read or write command. */
-    offset = status->offset + (rand () % (status->length - sizeof buf));
+    offset = status->offset + (rand () % (status->length - BUFFER_SIZE));
     cmd = rand () & 1;
     if (cmd == 0) {
-      if (nbd_pwrite (nbd, buf, sizeof buf, offset, 0) == -1) {
+      if (nbd_pwrite (nbd, buf, BUFFER_SIZE, offset, 0) == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
       }
-      status->bytes_sent += sizeof buf;
-      memcpy (&ramdisk[offset], buf, sizeof buf);
+      status->bytes_sent += BUFFER_SIZE;
+      memcpy (&ramdisk[offset], buf, BUFFER_SIZE);
     }
     else {
-      if (nbd_pread (nbd, buf, sizeof buf, offset, 0) == -1) {
+      if (nbd_pread (nbd, buf, BUFFER_SIZE, offset, 0) == -1) {
         fprintf (stderr, "%s\n", nbd_get_error ());
         goto error;
       }
-      status->bytes_received += sizeof buf;
-      if (memcmp (&ramdisk[offset], buf, sizeof buf) != 0) {
+      status->bytes_received += BUFFER_SIZE;
+      if (memcmp (&ramdisk[offset], buf, BUFFER_SIZE) != 0) {
         fprintf (stderr, "thread %zu: DATA INTEGRITY ERROR!\n", status->i);
         goto error;
       }
@@ -255,10 +261,14 @@ start_thread (void *arg)
 
   nbd_close (nbd);
 
+  free (buf);
+
   status->status = 0;
   pthread_exit (status);
 
  error:
+  free (buf);
+
   fprintf (stderr, "thread %zu: failed\n", status->i);
   status->status = -1;
   pthread_exit (status);

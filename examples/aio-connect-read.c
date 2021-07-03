@@ -52,11 +52,12 @@ hexdump (void *user_data, int *error)
   return 1;
 }
 
+static struct data data[NR_SECTORS];
+
 int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
-  struct data data[NR_SECTORS];
   size_t i;
 
   if (argc != 2) {

@@ -44,7 +44,7 @@ static int
 recv_into_rbuf (struct nbd_handle *h)
 {
   ssize_t r;
-  char buf[BUFSIZ];
+  char *buf = NULL;
   void *rbuf;
   size_t rlen;
 
@@ -59,12 +59,18 @@ recv_into_rbuf (struct nbd_handle *h)
     rlen = h->rlen;
   }
   else {
-    rbuf = &buf;
-    rlen = MIN (h->rlen, sizeof buf);
+    buf = malloc (BUFSIZ);
+    if (buf == NULL) {
+      set_error (errno, "malloc");
+      return -1;
+    }
+    rbuf = buf;
+    rlen = MIN (h->rlen, BUFSIZ);
   }
 
   r = h->sock->ops->recv (h, h->sock, rbuf, rlen);
   if (r == -1) {
+    free (buf);
     if (errno == EAGAIN || errno == EWOULDBLOCK)
       return 1;                 /* more data */
     /* sock->ops->recv called set_error already. */
@@ -72,6 +78,7 @@ recv_into_rbuf (struct nbd_handle *h)
   }
   if (r == 0) {
     set_error (0, "recv: server disconnected unexpectedly");
+    free (buf);
     return -1;
   }
 #ifdef DUMP_PACKETS
@@ -81,6 +88,7 @@ recv_into_rbuf (struct nbd_handle *h)
   if (h->rbuf)
     h->rbuf += r;
   h->rlen -= r;
+  free (buf);
   if (h->rlen == 0)
     return 0;                   /* move to next state */
   else

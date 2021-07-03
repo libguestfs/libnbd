@@ -68,9 +68,10 @@ AC_ARG_ENABLE([gcc-warnings],
 if test "x$gcc_warnings" = "xyes"; then
     # Enable normal GCC warnings and a few more:
     #  - Warn about variable length arrays on stack.
+    #  - Warn about large stack frames (since we may be used from threads).
     WARNINGS_CFLAGS="-Wall -Werror"
     AC_C_COMPILE_FLAGS([WARNINGS_CFLAGS],
-                       [-Wvla],
+                       [-Wvla -Wframe-larger-than=5000 -Wstack-usage=10000],
                        [$CFLAGS -Werror])
     AC_SUBST([WARNINGS_CFLAGS])
 fi

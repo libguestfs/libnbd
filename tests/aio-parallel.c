@@ -76,11 +76,12 @@ struct thread_status {
 
 static void *start_thread (void *arg);
 
+static pthread_t threads[NR_MULTI_CONN];
+static struct thread_status status[NR_MULTI_CONN];
+
 int
 main (int argc, char *argv[])
 {
-  pthread_t threads[NR_MULTI_CONN];
-  struct thread_status status[NR_MULTI_CONN];
   uint64_t i, j;
   time_t t;
   int err;
