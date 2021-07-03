@@ -36,6 +36,7 @@ EXTRA_DIST = \
 	$(generator_built) \
 	nbdsh.py \
 	pycodestyle.sh \
+	python-aio-connect-unix.sh \
 	$(srcdir)/t/*.py \
 	$(NULL)
 
