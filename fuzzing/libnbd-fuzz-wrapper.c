@@ -38,6 +38,10 @@
 
 #include <libnbd.h>
 
+#ifndef SOCK_CLOEXEC
+#define SOCK_CLOEXEC 0 /* This file doesn't use exec */
+#endif
+
 static void client (int s);
 static void server (int fd, int s);
 

@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 
 #include "minmax.h"
 
@@ -257,4 +258,83 @@ nbd_internal_printable_string_list (char **list)
 
   return s;
 
+}
+
+int nbd_internal_socket(int domain,
+                        int type,
+                        int protocol,
+                        bool nonblock)
+{
+  int fd;
+
+  /* So far we do not know about any platform that has SOCK_CLOEXEC and
+   * lacks SOCK_NONBLOCK at the same time.
+   *
+   * The workaround for missing SOCK_CLOEXEC introduces a race which
+   * cannot be fixed until support for SOCK_CLOEXEC is added (or other
+   * fix is implemented).
+   */
+#ifndef SOCK_CLOEXEC
+  int flags;
+#else
+  type |= SOCK_CLOEXEC;
+  if (nonblock)
+    type |= SOCK_NONBLOCK;
+#endif
+
+  fd = socket (domain, type, protocol);
+
+#ifndef SOCK_CLOEXEC
+  if (fd == -1)
+    return -1;
+
+  if (fcntl (fd, F_SETFD, FD_CLOEXEC) == -1) {
+    close(fd);
+    return -1;
+  }
+
+  if (nonblock) {
+    flags = fcntl (fd, F_GETFL, 0);
+    if (flags == -1 ||
+        fcntl (fd, F_SETFL, flags|O_NONBLOCK) == -1) {
+      close(fd);
+      return -1;
+    }
+  }
+#endif
+
+  return fd;
+}
+
+int
+nbd_internal_socketpair (int domain, int type, int protocol, int *fds)
+{
+  int ret;
+
+  /*
+   * Same as with nbd_internal_socket() this workaround for missing
+   * SOCK_CLOEXEC introduces a race which cannot be fixed until support
+   * for SOCK_CLOEXEC is added (or other fix is implemented).
+   */
+#ifndef SOCK_CLOEXEC
+  size_t i;
+#else
+  type |= SOCK_CLOEXEC;
+#endif
+
+  ret = socketpair (domain, type, protocol, fds);
+
+#ifndef SOCK_CLOEXEC
+  if (ret == 0) {
+    for (i = 0; i < 2; i++) {
+      if (fcntl (fds[i], F_SETFD, FD_CLOEXEC) == -1) {
+        close(fds[0]);
+        close(fds[1]);
+        return -1;
+      }
+    }
+  }
+#endif
+
+  return ret;
 }

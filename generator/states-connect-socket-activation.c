@@ -131,7 +131,7 @@ STATE_MACHINE {
     return 0;
   }
 
-  s = socket (AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0);
+  s = nbd_internal_socket (AF_UNIX, SOCK_STREAM, 0, false);
   if (s == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "socket");

@@ -467,4 +467,13 @@ extern char *nbd_internal_printable_buffer (const void *buf, size_t count);
 extern char *nbd_internal_printable_string (const char *str);
 extern char *nbd_internal_printable_string_list (char **list);
 
+/* These are wrappers around socket(2) and socketpair(2).  They
+ * always set SOCK_CLOEXEC.  nbd_internal_socket can set SOCK_NONBLOCK
+ * according to the nonblock parameter.
+ */
+extern int nbd_internal_socket (int domain, int type, int protocol,
+                                bool nonblock);
+extern int nbd_internal_socketpair (int domain, int type, int protocol,
+                                    int *fds);
+
 #endif /* LIBNBD_INTERNAL_H */
