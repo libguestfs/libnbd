@@ -52,7 +52,7 @@ STATE_MACHINE {
 
   assert (!h->sock);
   family = h->connaddr.ss_family;
-  fd = socket (family, SOCK_STREAM|SOCK_NONBLOCK|SOCK_CLOEXEC, 0);
+  fd = nbd_internal_socket (family, SOCK_STREAM, 0, true);
   if (fd == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "socket");
@@ -162,9 +162,10 @@ STATE_MACHINE {
     return -1;
   }
 
-  fd = socket (h->rp->ai_family,
-               h->rp->ai_socktype|SOCK_NONBLOCK|SOCK_CLOEXEC,
-               h->rp->ai_protocol);
+  fd = nbd_internal_socket (h->rp->ai_family,
+                            h->rp->ai_socktype,
+                            h->rp->ai_protocol,
+                            true);
   if (fd == -1) {
     SET_NEXT_STATE (%NEXT_ADDRESS);
     return 0;
@@ -227,7 +228,7 @@ STATE_MACHINE {
   assert (!h->sock);
   assert (h->argv.ptr);
   assert (h->argv.ptr[0]);
-  if (socketpair (AF_UNIX, SOCK_STREAM|SOCK_CLOEXEC, 0, sv) == -1) {
+  if (nbd_internal_socketpair (AF_UNIX, SOCK_STREAM, 0, sv) == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "socketpair");
     return 0;
