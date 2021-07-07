@@ -22,7 +22,7 @@ set -e
 set -x
 
 requires nbdkit --version
-requires nbdkit sh --version
+requires bash -c "nbdkit sh --dump-config | grep has_can_cache=1"
 
 # --is read-only and --can write are tested in info-is-read-only.sh
 
