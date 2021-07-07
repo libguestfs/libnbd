@@ -2,7 +2,7 @@
 #
 #  $ lcitool dockerfile centos-stream-8 libnbd
 #
-# https://gitlab.com/libvirt/libvirt-ci/-/commit/4a5cf5007ce3bb5e330b9f3361c5931b072ebe28
+# https://gitlab.com/libvirt/libvirt-ci/-/commit/1b32d74a089da43a0f79eba012ad04c30b57ecc6
 
 FROM quay.io/centos/centos:stream8
 
