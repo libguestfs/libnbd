@@ -95,6 +95,15 @@ stages:
     - if: "$CIRRUS_GITHUB_REPO && $CIRRUS_API_TOKEN"
 
 # Native container build jobs
+x64-alpine-314-container:
+  extends: .container_job
+  variables:
+    NAME: alpine-314
+
+x64-alpine-edge-container:
+  extends: .container_job
+  variables:
+    NAME: alpine-edge
 
 x64-centos-8-container:
   extends: .container_job
@@ -173,6 +182,20 @@ x64-centos-8:
     - x64-centos-8-container
   variables:
     NAME: centos-8
+
+x64-alpine-314:
+  extends: .native_build_job
+  needs:
+    - x64-alpine-314-container
+  variables:
+    NAME: alpine-314
+
+x64-alpine-edge:
+  extends: .native_build_job
+  needs:
+    - x64-alpine-edge-container
+  variables:
+    NAME: alpine-edge
 
 x64-centos-8-clang:
   extends: .native_build_job
