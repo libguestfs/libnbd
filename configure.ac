@@ -507,6 +507,16 @@ AS_IF([test "x$enable_golang" != "xno"],[
 ],[GOLANG=no])
 AM_CONDITIONAL([HAVE_GOLANG],[test "x$GOLANG" != "xno"])
 
+case $host_os in
+  darwin*)
+  VERSION_SCRIPT=
+  ;;
+  *)
+  VERSION_SCRIPT="-Wl,--version-script=${srcdir}/libnbd.syms"
+  ;;
+esac
+AC_SUBST([VERSION_SCRIPT])
+
 dnl Produce output files.
 AC_CONFIG_HEADERS([config.h])
 

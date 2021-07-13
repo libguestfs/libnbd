@@ -78,7 +78,7 @@ libnbd_la_LIBADD = \
 	$(NULL)
 libnbd_la_LDFLAGS = \
 	$(PTHREAD_LIBS) \
-	-Wl,--version-script=$(srcdir)/libnbd.syms \
+	$(VERSION_SCRIPT) \
 	-version-info 0:0:0 \
 	$(NULL)
 
