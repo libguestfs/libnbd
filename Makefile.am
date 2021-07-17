@@ -27,6 +27,8 @@ EXTRA_DIST = \
 	SECURITY \
 	$(NULL)
 
+CLEANFILES += m4/*~
+
 SUBDIRS = \
 	generator \
 	include \
