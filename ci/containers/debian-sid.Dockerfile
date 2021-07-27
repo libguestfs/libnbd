@@ -2,7 +2,7 @@
 #
 #  $ lcitool dockerfile debian-sid libnbd
 #
-# https://gitlab.com/libvirt/libvirt-ci/-/commit/1b32d74a089da43a0f79eba012ad04c30b57ecc6
+# https://gitlab.com/libvirt/libvirt-ci/-/commit/0bb9bfada8e143e05bb436a06747d227d19f0df4
 
 FROM docker.io/library/debian:sid-slim
 
