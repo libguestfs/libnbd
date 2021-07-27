@@ -137,6 +137,7 @@ x64-fedora-34-container:
 
 x64-fedora-rawhide-container:
   extends: .container_job
+  allow_failure: true
   variables:
     NAME: fedora-rawhide
 
