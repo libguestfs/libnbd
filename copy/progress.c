@@ -103,6 +103,8 @@ progress_bar (off_t pos, int64_t size)
 
   if (!progress)
     return;
+  if (size == 0)
+    return;
 
   pthread_mutex_lock (&lock);
   if (progress_fd == -1)
