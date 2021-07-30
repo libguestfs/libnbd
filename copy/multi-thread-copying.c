@@ -70,7 +70,7 @@ get_next_offset (uint64_t *offset, uint64_t *count)
      * are called from threads and not necessarily in monotonic order
      * so the progress bar would move erratically.
      */
-    progress_bar (*offset, dst->size);
+    progress_bar (*offset, src->size);
   }
   pthread_mutex_unlock (&lock);
   return r;
