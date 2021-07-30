@@ -42,6 +42,8 @@ EXTRA_DIST = \
 	copy-stdin-to-nbd.sh \
 	copy-stdin-to-null.sh \
 	copy-tls.sh \
+	copy-zero-to-nbd.sh \
+	copy-zero-to-null.sh \
 	nbdcopy.pod \
 	test-long-options.sh \
 	test-short-options.sh \
@@ -129,6 +131,8 @@ TESTS += \
 	copy-sparse-no-extents.sh \
 	copy-sparse-request-size.sh \
 	copy-sparse-to-stream.sh \
+	copy-zero-to-nbd.sh \
+	copy-zero-to-null.sh \
 	$(ROOT_TESTS) \
 	test-long-options.sh \
 	test-short-options.sh \
