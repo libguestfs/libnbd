@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2020 Red Hat Inc.
+# Copyright (C) 2013-2021 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -25,7 +25,6 @@ AC_SYS_LARGEFILE
 
 dnl NB: Do not [quote] this parameter.
 AM_INIT_AUTOMAKE(foreign)
-AC_PROG_LIBTOOL
 LT_INIT
 
 AC_CANONICAL_HOST
@@ -33,7 +32,7 @@ AC_CANONICAL_HOST
 AC_PROG_SED
 
 dnl Check for basic C environment.
-AC_PROG_CC_STDC
+AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_CPP
 

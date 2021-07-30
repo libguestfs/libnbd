@@ -27,12 +27,11 @@ AC_DEFUN([AC_C_COMPILE_FLAGS],[
         AC_MSG_CHECKING(whether the compiler supports $flag)
         SAVED_CFLAGS="$CFLAGS"
         CFLAGS="$CFLAGS_FOR_TEST $flag"
-        AC_COMPILE_IFELSE([
-            void f() {};
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM()
         ],[
             AC_MSG_RESULT(yes)
             $1="${$1} $flag"
-        ],AC_MSG_RESULT(no))
+        ],[AC_MSG_RESULT(no)])
         CFLAGS="$SAVED_CFLAGS"
     done
 ])
