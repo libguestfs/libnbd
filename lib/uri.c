@@ -209,7 +209,23 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
     }
   }
   else {
-    set_error (EINVAL, "NBD URI does not have a scheme, valid NBD URIs should start with nbd://, nbds://, nbd+unix:// or similar");
+    const char *explanation = NULL;
+
+    if (raw_uri[0] == '/' &&
+        (h->uri_allow_transports & LIBNBD_ALLOW_TRANSPORT_UNIX) != 0)
+      explanation = "to open a local socket use \"nbd+unix://?socket=PATH\"";
+    else if (strncasecmp (raw_uri, "localhost", 9) == 0 &&
+             (h->uri_allow_transports & LIBNBD_ALLOW_TRANSPORT_TCP) != 0)
+      explanation =
+        "to open a local port use \"nbd://localhost\" or "
+        "\"nbd://localhost:PORT\"";
+
+    set_error (EINVAL,
+               "NBD URI does not have a scheme: valid NBD URIs should "
+               "start with a scheme like nbd://, nbds:// or nbd+unix://"
+               "%s%s",
+               explanation ? ": " : "",
+               explanation ? explanation : "");
     goto cleanup;
   }
 
