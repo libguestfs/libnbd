@@ -7,8 +7,6 @@ Bindings in other languages.
 
 Example code integrating with ppoll, pollfd, APR pollset (and others?).
 
-Example command line utils to copy in/out (like qemu-img convert).
-
 NBD resize extension.
 
 TLS should properly shut down the session (calling gnutls_bye).
