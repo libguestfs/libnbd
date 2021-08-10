@@ -23,9 +23,7 @@
 set -e
 set -x
 
-# We expect this to be added in Linux 5.14.  See:
-# https://marc.info/?l=linux-fsdevel&m=162134619620724&w=2
-# https://git.kernel.org/pub/scm/linux/kernel/git/mszeredi/fuse.git/commit/?h=for-next&id=6b1bdb56b17c25f640261f3b18030cb0a21d7878
+# FALLOC_FL_ZERO_RANGE support was added to fuse.ko in Linux 5.14.
 requires_linux_kernel_version 5.14
 
 requires_fuse
