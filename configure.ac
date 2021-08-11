@@ -315,7 +315,7 @@ dnl Build the libFuzzer test.  See fuzzing/README.
 AC_ARG_ENABLE([libfuzzer],
     [AS_HELP_STRING([--enable-libfuzzer],
                     [build the libFuzzer test (developers only)])],
-    [enable_libfuzzer=yes],
+    [],
     [enable_libfuzzer=no])
 AM_CONDITIONAL([ENABLE_LIBFUZZER],[test "x$enable_libfuzzer" = "xyes"])
 
