@@ -54,7 +54,7 @@ qemu-img create -f qcow2 $qcow2 $size
 
 # Run qemu-nbd as a separate process so that we can copy to and from
 # the single process in two separate operations.
-$QEMU_NBD -f qcow2 -t --socket=$sock --pid-file=$pidfile $qcow2 &
+$QEMU_NBD -f qcow2 --cache=writeback -t --socket=$sock --pid-file=$pidfile $qcow2 &
 cleanup_fn kill $!
 
 wait_for_pidfile qemu-nbd $pid
