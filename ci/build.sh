@@ -103,7 +103,7 @@ main() {
 
     run_checks check
 
-    if test "$CHECK_VALGRIND" != "skip"
+    if test "$CHECK_VALGRIND" = "force"
     then
         run_checks check-valgrind
     fi
