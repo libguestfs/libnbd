@@ -121,8 +121,7 @@ endif
 
 TESTS_ENVIRONMENT = \
 	LIBNBD_DEBUG=1 \
-	MALLOC_CHECK_=1 \
-	MALLOC_PERTURB_=$(shell bash -c 'echo $$(( 1 + (RANDOM & 255) ))') \
+	$(MALLOC_CHECKS) \
 	OCAMLRUNPARAM=b \
 	$(NULL)
 LOG_COMPILER = $(top_builddir)/run

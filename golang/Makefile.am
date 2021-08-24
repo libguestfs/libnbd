@@ -89,8 +89,7 @@ all-local: $(source_files)
 
 TESTS_ENVIRONMENT = \
 	LIBNBD_DEBUG=1 \
-	MALLOC_CHECK_=1 \
-	MALLOC_PERTURB_=$(shell bash -c 'echo $$(( 1 + (RANDOM & 255) ))') \
+	$(MALLOC_CHECKS) \
 	pkg=$(pkg) \
 	abs_top_srcdir=$(abs_top_srcdir) \
 	$(NULL)

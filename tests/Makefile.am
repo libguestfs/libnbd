@@ -51,8 +51,7 @@ TESTS =
 # Enable debug in all tests.
 TESTS_ENVIRONMENT = \
 	LIBNBD_DEBUG=1 \
-	MALLOC_CHECK_=1 \
-	MALLOC_PERTURB_=$(shell bash -c 'echo $$(( 1 + (RANDOM & 255) ))') \
+	$(MALLOC_CHECKS) \
 	srcdir=$(srcdir) \
 	$(NULL)
 # Use the ./run script so we're always using the local library and tools.

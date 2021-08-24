@@ -31,3 +31,19 @@ endif
 
 $(top_builddir)/podwrapper.pl: $(top_srcdir)/podwrapper.pl.in
 	$(MAKE) -C $(top_builddir) podwrapper.pl
+
+# In tests, include $(MALLOC_CHECKS) in TESTS_ENVIRONMENT to find some
+# use-after-free and uninitialized read problems when using glibc.
+# This doesn't affect other libc.
+random = $(shell bash -c 'echo $$(( 1 + (RANDOM & 255) ))')
+if HAVE_GLIBC_234
+MALLOC_CHECKS = \
+	LD_PRELOAD="$${LD_PRELOAD:+"$$LD_PRELOAD:"}libc_malloc_debug.so.0" \
+	GLIBC_TUNABLES=glibc.malloc.check=1:glibc.malloc.perturb=$(random) \
+	$(NULL)
+else
+MALLOC_CHECKS = \
+	MALLOC_CHECK_=1 \
+	MALLOC_PERTURB_=$(random) \
+	$(NULL)
+endif
