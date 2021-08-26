@@ -34,10 +34,10 @@ requires truncate --version
 file=copy-file-to-qcow2.file
 file2=copy-file-to-qcow2.file2
 qcow2=copy-file-to-qcow2.qcow2
-pidfile=copy-file-to-qcow2.pid
+pid=copy-file-to-qcow2.pid
 sock=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
-rm -f $file $file2 $qcow2 $pidfile $sock
-cleanup_fn rm -f $file $file2 $qcow2 $pidfile $sock
+rm -f $file $file2 $qcow2 $pid $sock
+cleanup_fn rm -f $file $file2 $qcow2 $pid $sock
 
 # Create a random partially sparse file.
 touch $file
@@ -54,7 +54,7 @@ qemu-img create -f qcow2 $qcow2 $size
 
 # Run qemu-nbd as a separate process so that we can copy to and from
 # the single process in two separate operations.
-$QEMU_NBD -f qcow2 --cache=writeback -t --socket=$sock --pid-file=$pidfile $qcow2 &
+$QEMU_NBD -f qcow2 --cache=writeback -t --socket=$sock --pid-file=$pid $qcow2 &
 cleanup_fn kill $!
 
 wait_for_pidfile qemu-nbd $pid
