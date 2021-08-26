@@ -175,8 +175,10 @@ let print_callback_wrapper { cbname; cbargs } =
   pr "void\n";
   pr "_nbd_%s_callback_free (void *user_data)\n" cbname;
   pr "{\n";
+  pr "  long *p = user_data;\n";
   pr "  extern void freeCallbackId (long);\n";
-  pr "  freeCallbackId ((long)user_data);\n";
+  pr "  freeCallbackId (*p);\n";
+  pr "  free (p);\n";
   pr "}\n";
   pr "\n"
 
@@ -255,8 +257,8 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
          cbname cbname;
        pr "    c_%s.free = (*[0]byte)(C._nbd_%s_callback_free)\n"
          cbname cbname;
-       pr "    c_%s.user_data = unsafe.Pointer (C.long_to_vp (C.long (registerCallbackId (%s))))\n"
-         cbname cbname
+       pr "    %s_cbid := registerCallbackId(%s)\n" cbname cbname;
+       pr "    c_%s.user_data = C.alloc_cbid(C.long(%s_cbid))\n" cbname cbname
     | Enum (n, _) ->
        pr "    c_%s := C.int (%s)\n" n n
     | Fd n ->
@@ -308,8 +310,10 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
                cbname cbname;
              pr "            c_%s.free = (*[0]byte)(C._nbd_%s_callback_free)\n"
                cbname cbname;
-             pr "            c_%s.user_data = unsafe.Pointer (C.long_to_vp (C.long (registerCallbackId (optargs.%s))))\n"
-               cbname (go_name_of_optarg optarg)
+             pr "            %s_cbid := registerCallbackId(optargs.%s)\n"
+               cbname (go_name_of_optarg optarg);
+             pr "            c_%s.user_data = C.alloc_cbid(C.long(%s_cbid))\n"
+               cbname cbname
           | OFlags (n, _, _) ->
              pr "            c_%s = C.uint32_t (optargs.%s)\n"
                n (go_name_of_optarg optarg);
@@ -549,7 +553,7 @@ func copy_uint32_array (entries *C.uint32_t, count C.size_t) []uint32 {
       pr ") int\n";
       pr "\n";
       pr "//export %s_callback\n" cbname;
-      pr "func %s_callback (callbackid C.long" cbname;
+      pr "func %s_callback (callbackid *C.long" cbname;
       List.iter (
         fun cbarg ->
           pr ", ";
@@ -573,7 +577,7 @@ func copy_uint32_array (entries *C.uint32_t, count C.size_t) []uint32 {
           | CBArrayAndLen _ | CBMutable _ -> assert false
       ) cbargs;
       pr ") C.int {\n";
-      pr "    callbackFunc := getCallbackId (int (callbackid));\n";
+      pr "    callbackFunc := getCallbackId (int (*callbackid));\n";
       pr "    callback, ok := callbackFunc.(%sCallback);\n" uname;
       pr "    if !ok {\n";
       pr "        panic (\"inappropriate callback type\");\n";
@@ -669,15 +673,23 @@ let generate_golang_wrappers_h () =
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include <errno.h>
 
 #include \"libnbd.h\"
 
-/* When calling callbacks we pass the callback ID (an int) in
- * the void *user_data field.  I couldn't work out how to do
- * this in golang, so this helper function does the cast.
+/* When calling callbacks we pass the callback ID (a golang int /
+ * C.long) in the void *user_data field.  We need to create a block
+ * to store the callback number.  This must be freed by C.free(vp)
  */
-static inline void *long_to_vp (long i) { return (void *)(intptr_t)i; }
+static inline void *
+alloc_cbid (long i)
+{
+  long *p = malloc (sizeof (long));
+  assert (p != NULL);
+  *p = i;
+  return p;
+}
 
 /* save_error is called from the same thread to make a copy
  * of the error which can later be retrieve from golang code
