@@ -57,27 +57,3 @@
   ...
   fun:__printf_chk
 }
-
-# Conditional jump or move depends on uninitialised value(s) in
-# __GI___tunables_init
-# https://sourceware.org/bugzilla/show_bug.cgi?id=28256
-# Bug present in glibc 2.34 and fixed in 2.35.
-#
-# The second suppression below is basically caused by the same
-# problem but manifests as an uninitialized value when copying
-# the GLIBC_TUNABLES environment variable.
-{
-  glibc_6
-  Memcheck:Cond
-  fun:parse_tunables
-  fun:__GI___tunables_init
-}
-
-{
-  glibc_7
-  Memcheck:Cond
-  fun:strlen
-  fun:strdup
-  ...
-  fun:enter_STATE_CONNECT_SA_START*
-}
