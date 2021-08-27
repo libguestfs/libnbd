@@ -49,6 +49,7 @@ AM_CPPFLAGS = \
 	$(NULL)
 AM_CFLAGS = \
 	$(WARNINGS_CFLAGS) \
+	$(GNUTLS_CFLAGS) \
 	$(NULL)
 
 #----------------------------------------------------------------------
@@ -150,7 +151,10 @@ interop_qemu_nbd_tls_certs_CPPFLAGS = \
 	-DCERTS=1 \
 	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
 	$(NULL)
-interop_qemu_nbd_tls_certs_LDADD = $(top_builddir)/lib/libnbd.la
+interop_qemu_nbd_tls_certs_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(GNUTLS_LIBS) \
+	$(NULL)
 
 # qemu-nbd requires absolute path to dir
 interop_qemu_nbd_tls_psk_SOURCES = \
@@ -169,7 +173,10 @@ interop_qemu_nbd_tls_psk_CPPFLAGS = \
 	-DPSK=1 \
 	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
 	$(NULL)
-interop_qemu_nbd_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
+interop_qemu_nbd_tls_psk_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(GNUTLS_LIBS) \
+	$(NULL)
 
 list_exports_qemu_nbd_SOURCES = \
 	list-exports.c \
@@ -272,7 +279,10 @@ interop_nbdkit_tls_certs_CPPFLAGS = \
 	-DCERTS=1 \
 	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
 	$(NULL)
-interop_nbdkit_tls_certs_LDADD = $(top_builddir)/lib/libnbd.la
+interop_nbdkit_tls_certs_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(GNUTLS_LIBS) \
+	$(NULL)
 
 interop_nbdkit_tls_certs_allow_enabled_SOURCES = \
 	interop.c \
@@ -288,7 +298,10 @@ interop_nbdkit_tls_certs_allow_enabled_CPPFLAGS = \
 	-DCERTS=1 \
 	-DTLS_MODE=LIBNBD_TLS_ALLOW \
 	$(NULL)
-interop_nbdkit_tls_certs_allow_enabled_LDADD = $(top_builddir)/lib/libnbd.la
+interop_nbdkit_tls_certs_allow_enabled_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(GNUTLS_LIBS) \
+	$(NULL)
 
 interop_nbdkit_tls_certs_allow_fallback_SOURCES = \
 	interop.c \
@@ -305,7 +318,10 @@ interop_nbdkit_tls_certs_allow_fallback_CPPFLAGS = \
 	-DTLS_MODE=LIBNBD_TLS_ALLOW \
 	-DTLS_FALLBACK=1 \
 	$(NULL)
-interop_nbdkit_tls_certs_allow_fallback_LDADD = $(top_builddir)/lib/libnbd.la
+interop_nbdkit_tls_certs_allow_fallback_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(GNUTLS_LIBS) \
+	$(NULL)
 
 interop_nbdkit_tls_psk_SOURCES = \
 	interop.c \
@@ -321,7 +337,10 @@ interop_nbdkit_tls_psk_CPPFLAGS = \
 	-DPSK=1 \
 	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
 	$(NULL)
-interop_nbdkit_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
+interop_nbdkit_tls_psk_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(GNUTLS_LIBS) \
+	$(NULL)
 
 interop_nbdkit_tls_psk_allow_enabled_SOURCES = \
 	interop.c \
@@ -337,7 +356,10 @@ interop_nbdkit_tls_psk_allow_enabled_CPPFLAGS = \
 	-DPSK=1 \
 	-DTLS_MODE=LIBNBD_TLS_ALLOW \
 	$(NULL)
-interop_nbdkit_tls_psk_allow_enabled_LDADD = $(top_builddir)/lib/libnbd.la
+interop_nbdkit_tls_psk_allow_enabled_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(GNUTLS_LIBS) \
+	$(NULL)
 
 interop_nbdkit_tls_psk_allow_fallback_SOURCES = \
 	interop.c \
@@ -354,7 +376,10 @@ interop_nbdkit_tls_psk_allow_fallback_CPPFLAGS = \
 	-DTLS_MODE=LIBNBD_TLS_ALLOW \
 	-DTLS_FALLBACK=1 \
 	$(NULL)
-interop_nbdkit_tls_psk_allow_fallback_LDADD = $(top_builddir)/lib/libnbd.la
+interop_nbdkit_tls_psk_allow_fallback_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(GNUTLS_LIBS) \
+	$(NULL)
 
 socket_activation_nbdkit_SOURCES = socket-activation.c
 socket_activation_nbdkit_CPPFLAGS = \
