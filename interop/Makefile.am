@@ -41,6 +41,16 @@ BUILT_SOURCES = requires.c
 requires.c: $(top_srcdir)/tests/requires.c
 	ln -s -f $(top_srcdir)/tests/$@
 
+# Common flags.
+# Note there is no such thing as "AM_LDADD".
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/tests \
+	$(NULL)
+AM_CFLAGS = \
+	$(WARNINGS_CFLAGS) \
+	$(NULL)
+
 #----------------------------------------------------------------------
 # Test interoperability with nbd-server.
 
@@ -61,13 +71,11 @@ interop_nbd_server_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 interop_nbd_server_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(NBD_SERVER)\" \
 	-DSERVER_PARAMS='"-d", "-C", "/dev/null", "0", TMPFILE' \
 	-DEXPORT_NAME='""'
-interop_nbd_server_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbd_server_LDADD = $(top_builddir)/lib/libnbd.la
 
 list_exports_nbd_server_SOURCES = \
@@ -76,14 +84,12 @@ list_exports_nbd_server_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 list_exports_nbd_server_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DSERVER=\"$(NBD_SERVER)\" \
 	-DSERVER_PARAMS='"-C", "$(srcdir)/list-exports-nbd-config", "-d", "0"' \
 	-DEXPORTS='"disk1", "disk2"' \
 	-DDESCRIPTIONS='"", ""' \
 	$(NULL)
-list_exports_nbd_server_CFLAGS = $(WARNINGS_CFLAGS)
 list_exports_nbd_server_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_NBD_SERVER
@@ -118,15 +124,13 @@ interop_qemu_nbd_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 interop_qemu_nbd_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DSOCKET_ACTIVATION=1 \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(QEMU_NBD)\" \
 	-DSERVER_PARAMS='"-f", "raw", "-x", "/", TMPFILE' \
 	-DEXPORT_NAME='"/"' \
 	$(NULL)
-interop_qemu_nbd_CFLAGS = $(WARNINGS_CFLAGS)
 interop_qemu_nbd_LDADD = $(top_builddir)/lib/libnbd.la
 
 # qemu-nbd requires absolute path to dir
@@ -136,8 +140,7 @@ interop_qemu_nbd_tls_certs_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 interop_qemu_nbd_tls_certs_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DREQUIRES=' requires ("test -d $(abs_top_builddir)/tests/pki"); requires_qemu_nbd_tls_support ("$(QEMU_NBD)"); ' \
 	-DSOCKET_ACTIVATION=1 \
 	-DNEEDS_TMPFILE=1 \
@@ -147,7 +150,6 @@ interop_qemu_nbd_tls_certs_CPPFLAGS = \
 	-DCERTS=1 \
 	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
 	$(NULL)
-interop_qemu_nbd_tls_certs_CFLAGS = $(WARNINGS_CFLAGS)
 interop_qemu_nbd_tls_certs_LDADD = $(top_builddir)/lib/libnbd.la
 
 # qemu-nbd requires absolute path to dir
@@ -157,8 +159,7 @@ interop_qemu_nbd_tls_psk_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 interop_qemu_nbd_tls_psk_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DREQUIRES=' requires ("test -f $(abs_top_builddir)/tests/keys.psk"); requires_qemu_nbd_tls_support ("$(QEMU_NBD)"); ' \
 	-DSOCKET_ACTIVATION=1 \
 	-DNEEDS_TMPFILE=1 \
@@ -168,7 +169,6 @@ interop_qemu_nbd_tls_psk_CPPFLAGS = \
 	-DPSK=1 \
 	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
 	$(NULL)
-interop_qemu_nbd_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
 interop_qemu_nbd_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
 
 list_exports_qemu_nbd_SOURCES = \
@@ -177,8 +177,7 @@ list_exports_qemu_nbd_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 list_exports_qemu_nbd_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DSOCKET_ACTIVATION=1 \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(QEMU_NBD)\" \
@@ -186,26 +185,20 @@ list_exports_qemu_nbd_CPPFLAGS = \
 	-DEXPORTS='"testing"' \
 	-DDESCRIPTIONS='"data"' \
 	$(NULL)
-list_exports_qemu_nbd_CFLAGS = $(WARNINGS_CFLAGS)
 list_exports_qemu_nbd_LDADD = $(top_builddir)/lib/libnbd.la
 
 socket_activation_qemu_nbd_SOURCES = socket-activation.c
 socket_activation_qemu_nbd_CPPFLAGS = \
-	-I$(top_srcdir)/include \
+	$(AM_CPPFLAGS) \
 	-DSERVER=\"$(QEMU_NBD)\" \
 	-DSERVER_PARAMS='"-f", "raw", "-x", "", tmpfile' \
 	$(NULL)
-socket_activation_qemu_nbd_CFLAGS = $(WARNINGS_CFLAGS)
 socket_activation_qemu_nbd_LDADD = $(top_builddir)/lib/libnbd.la
 
 dirty_bitmap_SOURCES = dirty-bitmap.c
-dirty_bitmap_CPPFLAGS = -I$(top_srcdir)/include
-dirty_bitmap_CFLAGS = $(WARNINGS_CFLAGS)
 dirty_bitmap_LDADD = $(top_builddir)/lib/libnbd.la
 
 structured_read_SOURCES = structured-read.c
-structured_read_CPPFLAGS = -I$(top_srcdir)/include
-structured_read_CFLAGS = $(WARNINGS_CFLAGS)
 structured_read_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_QEMU_NBD
@@ -258,13 +251,11 @@ interop_nbdkit_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 interop_nbdkit_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(NBDKIT)\" \
 	-DSERVER_PARAMS='"-s", "--exit-with-parent", "file", TMPFILE' \
 	$(NULL)
-interop_nbdkit_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbdkit_LDADD = $(top_builddir)/lib/libnbd.la
 
 interop_nbdkit_tls_certs_SOURCES = \
@@ -273,8 +264,7 @@ interop_nbdkit_tls_certs_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 interop_nbdkit_tls_certs_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DREQUIRES=' requires ("test -d ../tests/pki"); ' \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(NBDKIT)\" \
@@ -282,7 +272,6 @@ interop_nbdkit_tls_certs_CPPFLAGS = \
 	-DCERTS=1 \
 	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
 	$(NULL)
-interop_nbdkit_tls_certs_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbdkit_tls_certs_LDADD = $(top_builddir)/lib/libnbd.la
 
 interop_nbdkit_tls_certs_allow_enabled_SOURCES = \
@@ -291,8 +280,7 @@ interop_nbdkit_tls_certs_allow_enabled_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 interop_nbdkit_tls_certs_allow_enabled_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DREQUIRES=' requires ("test -d ../tests/pki"); ' \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(NBDKIT)\" \
@@ -300,7 +288,6 @@ interop_nbdkit_tls_certs_allow_enabled_CPPFLAGS = \
 	-DCERTS=1 \
 	-DTLS_MODE=LIBNBD_TLS_ALLOW \
 	$(NULL)
-interop_nbdkit_tls_certs_allow_enabled_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbdkit_tls_certs_allow_enabled_LDADD = $(top_builddir)/lib/libnbd.la
 
 interop_nbdkit_tls_certs_allow_fallback_SOURCES = \
@@ -309,8 +296,7 @@ interop_nbdkit_tls_certs_allow_fallback_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 interop_nbdkit_tls_certs_allow_fallback_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DREQUIRES=' requires ("test -d ../tests/pki"); ' \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(NBDKIT)\" \
@@ -319,7 +305,6 @@ interop_nbdkit_tls_certs_allow_fallback_CPPFLAGS = \
 	-DTLS_MODE=LIBNBD_TLS_ALLOW \
 	-DTLS_FALLBACK=1 \
 	$(NULL)
-interop_nbdkit_tls_certs_allow_fallback_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbdkit_tls_certs_allow_fallback_LDADD = $(top_builddir)/lib/libnbd.la
 
 interop_nbdkit_tls_psk_SOURCES = \
@@ -328,8 +313,7 @@ interop_nbdkit_tls_psk_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 interop_nbdkit_tls_psk_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DREQUIRES=' requires ("test -f ../tests/keys.psk"); ' \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(NBDKIT)\" \
@@ -337,7 +321,6 @@ interop_nbdkit_tls_psk_CPPFLAGS = \
 	-DPSK=1 \
 	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
 	$(NULL)
-interop_nbdkit_tls_psk_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbdkit_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
 
 interop_nbdkit_tls_psk_allow_enabled_SOURCES = \
@@ -346,8 +329,7 @@ interop_nbdkit_tls_psk_allow_enabled_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 interop_nbdkit_tls_psk_allow_enabled_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DREQUIRES=' requires ("test -f ../tests/keys.psk"); ' \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(NBDKIT)\" \
@@ -355,7 +337,6 @@ interop_nbdkit_tls_psk_allow_enabled_CPPFLAGS = \
 	-DPSK=1 \
 	-DTLS_MODE=LIBNBD_TLS_ALLOW \
 	$(NULL)
-interop_nbdkit_tls_psk_allow_enabled_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbdkit_tls_psk_allow_enabled_LDADD = $(top_builddir)/lib/libnbd.la
 
 interop_nbdkit_tls_psk_allow_fallback_SOURCES = \
@@ -364,8 +345,7 @@ interop_nbdkit_tls_psk_allow_fallback_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 interop_nbdkit_tls_psk_allow_fallback_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DREQUIRES=' requires ("test -f ../tests/keys.psk"); ' \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(NBDKIT)\" \
@@ -374,16 +354,14 @@ interop_nbdkit_tls_psk_allow_fallback_CPPFLAGS = \
 	-DTLS_MODE=LIBNBD_TLS_ALLOW \
 	-DTLS_FALLBACK=1 \
 	$(NULL)
-interop_nbdkit_tls_psk_allow_fallback_CFLAGS = $(WARNINGS_CFLAGS)
 interop_nbdkit_tls_psk_allow_fallback_LDADD = $(top_builddir)/lib/libnbd.la
 
 socket_activation_nbdkit_SOURCES = socket-activation.c
 socket_activation_nbdkit_CPPFLAGS = \
-	-I$(top_srcdir)/include \
+	$(AM_CPPFLAGS) \
 	-DSERVER=\"$(NBDKIT)\" \
 	-DSERVER_PARAMS='"file", tmpfile' \
 	$(NULL)
-socket_activation_nbdkit_CFLAGS = $(WARNINGS_CFLAGS)
 socket_activation_nbdkit_LDADD = $(top_builddir)/lib/libnbd.la
 
 # This test requires nbdkit >= 1.22, checked at runtime.
@@ -393,15 +371,13 @@ list_exports_nbdkit_SOURCES = \
 	../tests/requires.h \
 	$(NULL)
 list_exports_nbdkit_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/tests \
+	$(AM_CPPFLAGS) \
 	-DREQUIRES=' requires ("$(NBDKIT) file --version"); requires ("minor=`$(NBDKIT) --dump-config | grep ^version_minor | cut -d= -f2`; echo $$minor; test $$minor -ge 22"); ' \
 	-DSERVER=\"$(NBDKIT)\" \
 	-DSERVER_PARAMS='"-s", "--exit-with-parent", "file", "dir=$(srcdir)/list-exports-test-dir"' \
 	-DEXPORTS='"disk1", "disk2"' \
 	-DDESCRIPTIONS='"", ""' \
 	$(NULL)
-list_exports_nbdkit_CFLAGS = $(WARNINGS_CFLAGS)
 list_exports_nbdkit_LDADD = $(top_builddir)/lib/libnbd.la
 
 endif HAVE_NBDKIT
