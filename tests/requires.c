@@ -35,3 +35,18 @@ requires (const char *cmd)
     exit (77);
   }
 }
+
+/* Check qemu-nbd was compiled with support for TLS. */
+void
+requires_qemu_nbd_tls_support (const char *qemu_nbd)
+{
+  char cmd[256];
+
+  /* Note the qemu-nbd command will fail in some way.  We're only
+   * interested in the error message that it prints.
+   */
+  snprintf (cmd, sizeof cmd,
+            "if %s --object tls-creds-x509,id=tls0 |& grep -sq 'TLS credentials support requires GNUTLS'; then exit 1; else exit 0; fi",
+            qemu_nbd);
+  requires (cmd);
+}
