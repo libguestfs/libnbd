@@ -31,6 +31,10 @@
 #include <errno.h>
 #include <sys/types.h>
 
+#ifdef HAVE_GNUTLS
+#include <gnutls/gnutls.h>
+#endif
+
 #include <libnbd.h>
 
 #include "../tests/requires.h"
@@ -54,6 +58,17 @@ unlink_tmpfile (void)
   unlink (TMPFILE);
 }
 #endif /* NEEDS_TMPFILE */
+
+#ifdef HAVE_GNUTLS
+#if TLS
+static void
+tls_log (int level, const char *msg)
+{
+  /* Messages from GnuTLS are always \n-terminated. */
+  fprintf (stderr, "gnutls[%d]: %s", level, msg);
+}
+#endif
+#endif
 
 int
 main (int argc, char *argv[])
@@ -99,6 +114,23 @@ main (int argc, char *argv[])
     fprintf (stderr, "skip: compiled without TLS support\n");
     exit (77);
   }
+
+#ifdef HAVE_GNUTLS
+  /* This is kind of ugly but GnuTLS only allows us to set these
+   * globally (so they are not appropriate for libnbd).
+   *
+   * Also by default GnuTLS throws away log messages even if you
+   * called gnutls_global_set_log_level.  It doesn't install the
+   * default log handler unless you set $GNUTLS_DEBUG_LEVEL.  So we
+   * need to have our own log handler.
+   *
+   * Also the log levels are quite random.  Level 2 doesn't show the
+   * negotiated cyphersuite, but level 3+ shows excessive detail.
+   */
+  gnutls_global_set_log_level (2);
+  gnutls_global_set_log_function (tls_log);
+#endif
+
   if (nbd_set_tls (nbd, TLS_MODE) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
