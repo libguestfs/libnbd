@@ -138,7 +138,7 @@ interop_qemu_nbd_tls_certs_SOURCES = \
 interop_qemu_nbd_tls_certs_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/tests \
-	-DREQUIRES=' requires ("test -d $(abs_top_builddir)/tests/pki"); ' \
+	-DREQUIRES=' requires ("test -d $(abs_top_builddir)/tests/pki"); requires_qemu_nbd_tls_support ("$(QEMU_NBD)"); ' \
 	-DSOCKET_ACTIVATION=1 \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(QEMU_NBD)\" \
@@ -159,7 +159,7 @@ interop_qemu_nbd_tls_psk_SOURCES = \
 interop_qemu_nbd_tls_psk_CPPFLAGS = \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/tests \
-	-DREQUIRES=' requires ("test -f $(abs_top_builddir)/tests/keys.psk"); ' \
+	-DREQUIRES=' requires ("test -f $(abs_top_builddir)/tests/keys.psk"); requires_qemu_nbd_tls_support ("$(QEMU_NBD)"); ' \
 	-DSOCKET_ACTIVATION=1 \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(QEMU_NBD)\" \

@@ -21,4 +21,7 @@
 
 extern void requires (const char *cmd);
 
+/* Some specific tests using the requires() mechanism. */
+extern void requires_qemu_nbd_tls_support (const char *qemu_nbd);
+
 #endif /* LIBNBD_REQUIRES */
