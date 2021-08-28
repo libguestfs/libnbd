@@ -59,8 +59,10 @@ def shell():
     long_options.append("--version")
 
     # These hidden options are used by bash tab completion.
-    parser.add_argument("--short-options", action='store_true')
-    parser.add_argument("--long-options", action='store_true')
+    parser.add_argument("--short-options", action='store_true',
+                        help=argparse.SUPPRESS)
+    parser.add_argument("--long-options", action='store_true',
+                        help=argparse.SUPPRESS)
 
     args = parser.parse_args()
 
