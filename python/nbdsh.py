@@ -39,6 +39,11 @@ def shell():
                         help='request the "base:allocation" meta context')
     long_options.append("--base-allocation")
 
+    parser.add_argument('-c', '--command', action='append',
+                        help="run a command")
+    short_options.append("-c")
+    long_options.append("--command")
+
     parser.add_argument('--opt-mode', action='store_true',
                         help='request opt mode during connection')
     long_options.append("--opt-mode")
@@ -48,11 +53,6 @@ def shell():
     long_options.append("--uri")
     # For back-compat, provide --connect as an undocumented synonym to --uri
     parser.add_argument('--connect', dest='uri', help=argparse.SUPPRESS)
-
-    parser.add_argument('-c', '--command', action='append',
-                        help="run a command")
-    short_options.append("-c")
-    long_options.append("--command")
 
     parser.add_argument('-V', '--version', action='store_true')
     short_options.append("-V")
