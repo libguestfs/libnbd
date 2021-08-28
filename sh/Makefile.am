@@ -25,8 +25,10 @@ EXTRA_DIST = \
 	test-error.sh \
 	test-help.sh \
 	test-long-options.sh \
+	test-implicit-handle.sh \
 	test-pattern.sh \
 	test-short-options.sh \
+	test-verbose.sh \
 	test-version.sh \
 	$(NULL)
 
@@ -57,8 +59,10 @@ LOG_COMPILER = $(top_builddir)/run
 TESTS = \
 	test-help.sh \
 	test-version.sh \
+	test-verbose.sh \
 	test-short-options.sh \
 	test-long-options.sh \
+	test-implicit-handle.sh \
 	test-error.sh \
 	$(NULL)
 

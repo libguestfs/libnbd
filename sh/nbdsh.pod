@@ -78,6 +78,10 @@ can be specified multiple times in order to run multiple commands.
 
 Read standard input and execute it as a command.
 
+=item B<-n>
+
+Do not create the implicit handle C<h>.
+
 =item B<--opt-mode>
 
 Request that option mode be enabled, which gives fine-grained control
@@ -101,6 +105,13 @@ commands, which prevents the use of configuration commands such as
 S<C<h.add_meta_context(>NAMEC<)>> from the command line when mixed
 with this option.  The options C<--opt-mode> and C<--base-allocation>
 can be used to make this situation easier to manage.
+
+=item B<-v>
+
+=item B<--verbose>
+
+Enable verbose libnbd messages.  This has the same effect as setting
+the environment variable C<LIBNBD_DEBUG=1>
 
 =item B<-V>
 
