@@ -89,7 +89,7 @@ would be too late).
 
 =item B<-u> URI
 
-=item B<-uri> URI
+=item B<--uri> URI
 
 Connect to the given L<NBD URI|https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>.
 This is equivalent to the S<C<h.connect_uri(URI)>> command in the shell.
