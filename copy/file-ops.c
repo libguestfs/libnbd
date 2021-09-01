@@ -658,6 +658,7 @@ file_get_extents (struct rw *rw, uintptr_t index,
           pos = end;
         else {
           perror ("lseek: SEEK_DATA");
+          pthread_mutex_unlock (&lseek_lock);
           exit (EXIT_FAILURE);
         }
       }
@@ -669,6 +670,7 @@ file_get_extents (struct rw *rw, uintptr_t index,
         e.zero = true;
         if (extent_list_append (ret, e) == -1) {
           perror ("realloc");
+          pthread_mutex_unlock (&lseek_lock);
           exit (EXIT_FAILURE);
         }
       }
@@ -680,6 +682,7 @@ file_get_extents (struct rw *rw, uintptr_t index,
       pos = lseek (fd, offset, SEEK_HOLE);
       if (pos == -1) {
         perror ("lseek: SEEK_HOLE");
+        pthread_mutex_unlock (&lseek_lock);
         exit (EXIT_FAILURE);
       }
 
@@ -690,6 +693,7 @@ file_get_extents (struct rw *rw, uintptr_t index,
         e.zero = false;
         if (extent_list_append (ret, e) == -1) {
           perror ("realloc");
+          pthread_mutex_unlock (&lseek_lock);
           exit (EXIT_FAILURE);
         }
       }
