@@ -561,6 +561,7 @@ AC_CONFIG_FILES([Makefile
                  include/Makefile
                  info/Makefile
                  interop/Makefile
+                 interop/nbd-server-tls.conf
                  lib/Makefile
                  lib/libnbd.pc
                  lib/local/libnbd.pc

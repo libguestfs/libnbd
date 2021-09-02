@@ -59,10 +59,12 @@ if HAVE_NBD_SERVER
 
 check_PROGRAMS += \
 	interop-nbd-server \
+	interop-nbd-server-tls \
 	list-exports-nbd-server \
 	$(NULL)
 TESTS += \
 	interop-nbd-server \
+	interop-nbd-server-tls \
 	list-exports-nbd-server \
 	$(NULL)
 
@@ -76,8 +78,26 @@ interop_nbd_server_CPPFLAGS = \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(NBD_SERVER)\" \
 	-DSERVER_PARAMS='"-d", "-C", "/dev/null", "0", TMPFILE' \
-	-DEXPORT_NAME='""'
+	-DEXPORT_NAME='""' \
+	$(NULL)
 interop_nbd_server_LDADD = $(top_builddir)/lib/libnbd.la
+
+interop_nbd_server_tls_SOURCES = \
+	interop.c \
+	requires.c \
+	../tests/requires.h \
+	$(NULL)
+interop_nbd_server_tls_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-DREQUIRES=' requires ("test -d $(abs_top_builddir)/tests/pki"); ' \
+	-DNEEDS_TMPFILE=1 \
+	-DSERVER=\"$(NBD_SERVER)\" \
+	-DSERVER_PARAMS='"-d", "-C", "nbd-server-tls.conf", "0", TMPFILE' \
+	-DEXPORT_NAME='""' \
+	-DCERTS=1 \
+	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
+	$(NULL)
+interop_nbd_server_tls_LDADD = $(top_builddir)/lib/libnbd.la
 
 list_exports_nbd_server_SOURCES = \
 	list-exports.c \

@@ -87,6 +87,7 @@ Makefile.in
 /install-sh
 /interop/dirty-bitmap
 /interop/interop-nbd-server
+/interop/interop-nbd-server-tls
 /interop/interop-nbdkit
 /interop/interop-nbdkit-tls-certs
 /interop/interop-nbdkit-tls-certs-allow-enabled
@@ -100,6 +101,7 @@ Makefile.in
 /interop/list-exports-nbd-server
 /interop/list-exports-nbdkit
 /interop/list-exports-qemu-nbd
+/interop/nbd-server-tls.conf
 /interop/requires.c
 /interop/socket-activation-nbdkit
 /interop/socket-activation-qemu-nbd
