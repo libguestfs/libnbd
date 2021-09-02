@@ -97,7 +97,10 @@ interop_nbd_server_tls_CPPFLAGS = \
 	-DCERTS=1 \
 	-DTLS_MODE=LIBNBD_TLS_REQUIRE \
 	$(NULL)
-interop_nbd_server_tls_LDADD = $(top_builddir)/lib/libnbd.la
+interop_nbd_server_tls_LDADD = \
+	$(top_builddir)/lib/libnbd.la \
+	$(GNUTLS_LIBS) \
+	$(NULL)
 
 list_exports_nbd_server_SOURCES = \
 	list-exports.c \
