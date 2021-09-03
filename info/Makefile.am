@@ -34,6 +34,7 @@ info_sh_files = \
 	info-size.sh \
 	info-text.sh \
 	info-uri.sh \
+	info-uri-nbds.sh \
 	info-description.sh \
 	info-description-qemu.sh \
 	info-map-base-allocation.sh \
