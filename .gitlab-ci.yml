@@ -95,6 +95,17 @@ stages:
   rules:
     - if: "$CIRRUS_GITHUB_REPO && $CIRRUS_API_TOKEN"
 
+# Cross-compilation container build jobs
+i686-debian-10-container:
+  extends: .container_job
+  variables:
+    NAME: debian-10-cross-i686
+
+i686-debian-11-container:
+  extends: .container_job
+  variables:
+    NAME: debian-11-cross-i686
+
 # Native container build jobs
 x64-alpine-314-container:
   extends: .container_job
@@ -116,10 +127,10 @@ x64-centos-stream-8-container:
   variables:
     NAME: centos-stream-8
 
-x64-debian-10-container:
+x64-debian-11-container:
   extends: .container_job
   variables:
-    NAME: debian-10
+    NAME: debian-11
 
 x64-debian-sid-container:
   extends: .container_job
@@ -162,14 +173,30 @@ x64-ubuntu-2004-container:
   variables:
     NAME: ubuntu-2004
 
-# Native architecture build + test jobs
-
-x64-debian-10:
+# Cross-compilation build jobs
+i686-debian-10:
   extends: .native_build_job
   needs:
-    - x64-debian-10-container
+    - i686-debian-10-container
   variables:
     NAME: debian-10
+    CROSS: i686
+
+i686-debian-11:
+  extends: .native_build_job
+  needs:
+    - i686-debian-11-container
+  variables:
+    NAME: debian-11
+    CROSS: i686
+
+# Native architecture build + test jobs
+x64-debian-11:
+  extends: .native_build_job
+  needs:
+    - x64-debian-11-container
+  variables:
+    NAME: debian-11
 
 x64-debian-sid:
   extends: .native_build_job

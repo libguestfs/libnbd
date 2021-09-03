@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTO-GENERATED
 #
-#  $ lcitool dockerfile debian-10 libnbd
+#  $ lcitool dockerfile --cross i686 debian-10 libnbd
 #
 # https://gitlab.com/libvirt/libvirt-ci
 
@@ -17,24 +17,15 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
             bsdmainutils \
             ca-certificates \
             ccache \
-            clang \
             diffutils \
             flake8 \
             fuse3 \
-            g++ \
-            gcc \
             git \
             gnutls-bin \
             golang \
             iproute2 \
             jq \
-            libc6-dev \
-            libev-dev \
-            libfuse3-dev \
-            libglib2.0-dev \
-            libgnutls28-dev \
             libtool-bin \
-            libxml2-dev \
             locales \
             make \
             nbd-client \
@@ -57,12 +48,43 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     dpkg-reconfigure locales && \
     dpkg-query --showformat '${Package}_${Version}_${Architecture}\n' --show > /packages.txt && \
     mkdir -p /usr/libexec/ccache-wrappers && \
-    ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/c++ && \
-    ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/cc && \
-    ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/clang && \
-    ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/g++ && \
-    ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/gcc
+    ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/i686-linux-gnu-c++ && \
+    ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/i686-linux-gnu-cc && \
+    ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/i686-linux-gnu-g++ && \
+    ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/i686-linux-gnu-gcc
+
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    dpkg --add-architecture i386 && \
+    eatmydata apt-get update && \
+    eatmydata apt-get dist-upgrade -y && \
+    eatmydata apt-get install --no-install-recommends -y dpkg-dev && \
+    eatmydata apt-get install --no-install-recommends -y \
+            g++-i686-linux-gnu \
+            gcc-i686-linux-gnu \
+            libc6-dev:i386 \
+            libev-dev:i386 \
+            libfuse3-dev:i386 \
+            libglib2.0-dev:i386 \
+            libgnutls28-dev:i386 \
+            libxml2-dev:i386 && \
+    eatmydata apt-get autoremove -y && \
+    eatmydata apt-get autoclean -y && \
+    mkdir -p /usr/local/share/meson/cross && \
+    echo "[binaries]\n\
+c = '/usr/bin/i686-linux-gnu-gcc'\n\
+ar = '/usr/bin/i686-linux-gnu-gcc-ar'\n\
+strip = '/usr/bin/i686-linux-gnu-strip'\n\
+pkgconfig = '/usr/bin/i686-linux-gnu-pkg-config'\n\
+\n\
+[host_machine]\n\
+system = 'linux'\n\
+cpu_family = 'x86'\n\
+cpu = 'i686'\n\
+endian = 'little'" > /usr/local/share/meson/cross/i686-linux-gnu
 
 ENV LANG "en_US.UTF-8"
 ENV MAKE "/usr/bin/make"
 ENV CCACHE_WRAPPERSDIR "/usr/libexec/ccache-wrappers"
+
+ENV ABI "i686-linux-gnu"
+ENV CONFIGURE_OPTS "--host=i686-linux-gnu"

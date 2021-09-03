@@ -2,7 +2,7 @@
 #
 #  $ lcitool dockerfile ubuntu-1804 libnbd
 #
-# https://gitlab.com/libvirt/libvirt-ci/-/commit/0bb9bfada8e143e05bb436a06747d227d19f0df4
+# https://gitlab.com/libvirt/libvirt-ci
 
 FROM docker.io/library/ubuntu:18.04
 

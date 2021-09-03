@@ -1,10 +1,10 @@
 # THIS FILE WAS AUTO-GENERATED
 #
-#  $ lcitool dockerfile ubuntu-2004 libnbd
+#  $ lcitool dockerfile debian-11 libnbd
 #
 # https://gitlab.com/libvirt/libvirt-ci
 
-FROM docker.io/library/ubuntu:20.04
+FROM docker.io/library/debian:11-slim
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
@@ -14,7 +14,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
             autoconf \
             automake \
             bash-completion \
-            bsdmainutils \
+            bsdextrautils \
             ca-certificates \
             ccache \
             clang \

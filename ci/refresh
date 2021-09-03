@@ -22,6 +22,12 @@ do
     then
         $LCITOOL variables "$target" libnbd >"$ci_path/cirrus/$target.vars"
     else
+        if test "$target" = "debian-11" -o "$target" = "debian-10"
+        then
+           $LCITOOL dockerfile -x i686 "$target" \
+                    libnbd >"$ci_path/containers/$target-cross-i686.Dockerfile"
+        fi
+
         $LCITOOL dockerfile "$target" libnbd >"$ci_path/containers/$target.Dockerfile"
     fi
 done

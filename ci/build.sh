@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+set -xe
 
 skip_tests() {
     # Add a way to run all the tests, even the skipped ones, with an environment
@@ -72,24 +72,34 @@ main() {
 
     CONFIG_ARGS="\
 --enable-gcc-warnings \
---enable-fuse \
---enable-ocaml \
---enable-python \
---enable-golang \
 --with-gnutls \
 --with-libxml2 \
 "
 
-    if test "$GOLANG" != "skip"
+    if "$CROSS"
     then
-       CONFIG_ARGS="$CONFIG_ARGS --enable-golang"
+        CONFIG_ARGS="$CONFIG_ARGS
+            --disable-fuse
+            --disable-ocaml
+            --disable-python"
+    else
+        CONFIG_ARGS="$CONFIG_ARGS
+            --enable-fuse
+            --enable-ocaml
+            --enable-python"
+        if test "$GOLANG" = "skip"
+        then
+            CONFIG_ARGS="$CONFIG_ARGS --disable-golang"
+        else
+            CONFIG_ARGS="$CONFIG_ARGS --enable-golang"
+        fi
     fi
 
     ./configure $CONFIGURE_OPTS $CONFIG_ARGS
 
     $MAKE
 
-    if test -n "$CROSS"
+    if test -n "$CROSS" -a "$CROSS" != "i686"
     then
         echo "Possibly run tests with an emulator in the future"
         return 0
