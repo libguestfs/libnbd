@@ -177,9 +177,10 @@ Makefile.in
 /tests/connect-unix
 /tests/connect-uri-nbd
 /tests/connect-uri-nbd-unix
-/tests/connect-uri-nbds
+/tests/connect-uri-nbds-certs
 /tests/connect-uri-nbds-psk
-/tests/connect-uri-nbds-unix
+/tests/connect-uri-nbds-unix-certs
+/tests/connect-uri-nbds-unix-psk
 /tests/debug
 /tests/debug-environment
 /tests/dlopen

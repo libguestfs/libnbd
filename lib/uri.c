@@ -275,9 +275,19 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   if (tls && nbd_unlocked_set_tls (h, LIBNBD_TLS_REQUIRE) == -1)
     goto cleanup;
 
-  /* Look for some tls-* parameters.  XXX More to come. */
+  /* Look for some tls-* parameters. */
   for (i = 0; i < queries.size; i++) {
-    if (strcmp (queries.ptr[i].name, "tls-psk-file") == 0) {
+    if (strcmp (queries.ptr[i].name, "tls-certificates") == 0) {
+      if (! h->uri_allow_local_file) {
+        set_error (EPERM,
+                   "local file access (tls-certificates) is not allowed, "
+                   "call nbd_set_uri_allow_local_file to enable this");
+        goto cleanup;
+      }
+      if (nbd_unlocked_set_tls_certificates (h, queries.ptr[i].value) == -1)
+        goto cleanup;
+    }
+    else if (strcmp (queries.ptr[i].name, "tls-psk-file") == 0) {
       if (! h->uri_allow_local_file) {
         set_error (EPERM,
                    "local file access (tls-psk-file) is not allowed, "
@@ -516,6 +526,11 @@ nbd_unlocked_get_uri (struct nbd_handle *h)
       goto out;
     }
     uri.path = path;
+  }
+  if (h->tls_certificates) {
+    if (append_query_params (&query_params,
+                             "tls-certificates", h->tls_certificates) == -1)
+      goto out;
   }
   if (h->tls_psk_file) {
     if (append_query_params (&query_params,

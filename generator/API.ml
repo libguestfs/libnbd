@@ -1264,6 +1264,11 @@ Connect over the Unix domain socket F</tmp/nbd.sock> to
 an NBD server running locally.  The export name is set to C<foo>
 (note without any leading C</> character).
 
+=item C<nbds+unix://alice@/?socket=/tmp/nbd.sock&tls-certificates=certs>
+
+Connect over a Unix domain socket, enabling TLS and setting the
+path to a directory containing certificates and keys.
+
 =item C<nbd+vsock:///>
 
 In this scenario libnbd is running in a virtual machine.  Connect
@@ -1323,6 +1328,11 @@ Finally the query part of the URI can contain:
 Specifies the Unix domain socket to connect on.
 Must be present for the C<+unix> transport and must not
 be present for the other transports.
+
+=item B<tls-certificates=>F<DIR>
+
+Set the certificates directory.  See L<nbd_set_tls_certificates(3)>.
+Note this is not allowed by default - see next section.
 
 =item B<tls-psk-file=>F<PSKFILE>
 

@@ -40,6 +40,8 @@ unlink_unix_socket (void)
 }
 #endif /* NEEDS_UNIX_SOCKET */
 
+static int compare_uris (const char *uri1, const char *uri2);
+
 int
 main (int argc, char *argv[])
 {
@@ -132,7 +134,7 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  if (strcmp (uri, get_uri) != 0) {
+  if (compare_uris (uri, get_uri) != 0) {
     fprintf (stderr, "%s: connect URI %s != get URI %s\n",
              argv[0], uri, get_uri);
     exit (EXIT_FAILURE);
@@ -149,4 +151,52 @@ main (int argc, char *argv[])
   free (uri);
 #endif
   exit (EXIT_SUCCESS);
+}
+
+/* Naive comparison of two URIs, enough to get the tests to pass but
+ * it does not take into account things like quoting.  The difference
+ * between the URI we set and the one we read back is the order of
+ * query fields.
+ */
+static int
+compare_uris (const char *uri1, const char *uri2)
+{
+  size_t n;
+  int r;
+
+  /* Compare the parts before the query fields. */
+  n = strcspn (uri1, "?");
+  r = strncmp (uri1, uri2, n);
+  if (r != 0) return r;
+
+  if (strlen (uri1) == n)
+    return 0;
+  uri1 += n + 1;
+  uri2 += n + 1;
+
+  /* Compare each query field in the first URI and ensure it appears
+   * in the second URI.  Note the first URI is the one we passed to
+   * libnbd, we're not worried about extra fields in the second URI.
+   */
+  while (*uri1) {
+    char *q;
+
+    n = strcspn (uri1, "&");
+    q = strndup (uri1, n);
+    if (q == NULL) { perror ("strndup"); exit (EXIT_FAILURE); }
+    if (strstr (uri2, q) != NULL)
+      r = 0;
+    else {
+      fprintf (stderr, "error: compare_uris: query string '%s' does not appear in returned URI\n", q);
+      r = 1;
+    }
+    free (q);
+    if (r != 0)
+      return r;
+    if (strlen (uri1) == n)
+      return 0;
+    uri1 += n + 1;
+  }
+
+  return 0;
 }
