@@ -1238,10 +1238,7 @@ Connect (synchronously) to an NBD server and export by specifying
 the NBD URI.  This call parses the URI and calls
 L<nbd_set_export_name(3)> and L<nbd_set_tls(3)> and other
 calls as needed, followed by L<nbd_connect_tcp(3)> or
-L<nbd_connect_unix(3)>.  However, it is possible to override the
-export name portion of a URI by using L<nbd_set_opt_mode(3)> to
-enable option mode, then using L<nbd_set_export_name(3)> and
-L<nbd_opt_go(3)> as part of subsequent negotiation.
+L<nbd_connect_unix(3)>.
 
 This call returns when the connection has been made.
 
@@ -1383,6 +1380,13 @@ L<nbd_set_uri_allow_local_file(3)>.
 
 =back
 
+=head2 Overriding the export name
+
+It is possible to override the export name portion of a URI
+by using L<nbd_set_opt_mode(3)> to enable option mode,
+then using L<nbd_set_export_name(3)> and L<nbd_opt_go(3)>
+as part of subsequent negotiation.
+
 =head2 Optional features
 
 This call will fail if libnbd was not compiled with libxml2; you can
@@ -1396,6 +1400,7 @@ with L<nbd_supports_tls(3)>.
 
 See L<nbd_get_uri(3)>.";
     see_also = [URLLink "https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md";
+                Link "aio_connect_uri";
                 Link "set_export_name"; Link "set_tls";
                 Link "set_opt_mode"; Link "get_uri"];
   };
@@ -1410,6 +1415,7 @@ Connect (synchronously) over the named Unix domain socket (C<unixsocket>)
 to an NBD server running on the same machine.  This call returns
 when the connection has been made.";
     example = Some "examples/fetch-first-sector.c";
+    see_also = [Link "aio_connect_unix"];
   };
 
   "connect_vsock", {
@@ -1424,6 +1430,7 @@ C<cid> and C<port> parameters specify the server address.  Usually
 C<cid> should be C<2> (to connect to the host), and C<port> might be
 C<10809> or another port number assigned to you by the host
 administrator.  This call returns when the connection has been made.";
+    see_also = [Link "aio_connect_vsock"];
   };
 
   "connect_tcp", {
@@ -1437,6 +1444,7 @@ C<hostname:port>.  The C<port> may be a port name such
 as C<\"nbd\">, or it may be a port number as a string
 such as C<\"10809\">.  This call returns when the connection
 has been made.";
+    see_also = [Link "aio_connect_tcp"];
   };
 
   "connect_socket", {
@@ -1454,7 +1462,8 @@ socket by some method, before passing it to libnbd.
 If this call returns without error then socket ownership
 is passed to libnbd.  Libnbd will close the socket when the
 handle is closed.  The caller must not use the socket in any way.";
-    see_also = [Link "connect_command";
+    see_also = [Link "aio_connect_socket";
+                Link "connect_command";
                 ExternalLink ("socket", 7)];
   };
 
@@ -1466,7 +1475,12 @@ handle is closed.  The caller must not use the socket in any way.";
     longdesc = "\
 Run the command as a subprocess and connect to it over
 stdin/stdout.  This is for use with NBD servers which can
-behave like inetd clients, such as C<nbdkit --single>.
+behave like inetd clients, such as L<nbdkit(1)> using
+the I<-s>/I<--single> flag, and L<nbd-server(1)> with
+port number set to 0.
+
+To run L<qemu-nbd(1)>, use
+L<nbd_connect_systemd_socket_activation(3)> instead.
 
 =head2 Subprocess
 
@@ -1481,7 +1495,9 @@ to it using file descriptors 0 and 1 (stdin/stdout):
 
 When the NBD handle is closed the server subprocess
 is killed.";
-    see_also = [Link "kill_subprocess"];
+    see_also = [Link "aio_connect_command";
+                Link "connect_systemd_socket_activation";
+                Link "kill_subprocess"];
     example = Some "examples/connect-command.c";
   };
 
@@ -1496,8 +1512,13 @@ systemd socket activation.
 
 This is especially useful for running L<qemu-nbd(1)> as
 a subprocess of libnbd, for example to use it to open
-qcow2 files.  To run nbdkit as a subprocess it is usually
-better to use L<nbd_connect_command(3)>.
+qcow2 files.
+
+To run nbdkit as a subprocess, this function can be used,
+or L<nbd_connect_command(3)>.
+
+To run L<nbd-server(1)> as a subprocess, this function
+cannot be used, you must use L<nbd_connect_command(3)>.
 
 =head2 Socket activation
 
@@ -1514,7 +1535,8 @@ protocol).
 
 When the NBD handle is closed the server subprocess
 is killed.";
-    see_also = [Link "connect_command"; Link "kill_subprocess";
+    see_also = [Link "aio_connect_systemd_socket_activation";
+                Link "connect_command"; Link "kill_subprocess";
                 ExternalLink ("qemu-nbd", 1);
                 URLLink "http://0pointer.de/blog/projects/socket-activation.html"];
     example = Some "examples/open-qcow2.c";
@@ -2159,7 +2181,8 @@ You can check if the connection is still connecting by calling
 L<nbd_aio_is_connecting(3)>, or if it has connected to the server
 and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
-    see_also = [URLLink "https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md"]
+    see_also = [ Link "connect_uri";
+                 URLLink "https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md"]
   };
 
   "aio_connect_unix", {
@@ -2177,6 +2200,7 @@ L<nbd_aio_is_connecting(3)>, or if it has connected to the server
 and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
     example = Some "examples/aio-connect-read.c";
+    see_also = [ Link "connect_unix" ];
   };
 
   "aio_connect_vsock", {
@@ -2193,6 +2217,7 @@ You can check if the connection is still connecting by calling
 L<nbd_aio_is_connecting(3)>, or if it has connected to the server
 and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
+    see_also = [ Link "connect_vsock" ];
   };
 
   "aio_connect_tcp", {
@@ -2208,6 +2233,7 @@ You can check if the connection is still connecting by calling
 L<nbd_aio_is_connecting(3)>, or if it has connected to the server
 and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
+    see_also = [ Link "connect_tcp" ];
   };
 
   "aio_connect_socket", {
@@ -2223,6 +2249,7 @@ You can check if the connection is still connecting by calling
 L<nbd_aio_is_connecting(3)>, or if it has connected to the server
 and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
+    see_also = [ Link "connect_socket" ];
   };
 
   "aio_connect_command", {
@@ -2239,6 +2266,7 @@ You can check if the connection is still connecting by calling
 L<nbd_aio_is_connecting(3)>, or if it has connected to the server
 and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
+    see_also = [ Link "connect_command" ];
   };
 
   "aio_connect_systemd_socket_activation", {
@@ -2255,6 +2283,7 @@ You can check if the connection is still connecting by calling
 L<nbd_aio_is_connecting(3)>, or if it has connected to the server
 and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
 on the connection.";
+    see_also = [ Link "connect_systemd_socket_activation" ];
   };
 
   "aio_opt_go", {
