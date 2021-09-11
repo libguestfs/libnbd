@@ -169,8 +169,9 @@ let print_python_closure_wrapper { cbname; cbargs } =
     function
     | CBArrayAndLen (UInt32 n, len) ->
        pr "  PyObject *py_%s = PyList_New (%s);\n" n len;
-       pr "  for (size_t i = 0; i < %s; ++i)\n" len;
-       pr "    PyList_SET_ITEM (py_%s, i, PyLong_FromUnsignedLong (%s[i]));\n" n n
+       pr "  size_t i_%s;\n" n;
+       pr "  for (i_%s = 0; i_%s < %s; ++i_%s)\n" n n len n;
+       pr "    PyList_SET_ITEM (py_%s, i_%s, PyLong_FromUnsignedLong (%s[i_%s]));\n" n n n n
     | CBBytesIn _
     | CBInt _
     | CBInt64 _ -> ()
