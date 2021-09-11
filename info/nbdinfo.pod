@@ -313,6 +313,13 @@ L<nbd_is_rotational(3)>.
 
 The output is displayed in JSON format.
 
+=item B<-L>
+
+=item B<--list>
+
+List all the exports on an NBD server.  The export name in the NBD URI
+is ignored.
+
 =item B<--map>
 
 =item B<--map=>MAP
@@ -332,13 +339,6 @@ The same as I<--map>, but displays a summary of the total size of each
 type of allocation.
 
 See the L</Map totals> section above.
-
-=item B<-L>
-
-=item B<--list>
-
-List all the exports on an NBD server.  The export name in the NBD URI
-is ignored.
 
 =item B<--size>
 
