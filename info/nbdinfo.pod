@@ -320,7 +320,18 @@ The output is displayed in JSON format.
 Display the map (usually whether parts of the disk are allocated or
 sparse) of the given export.  This displays the C<"base:allocation">
 map by default, you can choose a different map with the optional
-parameter.  Using S<I<--map --totals>> displays a summary.
+parameter.
+
+See the L</Map> section above.
+
+=item B<--map> B<--totals>
+
+=item B<--map=>MAP B<--totals>
+
+The same as I<--map>, but displays a summary of the total size of each
+type of allocation.
+
+See the L</Map totals> section above.
 
 =item B<-L>
 
@@ -328,11 +339,6 @@ parameter.  Using S<I<--map --totals>> displays a summary.
 
 List all the exports on an NBD server.  The export name in the NBD URI
 is ignored.
-
-=item B<--totals>
-
-Use S<I<--map --totals>> to display a summary.  See L</Map totals>
-above.
 
 =item B<--size>
 
