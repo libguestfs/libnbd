@@ -1,0 +1,123 @@
+=head1 NAME
+
+libnbd-release-notes-1.10 - release notes for libnbd 1.10
+
+=head1 DESCRIPTION
+
+These are the release notes for libnbd stable release 1.10.
+This describes the major changes since 1.8.
+
+libnbd 1.10.0 was released on B<XXX September 2021>.
+
+=head2 Security
+
+There were no security bugs found in libnbd during this release cycle.
+
+If you find a security issue, please read F<SECURITY> in the source
+(online here:
+L<https://gitlab.com/nbdkit/libnbd/blob/master/SECURITY>).  To
+find out about previous security issues in libnbd, see
+L<libnbd-security(3)>.
+
+=head2 New APIs
+
+No new APIs were added in 1.10.
+
+=head2 Enhancements to existing APIs
+
+L<nbd_get_uri(3)> no longer returns service names
+(eg. C<"nbd://localhost:nbd">).  Instead it always returns raw port
+numbers for portability.
+
+L<nbd_connect_uri(3)> now supports C<tls-certificates=I<DIR>> query
+parameter, making it much easier to connect to servers using TLS with
+X.509 certificates.  Also error messages from this API have been
+improved in the case of some common URI user errors.
+
+Python C<nbd.aio_connect> implements support for C<AF_UNIX> sockets.
+
+Fix invalid use of C<unsafe.Pointer> in Go bindings.
+
+=head2 Tools
+
+L<nbdcopy(1)> now uses a default request size of 2M (instead of 32M).
+This default performs better in most cases.
+
+L<nbdinfo(1)> has a new I<--map --totals> mode which displays a
+summary of the map.  Also new I<--can> and I<--is> options let you
+test export properties (eg. I<--is read-only>).
+
+L<nbdinfo(1)> I<--map> option uses "data" instead of "allocated"
+because of ambiguity about what "allocated" means (Eric Blake, Nir
+Soffer).
+
+L<nbdfuse(1)> now supports efficient zeroing.  Note this requires
+Linux kernel E<ge> 5.14.
+
+L<nbdsh(1)> has new option I<-n> which avoids creating the implicit
+handle C<h>.  Also new option I<-v> which enables debugging.  Also the
+initial help banner is now context sensitive giving more relevant
+information depending on how nbdsh was invoked.
+
+=head2 Tests
+
+CI tests were greatly enhanced and many platform-specific fixes were
+made.  To view the latest CI tests and results see:
+L<https://gitlab.com/nbdkit/libnbd/-/pipelines> (Martin Kletzander).
+
+When running the tests, suppress C<$DEBUGINFOD_URLS> because of
+performance issues (thanks Mark Wielaard).
+
+Tests now use the new C<GLIBC_TUNABLES> feature, replacing
+C<MALLOC_CHECK_> on glibc E<ge> 2.34 (thanks Eric Blake,
+Siddhesh Poyarekar).
+
+=head2 Other improvements and bug fixes
+
+The L<nbdcopy(1)> progress bar should be displayed more accurately in
+multithreaded mode.
+
+=head2 Documentation
+
+L<nbd_connect(3)> and L<nbd_aio_connect(3)> documentation has been
+revised and improved.
+
+More consistent option styling is used throughout the documentation.
+
+F<podwrapper.pl> has been unified (almost) with the copy in nbdkit.
+
+=head2 Build
+
+F<configure.ac> now uses spaces consistently, and has been modernized
+to support the latest autotools (Eric Blake).
+
+We now warn about large stack frames, and a few places which used
+large stack frames have been fixed.
+
+=head1 SEE ALSO
+
+L<libnbd(3)>.
+
+=head1 AUTHORS
+
+=begin comment
+
+git shortlog -s v1.8.0..
+
+=end comment
+
+=over 4
+
+=item Anson Lo
+
+=item Eric Blake
+
+=item Martin Kletzander
+
+=item Richard W.M. Jones
+
+=back
+
+=head1 COPYRIGHT
+
+Copyright (C) 2021 Red Hat Inc.

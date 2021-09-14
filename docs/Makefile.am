@@ -42,6 +42,7 @@ EXTRA_DIST = \
 	libnbd-release-notes-1.4.pod \
 	libnbd-release-notes-1.6.pod \
 	libnbd-release-notes-1.8.pod \
+	libnbd-release-notes-1.10.pod \
 	libnbd-security.pod \
 	nbd_create.pod \
 	nbd_close.3 \
@@ -57,6 +58,7 @@ man_MANS = \
 	libnbd-release-notes-1.4.1 \
 	libnbd-release-notes-1.6.1 \
 	libnbd-release-notes-1.8.1 \
+	libnbd-release-notes-1.10.1 \
 	libnbd-security.3 \
 	nbd_create.3 \
 	nbd_close.3 \
@@ -70,6 +72,7 @@ CLEANFILES += \
 	libnbd-release-notes-1.4.1 \
 	libnbd-release-notes-1.6.1 \
 	libnbd-release-notes-1.8.1 \
+	libnbd-release-notes-1.10.1 \
 	libnbd-security.3 \
 	nbd_create.3 \
 	$(api_built:%=%.3) \
@@ -104,6 +107,11 @@ libnbd-release-notes-1.6.1: libnbd-release-notes-1.6.pod
 	    $<
 
 libnbd-release-notes-1.8.1: libnbd-release-notes-1.8.pod
+	$(PODWRAPPER) --section=1 --man $@ \
+	    --html $(top_builddir)/html/$@.html \
+	    $<
+
+libnbd-release-notes-1.10.1: libnbd-release-notes-1.10.pod
 	$(PODWRAPPER) --section=1 --man $@ \
 	    --html $(top_builddir)/html/$@.html \
 	    $<
