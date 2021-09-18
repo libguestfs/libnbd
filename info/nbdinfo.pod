@@ -29,7 +29,7 @@ L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>):
  $ nbdinfo nbd://localhost
  protocol: newstyle-fixed without TLS
  export="":
-         export-size: 1048576
+         export-size: 1048576 (1M)
          content: data
          uri: nbd://localhost:10809/
          is_rotational: false
@@ -78,7 +78,8 @@ the I<--json> parameter:
        "block_size_minimum": 1,
        "block_size_preferred": 4096,
        "block_size_maximum": 33554432,
-       "export-size": 2125119488
+       "export-size": 2125119488,
+       "export-size-str": "2075312K"
      }
    ]
  }
@@ -222,11 +223,11 @@ For example:
  $ nbdkit file dir=. --run 'nbdinfo --list "$uri"'
  protocol: newstyle-fixed without TLS
  export="Fedora-Workstation-Live-x86_64-29-1.2.iso":
-     export-size: 1931476992
+     export-size: 1931476992 (1842M)
      uri: nbd://localhost:10809/Fedora-Workstation-Live-x86_64-29-1.2.iso
      [...]
  export="debian-10.4.0-amd64-DVD-1.iso":
-     export-size: 3955556352
+     export-size: 3955556352 (3862848K)
      uri: nbd://localhost:10809/debian-10.4.0-amd64-DVD-1.iso
      [...]
 

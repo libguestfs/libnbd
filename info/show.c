@@ -28,6 +28,7 @@
 
 #include <libnbd.h>
 
+#include "human-size.h"
 #include "vector.h"
 
 #include "nbdinfo.h"
@@ -45,6 +46,8 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
                  bool first, bool last)
 {
   int64_t i, size;
+  char size_str[HUMAN_SIZE_LONGEST];
+  bool human_size_flag;
   char *export_name = NULL;
   char *export_desc = NULL;
   char *content = NULL;
@@ -74,6 +77,8 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
     fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+
+  human_size (size_str, size, &human_size_flag);
 
   uri = nbd_get_uri (nbd);
 
@@ -116,7 +121,10 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
     fprintf (fp, ":\n");
     if (desc && *desc)
       fprintf (fp, "\tdescription: %s\n", desc);
-    fprintf (fp, "\texport-size: %" PRIi64 "\n", size);
+    if (human_size_flag)
+      fprintf (fp, "\texport-size: %" PRIi64 " (%s)\n", size, size_str);
+    else
+      fprintf (fp, "\texport-size: %" PRIi64 "\n", size);
     if (content)
       fprintf (fp, "\tcontent: %s\n", content);
     if (uri)
@@ -239,7 +247,8 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
                block_maximum);
 
     /* Put this one at the end because of the stupid comma thing in JSON. */
-    fprintf (fp, "\t\"export-size\": %" PRIi64 "\n", size);
+    fprintf (fp, "\t\"export-size\": %" PRIi64 ",\n", size);
+    fprintf (fp, "\t\"export-size-str\": \"%s\"\n", size_str);
 
     if (last)
       fprintf (fp, "\t} ]\n");
