@@ -34,6 +34,8 @@ include $(top_srcdir)/common-rules.mk
 noinst_LTLIBRARIES = libutils.la
 
 libutils_la_SOURCES = \
+	human-size.c \
+	human-size.h \
 	vector.c \
 	vector.h \
 	version.c \
@@ -50,8 +52,12 @@ libutils_la_LIBADD = \
 
 # Unit tests.
 
-TESTS = test-vector
-check_PROGRAMS = test-vector
+TESTS = test-human-size test-vector
+check_PROGRAMS = test-human-size test-vector
+
+test_human_size_SOURCES = test-human-size.c human-size.c human-size.h
+test_human_size_CPPFLAGS = -I$(srcdir)
+test_human_size_CFLAGS = $(WARNINGS_CFLAGS)
 
 test_vector_SOURCES = test-vector.c vector.c vector.h
 test_vector_CPPFLAGS = -I$(srcdir)

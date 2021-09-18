@@ -31,6 +31,7 @@ Makefile.in
 /bash/nbdcopy
 /bash/nbdfuse
 /bash/nbdinfo
+/common/utils/test-human-size
 /common/utils/test-vector
 /compile
 /config.cache
