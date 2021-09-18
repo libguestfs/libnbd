@@ -28,11 +28,11 @@ requires nbdkit --version
 file=test-verbose.out
 cleanup_fn rm -f $file
 
-$VG nbdcopy -v -- [ nbdkit null ] null: 2>$file
+$VG nbdcopy -v -- [ nbdkit memory 1M ] null: 2>$file
 
 cat $file
 
 # Check some known strings appear in the output.
 grep '^nbdcopy: src: nbd_ops' $file
-grep '^nbdcopy: src: size=0' $file
+grep '^nbdcopy: src: size=1048576 (1M)' $file
 grep '^nbdcopy: dst: null_ops' $file

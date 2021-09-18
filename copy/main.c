@@ -39,6 +39,7 @@
 #include <libnbd.h>
 
 #include "ispowerof2.h"
+#include "human-size.h"
 #include "version.h"
 #include "nbdcopy.h"
 
@@ -508,8 +509,11 @@ open_local (const char *filename, direction d)
 static void
 print_rw (struct rw *rw, const char *prefix, FILE *fp)
 {
+  char buf[HUMAN_SIZE_LONGEST];
+
   fprintf (fp, "%s: %s \"%s\"\n", prefix, rw->ops->ops_name, rw->name);
-  fprintf (fp, "%s: size=%" PRIi64 "\n", prefix, rw->size);
+  fprintf (fp, "%s: size=%" PRIi64 " (%s)\n",
+           prefix, rw->size, human_size (buf, rw->size, NULL));
 }
 
 /* Default implementation of rw->ops->get_extents for backends which
