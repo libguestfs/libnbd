@@ -1,12 +1,13 @@
 To report security bugs, see ‘SECURITY’ in the top source directory.
 
 
-Fuzzing libnbd using the American Fuzzy Lop (afl) fuzzer
+Fuzzing libnbd using the American Fuzzy Lop (AFL) fuzzer
 ========================================================
 
-We can fuzz libnbd using the wrapper in this directory.
+You can fuzz libnbd with AFL or AFL++ (https://aflplus.plus/) using
+the wrapper in this directory.
 
-You will need to recompile libnbd with afl instrumentation:
+You will need to recompile libnbd with AFL instrumentation:
 
   ./configure CC=/usr/bin/afl-gcc CXX=/usr/bin/afl-g++ \
       --disable-shared \
@@ -15,7 +16,7 @@ You will need to recompile libnbd with afl instrumentation:
   make
 
 The fuzzing/testcase_dir directory contains some initial testcases
-that afl can use.
+that AFL can use.
 
 Run multiple copies of afl-fuzz.  Usually you should run 1 master (-M)
 and as many slaves (-S) as you can.
@@ -48,7 +49,7 @@ profiling:
   make clean
   make
 
-(2) Assuming ../libnbd-afl is the libnbd source compiled with afl, and
+(2) Assuming ../libnbd-afl is the libnbd source compiled with AFL, and
 the current directory is libnbd compiled with profiling, then run the
 command below.  You can run this even while afl-fuzz is running.
 
