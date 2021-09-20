@@ -65,9 +65,6 @@ CI tests were greatly enhanced and many platform-specific fixes were
 made.  To view the latest CI tests and results see:
 L<https://gitlab.com/nbdkit/libnbd/-/pipelines> (Martin Kletzander).
 
-When running the tests, suppress C<$DEBUGINFOD_URLS> because of
-performance issues (thanks Mark Wielaard).
-
 Tests now use the new C<GLIBC_TUNABLES> feature, replacing
 C<MALLOC_CHECK_> on glibc E<ge> 2.34 (thanks Eric Blake,
 Siddhesh Poyarekar).
