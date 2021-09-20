@@ -24,11 +24,12 @@ set -e
 set -x
 
 requires nbdkit --version
+requires nbdkit memory --version
 
 file=test-verbose.out
 cleanup_fn rm -f $file
 
-$VG nbdcopy -v -- [ nbdkit memory 1M ] null: 2>$file
+$VG nbdcopy -v -- [ nbdkit memory size=1M ] null: 2>$file
 
 cat $file
 
