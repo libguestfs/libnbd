@@ -37,15 +37,15 @@ test (uint64_t bytes, const char *expected, bool expected_human_flag)
 
   human_size (actual, bytes, &actual_human_flag);
 
-  if (strcmp (actual, expected) == 0 ||
-      actual_human_flag != expected_human_flag) {
+  if (strcmp (actual, expected) == 0 &&
+      actual_human_flag == expected_human_flag) {
     printf ("test-human-size: %" PRIu64 " -> \"%s\" (%s) OK\n",
             bytes, actual, actual_human_flag ? "true" : "false");
     fflush (stdout);
   }
   else {
     fprintf (stderr,
-             "test-human-size: error: test case %" PRIu64
+             "test-human-size: error: test case %" PRIu64 " "
              "expected \"%s\" (%s) "
              "but returned \"%s\" (%s)\n",
              bytes,

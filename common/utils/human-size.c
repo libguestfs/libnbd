@@ -29,7 +29,7 @@
 char *
 human_size (char *buf, uint64_t bytes, bool *human)
 {
-  static const char *ext[] = { "E", "P", "T", "G", "M", "K", "" };
+  static const char ext[][2] = { "E", "P", "T", "G", "M", "K", "" };
   size_t i;
 
   if (buf == NULL) {
@@ -39,13 +39,15 @@ human_size (char *buf, uint64_t bytes, bool *human)
   }
 
   /* Work out which extension to use, if any. */
-  for (i = 6; i >= 0; --i) {
-    if (bytes == 0 || (bytes & 1023) != 0)
-      break;
-    bytes /= 1024;
+  i = 6;
+  if (bytes != 0) {
+    while ((bytes & 1023) == 0) {
+      bytes >>= 10;
+      i--;
+    }
   }
 
-  /* Set to flag to true if we're going to add a human-readable extension. */
+  /* Set the flag to true if we're going to add a human-readable extension. */
   if (human)
     *human = ext[i][0] != '\0';
 
