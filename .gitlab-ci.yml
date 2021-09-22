@@ -36,6 +36,7 @@ stages:
 
 .base_build_job:
   stage: builds
+  image: $CI_REGISTRY_IMAGE/$NAME:latest
   cache:
     paths:
       - ccache/
@@ -50,10 +51,6 @@ stages:
       - "**/test-suite.log"
     public: true
     when: always
-
-.native_build_job:
-  extends: .base_build_job
-  image: $CI_REGISTRY_IMAGE/$NAME:latest
 
 # Jobs that we delegate to Cirrus CI because they require an operating
 # system other than Linux. These jobs will only run if the required
@@ -175,59 +172,59 @@ x64-ubuntu-2004-container:
 
 # Cross-compilation build jobs
 i686-debian-10:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - i686-debian-10-container
   variables:
-    NAME: debian-10
+    NAME: debian-10-cross-i686
     CROSS: i686
 
 i686-debian-11:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - i686-debian-11-container
   variables:
-    NAME: debian-11
+    NAME: debian-11-cross-i686
     CROSS: i686
 
 # Native architecture build + test jobs
 x64-debian-11:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-debian-11-container
   variables:
     NAME: debian-11
 
 x64-debian-sid:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-debian-sid-container
   variables:
     NAME: debian-sid
 
 x64-centos-8:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-centos-8-container
   variables:
     NAME: centos-8
 
 x64-alpine-314:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-alpine-314-container
   variables:
     NAME: alpine-314
 
 x64-alpine-edge:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-alpine-edge-container
   variables:
     NAME: alpine-edge
 
 x64-centos-8-clang:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-centos-8-container
   variables:
@@ -235,35 +232,35 @@ x64-centos-8-clang:
     CC: clang
 
 x64-centos-stream-8:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-centos-stream-8-container
   variables:
     NAME: centos-stream-8
 
 x64-fedora-33:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-fedora-33-container
   variables:
     NAME: fedora-33
 
 x64-fedora-34:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-fedora-34-container
   variables:
     NAME: fedora-34
 
 x64-fedora-rawhide:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-fedora-rawhide-container
   variables:
     NAME: fedora-rawhide
 
 x64-fedora-rawhide-clang:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-fedora-rawhide-container
   variables:
@@ -271,21 +268,21 @@ x64-fedora-rawhide-clang:
     CC: clang
 
 x64-opensuse-leap-152:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-opensuse-leap-152-container
   variables:
     NAME: opensuse-leap-152
 
 x64-opensuse-tumbleweed:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-opensuse-tumbleweed-container
   variables:
     NAME: opensuse-tumbleweed
 
 x64-ubuntu-1804:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-ubuntu-1804-container
   variables:
@@ -293,7 +290,7 @@ x64-ubuntu-1804:
     GOLANG: skip
 
 x64-ubuntu-2004:
-  extends: .native_build_job
+  extends: .base_build_job
   needs:
     - x64-ubuntu-2004-container
   variables:
