@@ -76,12 +76,13 @@ main() {
 --with-libxml2 \
 "
 
-    if "$CROSS"
+    if test -n "$CROSS"
     then
         CONFIG_ARGS="$CONFIG_ARGS
             --disable-fuse
             --disable-ocaml
-            --disable-python"
+            --disable-python
+            --disable-golang"
     else
         CONFIG_ARGS="$CONFIG_ARGS
             --enable-fuse
