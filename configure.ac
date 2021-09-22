@@ -377,8 +377,7 @@ AM_CONDITIONAL([HAVE_OCAMLDOC],
 
 dnl HAVE_OCAMLC can be used to detect if we are able to run the
 dnl generator.  We should NOT require ocamlfind for this.
-AM_CONDITIONAL([HAVE_OCAMLC],
-    [test "x$OCAMLC" != "xno" && test "x$enable_ocaml" = "xyes"])
+AM_CONDITIONAL([HAVE_OCAMLC], [test "x$OCAMLC" != "xno"])
 
 dnl Check if OCaml has caml_alloc_custom_mem (added late 2018).
 AS_IF([test "x$OCAMLC" != "xno" && test "x$OCAMLFIND" != "xno" && \
