@@ -35,9 +35,10 @@ Container images are prepared during the build and cached, so that they do not
 need to be rebuilt for every run, or even built from scratch when changed
 slightly. The cached container images can be deleted at any time as they will
 be correctly rebuilt in case of a cache miss. The Dockerfiles are generated
-using ``lcitool`` and stored under ``ci/containers``. In that directory is also
-a ``refresh`` script which can regenerate those files, for example after an
-update to libvirt-ci (e.g. when adding a new dependency).
+using ``lcitool`` and stored under ``ci/containers``. In order to update the
+files one needs to run ``lcitool manifest ci/manifest.yml`` from the root of the
+git repository, for example after an update to libvirt-ci (e.g. when adding a
+new dependency).
 
 Recreating the builds locally is pretty straightforward. Choose a file from
 ``ci/containers`` which represents the desired setup. In this example let's

@@ -1,6 +1,6 @@
 # THIS FILE WAS AUTO-GENERATED
 #
-#  $ lcitool dockerfile ubuntu-1804 libnbd
+#  $ lcitool manifest ci/manifest.yml
 #
 # https://gitlab.com/libvirt/libvirt-ci
 
