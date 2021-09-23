@@ -7,7 +7,7 @@ libnbd-release-notes-1.10 - release notes for libnbd 1.10
 These are the release notes for libnbd stable release 1.10.
 This describes the major changes since 1.8.
 
-libnbd 1.10.0 was released on B<XXX September 2021>.
+libnbd 1.10.0 was released on B<23 September 2021>.
 
 =head2 Security
 
@@ -51,6 +51,9 @@ L<nbdinfo(1)> I<--map> option uses "data" instead of "allocated"
 because of ambiguity about what "allocated" means (Eric Blake, Nir
 Soffer).
 
+L<nbdinfo(1)> shows the export size in both bytes and human units
+(like C<"1K">).  The machine-parsable JSON output has not changed.
+
 L<nbdfuse(1)> now supports efficient zeroing.  Note this requires
 Linux kernel E<ge> 5.14.
 
@@ -90,6 +93,12 @@ to support the latest autotools (Eric Blake).
 
 We now warn about large stack frames, and a few places which used
 large stack frames have been fixed.
+
+Continue fuzzing using AFL++.  Updated the fuzzing documentation.
+
+Fix building from git with I<--disable-ocaml>.  As long as only
+C<ocamlc> is installed, the generator should still be built and run
+(Martin Kletzander).
 
 =head1 SEE ALSO
 
