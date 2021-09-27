@@ -141,6 +141,7 @@ Makefile.in
 /ocaml/examples/.depend
 /ocaml/libnbd-ocaml.3
 /ocaml/libnbdocaml.a
+/ocaml/nbd
 /ocaml/nbd-c.c
 /ocaml/stamp-manpages
 /ocaml/stamp-mlnbd

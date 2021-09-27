@@ -161,4 +161,21 @@ install-data-hook:
 	  $(data_hook_files)
 	rm $(DESTDIR)$(OCAMLLIB)/nbd/libnbdocaml.a
 
+# This "tricks" ocamlfind into allowing us to compile other OCaml
+# programs against a locally compiled copy of the libnbd sources.
+# ocamlfind needs to see a directory called ‘nbd’ which contains
+# ‘META’.  The current directory is called ‘ocaml’, but if we make
+# this symlink then we can create the required directory structure.
+#
+# Note if you just want to use this, make sure you use
+# ‘../libnbd/run make’ in your other program and everything should
+# just work.
+CLEANFILES += nbd
+
+all-local: nbd
+
+nbd:
+	rm -f $@
+	$(LN_S) . $@
+
 endif HAVE_OCAML
