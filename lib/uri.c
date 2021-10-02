@@ -244,14 +244,15 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   }
 
   if (socket_required && !unixsocket) {
-    set_error (EINVAL, "cannot parse socket parameter from NBD URI: %s",
-               uri->query_raw ? : "NULL");
+    set_error (EINVAL, "cannot parse socket parameter from NBD URI "
+               "(did you mean to use \"%s:///?socket=...\"?)",
+               uri->scheme);
     goto cleanup;
   }
   else if (!socket_required && unixsocket) {
-    set_error (EINVAL, "socket=%s URI query is incompatible with \"%s:\" "
-               "(did you mean to use \"%s\" ?)",
-               unixsocket, uri->scheme, !tls ? "nbd+unix:" : "nbds+unix:");
+    set_error (EINVAL, "socket parameter is incompatible with \"%s:\" "
+               "(did you mean to use \"%s+unix:///?socket=...\"?)",
+               uri->scheme, !tls ? "nbd" : "nbds");
     goto cleanup;
   }
 
