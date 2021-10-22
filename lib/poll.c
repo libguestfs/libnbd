@@ -57,8 +57,11 @@ nbd_unlocked_poll (struct nbd_handle *h, int timeout)
    * would allow other threads to close file descriptors which we have
    * passed to poll.
    */
-  r = poll (fds, 1, timeout);
-  debug (h, "poll end: r=%d revents=%x", r, fds[0].revents);
+  do {
+    r = poll (fds, 1, timeout);
+    debug (h, "poll end: r=%d revents=%x", r, fds[0].revents);
+  } while (r == -1 && errno == EINTR);
+
   if (r == -1) {
     set_error (errno, "poll");
     return -1;
