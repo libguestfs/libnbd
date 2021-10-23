@@ -18,7 +18,7 @@
 
 package libnbd
 
-import "fmt"
+import "syscall"
 import "testing"
 
 func Test610Error(t *testing.T) {
@@ -34,8 +34,7 @@ func Test610Error(t *testing.T) {
 	err = h.Pread(buf, 0, nil)
 	if err == nil {
 		t.Fatalf("expected an error from operation")
+	} else if err.(*LibnbdError).Errno != syscall.ENOTCONN {
+		t.Fatalf("unexpected error: %s", err)
 	}
-	fmt.Printf("error = %s\n", err)
-	/* XXX We expect the errno to be ENOTCONN, but I couldn't work
-	   out how to test it. */
 }
