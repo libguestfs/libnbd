@@ -155,7 +155,12 @@ func asynch_copy(t *testing.T, src *Libnbd, dst *Libnbd) {
 		if dir_is_write(dst) {
 			fdset_set(&wfds, dfd)
 		}
-		_, err = syscall.Select(nfd, &rfds, &wfds, nil, nil)
+		for {
+			_, err = syscall.Select(nfd, &rfds, &wfds, nil, nil)
+			if err != syscall.EINTR {
+				break
+			}
+		}
 		if err != nil {
 			t.Fatalf("select: %s", err)
 		}
