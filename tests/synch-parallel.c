@@ -49,11 +49,8 @@ static char *ramdisk;
 /* How long (seconds) that the test will run for. */
 #define RUN_TIME 10
 
-/* Number of threads and connections.  These don't need to be related
- * because there is no real parallelism going on here.
- */
+/* Number of threads. */
 #define NR_THREADS 8
-#define NR_MULTI_CONN 4
 
 /* Unix socket. */
 static const char *unixsocket;
@@ -153,7 +150,6 @@ main (int argc, char *argv[])
           "disabled"
 #endif
           );
-  printf ("multi-conn: %d\n", NR_MULTI_CONN);
 
   printf ("bytes sent: %" PRIu64 " (%g Mbytes/s)\n",
           bytes_sent, (double) bytes_sent / RUN_TIME / 1000000);
