@@ -274,7 +274,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     function
     | Bool n -> pr "  int %s;\n" n
     | BytesIn (n, _) ->
-       pr "  Py_buffer %s;\n" n
+       pr "  Py_buffer %s = { .obj = NULL };\n" n
     | BytesOut (n, count) ->
        pr "  char *%s = NULL;\n" n;
        pr "  Py_ssize_t %s;\n" count
@@ -552,7 +552,9 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   List.iter (
     function
     | Bool _ -> ()
-    | BytesIn (n, _) -> pr "  PyBuffer_Release (&%s);\n" n
+    | BytesIn (n, _) ->
+       pr "  if (%s.obj)\n" n;
+       pr "    PyBuffer_Release (&%s);\n" n
     | BytesOut (n, _) -> pr "  free (%s);\n" n
     | BytesPersistIn _ | BytesPersistOut _ -> ()
     | Closure { cbname } ->
