@@ -57,16 +57,18 @@ generator_built = \
 	$(NULL)
 
 EXTRA_DIST = \
-	src/$(pkg)/.gitignore \
-	src/$(pkg)/go.mod \
-	src/$(pkg)/aio_buffer.go \
-	src/$(pkg)/callbacks.go \
-	src/$(pkg)/handle.go \
-	src/$(pkg)/libnbd_*_test.go \
 	$(generator_built) \
 	config-test.go \
 	libnbd-golang.pod \
 	run-tests.sh \
+	src/$(pkg)/.gitignore \
+	src/$(pkg)/LICENSE \
+	src/$(pkg)/README.md \
+	src/$(pkg)/aio_buffer.go \
+	src/$(pkg)/callbacks.go \
+	src/$(pkg)/go.mod \
+	src/$(pkg)/handle.go \
+	src/$(pkg)/libnbd_*_test.go \
 	$(NULL)
 
 if HAVE_POD
