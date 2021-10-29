@@ -59,6 +59,6 @@ test_human_size_SOURCES = test-human-size.c human-size.c human-size.h
 test_human_size_CPPFLAGS = -I$(srcdir)
 test_human_size_CFLAGS = $(WARNINGS_CFLAGS)
 
-test_vector_SOURCES = test-vector.c vector.c vector.h
+test_vector_SOURCES = test-vector.c vector.c vector.h bench.h
 test_vector_CPPFLAGS = -I$(srcdir)
 test_vector_CFLAGS = $(WARNINGS_CFLAGS)
