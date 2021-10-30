@@ -141,7 +141,7 @@ nbd_unlocked_get_tls_username (struct nbd_handle *h)
   }
 
   for (;;) {
-    if (getlogin_r (str.ptr, str.alloc) == 0) {
+    if (getlogin_r (str.ptr, str.cap) == 0) {
       return str.ptr;
     }
     else if (errno != ERANGE) {
@@ -150,7 +150,7 @@ nbd_unlocked_get_tls_username (struct nbd_handle *h)
       return NULL;
     }
     /* Try again with a larger buffer. */
-    if (string_reserve (&str, str.alloc == 0 ? 16 : str.alloc * 2) == -1) {
+    if (string_reserve (&str, str.cap == 0 ? 16 : str.cap * 2) == -1) {
       set_error (errno, "realloc");
       free (str.ptr);
       return NULL;
