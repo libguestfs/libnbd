@@ -141,17 +141,17 @@ nbd_unlocked_get_tls_username (struct nbd_handle *h)
   }
 
   for (;;) {
+    /* Increase capacity (str.cap starts at 0) */
+    if (string_reserve (&str, 16) == -1) {
+      set_error (errno, "realloc");
+      free (str.ptr);
+      return NULL;
+    }
     if (getlogin_r (str.ptr, str.cap) == 0) {
       return str.ptr;
     }
     else if (errno != ERANGE) {
       set_error (errno, "getlogin_r");
-      free (str.ptr);
-      return NULL;
-    }
-    /* Try again with a larger buffer. */
-    if (string_reserve (&str, 16) == -1) {
-      set_error (errno, "realloc");
       free (str.ptr);
       return NULL;
     }
