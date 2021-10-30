@@ -150,7 +150,7 @@ nbd_unlocked_get_tls_username (struct nbd_handle *h)
       return NULL;
     }
     /* Try again with a larger buffer. */
-    if (string_reserve (&str, str.cap == 0 ? 16 : str.cap * 2) == -1) {
+    if (string_reserve (&str, 16) == -1) {
       set_error (errno, "realloc");
       free (str.ptr);
       return NULL;
