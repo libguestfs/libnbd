@@ -147,10 +147,12 @@ nbd_unlocked_get_tls_username (struct nbd_handle *h)
       free (str.ptr);
       return NULL;
     }
+
     if (getlogin_r (str.ptr, str.cap) == 0) {
       return str.ptr;
     }
-    else if (errno != ERANGE) {
+
+    if (errno != ERANGE) {
       set_error (errno, "getlogin_r");
       free (str.ptr);
       return NULL;
