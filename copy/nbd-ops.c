@@ -90,7 +90,7 @@ open_one_nbd_handle (struct rw_nbd *rwn)
   /* Cache these.  We assume with multi-conn that each handle will act
    * the same way.
    */
-  if (rwn->handles.size == 0) {
+  if (rwn->handles.len == 0) {
     rwn->can_zero = nbd_can_zero (nbd) > 0;
     rwn->rw.size = nbd_get_size (nbd);
     if (rwn->rw.size == -1) {
@@ -157,7 +157,7 @@ nbd_ops_close (struct rw *rw)
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
   size_t i;
 
-  for (i = 0; i < rwn->handles.size; ++i) {
+  for (i = 0; i < rwn->handles.len; ++i) {
     if (nbd_shutdown (rwn->handles.ptr[i], 0) == -1) {
       fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
       exit (EXIT_FAILURE);
@@ -176,7 +176,7 @@ nbd_ops_flush (struct rw *rw)
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
   size_t i;
 
-  for (i = 0; i < rwn->handles.size; ++i) {
+  for (i = 0; i < rwn->handles.len; ++i) {
     if (nbd_flush (rwn->handles.ptr[i], 0) == -1) {
       fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
       exit (EXIT_FAILURE);
@@ -189,7 +189,7 @@ nbd_ops_is_read_only (struct rw *rw)
 {
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
 
-  if (rwn->handles.size > 0)
+  if (rwn->handles.len > 0)
     return nbd_is_read_only (rwn->handles.ptr[0]);
   else
     return false;
@@ -200,7 +200,7 @@ nbd_ops_can_extents (struct rw *rw)
 {
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
 
-  if (rwn->handles.size > 0)
+  if (rwn->handles.len > 0)
     return nbd_can_meta_context (rwn->handles.ptr[0], "base:allocation");
   else
     return false;
@@ -211,7 +211,7 @@ nbd_ops_can_multi_conn (struct rw *rw)
 {
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
 
-  if (rwn->handles.size > 0)
+  if (rwn->handles.len > 0)
     return nbd_can_multi_conn (rwn->handles.ptr[0]);
   else
     return false;
@@ -226,7 +226,7 @@ nbd_ops_start_multi_conn (struct rw *rw)
   for (i = 1; i < connections; ++i)
     open_one_nbd_handle (rwn);
 
-  assert (rwn->handles.size == connections);
+  assert (rwn->handles.len == connections);
 }
 
 static size_t
@@ -436,13 +436,13 @@ nbd_ops_get_extents (struct rw *rw, uintptr_t index,
 
   nbd = rwn->handles.ptr[index];
 
-  ret->size = 0;
+  ret->len = 0;
 
   while (count > 0) {
     const uint64_t old_offset = offset;
     size_t i;
 
-    exts.size = 0;
+    exts.len = 0;
     if (nbd_block_status (nbd, count, offset,
                           (nbd_extent_callback) {
                             .user_data = &exts,
@@ -456,7 +456,7 @@ nbd_ops_get_extents (struct rw *rw, uintptr_t index,
     }
 
     /* Copy the extents returned into the final list (ret). */
-    for (i = 0; i < exts.size; ++i) {
+    for (i = 0; i < exts.len; ++i) {
       uint64_t d;
 
       assert (exts.ptr[i].offset == offset);

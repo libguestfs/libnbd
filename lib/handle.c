@@ -328,7 +328,7 @@ nbd_unlocked_add_meta_context (struct nbd_handle *h, const char *name)
 ssize_t
 nbd_unlocked_get_nr_meta_contexts (struct nbd_handle *h)
 {
-  return h->request_meta_contexts.size;
+  return h->request_meta_contexts.len;
 }
 
 char *
@@ -336,7 +336,7 @@ nbd_unlocked_get_meta_context (struct nbd_handle *h, size_t i)
 {
   char *ret;
 
-  if (i >= h->request_meta_contexts.size) {
+  if (i >= h->request_meta_contexts.len) {
     set_error (EINVAL, "meta context request out of range");
     return NULL;
   }

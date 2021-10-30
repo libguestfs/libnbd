@@ -75,7 +75,7 @@ free_exports (void)
 {
   size_t i;
 
-  for (i = 0; i < export_list.size; ++i) {
+  for (i = 0; i < export_list.len; ++i) {
     free (export_list.ptr[i].name);
     free (export_list.ptr[i].desc);
   }
@@ -88,10 +88,10 @@ list_all_exports (const char *uri)
   size_t i;
   bool list_okay = true;
 
-  if (export_list.size == 0 && json_output)
+  if (export_list.len == 0 && json_output)
     fprintf (fp, "\"exports\": []\n");
 
-  for (i = 0; i < export_list.size; ++i) {
+  for (i = 0; i < export_list.len; ++i) {
     const char *name = export_list.ptr[i].name;
     struct nbd_handle *nbd2;
 
@@ -122,7 +122,7 @@ list_all_exports (const char *uri)
 
     /* List the metadata of this export. */
     if (!show_one_export (nbd2, export_list.ptr[i].desc, i == 0,
-                          i + 1 == export_list.size))
+                          i + 1 == export_list.len))
       list_okay = false;
 
     if (probe_content) {

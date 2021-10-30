@@ -70,7 +70,7 @@ synch_copying (void)
       else
         default_get_extents (src, 0, offset, count, &exts);
 
-      for (i = 0; i < exts.size; ++i) {
+      for (i = 0; i < exts.len; ++i) {
         assert (exts.ptr[i].length <= count);
 
         if (exts.ptr[i].zero) {

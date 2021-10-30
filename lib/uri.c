@@ -142,7 +142,7 @@ parse_uri_queries (const char *query_raw, uri_query_list *list)
   return 0;
 
 error:
-  for (i = 0; i < list->size; ++list) {
+  for (i = 0; i < list->len; ++list) {
     free (list->ptr[i].name);
     free (list->ptr[i].value);
   }
@@ -254,7 +254,7 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   }
 
   /* Parse the socket parameter. */
-  for (i = 0; i < queries.size; i++) {
+  for (i = 0; i < queries.len; i++) {
     if (strcmp (queries.ptr[i].name, "socket") == 0)
       unixsocket = queries.ptr[i].value;
   }
@@ -277,7 +277,7 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
     goto cleanup;
 
   /* Look for some tls-* parameters. */
-  for (i = 0; i < queries.size; i++) {
+  for (i = 0; i < queries.len; i++) {
     if (strcmp (queries.ptr[i].name, "tls-certificates") == 0) {
       if (! h->uri_allow_local_file) {
         set_error (EPERM,
@@ -387,7 +387,7 @@ nbd_unlocked_aio_connect_uri (struct nbd_handle *h, const char *raw_uri)
   ret = 0;
 
 cleanup:
-  for (i = 0; i < queries.size; ++i) {
+  for (i = 0; i < queries.len; ++i) {
     free (queries.ptr[i].name);
     free (queries.ptr[i].value);
   }

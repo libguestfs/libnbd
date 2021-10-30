@@ -38,7 +38,7 @@ STATE_MACHINE {
   else {
     assert (CALLBACK_IS_NULL (h->opt_cb.fn.context));
     opt = NBD_OPT_SET_META_CONTEXT;
-    if (!h->structured_replies || h->request_meta_contexts.size == 0) {
+    if (!h->structured_replies || h->request_meta_contexts.len == 0) {
       SET_NEXT_STATE (%^OPT_GO.START);
       return 0;
     }
@@ -48,7 +48,7 @@ STATE_MACHINE {
 
   /* Calculate the length of the option request data. */
   len = 4 /* exportname len */ + strlen (h->export_name) + 4 /* nr queries */;
-  for (i = 0; i < h->request_meta_contexts.size; ++i)
+  for (i = 0; i < h->request_meta_contexts.len; ++i)
     len += 4 /* length of query */ + strlen (h->request_meta_contexts.ptr[i]);
 
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
@@ -87,7 +87,7 @@ STATE_MACHINE {
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
-    h->sbuf.nrqueries = htobe32 (h->request_meta_contexts.size);
+    h->sbuf.nrqueries = htobe32 (h->request_meta_contexts.len);
     h->wbuf = &h->sbuf;
     h->wlen = sizeof h->sbuf.nrqueries;
     h->wflags = MSG_MORE;
@@ -105,7 +105,7 @@ STATE_MACHINE {
   return 0;
 
  NEWSTYLE.OPT_META_CONTEXT.PREPARE_NEXT_QUERY:
-  if (h->querynum >= h->request_meta_contexts.size) {
+  if (h->querynum >= h->request_meta_contexts.len) {
     /* end of list of requested meta contexts */
     SET_NEXT_STATE (%PREPARE_FOR_REPLY);
     return 0;

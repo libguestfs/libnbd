@@ -526,7 +526,7 @@ default_get_extents (struct rw *rw, uintptr_t index,
 {
   struct extent e;
 
-  ret->size = 0;
+  ret->len = 0;
 
   e.offset = offset;
   e.length = count;

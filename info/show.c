@@ -131,7 +131,7 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
       fprintf (fp, "\turi: %s\n", uri);
     if (show_context) {
       fprintf (fp, "\tcontexts:\n");
-      for (i = 0; i < contexts.size; ++i)
+      for (i = 0; i < contexts.len; ++i)
         fprintf (fp, "\t\t%s\n", contexts.ptr[i]);
     }
     if (is_rotational >= 0)
@@ -195,10 +195,10 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
 
     if (show_context) {
       fprintf (fp, "\t\"contexts\": [\n");
-      for (i = 0; i < contexts.size; ++i) {
+      for (i = 0; i < contexts.len; ++i) {
         fprintf (fp, "\t\t");
         print_json_string (contexts.ptr[i]);
-        if (i+1 != contexts.size)
+        if (i+1 != contexts.len)
           fputc (',', fp);
         fputc ('\n', fp);
       }

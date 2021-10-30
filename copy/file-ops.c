@@ -101,7 +101,7 @@ page_size_init (void)
 
 /* Load the page cache map for a particular file into
  * rwf->cached_pages.  Only used when reading files.  This doesn't
- * fail: if a system call fails then rwf->cached_pages.size will be
+ * fail: if a system call fails then rwf->cached_pages.len will be
  * zero which is handled in page_cache_evict.
  */
 static inline void
@@ -121,7 +121,7 @@ page_cache_map (struct rw_file *rwf)
   if (mincore (ptr, rwf->rw.size, rwf->cached_pages.ptr) == -1)
     goto out;
 
-  rwf->cached_pages.size = veclen;
+  rwf->cached_pages.len = veclen;
  out:
   munmap (ptr, rwf->rw.size);
 }
@@ -133,7 +133,7 @@ static inline bool
 page_was_cached (struct rw_file *rwf, uint64_t offset)
 {
   uint64_t page = offset / page_size;
-  assert (page < rwf->cached_pages.size);
+  assert (page < rwf->cached_pages.len);
 
   return (rwf->cached_pages.ptr[page] & 1) != 0;
 }
@@ -151,7 +151,7 @@ page_cache_evict (struct rw_file *rwf, uint64_t orig_offset, size_t orig_len)
    * that pages were mapped so we will not evict them: essentially fall
    * back to doing nothing.
    */
-  if (rwf->cached_pages.size == 0) return;
+  if (rwf->cached_pages.len == 0) return;
 
   /* Only bother with whole pages. */
   offset = ROUND_UP (orig_offset, page_size);
@@ -635,7 +635,7 @@ file_get_extents (struct rw *rw, uintptr_t index,
                   uint64_t offset, uint64_t count,
                   extent_list *ret)
 {
-  ret->size = 0;
+  ret->len = 0;
 
 #ifdef SEEK_HOLE
   struct rw_file *rwf = (struct rw_file *)rw;
@@ -704,8 +704,8 @@ file_get_extents (struct rw *rw, uintptr_t index,
     /* The last extent may extend beyond the request bounds.  We must
      * truncate it.
      */
-    assert (ret->size > 0);
-    last = ret->size - 1;
+    assert (ret->len > 0);
+    last = ret->len - 1;
     assert (ret->ptr[last].offset <= end);
     if (ret->ptr[last].offset + ret->ptr[last].length > end) {
       uint64_t d = ret->ptr[last].offset + ret->ptr[last].length - end;

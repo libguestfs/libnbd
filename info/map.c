@@ -70,7 +70,7 @@ do_map (void)
   }
 
   for (offset = 0; offset < size;) {
-    prev_entries_size = entries.size;
+    prev_entries_size = entries.len;
     if (nbd_block_status (nbd, MIN (size - offset, max_len), offset,
                           (nbd_extent_callback) {
                             .callback = extent_callback,
@@ -80,13 +80,13 @@ do_map (void)
       exit (EXIT_FAILURE);
     }
     /* We expect extent_callback to add at least one extent to entries. */
-    if (prev_entries_size == entries.size) {
+    if (prev_entries_size == entries.len) {
       fprintf (stderr, "%s: --map: server did not return any extents\n",
                progname);
       exit (EXIT_FAILURE);
     }
-    assert ((entries.size & 1) == 0);
-    for (i = prev_entries_size; i < entries.size; i += 2)
+    assert ((entries.len & 1) == 0);
+    for (i = prev_entries_size; i < entries.len; i += 2)
       offset += entries.ptr[i];
   }
 
@@ -134,7 +134,7 @@ print_extents (uint32_vector *entries)
 
   if (json_output) fprintf (fp, "[\n");
 
-  for (i = 0; i < entries->size; i += 2) {
+  for (i = 0; i < entries->len; i += 2) {
     uint32_t type = entries->ptr[last+1];
 
     /* If we're coalescing and the current type is different from the
@@ -227,7 +227,7 @@ print_totals (uint32_vector *entries, int64_t size)
     uint64_t c = 0;
     size_t i;
 
-    for (i = 0; i < entries->size; i += 2) {
+    for (i = 0; i < entries->len; i += 2) {
       uint32_t t = entries->ptr[i+1];
 
       if (t == type)

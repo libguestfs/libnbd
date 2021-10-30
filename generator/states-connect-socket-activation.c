@@ -51,7 +51,7 @@ prepare_socket_activation_environment (string_vector *env)
   char *p;
   size_t i;
 
-  assert (env->size == 0);
+  assert (env->len == 0);
 
   /* Reserve slots env[0] and env[1]. */
   p = strdup ("LISTEN_PID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");

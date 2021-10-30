@@ -154,7 +154,7 @@ worker_thread (void *indexp)
     else
       default_get_extents (src, index, offset, count, &exts);
 
-    for (i = 0; i < exts.size; ++i) {
+    for (i = 0; i < exts.len; ++i) {
       struct command *command;
       struct buffer *buffer;
       char *data;

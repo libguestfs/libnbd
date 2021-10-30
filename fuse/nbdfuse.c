@@ -415,7 +415,7 @@ main (int argc, char *argv[])
       handles_append (&nbd, h); /* reserved above, so can't fail */
     }
   }
-  connections = (unsigned) nbd.size;
+  connections = (unsigned) nbd.len;
   if (verbose)
     fprintf (stderr, "nbdfuse: connections=%u\n", connections);
 
@@ -511,7 +511,7 @@ main (int argc, char *argv[])
   fuse_destroy (fuse);
 
   /* Close NBD handle(s). */
-  for (i = 0; i < nbd.size; ++i)
+  for (i = 0; i < nbd.len; ++i)
     nbd_close (nbd.ptr[i]);
 
   free (mountpoint);

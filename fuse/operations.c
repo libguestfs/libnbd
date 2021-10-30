@@ -115,20 +115,20 @@ start_operations_threads (void)
   /* This barrier is used to ensure all operations threads have
    * started up before we leave this function.
    */
-  err = pthread_barrier_init (&barrier, NULL, nbd.size + 1);
+  err = pthread_barrier_init (&barrier, NULL, nbd.len + 1);
   if (err != 0) {
     errno = err;
     perror ("nbdfuse: pthread_barrier_init");
     exit (EXIT_FAILURE);
   }
 
-  threads = calloc (nbd.size, sizeof (struct thread));
+  threads = calloc (nbd.len, sizeof (struct thread));
   if (threads == NULL) {
     perror ("calloc");
     exit (EXIT_FAILURE);
   }
 
-  for (i = 0; i < nbd.size; ++i) {
+  for (i = 0; i < nbd.len; ++i) {
     threads[i].n = i;
     threads[i].in_flight = 0;
     if ((err = pthread_mutex_init (&threads[i].in_flight_mutex, NULL)) != 0 ||
@@ -234,11 +234,11 @@ next_thread (void)
 {
   static _Atomic size_t n = 0;
 
-  if (nbd.size == 1)
+  if (nbd.len == 1)
     return 0;
   else {
     size_t i = n++;
-    return i % (nbd.size - 1);
+    return i % (nbd.len - 1);
   }
 }
 
@@ -509,15 +509,15 @@ nbdfuse_destroy (void *data)
    */
   time (&st);
   while (time (NULL) - st <= RELEASE_TIMEOUT) {
-    for (i = 0; i < nbd.size; ++i) {
+    for (i = 0; i < nbd.len; ++i) {
       if (threads[i].in_flight > 0)
         break;
     }
-    if (i == nbd.size) /* no commands in flight */
+    if (i == nbd.len) /* no commands in flight */
       break;
 
     /* Signal to the operations thread to work. */
-    for (i = 0; i < nbd.size; ++i) {
+    for (i = 0; i < nbd.len; ++i) {
       pthread_mutex_lock (&threads[i].in_flight_mutex);
       pthread_cond_signal (&threads[i].in_flight_cond);
       pthread_mutex_unlock (&threads[i].in_flight_mutex);
