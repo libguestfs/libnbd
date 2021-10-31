@@ -122,7 +122,6 @@ bench_reserve (void)
 {
   uint32_vector v = empty_vector;
   struct bench b;
-  int64_t usec;
 
   bench_start(&b);
 
