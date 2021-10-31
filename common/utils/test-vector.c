@@ -163,9 +163,12 @@ bench_append (void)
 int
 main (int argc, char *argv[])
 {
-  test_int64_vector ();
-  test_string_vector ();
-  bench_reserve ();
-  bench_append ();
+  if (getenv("LIBNBD_BENCH")) {
+    bench_reserve ();
+    bench_append ();
+  } else {
+    test_int64_vector ();
+    test_string_vector ();
+  }
   return 0;
 }

@@ -59,6 +59,10 @@ To run the tests under valgrind:
 
   make check-valgrind
 
+To run benchmarks:
+
+  make bench
+
 Some tests require root permissions (and are therefore risky).  If you
 want to run these tests, do:
 

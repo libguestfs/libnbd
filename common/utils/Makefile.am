@@ -62,3 +62,6 @@ test_human_size_CFLAGS = $(WARNINGS_CFLAGS)
 test_vector_SOURCES = test-vector.c vector.c vector.h bench.h
 test_vector_CPPFLAGS = -I$(srcdir)
 test_vector_CFLAGS = $(WARNINGS_CFLAGS)
+
+bench: test-vector
+	LIBNBD_BENCH=1 ./test-vector

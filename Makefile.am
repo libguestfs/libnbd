@@ -81,6 +81,11 @@ check-valgrind: all
 	    $(MAKE) -C $$d check-valgrind || exit 1; \
 	done
 
+bench: all
+	@for d in common/utils; do \
+	    $(MAKE) -C $$d bench || exit 1; \
+	done
+
 check-root:
 	@for d in copy; do \
 	    $(MAKE) -C $$d check-root || exit 1; \
