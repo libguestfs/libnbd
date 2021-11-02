@@ -58,7 +58,8 @@ generator_built = \
 
 EXTRA_DIST = \
 	$(generator_built) \
-	config-test.go \
+	configure/go.mod \
+	configure/test.go \
 	libnbd-golang.pod \
 	run-tests.sh \
 	src/$(pkg)/.gitignore \

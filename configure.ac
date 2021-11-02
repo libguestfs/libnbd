@@ -508,12 +508,12 @@ AS_IF([test "x$enable_golang" != "xno"],[
     AC_CHECK_PROG([GOLANG],[go],[go],[no])
     AS_IF([test "x$GOLANG" != "xno"],[
         AC_MSG_CHECKING([if $GOLANG is usable])
-        AS_IF([ $GOLANG run $srcdir/golang/config-test.go 2>&AS_MESSAGE_LOG_FD && \
-                $GOLANG help modules 2>&AS_MESSAGE_LOG_FD 1>&2 ],[
+        AS_IF([ (
+               cd $srcdir/golang/configure
+               $GOLANG run . 2>&AS_MESSAGE_LOG_FD 1>&2
+               $GOLANG mod tidy 2>&AS_MESSAGE_LOG_FD 1>&2
+               ) ],[
             AC_MSG_RESULT([yes])
-
-            # Print the version to help with debugging.
-            $GOLANG version
         ],[
             AC_MSG_RESULT([no])
             AC_MSG_WARN([golang ($GOLANG) is installed but not usable])

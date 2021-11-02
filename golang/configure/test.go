@@ -22,7 +22,14 @@
 
 package main
 
+import (
+	"fmt"
+	"runtime"
+)
+
 func main() {
+	fmt.Println(runtime.Version())
+
 	/* XXX Check for minimum runtime.Version() >= "go1.1.1"
          * Unfortunately go version numbers are not easy to parse.
          * They have the 3 formats "goX.Y.Z", "release.rN" or
