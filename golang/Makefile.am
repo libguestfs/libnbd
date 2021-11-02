@@ -17,59 +17,56 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
-# http://golang.org/doc/code.html#Organization
-pkg = libguestfs.org/libnbd
-
 source_files = \
-	src/$(pkg)/aio_buffer.go \
-	src/$(pkg)/bindings.go \
-	src/$(pkg)/callbacks.go \
-	src/$(pkg)/closures.go \
-	src/$(pkg)/handle.go \
-	src/$(pkg)/wrappers.go \
-	src/$(pkg)/wrappers.h \
-	src/$(pkg)/libnbd_010_load_test.go \
-	src/$(pkg)/libnbd_100_handle_test.go \
-	src/$(pkg)/libnbd_110_defaults_test.go \
-	src/$(pkg)/libnbd_120_set_non_defaults_test.go \
-	src/$(pkg)/libnbd_200_connect_command_test.go \
-	src/$(pkg)/libnbd_210_opt_abort_test.go \
-	src/$(pkg)/libnbd_220_opt_list_test.go \
-	src/$(pkg)/libnbd_230_opt_info_test.go \
-	src/$(pkg)/libnbd_240_opt_list_meta_test.go \
-	src/$(pkg)/libnbd_300_get_size_test.go \
-	src/$(pkg)/libnbd_400_pread_test.go \
-	src/$(pkg)/libnbd_405_pread_structured_test.go \
-	src/$(pkg)/libnbd_410_pwrite_test.go \
-	src/$(pkg)/libnbd_460_block_status_test.go \
-	src/$(pkg)/libnbd_500_aio_pread_test.go \
-	src/$(pkg)/libnbd_510_aio_pwrite_test.go \
-	src/$(pkg)/libnbd_590_aio_copy_test.go \
-	src/$(pkg)/libnbd_600_debug_callback_test.go \
-	src/$(pkg)/libnbd_610_error_test.go \
+	aio_buffer.go \
+	bindings.go \
+	callbacks.go \
+	closures.go \
+	handle.go \
+	wrappers.go \
+	wrappers.h \
+	libnbd_010_load_test.go \
+	libnbd_100_handle_test.go \
+	libnbd_110_defaults_test.go \
+	libnbd_120_set_non_defaults_test.go \
+	libnbd_200_connect_command_test.go \
+	libnbd_210_opt_abort_test.go \
+	libnbd_220_opt_list_test.go \
+	libnbd_230_opt_info_test.go \
+	libnbd_240_opt_list_meta_test.go \
+	libnbd_300_get_size_test.go \
+	libnbd_400_pread_test.go \
+	libnbd_405_pread_structured_test.go \
+	libnbd_410_pwrite_test.go \
+	libnbd_460_block_status_test.go \
+	libnbd_500_aio_pread_test.go \
+	libnbd_510_aio_pwrite_test.go \
+	libnbd_590_aio_copy_test.go \
+	libnbd_600_debug_callback_test.go \
+	libnbd_610_error_test.go \
 	$(NULL)
 
 generator_built = \
-	src/$(pkg)/bindings.go \
-	src/$(pkg)/closures.go \
-	src/$(pkg)/wrappers.go \
-	src/$(pkg)/wrappers.h \
+	bindings.go \
+	closures.go \
+	wrappers.go \
+	wrappers.h \
 	$(NULL)
 
 EXTRA_DIST = \
 	$(generator_built) \
+	.gitignore \
+	LICENSE \
+	README.md \
+	aio_buffer.go \
+	callbacks.go \
 	configure/go.mod \
 	configure/test.go \
+	go.mod \
+	handle.go \
 	libnbd-golang.pod \
+	libnbd_*_test.go \
 	run-tests.sh \
-	src/$(pkg)/.gitignore \
-	src/$(pkg)/LICENSE \
-	src/$(pkg)/README.md \
-	src/$(pkg)/aio_buffer.go \
-	src/$(pkg)/callbacks.go \
-	src/$(pkg)/go.mod \
-	src/$(pkg)/handle.go \
-	src/$(pkg)/libnbd_*_test.go \
 	$(NULL)
 
 if HAVE_POD
@@ -87,13 +84,11 @@ endif HAVE_POD
 if HAVE_GOLANG
 
 all-local: $(source_files)
-	cd src/$(pkg) && \
 	$(abs_top_builddir)/run $(GOLANG) build
 
 TESTS_ENVIRONMENT = \
 	LIBNBD_DEBUG=1 \
 	$(MALLOC_CHECKS) \
-	pkg=$(pkg) \
 	abs_top_srcdir=$(abs_top_srcdir) \
 	$(NULL)
 LOG_COMPILER = $(top_builddir)/run
@@ -101,4 +96,4 @@ TESTS = run-tests.sh
 
 endif
 
-CLEANFILES += src/$(pkg)/*~
+CLEANFILES += *~

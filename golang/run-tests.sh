@@ -23,8 +23,6 @@ set -x
 
 requires nbdkit --version
 
-cd src/$pkg
-
 # The -count=1 parameter is the "idiomatic way to bypass test caching".
 # https://golang.org/doc/go1.10#test
 # The -v option enables verbose output.

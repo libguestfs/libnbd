@@ -57,11 +57,7 @@ let () =
   output_to "ocaml/NBD.ml" OCaml.generate_ocaml_nbd_ml;
   output_to "ocaml/nbd-c.c" OCaml.generate_ocaml_nbd_c;
 
-  output_to "golang/src/libguestfs.org/libnbd/bindings.go"
-    GoLang.generate_golang_bindings_go;
-  output_to "golang/src/libguestfs.org/libnbd/closures.go"
-    GoLang.generate_golang_closures_go;
-  output_to "golang/src/libguestfs.org/libnbd/wrappers.go"
-    GoLang.generate_golang_wrappers_go;
-  output_to "golang/src/libguestfs.org/libnbd/wrappers.h"
-    GoLang.generate_golang_wrappers_h;
+  output_to "golang/bindings.go" GoLang.generate_golang_bindings_go;
+  output_to "golang/closures.go" GoLang.generate_golang_closures_go;
+  output_to "golang/wrappers.go" GoLang.generate_golang_wrappers_go;
+  output_to "golang/wrappers.h" GoLang.generate_golang_wrappers_h;
