@@ -40,7 +40,8 @@ def shell():
     long_options.append("--base-allocation")
 
     parser.add_argument('-c', '--command', action='append',
-                        help="run a command")
+                        help="run a Python statement "
+                        "(may be used multiple times)")
     short_options.append("-c")
     long_options.append("--command")
 
