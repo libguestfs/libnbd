@@ -83,7 +83,7 @@ free_exports (void)
 }
 
 bool
-list_all_exports (const char *uri)
+list_all_exports (void)
 {
   size_t i;
   bool list_okay = true;
@@ -106,8 +106,8 @@ list_all_exports (const char *uri)
       nbd_set_opt_mode (nbd2, true);
       nbd_set_full_info (nbd2, true);
 
-      if (nbd_connect_uri (nbd2, uri) == -1 ||
-          nbd_set_export_name (nbd2, name) == -1) {
+      do_connect (nbd2);
+      if (nbd_set_export_name (nbd2, name) == -1) {
         fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
         exit (EXIT_FAILURE);
       }

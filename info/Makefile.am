@@ -22,6 +22,9 @@ info_sh_files = \
 	info-can-connect.sh \
 	info-can-read.sh \
 	info-can-zero.sh \
+	info-cmd-json.sh \
+	info-cmd-map-totals.sh \
+	info-cmd-size.sh \
 	info-is-read-only.sh \
 	info-list.sh \
 	info-list-json.sh \

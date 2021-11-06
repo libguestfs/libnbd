@@ -45,6 +45,10 @@ const char *map = NULL;         /* --map option */
 bool size_only = false;         /* --size option */
 bool totals = false;            /* --totals option */
 
+/* See do_connect () */
+static enum { MODE_URI = 1, MODE_SQUARE_BRACKET } mode;
+static char **args;
+
 static void __attribute__((noreturn))
 usage (FILE *fp, int exitcode)
 {
@@ -52,12 +56,12 @@ usage (FILE *fp, int exitcode)
 "\n"
 "Display information and metadata about NBD servers and exports:\n"
 "\n"
-"    nbdinfo [--json] NBD-URI\n"
-"    nbdinfo --size [--json] NBD-URI\n"
-"    nbdinfo --is read-only|rotational NBD-URI\n"
-"    nbdinfo --can cache|connect|... NBD-URI\n"
-"    nbdinfo --map [--totals] [--json] NBD-URI\n"
-"    nbdinfo -L|--list [--json] NBD-URI\n"
+"    nbdinfo [--json] NBD-URI | [ CMD ARGS ... ]\n"
+"    nbdinfo --size [--json] NBD-URI | [ CMD ARGS ... ]\n"
+"    nbdinfo --is read-only|rotational NBD-URI | [ CMD ARGS ... ]\n"
+"    nbdinfo --can cache|connect|... NBD-URI | [ CMD ARGS ... ]\n"
+"    nbdinfo --map [--totals] [--json] NBD-URI | [ CMD ARGS ... ]\n"
+"    nbdinfo -L|--list [--json] NBD-URI | [ CMD ARGS ... ]\n"
 "\n"
 "Other options:\n"
 "\n"
@@ -74,6 +78,7 @@ usage (FILE *fp, int exitcode)
 "    nbdinfo --map nbd://example.com\n"
 "    nbdinfo --json nbd://example.com\n"
 "    nbdinfo --list nbd://example.com\n"
+"    nbdinfo --map -- [ qemu-nbd -r -f qcow2 file.qcow2 ]\n"
 "\n"
 "Please read the nbdinfo(1) manual page for full usage.\n"
 "\n"
@@ -188,9 +193,21 @@ main (int argc, char *argv[])
     }
   }
 
-  /* There must be exactly 1 parameter, the URI. */
-  if (argc - optind != 1)
+  /* Is it a URI or subprocess? */
+  if (argc - optind >= 3 &&
+      strcmp (argv[optind], "[") == 0 &&
+      strcmp (argv[argc-1], "]") == 0) {
+    mode = MODE_SQUARE_BRACKET;
+    argv[argc-1] = NULL;
+    args = &argv[optind+1];
+  }
+  else if (argc - optind == 1) {
+    mode = MODE_URI;
+    args = &argv[optind];
+  }
+  else {
     usage (stderr, EXIT_FAILURE);
+  }
 
   /* You cannot combine certain options. */
   if (!!list_all + !!can + !!map + !!size_only > 1) {
@@ -249,10 +266,7 @@ main (int argc, char *argv[])
     nbd_add_meta_context (nbd, map);
 
   /* Connect to the server. */
-  if (nbd_connect_uri (nbd, argv[optind]) == -1) {
-    fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
+  do_connect (nbd);
 
   /* In --list mode, during negotiation we collect the list of exports. */
   if (list_all)                 /* --list */
@@ -295,7 +309,7 @@ main (int argc, char *argv[])
     if (!list_all)
       list_okay = show_one_export (nbd, NULL, true, true);
     else
-      list_okay = list_all_exports (argv[optind]);
+      list_okay = list_all_exports ();
 
     if (json_output)
       fprintf (fp, "}\n");
@@ -322,4 +336,40 @@ main (int argc, char *argv[])
 
   if (can) exit (can_exit_code);
   exit (list_okay ? EXIT_SUCCESS : EXIT_FAILURE);
+}
+
+/* Connect the handle to the server. */
+void
+do_connect (struct nbd_handle *nbd)
+{
+  int r;
+
+  switch (mode) {
+  case MODE_URI:                /* NBD-URI */
+    r = nbd_connect_uri (nbd, args[0]);
+    break;
+
+  case MODE_SQUARE_BRACKET:     /* [ CMD ARGS ... ] */
+    r = nbd_connect_systemd_socket_activation (nbd, args);
+    break;
+
+  default:
+    abort ();
+  }
+
+  if (r == -1) {
+    fprintf (stderr, "%s: %s\n", progname, nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+}
+
+/* The URI field in output is not meaningful unless there's a
+ * persistent NBD server running, that is to say that nbdinfo was
+ * invoked with a URI (not a [ subprocess ]).  If this returns false
+ * it suppresses the uri: field in output.
+ */
+bool
+uri_is_meaingful (void)
+{
+  return mode == MODE_URI;
 }

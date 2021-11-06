@@ -4,17 +4,22 @@ nbdinfo - display information and metadata about NBD servers and exports
 
 =head1 SYNOPSIS
 
- nbdinfo [--json] NBD-URI
+ nbdinfo [--json] NBD
 
- nbdinfo --size [--json] NBD-URI
+C<NBD> is an NBD URI or subprocess:
 
- nbdinfo --is read-only|rotational NBD-URI
+ NBD := nbd://... | nbd+unix:// (or other URI formats)
+      | [ CMD ARGS ... ]
 
- nbdinfo --can cache|connect|... NBD-URI
+ nbdinfo --size [--json] NBD
 
- nbdinfo --map [--totals] [--json] NBD-URI
+ nbdinfo --is read-only|rotational NBD
 
- nbdinfo -L|--list [--json] NBD-URI
+ nbdinfo --can cache|connect|... NBD
+
+ nbdinfo --map [--totals] [--json] NBD
+
+ nbdinfo -L|--list [--json] NBD
 
  nbdinfo --help
 
@@ -22,8 +27,9 @@ nbdinfo - display information and metadata about NBD servers and exports
 
 =head1 DESCRIPTION
 
-nbdinfo displays information and metadata about an NBD server.  The
-only required parameter is the NBD URI of the server (see
+nbdinfo displays information and metadata about an NBD server.
+
+The single required parameter can be the NBD URI of the server (see
 L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>):
 
  $ nbdinfo nbd://localhost
@@ -50,6 +56,11 @@ For an NBD server on a local Unix domain socket you would use a
 command such as this (with similar output to above):
 
  $ nbdinfo "nbd+unix:///?socket=/tmp/unixsock"
+
+Or you can run the NBD server as a subprocess (see section
+L</Subprocess> below):
+
+ $ nbdinfo -- [ qemu-nbd -r -f qcow2 file.qcow2 ]
 
 =head2 JSON output
 
@@ -90,6 +101,9 @@ To display only the size in bytes of the NBD export (useful for
 scripting) use the I<--size> parameter:
 
  $ nbdinfo --size nbd://localhost
+ 1048576
+
+ $ nbdinfo --size [ nbdkit null 1M ]
  1048576
 
 =head2 Test for flags
@@ -230,6 +244,24 @@ For example:
      export-size: 3955556352 (3862848K)
      uri: nbd://localhost:10809/debian-10.4.0-amd64-DVD-1.iso
      [...]
+
+=head2 Subprocess
+
+nbdinfo can also run an NBD server as a subprocess.  This requires an
+NBD server which understands systemd socket activation, such as
+L<qemu-nbd(8)> or L<nbdkit(1)>.  All the usual nbdinfo modes can be
+used.
+
+For example, to give general information or display the map of a qcow2
+file:
+
+ nbdinfo -- [ qemu-nbd -r -f qcow2 file.qcow2 ]
+
+ nbdinfo --map -- [ qemu-nbd -r -f qcow2 file.qcow2 ]
+
+Note that S<C<[ ... ]>> are separate parameters, and must be
+surrounded by spaces.  C<--> separates nbdinfo parameters from
+subprocess parameters.
 
 =head2 Alternative tools
 

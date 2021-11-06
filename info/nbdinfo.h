@@ -35,13 +35,16 @@ extern const char *map;
 extern bool size_only;
 extern bool totals;
 
+void do_connect (struct nbd_handle *);
+bool uri_is_meaingful (void);
+
 /* can.c */
 extern int can_exit_code;
 extern void do_can (void);
 
 /* list.c */
 extern void collect_exports (void);
-extern bool list_all_exports (const char *uri);
+extern bool list_all_exports (void);
 extern void free_exports (void);
 
 /* map.c */

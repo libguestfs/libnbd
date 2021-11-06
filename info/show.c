@@ -80,7 +80,8 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
 
   human_size (size_str, size, &human_size_flag);
 
-  uri = nbd_get_uri (nbd);
+  if (uri_is_meaingful ())
+    uri = nbd_get_uri (nbd);
 
   /* Prefer the server's version of the name, if available */
   export_name = nbd_get_canonical_export_name (nbd);
