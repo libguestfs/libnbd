@@ -102,3 +102,8 @@ maintainer-commit:
 # Tag HEAD with the current version.
 maintainer-tag:
 	git tag -a v$(VERSION) -m "Version $(VERSION)." -f
+
+# Build golang distribution file.  This is unpacked on the webserver
+# under libguestfs.org/libnbd/golang/
+maintainer-golang-dist:
+	cd golang && ./make-dist.sh
