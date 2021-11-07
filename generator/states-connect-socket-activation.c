@@ -147,7 +147,7 @@ STATE_MACHINE {
     return 0;
   }
 
-  if (listen (s, 1) == -1) {
+  if (listen (s, SOMAXCONN) == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "listen");
     close (s);
