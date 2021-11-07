@@ -192,6 +192,7 @@ check_PROGRAMS += \
 	opt-list \
 	opt-info \
 	opt-list-meta \
+	connect-systemd-socket-activation \
 	connect-unix \
 	connect-tcp \
 	connect-tcp6 \
@@ -235,6 +236,7 @@ TESTS += \
 	opt-list \
 	opt-info \
 	opt-list-meta \
+	connect-systemd-socket-activation \
 	connect-unix \
 	connect-tcp \
 	connect-tcp6 \
@@ -423,6 +425,13 @@ opt_info_LDADD = $(top_builddir)/lib/libnbd.la
 
 opt_list_meta_SOURCES = opt-list-meta.c
 opt_list_meta_LDADD = $(top_builddir)/lib/libnbd.la
+
+connect_systemd_socket_activation_SOURCES = \
+	connect-systemd-socket-activation.c \
+	requires.c \
+	requires.h \
+	$(NULL)
+connect_systemd_socket_activation_LDADD = $(top_builddir)/lib/libnbd.la
 
 connect_unix_SOURCES = connect-unix.c
 connect_unix_LDADD = $(top_builddir)/lib/libnbd.la
