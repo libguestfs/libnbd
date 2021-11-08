@@ -93,6 +93,17 @@ rm -rf libguestfs.org
 #        ├── v1.11.4.mod
 #        └── v1.11.4.zip
 #
+# We create @latest and @v/*{.info,mod,zip} here.
+#
+# The "@v/list" file must be created on the web server after uploading
+# a new release:
+#
+#     $ cd libguestfs.org/libnbd/@v
+#     $ ls -1 v*.info | awk -F.info '{print $1}' > list
+#     $ cat list
+#     v1.11.3
+#     v1.11.4
+#
 # See https://golang.org/ref/mod#serving-from-proxy
 
 module_dir=libguestfs.org/libnbd
@@ -106,12 +117,6 @@ info="{
 }"
 echo "$info" > $module_dir/@latest
 echo "$info" > $v_dir/$version.info
-
-# This is not entirely correct. This file should have a list of all
-# versions available, here we create only single version. This should
-# really be done on the server by appending the new version to the
-# list file.
-echo $version > $v_dir/list
 
 cp go.mod $v_dir/$version.mod
 mv $version.zip $v_dir
