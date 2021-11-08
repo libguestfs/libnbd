@@ -100,8 +100,12 @@ v_dir=$module_dir/@v
 
 mkdir -p $v_dir
 
-echo "{\"Version\": \"$version\"}" > $module_dir/@latest
-echo "{\"Version\": \"$version\"}" > $v_dir/$version.info
+info="{
+  \"Version\": \"$version\",
+  \"Time\": \"$(git show -s --format=%cs)\"
+}"
+echo "$info" > $module_dir/@latest
+echo "$info" > $v_dir/$version.info
 
 # This is not entirely correct. This file should have a list of all
 # versions available, here we create only single version. This should
