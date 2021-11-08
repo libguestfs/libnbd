@@ -66,6 +66,7 @@ EXTRA_DIST = \
 	handle.go \
 	libnbd-golang.pod \
 	libnbd_*_test.go \
+	make-dist.sh \
 	run-tests.sh \
 	$(NULL)
 
