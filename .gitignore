@@ -172,6 +172,7 @@ Makefile.in
 /tests/compile-cxx
 /tests/compile-header-only
 /tests/compile-iso-c99
+/tests/connect-systemd-socket-activation
 /tests/connect-tcp
 /tests/connect-tcp6
 /tests/connect-tls-certs
