@@ -75,6 +75,12 @@ if test "x$gcc_warnings" = "xyes"; then
     AC_SUBST([WARNINGS_CFLAGS])
 fi
 
+dnl Check for __builtin_*_overflow.  We need the dummy parameters
+dnl else detection doesn't work correctly for some reason.
+AC_CHECK_DECLS([__builtin_add_overflow(int, int, int *),
+                __builtin_mul_overflow(int, int, int *)],
+                [], [], [])
+
 dnl Check for __auto_type (GCC extension).
 AC_MSG_CHECKING([if __auto_type is available in this compiler])
 AC_COMPILE_IFELSE([

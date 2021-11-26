@@ -27,3 +27,14 @@ EXTRA_DIST = \
 	rounding.h \
 	unique-name.h \
 	$(NULL)
+
+# Unit tests.
+
+TESTS = \
+	test-checked-overflow \
+	$(NULL)
+check_PROGRAMS = $(TESTS)
+
+test_checked_overflow_SOURCES = test-checked-overflow.c checked-overflow.h
+test_checked_overflow_CPPFLAGS = -I$(srcdir)
+test_checked_overflow_CFLAGS = $(WARNINGS_CFLAGS)
