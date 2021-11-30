@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* nbd client library in userspace: Python bindings
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2021 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -61,8 +61,10 @@ raise_exception ()
 {
   PyObject *args = Py_BuildValue (\"si\", nbd_get_error (), nbd_get_errno ());
 
-  if (args != NULL)
+  if (args != NULL) {
     PyErr_SetObject (nbd_internal_py_Error, args);
+    Py_DECREF (args);
+  }
 }
 
 ";
@@ -161,29 +163,42 @@ let print_python_closure_wrapper { cbname; cbargs } =
   pr "\n";
   pr "{\n";
   pr "  const struct user_data *data = user_data;\n";
-  pr "  int ret = 0;\n";
+  pr "  int ret = -1;\n";
   pr "\n";
   pr "  PyGILState_STATE py_save = PyGILState_UNLOCKED;\n";
   pr "  PyObject *py_args, *py_ret;\n";
   List.iter (
     function
+    | CBArrayAndLen (UInt32 n, _) ->
+       pr "  PyObject *py_%s = NULL;\n" n
+    | CBMutable (Int n) ->
+       pr "  PyObject *py_%s = NULL;\n" n
+    | _ -> ()
+  ) cbargs;
+  pr "\n";
+  List.iter (
+    function
     | CBArrayAndLen (UInt32 n, len) ->
-       pr "  PyObject *py_%s = PyList_New (%s);\n" n len;
+       pr "  py_%s = PyList_New (%s);\n" n len;
+       pr "  if (!py_%s) { PyErr_PrintEx (0); goto out; }\n" n;
        pr "  size_t i_%s;\n" n;
-       pr "  for (i_%s = 0; i_%s < %s; ++i_%s)\n" n n len n;
-       pr "    PyList_SET_ITEM (py_%s, i_%s, PyLong_FromUnsignedLong (%s[i_%s]));\n" n n n n
+       pr "  for (i_%s = 0; i_%s < %s; ++i_%s) {\n" n n len n;
+       pr "    PyObject *py_e_%s = PyLong_FromUnsignedLong (%s[i_%s]);\n" n n n;
+       pr "    if (!py_e_%s) { PyErr_PrintEx (0); goto out; }\n" n;
+       pr "    PyList_SET_ITEM (py_%s, i_%s, py_e_%s);\n" n n n;
+       pr "  }\n"
     | CBBytesIn _
     | CBInt _
     | CBInt64 _ -> ()
     | CBMutable (Int n) ->
        pr "  PyObject *py_%s_modname = PyUnicode_FromString (\"ctypes\");\n" n;
-       pr "  if (!py_%s_modname) { PyErr_PrintEx (0); return -1; }\n" n;
+       pr "  if (!py_%s_modname) { PyErr_PrintEx (0); goto out; }\n" n;
        pr "  PyObject *py_%s_mod = PyImport_Import (py_%s_modname);\n" n n;
        pr "  Py_DECREF (py_%s_modname);\n" n;
-       pr "  if (!py_%s_mod) { PyErr_PrintEx (0); return -1; }\n" n;
-       pr "  PyObject *py_%s = PyObject_CallMethod (py_%s_mod, \"c_int\", \"i\", *%s);\n" n n n;
+       pr "  if (!py_%s_mod) { PyErr_PrintEx (0); goto out; }\n" n;
+       pr "  py_%s = PyObject_CallMethod (py_%s_mod, \"c_int\", \"i\", *%s);\n" n n n;
        pr "  Py_DECREF (py_%s_mod);\n" n;
-       pr "  if (!py_%s) { PyErr_PrintEx (0); return -1; }\n" n;
+       pr "  if (!py_%s) { PyErr_PrintEx (0); goto out; }\n" n;
     | CBString _
     | CBUInt _
     | CBUInt64 _ -> ()
@@ -216,7 +231,7 @@ let print_python_closure_wrapper { cbname; cbargs } =
     | CBArrayAndLen _ | CBMutable _ -> assert false
   ) cbargs;
   pr ");\n";
-  pr "  Py_INCREF (py_args);\n";
+  pr "  if (!py_args) { PyErr_PrintEx (0); goto out; }\n";
   pr "\n";
   pr "  py_save = PyGILState_Ensure ();\n";
   pr "  py_ret = PyObject_CallObject (data->fn, py_args);\n";
@@ -238,19 +253,21 @@ let print_python_closure_wrapper { cbname; cbargs } =
   pr "      PyErr_Print ();\n";
   pr "      abort ();\n";
   pr "    }\n";
-  pr "    ret = -1;\n";
   pr "    PyErr_PrintEx (0); /* print exception */\n";
   pr "  };\n";
   pr "\n";
+  pr " out:\n";
   List.iter (
     function
     | CBArrayAndLen (UInt32 n, _) ->
-       pr "  Py_DECREF (py_%s);\n" n
+       pr "  Py_XDECREF (py_%s);\n" n
     | CBMutable (Int n) ->
-       pr "  PyObject *py_%s_ret = PyObject_GetAttrString (py_%s, \"value\");\n" n n;
-       pr "  *%s = PyLong_AsLong (py_%s_ret);\n" n n;
-       pr "  Py_DECREF (py_%s_ret);\n" n;
-       pr "  Py_DECREF (py_%s);\n" n
+       pr "  if (py_%s) {\n" n;
+       pr "    PyObject *py_%s_ret = PyObject_GetAttrString (py_%s, \"value\");\n" n n;
+       pr "    *%s = PyLong_AsLong (py_%s_ret);\n" n n;
+       pr "    Py_DECREF (py_%s_ret);\n" n;
+       pr "    Py_DECREF (py_%s);\n" n;
+       pr "  }\n"
     | CBBytesIn _
     | CBInt _ | CBInt64 _
     | CBString _
