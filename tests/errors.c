@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2021 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -101,6 +101,29 @@ check_server_fail (struct nbd_handle *h, int64_t cookie,
     exit (EXIT_FAILURE);
   }
   check (experr, "nbd_aio_command_completed: ");
+}
+
+static bool chunk_clean;      /* whether check_chunk has been called */
+static bool completion_clean; /* whether check_completion has been called */
+
+static void
+check_chunk (void *data) {
+  if (chunk_clean) {
+    fprintf (stderr, "%s: test failed: "
+             "chunk callback invoked multiple times\n", progname);
+    exit (EXIT_FAILURE);
+  }
+  chunk_clean = true;
+}
+
+static void
+check_completion (void *data) {
+  if (completion_clean) {
+    fprintf (stderr, "%s: test failed: "
+             "completion callback invoked multiple times\n", progname);
+    exit (EXIT_FAILURE);
+  }
+  completion_clean = true;
 }
 
 int
@@ -277,6 +300,26 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
   check (EINVAL, "nbd_aio_pread: ");
+
+  /* We guarantee callbacks will be freed even on all error paths. */
+  if (nbd_aio_pread_structured (nbd, buf, 512, -1,
+                                (nbd_chunk_callback) { .free = check_chunk, },
+                                (nbd_completion_callback) {
+                                  .free = check_completion, },
+                                0) != -1) {
+    fprintf (stderr, "%s: test failed: "
+             "nbd_aio_pread_structured did not fail with bogus offset\n",
+             argv[0]);
+    exit (EXIT_FAILURE);
+  }
+  check (EINVAL, "nbd_aio_pread_structured: ");
+  if (!chunk_clean || !completion_clean) {
+    fprintf (stderr, "%s: test failed: "
+             "callbacks not freed on nbd_aio_pread_structured failure\n",
+             argv[0]);
+    exit (EXIT_FAILURE);
+  }
+
   /* Read from an invalid offset, server-side */
   strict &= ~LIBNBD_STRICT_BOUNDS;
   if (nbd_set_strict_mode (nbd, strict) == -1) {

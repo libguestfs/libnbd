@@ -195,13 +195,13 @@ nbd_internal_command_common (struct nbd_handle *h,
     if ((h->strict & LIBNBD_STRICT_BOUNDS) &&
         (offset > h->exportsize || count > h->exportsize - offset)) {
       set_error (count_err, "request out of bounds");
-      return -1;
+      goto err;
     }
 
     if (h->block_minimum && (h->strict & LIBNBD_STRICT_ALIGN) &&
         (offset | count) & (h->block_minimum - 1)) {
       set_error (EINVAL, "request is unaligned");
-      return -1;
+      goto err;
     }
   }
 
