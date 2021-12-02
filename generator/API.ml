@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* nbd client library in userspace: the API
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2021 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -1822,6 +1822,12 @@ error.  See also L<nbd_pread_structured(3)>, if finer visibility is
 required into the server's replies, or if you want to use
 C<LIBNBD_CMD_FLAG_DF>.
 
+Note that libnbd currently enforces a maximum read buffer of 64MiB,
+even if the server would permit a larger buffer in a single transaction;
+attempts to exceed this will result in an C<ERANGE> error.  The server
+may enforce a smaller limit, which can be learned with
+L<nbd_get_block_size(3)>.
+
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions)."
 ^ strict_call_description;
@@ -1898,6 +1904,12 @@ the server obeyed the requirement that a read call must not have
 overlapping chunks and must not succeed without enough chunks to cover
 the entire request.
 
+Note that libnbd currently enforces a maximum read buffer of 64MiB,
+even if the server would permit a larger buffer in a single transaction;
+attempts to exceed this will result in an C<ERANGE> error.  The server
+may enforce a smaller limit, which can be learned with
+L<nbd_get_block_size(3)>.
+
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_DF> meaning that the server should not reply with
 more than one fragment (if that is supported - some servers cannot do
@@ -1923,6 +1935,12 @@ C<offset> + C<count> - 1.  NBD can only write all or nothing
 using this call.  The call returns when the command has been
 acknowledged by the server, or there is an error.  Note this will
 generally return an error if L<nbd_is_read_only(3)> is true.
+
+Note that libnbd currently enforces a maximum write buffer of 64MiB,
+even if the server would permit a larger buffer in a single transaction;
+attempts to exceed this will result in an C<ERANGE> error.  The server
+may enforce a smaller limit, which can be learned with
+L<nbd_get_block_size(3)>.
 
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
@@ -2007,6 +2025,12 @@ The call returns when the command has been acknowledged by the server,
 or there is an error.  Note this will generally return an error
 if L<nbd_can_trim(3)> is false or L<nbd_is_read_only(3)> is true.
 
+Note that not all servers can support a C<count> of 4GiB or larger.
+The NBD protocol does not yet have a way for a client to learn if
+the server will enforce an even smaller maximum trim size, although
+a future extension may add a constraint visible in
+L<nbd_get_block_size(3)>.
+
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
 return until the data has been committed to permanent storage
@@ -2032,6 +2056,12 @@ L<nbd_pread(3)> call.  The server can also silently ignore
 this command.  Note this will generally return an error if
 L<nbd_can_cache(3)> is false.
 
+Note that not all servers can support a C<count> of 4GiB or larger.
+The NBD protocol does not yet have a way for a client to learn if
+the server will enforce an even smaller maximum cache size, although
+a future extension may add a constraint visible in
+L<nbd_get_block_size(3)>.
+
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions)."
 ^ strict_call_description;
@@ -2054,6 +2084,13 @@ starting at C<offset> and ending at C<offset> + C<count> - 1.
 The call returns when the command has been acknowledged by the server,
 or there is an error.  Note this will generally return an error if
 L<nbd_can_zero(3)> is false or L<nbd_is_read_only(3)> is true.
+
+Note that not all servers can support a C<count> of 4GiB or larger.
+The NBD protocol does not yet have a way for a client to learn if
+the server will enforce an even smaller maximum zero size, although
+a future extension may add a constraint visible in
+L<nbd_get_block_size(3)>.  Also, some servers may permit a larger
+zero request only when the C<LIBNBD_CMD_FLAG_FAST_ZERO> is in use.
 
 The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_FUA> meaning that the server should not
@@ -2087,6 +2124,12 @@ server may choose to return less status, or the final block
 may extend beyond the requested range. If multiple contexts
 are supported, the number of blocks and cumulative length
 of those blocks need not be identical between contexts.
+
+Note that not all servers can support a C<count> of 4GiB or larger.
+The NBD protocol does not yet have a way for a client to learn if
+the server will enforce an even smaller maximum block status size,
+although a future extension may add a constraint visible in
+L<nbd_get_block_size(3)>.
 
 Depending on which metadata contexts were enabled before
 connecting (see L<nbd_add_meta_context(3)>) and which are
