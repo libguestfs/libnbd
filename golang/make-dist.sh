@@ -111,9 +111,11 @@ v_dir=$module_dir/@v
 
 mkdir -p $v_dir
 
+# Go wants a string in RFC 3339 format, git strict ISO 8601 format is
+# compatible.
 info="{
   \"Version\": \"$version\",
-  \"Time\": \"$(git show -s --format=%cs)\"
+  \"Time\": \"$(git show -s --format=%cI)\"
 }"
 echo "$info" > $module_dir/@latest
 echo "$info" > $v_dir/$version.info
