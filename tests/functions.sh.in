@@ -1,7 +1,7 @@
 # nbdkit
 # Common functions used by the tests.
 # @configure_input@
-# Copyright (C) 2017-2020 Red Hat Inc.
+# Copyright (C) 2017-2021 Red Hat Inc.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -74,27 +74,6 @@ requires ()
         echo "$0: test prerequisite is missing or not working"
         exit 77
     }
-}
-
-# requires_qemu
-#
-# Check that qemu-kvm or qemu-system-$(uname -m) works.  If not, skip the test.
-# If it does, then export the appropriate binary name in $QEMU_BINARY.
-requires_qemu ()
-{
-    local qemu_bin
-    for qemu_bin in "qemu-kvm" "qemu-system-$(uname -m)" "/usr/libexec/qemu-kvm"; do
-        ( "$qemu_bin" --version ) </dev/null >/dev/null 2>&1 || continue
-
-        export QEMU_BINARY="$qemu_bin"
-        break
-    done
-
-    if test -z "$QEMU_BINARY"; then
-        echo "$0: No usable QEMU binary found"
-        echo "$0: test prerequisite is missing or not working"
-        exit 77
-    fi
 }
 
 # Test host kernel is Linux and minimum version.
