@@ -168,6 +168,12 @@ When testing use:
     make check
     make check-valgrind
 
+Use the following one-time setup for nicer diffs of OCaml files:
+
+    git config diff.ml.xfuncname '^(type|and|val|let) .*='
+    git config diff.ml-api.xfuncname '^(let .*=|  "[^"]*", \{$)'
+    git config diff.mli.xfuncname '^(type|and|val|module) '
+
 For development ideas, see the TODO file.
 
 The upstream git repository is:

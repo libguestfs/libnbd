@@ -1,0 +1,7 @@
+# Use the following one-time config to get nicer diffs of OCaml files:
+#    git config diff.ml.xfuncname '^(type|and|val|let) .*='
+#    git config diff.ml-api.xfuncname '^(let .*=|  "[^"]*", \{$)'
+#    git config diff.mli.xfuncname '^(type|and|val|module) '
+*.ml diff=ml
+*.mli diff=mli
+API.ml diff=ml-api

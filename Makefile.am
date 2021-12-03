@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2019 Red Hat Inc.
+# Copyright (C) 2013-2021 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -21,6 +21,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 EXTRA_DIST = \
 	.dir-locals.el \
+	.gitattributes \
 	.gitignore \
 	html/pod.css \
 	scripts/git.orderfile \
