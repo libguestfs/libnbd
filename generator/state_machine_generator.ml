@@ -360,6 +360,8 @@ let generate_lib_states_c () =
         pr "  return 0;\n";
       pr "}\n";
       pr "\n";
+      let output_loc = "lib/states.c", output_lineno () + 1 in
+      pr "%s\n" (line_directive_of_location output_loc);
       pr "int\n";
       pr "nbd_internal_enter_%s (struct nbd_handle *h, bool *blocked)\n"
         state_enum;

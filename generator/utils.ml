@@ -124,28 +124,25 @@ let cspan str reject =
   in
   loop 0
 
-(* Last output column. *)
-let col = ref 0
+(* Current output line and column. *)
+let lineno = ref 1 and col = ref 0
 
 type chan = NoOutput | OutChannel of out_channel | Buffer of Buffer.t
 let chan = ref NoOutput
 let pr fs =
   ksprintf (
     fun str ->
-      (* Maintain the current output column.  We can simply do this
-       * by counting backwards from the end of the string until we
-       * reach a \n (or the beginning).  The number we count is
-       * the new column.  This only works for 7 bit ASCII but
-       * that's enough for what we need this for.
+      (* Maintain the current output row & column.  This only
+       * works for 7 bit ASCII but that's enough for what we need
+       * this for.
        *)
-      let rec loop i acc =
-        if i >= 0 then (
-          if String.unsafe_get str i = '\n' then acc
-          else loop (i-1) (acc+1)
-        )
-        else !col + acc
-      in
-      col := loop (String.length str - 1) 0;
+      for i = 0 to String.length str - 1 do
+        if String.unsafe_get str i = '\n' then (
+          col := 0;
+          incr lineno
+        ) else
+          incr col
+      done;
       match !chan with
       | NoOutput -> failwithf "use ‘output_to’ to set output"
       | OutChannel chan -> output_string chan str
@@ -192,6 +189,8 @@ let pr_wrap ?(maxcol = 76) c code =
       * if there are multiple apply wrapping to only the first one.
       *)
      pr "%s" (String.concat "\n" rest)
+
+let output_lineno () = !lineno
 
 let string_of_location (file, lineno) = sprintf "%s:%d" file lineno
 let line_directive_of_location (file, lineno) =
@@ -250,6 +249,7 @@ let files_equal n1 n2 =
   | i -> failwithf "%s: failed with error code %d" cmd i
 
 let output_to filename k =
+  lineno := 1; col := 0;
   let filename_new = filename ^ ".new" in
   let c = open_out filename_new in
   chan := OutChannel c;

@@ -5,12 +5,6 @@ Bindings in other languages.
  - Latest attempt at adding Rust:
    https://www.redhat.com/archives/libguestfs/2019-August/msg00416.html
 
-Additional #line directives in generated lib/states.c that track
-position of output file when no longer copying lines from
-generator/states-*.c.  Probably requires moving type location, noloc,
-and line_directive_of_location to utils.ml, and teaching pr to track
-lines as well as columns.
-
 Example code integrating with ppoll, pollfd, APR pollset (and others?).
 
 NBD resize extension.
