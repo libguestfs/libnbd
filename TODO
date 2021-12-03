@@ -5,6 +5,12 @@ Bindings in other languages.
  - Latest attempt at adding Rust:
    https://www.redhat.com/archives/libguestfs/2019-August/msg00416.html
 
+Additional #line directives in generated lib/states.c that track
+position of output file when no longer copying lines from
+generator/states-*.c.  Probably requires moving type location, noloc,
+and line_directive_of_location to utils.ml, and teaching pr to track
+lines as well as columns.
+
 Example code integrating with ppoll, pollfd, APR pollset (and others?).
 
 NBD resize extension.
@@ -66,9 +72,8 @@ Suggested API improvements:
 
   Easier server implementation testing:
   - a way to force NBD_OPT_EXPORT_NAME over NBD_OPT_GO
-  - a way to forcefully violate protocol (such as allowing writes to a
-    readonly connection, or sending a request that exceeds bounds) for
-    testing server reactions
+  - a way to send options before NBD_OPT_STARTTLS
+  - a way to send unknown NBD_OPT or NBD_CMD
 
   subprocess
   - it should be possible to use nbd_close and never block, so
