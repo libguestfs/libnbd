@@ -48,9 +48,6 @@ let string_of_external_event = function
   | CmdConnectSocket -> "CmdConnectSocket"
   | CmdIssue -> "CmdIssue"
 
-type location = string * int
-let noloc = ("", 0)
-
 type state = {
   name : string;
   comment : string;
@@ -61,7 +58,7 @@ and parsed_state = {
   prefix : string list;
   display_name : string;
   state_enum : string;
-  loc : location;
+  loc : Utils.location;
   code : string;
   internal_transitions : state list;
   events : (external_event * state) list;
@@ -69,7 +66,8 @@ and parsed_state = {
 
 let default_state = { name = ""; comment = ""; external_events = [];
                       parsed = { prefix = []; display_name = "";
-                                 state_enum = ""; loc = noloc; code = "";
+                                 state_enum = ""; loc = Utils.noloc;
+                                 code = "";
                                  internal_transitions = []; events = [] } }
 
 type state_machine = state_group list
@@ -878,7 +876,3 @@ and structured_reply_state_machine = [
     external_events = [];
   };
 ]
-
-let string_of_location (file, lineno) = sprintf "%s:%d" file lineno
-let line_directive_of_location (file, lineno) =
-  sprintf "#line %d \"%s\"" lineno file

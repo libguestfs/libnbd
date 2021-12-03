@@ -80,11 +80,6 @@ type external_event =
 val all_external_events : external_event list
 val string_of_external_event : external_event -> string
 
-type location = string * int  (** source location: file, line number *)
-val noloc : location
-val string_of_location : location -> string
-val line_directive_of_location : location -> string
-
 type state = {
   (** The state name (without prefix).  If this has the special name
       "START" then it is the start state of the current group.  Each
@@ -117,7 +112,7 @@ and parsed_state = {
   state_enum : string;
 
   (** The C code implementing this state. *)
-  loc : location;
+  loc : Utils.location;
   code : string;
 
   (** Internal transitions, parsed out of the C code. *)

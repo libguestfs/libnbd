@@ -29,6 +29,8 @@ type comment_style =
 
 type chan = NoOutput | OutChannel of out_channel | Buffer of Buffer.t
 
+type location = string * int  (** source location: file, line number *)
+
 val failwithf : ('a, unit, string, 'b) format4 -> 'a
 
 val filter_map : ('a -> 'b option) -> 'a list -> 'b list
@@ -50,6 +52,10 @@ val generate_header : ?extra_sources:string list -> comment_style -> unit
 val output_to : string -> (unit -> 'a) -> unit
 val pr : ('a, unit, string, unit) format4 -> 'a
 val pr_wrap : ?maxcol:int -> char -> (unit -> 'a) -> unit
+
+val noloc : location
+val string_of_location : location -> string
+val line_directive_of_location : location -> string
 
 type cache_key = string
 type cache_value = string list

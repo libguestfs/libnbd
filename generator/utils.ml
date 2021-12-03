@@ -20,6 +20,9 @@
 open Printf
 open Unix
 
+type location = string * int
+let noloc = ("", 0)
+
 let failwithf fs = ksprintf failwith fs
 
 let rec filter_map f = function
@@ -189,6 +192,10 @@ let pr_wrap ?(maxcol = 76) c code =
       * if there are multiple apply wrapping to only the first one.
       *)
      pr "%s" (String.concat "\n" rest)
+
+let string_of_location (file, lineno) = sprintf "%s:%d" file lineno
+let line_directive_of_location (file, lineno) =
+  sprintf "#line %d \"%s\"" lineno file
 
 type comment_style =
   | CStyle | CPlusPlusStyle | HashStyle | OCamlStyle | HaskellStyle
