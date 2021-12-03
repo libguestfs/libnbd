@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2020 Red Hat Inc.
+# Copyright (C) 2013-2021 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -28,8 +28,7 @@ EXTRA_DIST = \
 
 TESTS_ENVIRONMENT = \
 	LIBNBD_DEBUG=1 \
-	MALLOC_CHECK_=1 \
-	MALLOC_PERTURB_=$(shell bash -c 'echo $$(( 1 + (RANDOM & 255) ))') \
+	$(MALLOC_CHECKS) \
 	QEMU_STORAGE_DAEMON=$(QEMU_STORAGE_DAEMON) \
 	$(NULL)
 LOG_COMPILER = $(top_builddir)/run
