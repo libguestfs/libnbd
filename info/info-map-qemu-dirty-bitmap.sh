@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2020 Red Hat Inc.
+# Copyright (C) 2020-2021 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -24,10 +24,9 @@
 set -e
 set -x
 
-requires qemu-img --version
+requires qemu-img bitmap --help
 requires qemu-io --version
 requires $QEMU_NBD -B test --pid-file=test.pid --version
-requires_qemu
 requires tr --version
 
 f=info-map-qemu-dirty-bitmap.qcow2
@@ -38,13 +37,7 @@ rm -f $f $out
 # Create file with intentionally different written areas vs. dirty areas
 qemu-img create -f qcow2 $f 1M
 qemu-io -f qcow2 -c 'w 0 64k' $f
-cat <<'EOF' |
-{'execute':'qmp_capabilities'}
-{'execute':'blockdev-add','arguments':{'node-name':'n','driver':'qcow2','file':{'driver':'file','filename':'info-map-qemu-dirty-bitmap.qcow2'}}}
-{'execute':'block-dirty-bitmap-add','arguments':{'node':'n','name':'bitmap0','persistent':true}}
-{'execute':'quit'}
-EOF
-    $QEMU_BINARY -nodefaults -nographic -qmp stdio -machine none,accel=tcg
+qemu-img bitmap --add --enable -f qcow2 $f bitmap0
 qemu-io -f qcow2 -c 'w 64k 64k' -c 'w -z 512k 64k' $f
 
 # We have to run qemu-nbd and attempt to clean it up afterwards.
