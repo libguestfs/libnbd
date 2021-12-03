@@ -16,7 +16,7 @@ nbdsh - network block device (NBD) shell
  nbd> h.get_size()
  1073741824
  nbd> buf = b"hello, world"
- nbd> h.pwrite(buf, 0, 0)
+ nbd> h.pwrite(buf, 0)
  nbd> exit()
 
 =head1 DESCRIPTION

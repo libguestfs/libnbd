@@ -1,5 +1,5 @@
 # NBD client library in userspace
-# Copyright (C) 2013-2020 Red Hat Inc.
+# Copyright (C) 2013-2021 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -170,7 +170,7 @@ def make_banner(args):
         example('h.connect_tcp("remote", "10809")',
                 "Connect to a remote server.")
     example("h.get_size()", "Get size of the remote disk.")
-    example("buf = h.pread(512, 0, 0)", "Read the first sector.")
+    example("buf = h.pread(512, 0)", "Read the first sector.")
     example("exit() or Ctrl-D", "Quit the shell")
     example("help(nbd)", "Display documentation")
     blank()
