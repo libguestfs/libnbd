@@ -9,6 +9,14 @@ libnbd-ocaml - how to use libnbd from OCaml
  let size = NBD.get_size nbd in
  printf "%Ld\n" size
 
+To compile:
+
+ ocamlopt -I +nbd mlnbd.cmxa prog.ml -o prog
+
+or using findlib:
+
+ ocamlfind opt -package nbd -linkpkg prog.ml -o prog
+
 =head1 DESCRIPTION
 
 This manual page documents how to use libnbd to access Network Block
