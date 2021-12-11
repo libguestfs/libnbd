@@ -22,6 +22,7 @@ CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so *.bc *.opt
 EXTRA_DIST = \
 	test_010_import.ml \
 	test_100_handle.ml \
+	test_105_with_handle.ml \
 	test_110_defaults.ml \
 	test_120_set_non_defaults.ml \
 	test_130_private_data.ml \
@@ -49,6 +50,7 @@ if HAVE_NBDKIT
 tests_bc = \
 	test_010_import.bc \
 	test_100_handle.bc \
+	test_105_with_handle.bc \
 	test_110_defaults.bc \
 	test_120_set_non_defaults.bc \
 	test_130_private_data.bc \
@@ -73,6 +75,7 @@ tests_bc = \
 tests_opt = \
 	test_010_import.opt \
 	test_100_handle.opt \
+	test_105_with_handle.opt \
 	test_110_defaults.opt \
 	test_120_set_non_defaults.opt \
 	test_130_private_data.opt \

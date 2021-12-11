@@ -7,6 +7,18 @@ libnbd-ocaml - how to use libnbd from OCaml
  let nbd = NBD.create () in
  NBD.connect_uri nbd "nbd://localhost";
  let size = NBD.get_size nbd in
+ printf "%Ld\n" size;
+ NBD.close ()
+
+Alternate syntax which ensures that close is called even if an
+exception is thrown:
+
+ let size =
+   NBD.with_handle (
+     fun nbd ->
+       NBD.connect_uri nbd "nbd://localhost";
+       NBD.get_size nbd
+   ) in
  printf "%Ld\n" size
 
 =head1 DESCRIPTION
@@ -27,6 +39,9 @@ You can either close the handle explicitly by calling C<NBD.close> or
 it will be closed automatically when it is garbage collected.  If you
 call any other method on a handle which you have explicitly closed
 then the API will throw an C<NBD.Closed> exception.
+
+C<NBD.with_handle> can be used to make sure the handle is closed in a
+timely manner.  See the example in the L</SYNOPSIS> above.
 
 =head1 ERRORS
 
