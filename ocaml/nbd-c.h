@@ -101,8 +101,8 @@ struct nbd_buffer {
 };
 
 /* Extract a persistent buffer from an OCaml heap value.  Note the
- * whole struct is stored in the custom, not a pointer.  This
- * returns a pointer to the struct .
+ * whole struct is stored in the custom, not a pointer.  This macro
+ * returns a pointer to the struct.
  */
 #define NBD_buffer_val(v) ((struct nbd_buffer *)Data_custom_val(v))
 
