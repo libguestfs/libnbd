@@ -37,12 +37,16 @@ let expected =
   b
 
 let () =
-  let nbd = NBD.create () in
-  NBD.connect_command nbd
-                      ["nbdkit"; "-s"; "--exit-with-parent"; "-v";
-                       "pattern"; "size=512"];
-  let buf = Bytes.create 512 in
-  NBD.pread nbd buf 0_L;
+  let buf =
+    NBD.with_handle (
+      fun nbd ->
+        NBD.connect_command nbd
+                            ["nbdkit"; "-s"; "--exit-with-parent"; "-v";
+                             "pattern"; "size=512"];
+        let buf = Bytes.create 512 in
+        NBD.pread nbd buf 0_L;
+        buf
+    ) in
 
   printf "buf = %S\n" (Bytes.to_string buf);
   printf "expected = %S\n" (Bytes.to_string expected);

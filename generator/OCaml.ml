@@ -225,6 +225,17 @@ val close : t -> unit
     immediately.
 *)
 
+val with_handle : (t -> 'a) -> 'a
+(** Wrapper around {!create}.  It calls the function parameter with a
+    newly created handle, and ensures that {!close} is always called
+    even if the function throws an exception.
+
+    Use this when it is essential that the handle is closed in order
+    to free up external resources in a timely manner; for example if
+    running the server as a subprocess and you want to ensure that the
+    subprocess is always killed; or if you need to disconnect from the
+    server before continuing with another operation. *)
+
 ";
 
   List.iter (
@@ -314,6 +325,10 @@ type t
 
 external create : unit -> t = \"nbd_internal_ocaml_nbd_create\"
 external close : t -> unit = \"nbd_internal_ocaml_nbd_close\"
+
+let with_handle f =
+  let nbd = create () in
+  try let r = f nbd in close nbd; r with exn -> close nbd; raise exn
 
 ";
 

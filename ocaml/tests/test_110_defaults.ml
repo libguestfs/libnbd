@@ -18,18 +18,20 @@
  *)
 
 let () =
-  let nbd = NBD.create () in
-  let name = NBD.get_export_name nbd in
-  assert (name = "");
-  let info = NBD.get_full_info nbd in
-  assert (info = false);
-  let tls = NBD.get_tls nbd in
-  assert (tls = NBD.TLS.DISABLE);
-  let sr = NBD.get_request_structured_replies nbd in
-  assert (sr = true);
-  let flags = NBD.get_handshake_flags nbd in
-  assert (flags = NBD.HANDSHAKE_FLAG.mask);
-  let opt = NBD.get_opt_mode nbd in
-  assert (opt = false)
+  NBD.with_handle (
+    fun nbd ->
+      let name = NBD.get_export_name nbd in
+      assert (name = "");
+      let info = NBD.get_full_info nbd in
+      assert (info = false);
+      let tls = NBD.get_tls nbd in
+      assert (tls = NBD.TLS.DISABLE);
+      let sr = NBD.get_request_structured_replies nbd in
+      assert (sr = true);
+      let flags = NBD.get_handshake_flags nbd in
+      assert (flags = NBD.HANDSHAKE_FLAG.mask);
+      let opt = NBD.get_opt_mode nbd in
+      assert (opt = false)
+  )
 
 let () = Gc.compact ()

@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* libnbd OCaml test case
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2021 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -17,12 +17,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *)
 
+exception Test
+
 let () =
-  NBD.with_handle (
-    fun nbd ->
-      NBD.connect_command nbd
-                          ["nbdkit"; "-s"; "--exit-with-parent"; "-v";
-                           "null"]
-  )
+  NBD.with_handle (fun nbd -> ());
+
+  (try
+     ignore (NBD.with_handle (fun nbd -> raise Test));
+     assert false
+   with Test -> () (* expected *)
+      | exn -> failwith (Printexc.to_string exn)
+  );
+
+  (* Were two handles created above?
+   * XXX How to test if close was called twice?
+   *)
+  assert (NBD.get_handle_name (NBD.create ()) = "nbd3")
 
 let () = Gc.compact ()
