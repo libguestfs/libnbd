@@ -25,11 +25,12 @@ let () =
   NBD.set_full_info nbd true;
   let info = NBD.get_full_info nbd in
   assert (info = true);
-  try
-    NBD.set_tls nbd (NBD.TLS.UNKNOWN 3);
-    assert (false)
-  with
-    NBD.Error _ -> ();
+  (try
+     NBD.set_tls nbd (NBD.TLS.UNKNOWN 3);
+     assert (false)
+   with
+     NBD.Error _ -> ()
+  );
   let tls = NBD.get_tls nbd in
   assert (tls = NBD.TLS.DISABLE);
   if NBD.supports_tls nbd then (
@@ -40,11 +41,12 @@ let () =
   NBD.set_request_structured_replies nbd false;
   let sr = NBD.get_request_structured_replies nbd in
   assert (sr = false);
-  try
-    NBD.set_handshake_flags nbd [ NBD.HANDSHAKE_FLAG.UNKNOWN 2 ];
-    assert false
-  with
-    NBD.Error _ -> ();
+  (try
+     NBD.set_handshake_flags nbd [ NBD.HANDSHAKE_FLAG.UNKNOWN 2 ];
+     assert false
+   with
+     NBD.Error _ -> ()
+  );
   let flags = NBD.get_handshake_flags nbd in
   assert (flags = NBD.HANDSHAKE_FLAG.mask);
   NBD.set_handshake_flags nbd [];
