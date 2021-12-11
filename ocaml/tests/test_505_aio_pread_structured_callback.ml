@@ -76,42 +76,45 @@ let () =
   let buf = NBD.Buffer.alloc 512 in
   let cookie = NBD.aio_pread_structured nbd buf 0_L (chunk 42)
                  ~completion:(callback (42, 43)) in
-  try
-    while not (NBD.aio_command_completed nbd cookie) do
-      ignore (NBD.poll nbd (-1))
-    done;
-    assert false
-  with
-    NBD.Error (_, errno) ->
-      printf "errno = %d\n%!" errno;
-      assert (errno = 101);
+  (try
+     while not (NBD.aio_command_completed nbd cookie) do
+       ignore (NBD.poll nbd (-1))
+     done;
+     assert false
+   with
+     NBD.Error (_, errno) ->
+       printf "errno = %d\n%!" errno;
+       assert (errno = 101)
+  );
 
   (* Third try: fail during both *)
   let buf = NBD.Buffer.alloc 512 in
   let cookie = NBD.aio_pread_structured nbd buf 0_L (chunk 44)
                  ~completion:(callback (43, 43)) in
-  try
-    while not (NBD.aio_command_completed nbd cookie) do
-      ignore (NBD.poll nbd (-1))
-    done;
-    assert false
-  with
-    NBD.Error (_, errno) ->
-      printf "errno = %d\n%!" errno;
-      assert (errno = 101);
+  (try
+     while not (NBD.aio_command_completed nbd cookie) do
+       ignore (NBD.poll nbd (-1))
+     done;
+     assert false
+   with
+     NBD.Error (_, errno) ->
+       printf "errno = %d\n%!" errno;
+       assert (errno = 101)
+  );
 
   (* Fourth try: fail only during chunk *)
   let buf = NBD.Buffer.alloc 512 in
   let cookie = NBD.aio_pread_structured nbd buf 0_L (chunk 43)
                  ~completion:(callback (43, 42)) in
-  try
-    while not (NBD.aio_command_completed nbd cookie) do
-      ignore (NBD.poll nbd (-1))
-    done;
-    assert false
-  with
-    NBD.Error (_, errno) ->
-      printf "errno = %d\n%!" errno;
-      assert (errno = 100)
+  (try
+     while not (NBD.aio_command_completed nbd cookie) do
+       ignore (NBD.poll nbd (-1))
+     done;
+     assert false
+   with
+     NBD.Error (_, errno) ->
+       printf "errno = %d\n%!" errno;
+       assert (errno = 100)
+  )
 
 let () = Gc.compact ()
