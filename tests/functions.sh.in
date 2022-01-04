@@ -76,6 +76,15 @@ requires ()
     }
 }
 
+# Opposite of requires - the test must not succeed.
+requires_not ()
+{
+    if ( "$@" ) </dev/null >/dev/null 2>&1 ; then
+        echo "$0: test prerequisite is missing or not working"
+        exit 77
+    fi
+}
+
 # Test host kernel is Linux and minimum version.
 #
 # It's usually better to test features rather than using this, but
@@ -136,21 +145,27 @@ requires_caps ()
     done
 }
 
+# requires_nbd_server_supports_inetd
+#
+# On some distros, nbd-server is built without support for syslog
+# which prevents use of inetd mode.  Instead nbd-server will exit with
+# this error:
+#
+#   Error: inetd mode requires syslog
+#   Exiting.
+#
+# https://listman.redhat.com/archives/libguestfs/2022-January/msg00003.html
+requires_nbd_server_supports_inetd ()
+{
+    requires_not grep 'inetd mode requires syslog' "$(type -p "@NBD_SERVER@")"
+}
+
 # Tests that run under check-root should use this.
 requires_root ()
 {
     if test $(id -u) -ne 0; then
         echo "$0: test skipped because not running as root"
         echo "$0: use ‘sudo make check-root’ to run these tests"
-        exit 77
-    fi
-}
-
-# Opposite of requires - the test must not succeed.
-requires_not ()
-{
-    if ( "$@" ) </dev/null >/dev/null 2>&1 ; then
-        echo "$0: test prerequisite is missing or not working"
         exit 77
     fi
 }

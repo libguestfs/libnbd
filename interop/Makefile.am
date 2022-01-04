@@ -74,6 +74,7 @@ interop_nbd_server_SOURCES = \
 	$(NULL)
 interop_nbd_server_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
+	-DREQUIRES=' requires ("source ../tests/functions.sh; requires_nbd_server_supports_inetd"); ' \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(NBD_SERVER)\" \
 	-DSERVER_PARAMS='"-d", "-C", "/dev/null", "0", TMPFILE' \
@@ -88,7 +89,7 @@ interop_nbd_server_tls_SOURCES = \
 	$(NULL)
 interop_nbd_server_tls_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
-	-DREQUIRES=' requires ("test -d $(abs_top_builddir)/tests/pki"); ' \
+	-DREQUIRES=' requires ("test -d $(abs_top_builddir)/tests/pki"); requires ("source ../tests/functions.sh; requires_nbd_server_supports_inetd"); ' \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(NBD_SERVER)\" \
 	-DSERVER_PARAMS='"-d", "-C", "nbd-server-tls.conf", "0", TMPFILE' \
@@ -108,6 +109,7 @@ list_exports_nbd_server_SOURCES = \
 	$(NULL)
 list_exports_nbd_server_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
+	-DREQUIRES=' requires ("source ../tests/functions.sh; requires_nbd_server_supports_inetd"); ' \
 	-DSERVER=\"$(NBD_SERVER)\" \
 	-DSERVER_PARAMS='"-C", "$(srcdir)/list-exports-nbd-config", "-d", "0"' \
 	-DEXPORTS='"disk1", "disk2"' \
