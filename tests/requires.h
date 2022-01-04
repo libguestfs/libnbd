@@ -20,8 +20,10 @@
 #define LIBNBD_REQUIRES
 
 extern void requires (const char *cmd);
+extern void requires_not (const char *cmd);
 
 /* Some specific tests using the requires() mechanism. */
 extern void requires_qemu_nbd_tls_support (const char *qemu_nbd);
+extern void requires_nbd_server_supports_inetd (const char *nbd_server);
 
 #endif /* LIBNBD_REQUIRES */
