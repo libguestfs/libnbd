@@ -36,6 +36,17 @@ requires (const char *cmd)
   }
 }
 
+void
+requires_not (const char *cmd)
+{
+  printf ("requires_not %s\n", cmd);
+  fflush (stdout);
+  if (system (cmd) == 0) {
+    printf ("Test skipped because prerequisite is missing or not working.\n");
+    exit (77);
+  }
+}
+
 /* Check qemu-nbd was compiled with support for TLS. */
 void
 requires_qemu_nbd_tls_support (const char *qemu_nbd)
@@ -49,4 +60,26 @@ requires_qemu_nbd_tls_support (const char *qemu_nbd)
             "if %s --object tls-creds-x509,id=tls0 |& grep -sq 'TLS credentials support requires GNUTLS'; then exit 1; else exit 0; fi",
             qemu_nbd);
   requires (cmd);
+}
+
+/* On some distros, nbd-server is built without support for syslog
+ * which prevents use of inetd mode.  Instead nbd-server will exit with
+ * this error:
+ *
+ *   Error: inetd mode requires syslog
+ *   Exiting.
+ *
+ * https://listman.redhat.com/archives/libguestfs/2022-January/msg00003.html
+ */
+void
+requires_nbd_server_supports_inetd (const char *nbd_server)
+{
+  char cmd[256];
+
+  snprintf (cmd, sizeof cmd, "\"%s\" --version", nbd_server);
+  requires (cmd);
+  snprintf (cmd, sizeof cmd,
+            "grep 'inetd mode requires syslog' \"$(command -v \"%s\")\"",
+            nbd_server);
+  requires_not (cmd);
 }
