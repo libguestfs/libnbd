@@ -76,6 +76,15 @@ requires ()
     }
 }
 
+# Opposite of requires - the test must not succeed.
+requires_not ()
+{
+    if ( "$@" ) </dev/null >/dev/null 2>&1 ; then
+        echo "$0: test prerequisite is missing or not working"
+        exit 77
+    fi
+}
+
 # Test host kernel is Linux and minimum version.
 #
 # It's usually better to test features rather than using this, but
@@ -142,15 +151,6 @@ requires_root ()
     if test $(id -u) -ne 0; then
         echo "$0: test skipped because not running as root"
         echo "$0: use ‘sudo make check-root’ to run these tests"
-        exit 77
-    fi
-}
-
-# Opposite of requires - the test must not succeed.
-requires_not ()
-{
-    if ( "$@" ) </dev/null >/dev/null 2>&1 ; then
-        echo "$0: test prerequisite is missing or not working"
         exit 77
     fi
 }
