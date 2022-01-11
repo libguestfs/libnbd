@@ -25,10 +25,16 @@
 
 # pthread_exit.
 {
-  glibc_2
+  glibc_2a
   Memcheck:Leak
   ...
   fun:pthread_exit
+}
+{
+  glibc_2b
+  Memcheck:Leak
+  ...
+  fun:dlopen@@*
 }
 
 # Allow thread-local storage from pthread_create to leak.
