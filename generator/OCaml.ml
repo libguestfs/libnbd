@@ -54,7 +54,8 @@ and ocaml_arg_to_string = function
   | String _ -> "string"
   | StringList _ -> "string list"
   | UInt _ | UIntPtr _ -> "int"
-  | UInt32 _ -> "int32"
+  | UInt32 _ -> "int64 (* uint32_t *)" (* widening due to lack of uint32_t in
+                                          OCaml *)
   | UInt64 _ -> "int64"
 
 and ocaml_ret_to_string = function
@@ -495,7 +496,7 @@ let print_ocaml_closure_wrapper { cbname; cbargs } =
   List.iter (
     function
     | CBArrayAndLen (UInt32 n, count) ->
-       pr "  %sv = nbd_internal_ocaml_alloc_int32_array (%s, %s);\n"
+       pr "  %sv = nbd_internal_ocaml_alloc_int64_from_uint32_array (%s, %s);\n"
          n n count;
     | CBBytesIn (n, len) ->
        pr "  %sv = caml_alloc_initialized_string (%s, %s);\n" n len n
@@ -681,7 +682,10 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
     | UInt n | UIntPtr n ->
        pr "  unsigned %s = Int_val (%sv);\n" n n
     | UInt32 n ->
-       pr "  uint32_t %s = Int32_val (%sv);\n" n n
+       pr "  int64_t %s64 = Int64_val (%sv);\n" n n;
+       pr "  if (%s64 < 0 || (uint64_t)%s64 > UINT32_MAX)\n" n n;
+       pr "    caml_invalid_argument (\"'%s' out of range\");\n" n;
+       pr "  uint32_t %s = (uint32_t)%s64;\n" n n;
     | UInt64 n ->
        pr "  uint64_t %s = Int64_val (%sv);\n" n n
   ) args;
@@ -778,6 +782,7 @@ let generate_ocaml_nbd_c () =
 
   pr "#include <config.h>\n";
   pr "\n";
+  pr "#include <stdint.h>\n";
   pr "#include <stdio.h>\n";
   pr "#include <stdlib.h>\n";
   pr "#include <string.h>\n";

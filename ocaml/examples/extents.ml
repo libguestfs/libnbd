@@ -19,14 +19,14 @@ let () =
         if meta = "base:allocation" then (
           printf "index\t%16s %16s %s\n" "offset" "length" "flags";
           for i = 0 to Array.length entries / 2 - 1 do
-            let len = Int64.of_int32 entries.(i*2)
+            let len = entries.(i*2)
             and flags =
               match entries.(i*2+1) with
-              | 0_l -> "data"
-              | 1_l -> "hole"
-              | 2_l -> "zero"
-              | 3_l -> "hole+zero"
-              | i -> sprintf "unknown (%ld)" i in
+              | 0_L -> "data"
+              | 1_L -> "hole"
+              | 2_L -> "zero"
+              | 3_L -> "hole+zero"
+              | unknown -> sprintf "unknown (%Ld)" unknown in
             printf "%d:\t%16Ld %16Ld %s\n" i !fetch_offset len flags;
             fetch_offset := Int64.add !fetch_offset len
           done;

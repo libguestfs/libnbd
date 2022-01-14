@@ -41,18 +41,18 @@ let () =
                            "sh"; script];
 
   NBD.block_status nbd 65536_L 0_L (f 42);
-  assert (!entries = [|  8192_l; 0_l;
-                         8192_l; 1_l;
-                        16384_l; 3_l;
-                        16384_l; 2_l;
-                        16384_l; 0_l |]);
+  assert (!entries = [|  8192_L; 0_L;
+                         8192_L; 1_L;
+                        16384_L; 3_L;
+                        16384_L; 2_L;
+                        16384_L; 0_L |]);
 
   NBD.block_status nbd 1024_L 32256_L (f 42);
-  assert (!entries = [|   512_l; 3_l;
-                        16384_l; 2_l |]);
+  assert (!entries = [|   512_L; 3_L;
+                        16384_L; 2_L |]);
 
   let flags = let open NBD.CMD_FLAG in [REQ_ONE] in
   NBD.block_status nbd 1024_L 32256_L (f 42) ~flags;
-  assert (!entries = [|   512_l; 3_l |])
+  assert (!entries = [|   512_L; 3_L |])
 
 let () = Gc.compact ()
