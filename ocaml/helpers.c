@@ -97,7 +97,7 @@ nbd_internal_ocaml_string_list (value ssv)
 }
 
 value
-nbd_internal_ocaml_alloc_int32_array (uint32_t *a, size_t len)
+nbd_internal_ocaml_alloc_int64_from_uint32_array (uint32_t *a, size_t len)
 {
   CAMLparam0 ();
   CAMLlocal2 (v, rv);
@@ -105,7 +105,7 @@ nbd_internal_ocaml_alloc_int32_array (uint32_t *a, size_t len)
 
   rv = caml_alloc (len, 0);
   for (i = 0; i < len; ++i) {
-    v = caml_copy_int32 (a[i]);
+    v = caml_copy_int64 (a[i]);
     Store_field (rv, i, v);
   }
 

@@ -60,7 +60,8 @@ extern void nbd_internal_ocaml_raise_error (void) Noreturn;
 extern void nbd_internal_ocaml_raise_closed (const char *func) Noreturn;
 
 extern const char **nbd_internal_ocaml_string_list (value);
-extern value nbd_internal_ocaml_alloc_int32_array (uint32_t *, size_t);
+extern value nbd_internal_ocaml_alloc_int64_from_uint32_array (uint32_t *,
+                                                               size_t);
 extern void nbd_internal_ocaml_exception_in_wrapper (const char *, value);
 
 /* Extract an NBD handle from an OCaml heap value. */
