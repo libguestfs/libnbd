@@ -1,0 +1,110 @@
+=head1 NAME
+
+libnbd-release-notes-1.12 - release notes for libnbd 1.12
+
+=head1 DESCRIPTION
+
+These are the release notes for libnbd stable release 1.12.
+This describes the major changes since 1.10.
+
+libnbd 1.12.0 was released on B<XX Xxxxx 2022>.
+
+=head2 Security
+
+There were no security bugs found in libnbd during this release cycle.
+
+If you find a security issue, please read F<SECURITY> in the source
+(online here:
+L<https://gitlab.com/nbdkit/libnbd/blob/master/SECURITY>).  To
+find out about previous security issues in libnbd, see
+L<libnbd-security(3)>.
+
+=head2 New APIs
+
+No new APIs were added in 1.12.
+
+=head2 Enhancements to existing APIs
+
+Error messages about incorrect URIs in L<nbd_connect_uri(3)> have been
+improved to make common mistakes clearer for the user.
+
+=head2 Tools
+
+New syntax: C<nbdinfo [ CMD ... ]> allowing you to query the
+properties of an NBD server directly.
+
+=head2 Tests
+
+Adopt libvirt-ci's F<ci/gitlab.yml> (Martin Kletzander).
+
+Fix the OCaml extents example (thanks Laszlo Ersek).
+
+=head2 Other improvements and bug fixes
+
+New OCaml C<NBD.with_handle> helper which ensures that C<NBD.close> is
+always called even if the inner code throws an exception.
+
+The OCaml bindings now consistently use the correct types for buffer
+sizes everywhere (Laszlo Ersek).
+
+Several improvements and fixes to the golang bindings and tests.  The
+golang bindings have been relicensed to LGPLv2+ like the rest of the
+library and are now published as a golang module at
+L<https://libguestfs.org/libnbd> (Nir Soffer).
+
+The Python bindings no longer crash if you pass C<None> in place of a
+buffer parameter.  In addition some memory leaks were fixed (Eric
+Blake).
+
+Various memory leaks have been fixed when using the optional
+strict_mode settings (Eric Blake).
+
+The performance of the internal vector library has been improved
+greatly and overflow is now handled correctly (Nir Soffer, Laszlo
+Ersek and Eric Blake).
+
+=head2 Documentation
+
+Document the limits on lengths and sizes of parameters to various APIs
+(Eric Blake).
+
+=head2 Build
+
+You can now build programs that use the OCaml bindings of libnbd
+against the libnbd build directory instead of requiring libnbd to be
+installed (Laszlo Ersek).
+
+Compatibility with OCaml 4.13.
+
+Line locations in the state machine should be more accurate when
+stepping through with a debugger like gdb.
+
+=head1 SEE ALSO
+
+L<libnbd(3)>.
+
+=head1 AUTHORS
+
+=begin comment
+
+git shortlog -s v1.10.0..
+
+=end comment
+
+=over 4
+
+=item Eric Blake
+
+=item Laszlo Ersek
+
+=item Martin Kletzander
+
+=item Nir Soffer
+
+=item Richard W.M. Jones
+
+=back
+
+=head1 COPYRIGHT
+
+Copyright (C) 2021-2022 Red Hat Inc.

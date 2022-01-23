@@ -973,6 +973,7 @@ L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>.
 
 =head2 Release notes
 
+L<libnbd-release-notes-1.12(1)>,
 L<libnbd-release-notes-1.10(1)>,
 L<libnbd-release-notes-1.8(1)>,
 L<libnbd-release-notes-1.6(1)>,
