@@ -402,6 +402,11 @@ finished_read (void *vp, int *error)
   if (gssrc == NULL)
     return 1; /* Nothing we can do, auto-retire the callback */
 
+  if (*error) {
+    fprintf (stderr, "finished_read: read failed: %s\n", strerror (*error));
+    exit (EXIT_FAILURE);
+  }
+
   DEBUG (gssrc, "finished_read: read completed");
 
   assert (buffer->state == BUFFER_READING);
@@ -447,6 +452,11 @@ finished_write (void *vp, int *error)
 
   if (gsdest == NULL)
     return 1; /* Nothing we can do, auto-retire the callback */
+
+  if (*error) {
+    fprintf (stderr, "finished_write: write failed: %s\n", strerror (*error));
+    exit (EXIT_FAILURE);
+  }
 
   DEBUG (gsdest, "finished_write: write completed");
 
