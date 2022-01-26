@@ -191,6 +191,12 @@ extent_callback (void *user_data, const char *metacontext, uint64_t offset,
         return 1;
     }
 
+    if (*error) {
+        DEBUG ("r%zu: extent callback for %s failed: %s",
+              r->index, LIBNBD_CONTEXT_BASE_ALLOCATION, strerror (*error));
+        return 1;
+    }
+
     /* Libnbd returns uint32_t pair (length, flags) for each extent. */
     extents_len = nr_entries / 2;
 
@@ -246,6 +252,12 @@ extents_completed (void *user_data, int *error)
            r->index, ev_now (loop) - r->started);
 
     extents_in_progress = false;
+
+    /*
+     * If extents failed (*error != 0), the extent callback was not
+     * called, or called with an error, so we did not allocate new
+     * extents array.
+     */
 
     if (extents == NULL) {
         DEBUG ("r%zu: received no extents, disabling extents", r->index);
@@ -441,6 +453,9 @@ read_completed (void *user_data, int *error)
 {
     struct request *r = (struct request *)user_data;
 
+    if (*error)
+        FAIL ("r%zu: read failed: %s", r->index, strerror (*error));
+
     DEBUG ("r%zu: read completed offset=%" PRIi64 " len=%zu",
            r->index, r->offset, r->length);
 
@@ -495,6 +510,10 @@ static int
 request_completed (void *user_data, int *error)
 {
     struct request *r = (struct request *)user_data;
+
+    if (*error)
+        FAIL ("r%zu: %s failed: %s",
+              r->index, request_state (r), strerror (*error));
 
     written += r->length;
 
