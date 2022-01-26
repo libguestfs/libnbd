@@ -21,6 +21,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 EXTRA_DIST = \
 	.dir-locals.el \
+	.editorconfig \
 	.gitattributes \
 	.gitignore \
 	html/pod.css \
