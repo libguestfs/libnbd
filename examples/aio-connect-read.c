@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <errno.h>
 #include <assert.h>
 
 #include <libnbd.h>
@@ -34,6 +35,12 @@ hexdump (void *user_data, int *error)
 {
   struct data *data = user_data;
   FILE *pp;
+
+  if (*error) {
+    errno = *error;
+    perror ("failed to read");
+    exit (EXIT_FAILURE);
+  }
 
   printf ("sector at offset 0x%" PRIx64 ":\n",
           data->offset);
