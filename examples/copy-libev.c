@@ -641,7 +641,14 @@ main (int argc, char *argv[])
     for (i = 0; i < MAX_REQUESTS; i++) {
         struct request *r = &requests[i];
         r->index = i;
-        r->data = malloc (REQUEST_SIZE);
+
+        /*
+         * Clear the buffer before starting the copy, so if we fail to
+         * handle a read error we will not write uninitilized data to
+         * the destination server, which may leak sensitive data to
+         * remote host.
+         */
+        r->data = calloc (1, REQUEST_SIZE);
         if (r->data == NULL)
             FAIL ("Cannot allocate buffer: %s", strerror (errno));
 
