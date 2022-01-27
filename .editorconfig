@@ -9,11 +9,14 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 charset = utf-8
 
+[{*.py,*.py.in,*.pl,*.pl.in,*.sh,*.sh.in}]
+indent_size = 4
+
 [{*.go,go.mod,go.sum}]
 # Match gofmt style
 indent_style = tab
 indent_size = 4
 
-[{Makefile,Makefile.in,Makefile.am}]
+[{Makefile,Makefile.in,Makefile.am,*.mk}]
 # Make requires tabs.
 indent_style = tab
