@@ -109,13 +109,17 @@ AC_CHECK_HEADERS([\
 
 AC_CHECK_HEADERS([linux/vm_sockets.h sys/vsock.h], [], [], [#include <sys/socket.h>])
 
-dnl posix_fadvise helps to optimise linear reads and writes (optional).
-AC_CHECK_FUNCS([posix_fadvise])
-
-dnl Check for strerrordesc_np (optional, glibc only).
-dnl Prefer this over sys_errlist.
+dnl Check for various libc functions, all optional.
+dnl
+dnl posix_fadvise helps to optimise linear reads and writes.
+dnl
+dnl strerrordesc_np (glibc only) is preferred over sys_errlist:
 dnl https://lists.fedoraproject.org/archives/list/glibc@lists.fedoraproject.org/thread/WJHGG2OO7ABNAYICGA5WQZ2Q34Q2FEHU/
-AC_CHECK_FUNCS([strerrordesc_np])
+AC_CHECK_FUNCS([\
+        posix_fadvise \
+        posix_memalign \
+        strerrordesc_np \
+        valloc])
 
 dnl Check for sys_errlist (optional).
 AC_CHECK_DECLS([sys_errlist])
