@@ -26,6 +26,7 @@ source_files = \
 	wrappers.go \
 	wrappers.h \
 	libnbd_010_load_test.go \
+	libnbd_020_aio_buffer_test.go \
 	libnbd_100_handle_test.go \
 	libnbd_110_defaults_test.go \
 	libnbd_120_set_non_defaults_test.go \

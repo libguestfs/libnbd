@@ -27,3 +27,10 @@ requires nbdkit --version
 # https://golang.org/doc/go1.10#test
 # The -v option enables verbose output.
 $GOLANG test -count=1 -v
+
+# Run the only benchmarks with 10 milliseconds timeout to make sure they
+# do not break by mistake, without overloading the CI. For performance
+# testing run "go test" directly.
+# The -run=- parameter is the way to match no test, assuming that no test or
+# sub test contains "-" in the name.
+$GOLANG test -run=- -bench=. -benchtime=10ms
