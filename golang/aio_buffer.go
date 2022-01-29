@@ -39,10 +39,14 @@ type AioBuffer struct {
 	Size uint
 }
 
+// MakeAioBuffer makes a new buffer backed by an uninitialized C allocated
+// array.
 func MakeAioBuffer(size uint) AioBuffer {
 	return AioBuffer{C.malloc(C.ulong(size)), size}
 }
 
+// FromBytes makes a new buffer backed by a C allocated array, initialized by
+// copying the given Go slice.
 func FromBytes(buf []byte) AioBuffer {
 	size := len(buf)
 	ret := MakeAioBuffer(uint(size))
@@ -52,6 +56,8 @@ func FromBytes(buf []byte) AioBuffer {
 	return ret
 }
 
+// Free deallocates the underlying C allocated array. Using the buffer after
+// Free() will panic.
 func (b *AioBuffer) Free() {
 	if b.P != nil {
 		C.free(b.P)
@@ -59,10 +65,16 @@ func (b *AioBuffer) Free() {
 	}
 }
 
+// Bytes copies the underlying C array to Go allocated memory and return a
+// slice. Modifying the returned slice does not modify the underlying buffer
+// backing array.
 func (b *AioBuffer) Bytes() []byte {
 	return C.GoBytes(b.P, C.int(b.Size))
 }
 
+// Get returns a pointer to a byte in the underlying C array. The pointer can
+// be used to modify the underlying array. The pointer must not be used after
+// calling Free().
 func (b *AioBuffer) Get(i uint) *byte {
 	return (*byte)(unsafe.Pointer(uintptr(b.P) + uintptr(i)))
 }
