@@ -44,9 +44,7 @@ import (
 	"container/list"
 	"flag"
 	"os"
-	"sync"
 	"syscall"
-	"unsafe"
 
 	"libguestfs.org/libnbd"
 )
@@ -62,21 +60,13 @@ var (
 	// order, even if they complete out of order. This allows parallel reads
 	// with non-seekable output.
 	queue list.List
-
-	// Buffer pool allocating buffers as needed and reusing them.
-	bufPool = sync.Pool{
-		New: func() interface{} {
-			return make([]byte, *requestSize)
-		},
-	}
 )
 
 // command keeps state of single AioPread call while the read is handled by
 // libnbd, until the command reach the front of the queue and can be writen to
 // the output.
 type command struct {
-	buf    []byte
-	length uint
+	buf    libnbd.AioBuffer
 	ready  bool
 }
 
@@ -146,15 +136,7 @@ func waitForCompletion() {
 }
 
 func startRead(offset uint64, length uint) {
-	buf := bufPool.Get().([]byte)
-
-	// Keep buffer in command so we can put it back into the pool when the
-	// command completes.
-	cmd := &command{buf: buf, length: length}
-
-	// Create aio buffer from pool buffer to avoid unneeded allocation for
-	// every read, and unneeded copy when completing the read.
-	abuf := libnbd.AioBuffer{P: unsafe.Pointer(&buf[0]), Size: length}
+	cmd := &command{buf: libnbd.MakeAioBuffer(length)}
 
 	args := libnbd.AioPreadOptargs{
 		CompletionCallbackSet: true,
@@ -170,7 +152,7 @@ func startRead(offset uint64, length uint) {
 		},
 	}
 
-	_, err := h.AioPread(abuf, offset, &args)
+	_, err := h.AioPread(cmd.buf, offset, &args)
 	if err != nil {
 		panic(err)
 	}
@@ -187,12 +169,11 @@ func finishRead() {
 	queue.Remove(e)
 
 	cmd := e.Value.(*command)
-	b := cmd.buf[:cmd.length]
 
-	_, err := os.Stdout.Write(b)
+	_, err := os.Stdout.Write(cmd.buf.Slice())
 	if err != nil {
 		panic(err)
 	}
 
-	bufPool.Put(cmd.buf)
+	cmd.buf.Free()
 }
