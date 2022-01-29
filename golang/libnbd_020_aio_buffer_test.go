@@ -202,3 +202,35 @@ func BenchmarkAioBufferSlice(b *testing.B) {
 		r += len(buf.Slice())
 	}
 }
+
+var data = make([]byte, bufferSize)
+
+// Benchmark copying into same buffer, used as baseline for CopyMake and
+// CopyMakeZero benchmarks.
+func BenchmarkAioBufferCopyBaseline(b *testing.B) {
+	buf := MakeAioBufferZero(bufferSize)
+	defer buf.Free()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		copy(buf.Slice(), data)
+	}
+}
+
+// Benchmark overhead of making a new buffer per read.
+func BenchmarkAioBufferCopyMake(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		buf := MakeAioBuffer(bufferSize)
+		copy(buf.Slice(), data)
+		buf.Free()
+	}
+}
+
+// Benchmark overhead of making a new zero buffer per read.
+func BenchmarkAioBufferCopyMakeZero(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		buf := MakeAioBufferZero(bufferSize)
+		copy(buf.Slice(), data)
+		buf.Free()
+	}
+}
