@@ -62,7 +62,7 @@ func Test500AioPRead(t *testing.T) {
 		binary.BigEndian.PutUint64(expected[i:i+8], uint64(i))
 	}
 
-	if !bytes.Equal(buf.Bytes(), expected) {
+	if !bytes.Equal(buf.Slice(), expected) {
 		t.Fatalf("did not read expected data")
 	}
 }

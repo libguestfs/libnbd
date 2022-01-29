@@ -39,9 +39,11 @@ func Test510AioPWrite(t *testing.T) {
 	/* Write a pattern and read it back. */
 	buf := MakeAioBuffer(512)
 	defer buf.Free()
+
+	s := buf.Slice()
 	for i := 0; i < 512; i += 2 {
-		*buf.Get(uint(i)) = 0x55
-		*buf.Get(uint(i + 1)) = 0xAA
+		s[i] = 0x55
+		s[i+1] = 0xAA
 	}
 
 	var cookie uint64
@@ -69,7 +71,7 @@ func Test510AioPWrite(t *testing.T) {
 		t.Fatalf("%s", err)
 	}
 
-	if !bytes.Equal(buf.Bytes(), buf2) {
+	if !bytes.Equal(buf.Slice(), buf2) {
 		t.Fatalf("did not read back same data as written")
 	}
 }

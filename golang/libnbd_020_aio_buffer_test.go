@@ -29,8 +29,9 @@ func TestAioBuffer(t *testing.T) {
 	defer buf.Free()
 
 	/* Initialize backing array contents. */
+	s := buf.Slice()
 	for i := uint(0); i < buf.Size; i++ {
-		*buf.Get(i) = 0
+		s[i] = 0
 	}
 
 	/* Create a slice by copying the backing array contents into Go memory. */
@@ -52,7 +53,7 @@ func TestAioBuffer(t *testing.T) {
 	}
 
 	/* Creating a slice without copying the underlying buffer. */
-	s := buf.Slice()
+	s = buf.Slice()
 	if !bytes.Equal(s, zeroes) {
 		t.Fatalf("Expected %v, got %v", zeroes, s)
 	}
@@ -161,8 +162,9 @@ func BenchmarkMakeAioBufferZero(b *testing.B) {
 func BenchmarkAioBufferZero(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		buf := MakeAioBuffer(bufferSize)
+		s := buf.Slice()
 		for i := uint(0); i < bufferSize; i++ {
-			*buf.Get(i) = 0
+			s[i] = 0
 		}
 		buf.Free()
 	}
