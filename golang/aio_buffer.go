@@ -45,6 +45,12 @@ func MakeAioBuffer(size uint) AioBuffer {
 	return AioBuffer{C.malloc(C.ulong(size)), size}
 }
 
+// MakeAioBuffer makes a new buffer backed by a C allocated array. The
+// underlying buffer is set to zero.
+func MakeAioBufferZero(size uint) AioBuffer {
+	return AioBuffer{C.calloc(C.ulong(1), C.ulong(size)), size}
+}
+
 // FromBytes makes a new buffer backed by a C allocated array, initialized by
 // copying the given Go slice.
 func FromBytes(buf []byte) AioBuffer {

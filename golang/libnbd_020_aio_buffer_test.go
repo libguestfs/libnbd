@@ -58,6 +58,14 @@ func TestAioBuffer(t *testing.T) {
 	if !bytes.Equal(buf2.Bytes(), zeroes) {
 		t.Fatalf("Expected %v, got %v", zeroes, buf2.Bytes())
 	}
+
+	/* Crated a zeroed buffer. */
+	buf3 := MakeAioBufferZero(uint(32))
+	defer buf.Free()
+
+	if !bytes.Equal(buf3.Bytes(), zeroes) {
+		t.Fatalf("Expected %v, got %v", zeroes, buf2.Bytes())
+	}
 }
 
 func TestAioBufferFree(t *testing.T) {
@@ -108,6 +116,14 @@ const bufferSize uint = 256 * 1024
 func BenchmarkMakeAioBuffer(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		buf := MakeAioBuffer(bufferSize)
+		buf.Free()
+	}
+}
+
+// Benchmark creating zeroed buffer.
+func BenchmarkMakeAioBufferZero(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		buf := MakeAioBufferZero(bufferSize)
 		buf.Free()
 	}
 }
