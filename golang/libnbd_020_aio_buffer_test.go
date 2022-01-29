@@ -51,6 +51,21 @@ func TestAioBuffer(t *testing.T) {
 		t.Fatalf("Expected %v, got %v", zeroes, buf.Bytes())
 	}
 
+	/* Creating a slice without copying the underlying buffer. */
+	s := buf.Slice()
+	if !bytes.Equal(s, zeroes) {
+		t.Fatalf("Expected %v, got %v", zeroes, s)
+	}
+
+	/* Modifying the slice modifies the underlying buffer. */
+	for i := 0; i < len(s); i++ {
+		s[i] = 42
+	}
+
+	if !bytes.Equal(buf.Slice(), s) {
+		t.Fatalf("Expected %v, got %v", s, buf.Slice())
+	}
+
 	/* Create another buffer from Go slice. */
 	buf2 := FromBytes(zeroes)
 	defer buf2.Free()
@@ -94,6 +109,20 @@ func TestAioBufferBytesAfterFree(t *testing.T) {
 	}()
 
 	buf.Bytes()
+}
+
+func TestAioBufferSliceAfterFree(t *testing.T) {
+	buf := MakeAioBuffer(uint(32))
+	buf.Free()
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("Did not recover from panic calling Bytes() after Free()")
+		}
+	}()
+
+	s := buf.Slice()
+	s[0] = 42
 }
 
 func TestAioBufferGetAfterFree(t *testing.T) {
@@ -157,5 +186,17 @@ func BenchmarkAioBufferBytes(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r += len(buf.Bytes())
+	}
+}
+
+// Benchmark creating a slice without copying the underling buffer.
+func BenchmarkAioBufferSlice(b *testing.B) {
+	buf := MakeAioBuffer(bufferSize)
+	defer buf.Free()
+	var r int
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		r += len(buf.Slice())
 	}
 }

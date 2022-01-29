@@ -78,6 +78,15 @@ func (b *AioBuffer) Bytes() []byte {
 	return C.GoBytes(b.P, C.int(b.Size))
 }
 
+// Slice creates a slice backed by the underlying C array. The slice can be
+// used to access or modify the contents of the underlying array. The slice
+// must not be used after caling Free().
+func (b *AioBuffer) Slice() []byte {
+	// See https://github.com/golang/go/wiki/cgo#turning-c-arrays-into-go-slices
+	// TODO: Use unsafe.Slice() when we require Go 1.17.
+	return (*[1<<30]byte)(b.P)[:b.Size:b.Size]
+}
+
 // Get returns a pointer to a byte in the underlying C array. The pointer can
 // be used to modify the underlying array. The pointer must not be used after
 // calling Free().
