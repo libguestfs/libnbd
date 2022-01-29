@@ -53,7 +53,10 @@ func FromBytes(buf []byte) AioBuffer {
 }
 
 func (b *AioBuffer) Free() {
-	C.free(b.P)
+	if b.P != nil {
+		C.free(b.P)
+		b.P = nil
+	}
 }
 
 func (b *AioBuffer) Bytes() []byte {

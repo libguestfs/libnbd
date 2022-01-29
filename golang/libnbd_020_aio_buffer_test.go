@@ -60,6 +60,47 @@ func TestAioBuffer(t *testing.T) {
 	}
 }
 
+func TestAioBufferFree(t *testing.T) {
+	buf := MakeAioBuffer(uint(32))
+
+	/* Free the underlying C array. */
+	buf.Free()
+
+	/* And clear the pointer. */
+	if buf.P != nil {
+		t.Fatal("Dangling pointer after Free()")
+	}
+
+	/* Additional Free does nothing. */
+	buf.Free()
+}
+
+func TestAioBufferBytesAfterFree(t *testing.T) {
+	buf := MakeAioBuffer(uint(32))
+	buf.Free()
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("Did not recover from panic calling Bytes() after Free()")
+		}
+	}()
+
+	buf.Bytes()
+}
+
+func TestAioBufferGetAfterFree(t *testing.T) {
+	buf := MakeAioBuffer(uint(32))
+	buf.Free()
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("Did not recover from panic calling Get() after Free()")
+		}
+	}()
+
+	*buf.Get(0) = 42
+}
+
 // Typical buffer size.
 const bufferSize uint = 256 * 1024
 
