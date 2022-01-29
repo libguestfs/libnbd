@@ -54,11 +54,8 @@ func MakeAioBufferZero(size uint) AioBuffer {
 // FromBytes makes a new buffer backed by a C allocated array, initialized by
 // copying the given Go slice.
 func FromBytes(buf []byte) AioBuffer {
-	size := len(buf)
-	ret := MakeAioBuffer(uint(size))
-	for i := 0; i < len(buf); i++ {
-		*ret.Get(uint(i)) = buf[i]
-	}
+	ret := MakeAioBuffer(uint(len(buf)))
+	copy(ret.Slice(), buf)
 	return ret
 }
 
