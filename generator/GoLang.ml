@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* nbd client library in userspace: generator
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -515,10 +515,10 @@ import \"unsafe\"
 
 func copy_uint32_array (entries *C.uint32_t, count C.size_t) []uint32 {
     ret := make([]uint32, int (count))
-    for i := 0; i < int (count); i++ {
-       entry := (*C.uint32_t) (unsafe.Pointer(uintptr(unsafe.Pointer(entries)) + (unsafe.Sizeof(*entries) * uintptr(i))))
-       ret[i] = uint32 (*entry)
-    }
+    // See https://github.com/golang/go/wiki/cgo#turning-c-arrays-into-go-slices
+    // TODO: Use unsafe.Slice() when we require Go 1.17.
+    s := (*[1<<30]uint32)(unsafe.Pointer(entries))[:count:count]
+    copy(ret, s)
     return ret
 }
 ";
