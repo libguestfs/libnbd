@@ -1,5 +1,5 @@
 /* NBD client library in userspace.
- * Copyright (C) 2020 Red Hat Inc.
+ * Copyright (C) 2020-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -337,7 +337,7 @@ add_extent (void *vp, const char *metacontext,
   extent_list *ret = vp;
   size_t i;
 
-  if (strcmp (metacontext, "base:allocation") != 0)
+  if (strcmp (metacontext, "base:allocation") != 0 || *error)
     return 0;
 
   for (i = 0; i < nr_entries; i += 2) {
