@@ -400,7 +400,7 @@ finished_read (void *vp, int *error)
   struct buffer *buffer = vp;
 
   if (gssrc == NULL)
-    return 0;
+    return 1; /* Nothing we can do, auto-retire the callback */
 
   DEBUG (gssrc, "finished_read: read completed");
 
@@ -446,7 +446,7 @@ finished_write (void *vp, int *error)
   struct buffer *buffer = vp;
 
   if (gsdest == NULL)
-    return 0;
+    return 1; /* Nothing we can do, auto-retire the callback */
 
   DEBUG (gsdest, "finished_write: write completed");
 
