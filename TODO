@@ -78,3 +78,9 @@ Suggested API improvements:
   sockets
   - allow user to pass in their own socket functions, this would allow
     io_uring to be used
+
+OCaml:
+ - Translate *error between OCaml Unix.error and C errno automatically
+   using the functions in <caml/unixsupport.h>.  This requires a
+   change to the generator CBMutable (Int _) -> CBMutable (Errno _)
+   which is quite a large change.
