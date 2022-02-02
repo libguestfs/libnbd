@@ -9,6 +9,10 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 charset = utf-8
 
+[*.pod]
+# Indented code samples in pod require trailing whitespace
+trim_trailing_whitespace = false
+
 [{*.py,*.py.in,*.pl,*.pl.in,*.sh,*.sh.in}]
 indent_size = 4
 
