@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -112,10 +112,10 @@ nbd_internal_ocaml_alloc_int64_from_uint32_array (uint32_t *a, size_t len)
   CAMLreturn (rv);
 }
 
-/* Common code when an exception is raised in an OCaml callback and
- * the wrapper has to deal with it.  Callbacks are not supposed to
- * raise exceptions, so we print it.  We also handle Assert_failure
- * specially by abort()-ing.
+/* Common code when an exception is raised in an OCaml callback.
+ *
+ * We handle Assert_failure specially by abort()-ing.  Other
+ * exceptions are printed to make sure we don't lose information.
  */
 void
 nbd_internal_ocaml_exception_in_wrapper (const char *cbname, value rv)
