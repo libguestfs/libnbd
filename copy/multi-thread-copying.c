@@ -1,5 +1,5 @@
 /* NBD client library in userspace.
- * Copyright (C) 2020 Red Hat Inc.
+ * Copyright (C) 2020-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -390,6 +390,7 @@ finished_read (void *vp, int *error)
     bool last_is_hole = false;
     uint64_t i;
     struct command *newcommand;
+    int dummy = 0;
 
     /* Iterate over whole blocks in the command, starting on a block
      * boundary.
@@ -472,7 +473,7 @@ finished_read (void *vp, int *error)
     /* Free the original command since it has been split into
      * subcommands and the original is no longer needed.
      */
-    free_command (command, &errno);
+    free_command (command, &dummy);
   }
 
   return 1; /* auto-retires the command */
@@ -497,6 +498,7 @@ static void
 fill_dst_range_with_zeroes (struct command *command)
 {
   char *data;
+  int dummy = 0;
 
   if (destination_is_zero)
     goto free_and_return;
@@ -540,7 +542,7 @@ fill_dst_range_with_zeroes (struct command *command)
   free (data);
 
  free_and_return:
-  free_command (command, &errno);
+  free_command (command, &dummy);
 }
 
 static int
