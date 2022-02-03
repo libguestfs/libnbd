@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* libnbd OCaml test case
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -45,7 +45,8 @@ let asynch_copy src dst =
    * next iteration of the loop.
    *)
   let writes = ref [] in
-  let read_completed buf offset _ =
+  let read_completed buf offset err =
+    assert (!err = 0);
     bytes_read := !bytes_read + NBD.Buffer.size buf;
     (* Get ready to issue a write command. *)
     writes := (buf, offset) :: !writes;
@@ -56,7 +57,8 @@ let asynch_copy src dst =
   (* This callback is called when any pwrite to the destination
    * has completed.
    *)
-  let write_completed buf _ =
+  let write_completed buf err =
+    assert (!err = 0);
     bytes_written := !bytes_written + NBD.Buffer.size buf;
     (* By returning 1 here we auto-retire the pwrite command. *)
     1
