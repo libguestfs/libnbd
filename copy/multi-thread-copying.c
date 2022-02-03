@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <sys/stat.h>
+#include <inttypes.h>
 
 #include <pthread.h>
 
@@ -373,6 +374,12 @@ finished_read (void *vp, int *error)
 {
   struct command *command = vp;
 
+  if (*error) {
+    fprintf (stderr, "read at offset %" PRId64 " failed: %s\n",
+             command->offset, strerror (*error));
+    exit (EXIT_FAILURE);
+  }
+
   if (allocated || sparse_size == 0) {
     /* If sparseness detection (see below) is turned off then we write
      * the whole command.
@@ -550,6 +557,12 @@ free_command (void *vp, int *error)
 {
   struct command *command = vp;
   struct buffer *buffer = command->slice.buffer;
+
+  if (*error) {
+    fprintf (stderr, "write at offset %" PRId64 " failed: %s\n",
+             command->offset, strerror (*error));
+    exit (EXIT_FAILURE);
+  }
 
   if (buffer != NULL) {
     if (--buffer->refs == 0) {
