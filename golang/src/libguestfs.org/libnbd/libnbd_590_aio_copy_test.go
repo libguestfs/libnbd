@@ -106,7 +106,11 @@ func asynch_copy(t *testing.T, src *Libnbd, dst *Libnbd) {
 			soff_copy := soff
 			var optargs AioPreadOptargs
 			optargs.CompletionCallbackSet = true
-			optargs.CompletionCallback = func(*int) int {
+			optargs.CompletionCallback = func(error *int) int {
+				if *error != 0 {
+					err := syscall.Errno(*error).Error()
+					panic(err)
+				}
 				return read_completed(buf, soff_copy)
 			}
 			src.AioPread(buf, soff, &optargs)
@@ -118,7 +122,11 @@ func asynch_copy(t *testing.T, src *Libnbd, dst *Libnbd) {
 		for _, wb := range writes {
 			var optargs AioPwriteOptargs
 			optargs.CompletionCallbackSet = true
-			optargs.CompletionCallback = func(*int) int {
+			optargs.CompletionCallback = func(error *int) int {
+				if *error != 0 {
+					err := syscall.Errno(*error).Error()
+					panic(err)
+				}
 				return write_completed(wb.buf)
 			}
 			dst.AioPwrite(wb.buf, wb.offset, &optargs)
