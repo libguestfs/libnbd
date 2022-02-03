@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2020 Red Hat Inc.
+# Copyright (C) 2020-2022 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -33,6 +33,7 @@ EXTRA_DIST = \
 	copy-nbd-to-small-nbd-error.sh \
 	copy-nbd-to-sparse-file.sh \
 	copy-nbd-to-stdout.sh \
+	copy-nbd-error.sh \
 	copy-progress-bar.sh \
 	copy-sparse.sh \
 	copy-sparse-allocated.sh \
@@ -123,6 +124,7 @@ TESTS += \
 	copy-stdin-to-nbd.sh \
 	copy-stdin-to-null.sh \
 	copy-nbd-to-stdout.sh \
+	copy-nbd-error.sh \
 	copy-progress-bar.sh \
 	copy-sparse.sh \
 	copy-sparse-allocated.sh \
