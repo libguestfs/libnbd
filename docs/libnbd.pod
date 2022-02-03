@@ -829,8 +829,12 @@ This can be used to free associated C<user_data>.  For example:
                 NBD_NULL_COMPLETION,
                 0);
 
-will call L<free(3)> on C<my_data> after the last time that the
-S<C<chunk.callback = my_fn>> function is called.
+will call L<free(3)> once on C<my_data> after the point where it is
+known that the S<C<chunk.callback = my_fn>> function can no longer be
+called, regardless of how many times C<my_fn> was actually called.  If
+both a mid-command and completion callback are supplied, the functions
+will be reached in this order: mid-function callbacks, completion
+callback, mid-function free, and finally completion free.
 
 The free function is only accessible in the C API as it is not needed
 in garbage collected programming languages.
@@ -858,27 +862,60 @@ same nbd object, as it would cause deadlock.
 
 =head2 Completion callbacks
 
-All of the low-level commands have a completion callback variant that
-registers a callback function used right before the command is marked
-complete.
+All of the asychronous commands have an optional completion callback
+function that is used right before the command is marked complete,
+after any mid-command callbacks have finished, and before any free
+functions.
 
 When the completion callback returns C<1>, the command is
 automatically retired (there is no need to call
-L<nbd_aio_command_completed(3)>); for any other return value, the command
-still needs to be retired.
+L<nbd_aio_command_completed(3)>); for any other return value, the
+command still needs to be manually retired (otherwise, the command
+will tie up resources until L<nbd_close(3)> is eventually reached).
 
 =head2 Callbacks with C<int *error> parameter
 
 Some of the high-level commands (L<nbd_pread_structured(3)>,
-L<nbd_block_status(3)>) involve the use of a callback function invoked by
-the state machine at appropriate points in the server's reply before
-the overall command is complete.  These callback functions, along with
-all of the completion callbacks, include a parameter C<error>
-containing the value of any error detected so far; if the callback
-function fails, it should assign back into C<error> and return C<-1>
-to change the resulting error of the overall command.  Assignments
-into C<error> are ignored for any other return value; similarly,
-assigning C<0> into C<error> does not have an effect.
+L<nbd_block_status(3)>) involve the use of a callback function invoked
+by the state machine at appropriate points in the server's reply
+before the overall command is complete.  These callback functions,
+along with all of the completion callbacks, include a parameter
+C<error> which is a pointer containing the value of any error detected
+so far.  If a callback function fails and wants to change the
+resulting error of the overall command visible later in the API
+sequence, it should assign back into C<error> and return C<-1> in the
+C API.  Assignments into C<error> are ignored for any other return
+value; similarly, assigning C<0> into C<error> does not have an
+effect.  In other language bindings, reporting callback errors is
+generally done by raising an exception rather than by return value.
+
+Note that a mid-command callback might never be reached, such as if
+libnbd detects that the command was invalid to send (see
+L<nbd_set_strict_mode(3)>) or if the server reports a failure that
+concludes the command.  It is safe for a mid-command callback to
+ignore non-zero C<error>: all the other parameters to the mid-command
+callback will still be valid (corresponding to the current portion of
+the server's reply), and the overall command will still fail (at the
+completion callback or L<nbd_aio_command_completed(3)> for an
+asynchronous command, or as the result of the overall synchronous
+command).  Returing C<-1> from a mid-command callback does not prevent
+that callback from being reached again, if the server sends more
+mid-command replies that warrant another use of that callback.  A
+mid-command callback may be reached more times than expected if the
+server is non-compliant.
+
+On the other hand, if a completion callback is supplied (only possible
+with asynchronous commands), it will always be reached exactly once,
+and the completion callback must not ignore the value pointed to by
+C<error>.  In particular, the content of a buffer passed to
+L<nbd_aio_pread(3)> or L<nbd_aio_pread_structured(3)> is undefined
+if C<*error> is non-zero on entry to the completion callback.  It is
+recommended that if you choose to use automatic command retirement
+(where the completion callback returns C<1> to avoid needing to call
+L<nbd_aio_command_completed(3)> later), your completion function
+should return C<1> on all control paths, even when handling errors
+(note that with automatic retirement, assigning into C<error> is
+pointless as there is no later API to see that value).
 
 =head1 COMPILING YOUR PROGRAM
 

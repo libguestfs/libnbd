@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* nbd client library in userspace: the API
- * Copyright (C) 2013-2021 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -1829,7 +1829,9 @@ may enforce a smaller limit, which can be learned with
 L<nbd_get_block_size(3)>.
 
 The C<flags> parameter must be C<0> for now (it exists for future NBD
-protocol extensions)."
+protocol extensions).
+
+Note that if this command fails, the contents of C<buf> are undefined."
 ^ strict_call_description;
     see_also = [Link "aio_pread"; Link "pread_structured";
                 Link "get_block_size"; Link "set_strict_mode"];
@@ -1914,7 +1916,9 @@ The C<flags> parameter may be C<0> for no flags, or may contain
 C<LIBNBD_CMD_FLAG_DF> meaning that the server should not reply with
 more than one fragment (if that is supported - some servers cannot do
 this, see L<nbd_can_df(3)>). Libnbd does not validate that the server
-actually obeys the flag."
+actually obeys the flag.
+
+Note that if this command fails, the contents of C<buf> are undefined."
 ^ strict_call_description;
     see_also = [Link "can_df"; Link "pread";
                 Link "aio_pread_structured"; Link "get_block_size";
@@ -2155,7 +2159,8 @@ C<NBD_REPLY_TYPE_BLOCK_STATUS> describes the meaning of this array;
 for contexts known to libnbd, B<E<lt>libnbd.hE<gt>> contains constants
 beginning with C<LIBNBD_STATE_> that may help decipher the values.
 On entry to the callback, the C<error> parameter contains the errno
-value of any previously detected error.
+value of any previously detected error, but even if an earlier error
+was detected, the current C<metacontext> and C<entries> are valid.
 
 It is possible for the extent function to be called
 more times than you expect (if the server is buggy),
@@ -2454,7 +2459,10 @@ Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
 Note that you must ensure C<buf> is valid until the command has
-completed.  Other parameters behave as documented in L<nbd_pread(3)>."
+completed.  Furthermore, the contents of C<buf> are undefined if the
+C<error> parameter to C<completion_callback> is set, or if
+L<nbd_aio_command_completed(3)> reports failure.  Other parameters behave
+as documented in L<nbd_pread(3)>."
 ^ strict_call_description;
     example = Some "examples/aio-connect-read.c";
     see_also = [SectionLink "Issuing asynchronous commands";
@@ -2478,7 +2486,11 @@ To check if the command completed, call L<nbd_aio_command_completed(3)>.
 Or supply the optional C<completion_callback> which will be invoked
 as described in L<libnbd(3)/Completion callbacks>.
 
-Other parameters behave as documented in L<nbd_pread_structured(3)>."
+Note that you must ensure C<buf> is valid until the command has
+completed.  Furthermore, the contents of C<buf> are undefined if the
+C<error> parameter to C<completion_callback> is set, or if
+L<nbd_aio_command_completed(3)> reports failure.  Other parameters behave
+as documented in L<nbd_pread_structured(3)>."
 ^ strict_call_description;
     see_also = [SectionLink "Issuing asynchronous commands";
                 Link "aio_pread"; Link "pread_structured";
