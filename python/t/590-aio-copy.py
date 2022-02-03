@@ -1,5 +1,5 @@
 # libnbd Python bindings
-# Copyright (C) 2010-2019 Red Hat Inc.
+# Copyright (C) 2010-2022 Red Hat Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 import select
 import nbd
+import os
 
 disk_size = 512 * 1024 * 1024
 bs = 65536
@@ -36,6 +37,8 @@ def asynch_copy(src, dst):
     # This callback is called when any pread from the source
     # has completed.
     def read_completed(buf, offset, error):
+        if error.value != 0:
+            raise RuntimeError(f"read: {os.strerror(error.value)}")
         global bytes_read
         bytes_read += buf.size()
         wr = (buf, offset)
@@ -46,6 +49,8 @@ def asynch_copy(src, dst):
     # This callback is called when any pwrite to the destination
     # has completed.
     def write_completed(buf, error):
+        if error.value != 0:
+            raise RuntimeError(f"write: {os.strerror(error.value)}")
         global bytes_written
         bytes_written += buf.size()
         # By returning 1 here we auto-retire the pwrite command.
