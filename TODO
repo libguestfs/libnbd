@@ -35,6 +35,7 @@ nbdcopy:
  - Better page cache usage, see nbdkit-file-plugin options
    fadvise=sequential cache=none.
  - Consider io_uring if there are performance bottlenecks.
+ - Configurable retries in response to read or write failures.
 
 nbdfuse:
  - If you write beyond the end of the virtual file, it returns EIO.
