@@ -1,5 +1,5 @@
 /* NBD client library in userspace.
- * Copyright (C) 2020 Red Hat Inc.
+ * Copyright (C) 2020-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -587,10 +587,11 @@ file_asynch_read (struct rw *rw,
                   struct command *command,
                   nbd_completion_callback cb)
 {
+  int dummy = 0;
+
   file_synch_read (rw, slice_ptr (command->slice),
                    command->slice.len, command->offset);
-  errno = 0;
-  if (cb.callback (cb.user_data, &errno) == -1) {
+  if (cb.callback (cb.user_data, &dummy) == -1) {
     perror (rw->name);
     exit (EXIT_FAILURE);
   }
@@ -601,10 +602,11 @@ file_asynch_write (struct rw *rw,
                    struct command *command,
                    nbd_completion_callback cb)
 {
+  int dummy = 0;
+
   file_synch_write (rw, slice_ptr (command->slice),
                     command->slice.len, command->offset);
-  errno = 0;
-  if (cb.callback (cb.user_data, &errno) == -1) {
+  if (cb.callback (cb.user_data, &dummy) == -1) {
     perror (rw->name);
     exit (EXIT_FAILURE);
   }
@@ -614,10 +616,11 @@ static bool
 file_asynch_zero (struct rw *rw, struct command *command,
                   nbd_completion_callback cb, bool allocate)
 {
+  int dummy = 0;
+
   if (!file_synch_zero (rw, command->offset, command->slice.len, allocate))
     return false;
-  errno = 0;
-  if (cb.callback (cb.user_data, &errno) == -1) {
+  if (cb.callback (cb.user_data, &dummy) == -1) {
     perror (rw->name);
     exit (EXIT_FAILURE);
   }
