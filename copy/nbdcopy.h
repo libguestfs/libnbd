@@ -1,5 +1,5 @@
 /* NBD client library in userspace.
- * Copyright (C) 2020-2021 Red Hat Inc.
+ * Copyright (C) 2020-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -157,7 +157,8 @@ struct rw_ops {
                       bool allocate);
 
   /* Asynchronous I/O operations.  These start the operation and call
-   * 'cb' on completion.
+   * 'cb' on completion.  'cb' will return 1, for auto-retiring with
+   * asynchronous libnbd calls.
    *
    * The file_ops versions are actually implemented synchronously, but
    * still call 'cb'.
@@ -173,7 +174,7 @@ struct rw_ops {
                         nbd_completion_callback cb);
 
   /* Asynchronously zero.  command->slice.buffer is not used.  If not possible,
-   * returns false.
+   * returns false.  'cb' must be called only if returning true.
    */
   bool (*asynch_zero) (struct rw *rw, struct command *command,
                        nbd_completion_callback cb, bool allocate);
