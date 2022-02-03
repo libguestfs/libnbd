@@ -1,5 +1,5 @@
 /* NBD client library in userspace.
- * Copyright (C) 2020-2021 Red Hat Inc.
+ * Copyright (C) 2020-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -117,8 +117,9 @@ null_asynch_write (struct rw *rw,
                    struct command *command,
                    nbd_completion_callback cb)
 {
-  errno = 0;
-  if (cb.callback (cb.user_data, &errno) == -1) {
+  int dummy = 0;
+
+  if (cb.callback (cb.user_data, &dummy) == -1) {
     perror (rw->name);
     exit (EXIT_FAILURE);
   }
@@ -128,8 +129,9 @@ static bool
 null_asynch_zero (struct rw *rw, struct command *command,
                   nbd_completion_callback cb, bool allocate)
 {
-  errno = 0;
-  if (cb.callback (cb.user_data, &errno) == -1) {
+  int dummy = 0;
+
+  if (cb.callback (cb.user_data, &dummy) == -1) {
     perror (rw->name);
     exit (EXIT_FAILURE);
   }
