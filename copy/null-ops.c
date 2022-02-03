@@ -119,10 +119,7 @@ null_asynch_write (struct rw *rw,
 {
   int dummy = 0;
 
-  if (cb.callback (cb.user_data, &dummy) == -1) {
-    perror (rw->name);
-    exit (EXIT_FAILURE);
-  }
+  cb.callback (cb.user_data, &dummy);
 }
 
 static bool
@@ -131,10 +128,7 @@ null_asynch_zero (struct rw *rw, struct command *command,
 {
   int dummy = 0;
 
-  if (cb.callback (cb.user_data, &dummy) == -1) {
-    perror (rw->name);
-    exit (EXIT_FAILURE);
-  }
+  cb.callback (cb.user_data, &dummy);
   return true;
 }
 
