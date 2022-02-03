@@ -826,7 +826,7 @@ This can be used to free associated C<user_data>.  For example:
                 (nbd_chunk_callback) { .callback = my_fn,
                                        .user_data = my_data,
                                        .free = free },
-                NBD_NULL_CALLBACK(completion),
+                NBD_NULL_COMPLETION,
                 0);
 
 will call L<free(3)> on C<my_data> after the last time that the
