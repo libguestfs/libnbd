@@ -84,6 +84,7 @@ Makefile.in
 /golang/examples/read_first_sector/read_first_sector
 /golang/examples/simple_copy/simple_copy
 /golang/libnbd-golang.3
+/golang/libnbd-golang-v*.tar.gz
 /html/*.?.html
 /include/libnbd.h
 /info/nbdinfo
