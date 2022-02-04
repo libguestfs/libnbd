@@ -126,6 +126,10 @@ nbd_internal_ocaml_exception_in_wrapper (const char *cbname, value rv)
   char *s;
 
   exn = Extract_exception (rv);
+  s = caml_format_exception (exn);
+  fprintf (stderr,
+           "libnbd: %s: uncaught OCaml exception: %s\n", cbname, s);
+  free (s);
 
   /* For how we're getting the exception name, see:
    * https://github.com/libguestfs/libguestfs/blob/5d94be2583d557cfc7f8a8cfee7988abfa45a3f8/daemon/daemon-c.c#L40
@@ -134,11 +138,6 @@ nbd_internal_ocaml_exception_in_wrapper (const char *cbname, value rv)
     exn_name = String_val (Field (exn, 0));
   else
     exn_name = String_val (Field (Field (exn, 0), 0));
-
-  s = caml_format_exception (exn);
-  fprintf (stderr,
-           "libnbd: %s: uncaught OCaml exception: %s\n", cbname, s);
-  free (s);
 
   /* If the exception is fatal (like Assert_failure) then abort. */
   if (exn_name && strcmp (exn_name, "Assert_failure") == 0)
