@@ -93,17 +93,6 @@ rm -rf libguestfs.org
 #        ├── v1.11.4.mod
 #        └── v1.11.4.zip
 #
-# We create @latest and @v/*{.info,mod,zip} here.
-#
-# The "@v/list" file must be created on the web server after uploading
-# a new release:
-#
-#     $ cd libguestfs.org/libnbd/@v
-#     $ ls -1 v*.info | awk -F.info '{print $1}' > list
-#     $ cat list
-#     v1.11.3
-#     v1.11.4
-#
 # See https://golang.org/ref/mod#serving-from-proxy
 
 module_dir=libguestfs.org/libnbd
@@ -122,6 +111,11 @@ echo "$info" > $v_dir/$version.info
 
 cp go.mod $v_dir/$version.mod
 mv $version.zip $v_dir
+
+# Create the list file by amending the curent file on the server.
+list_url=https://download.libguestfs.org/libnbd/golang/libguestfs.org/libnbd/@v/list
+curl --silent --show-error "$list_url" | sort > $v_dir/list
+grep -q "$version" $v_dir/list || echo "$version" >> $v_dir/list
 
 # Create tarball to upload and extract on the webserver. It should be
 # extracted in the directory pointed by the "go-import" meta tag.
