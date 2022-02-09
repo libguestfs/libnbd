@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* nbd client library in userspace: generate the C API and documentation
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -490,6 +490,15 @@ let generate_lib_api_c () =
       print_trace_enter args optargs;
       pr "\n"
     );
+
+    (* Sanitize read buffers before any error is possible. *)
+    List.iter (
+      function
+      | BytesOut (n, count)
+      | BytesPersistOut (n, count) ->
+         pr "  memset (%s, 0, %s);\n" n count
+      | _ -> ()
+    ) args;
 
     (* Check current state is permitted for this call. *)
     if permitted_states <> [] then (

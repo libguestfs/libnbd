@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2021 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -214,6 +214,7 @@ main (int argc, char *argv[])
 
 
   /* Issue a connected command when not connected. */
+  buf[0] = '1';
   if (nbd_pread (nbd, buf, 512, 0, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
              "nbd_pread did not fail on non-connected handle\n",
@@ -221,6 +222,12 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
   check (ENOTCONN, "nbd_pread: ");
+  if (buf[0] != '\0') {
+    fprintf (stderr, "%s: test failed: "
+             "nbd_pread did not sanitize buffer on error\n",
+             argv[0]);
+    exit (EXIT_FAILURE);
+  }
 
   /* Request a name that is too long. */
   memset (buf, 'a', 4999);

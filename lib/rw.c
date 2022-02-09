@@ -244,18 +244,14 @@ nbd_internal_command_common (struct nbd_handle *h,
   if (cb)
     cmd->cb = *cb;
 
-  /* If structured replies were negotiated then we trust the server to
-   * send back sufficient data to cover the whole buffer.  It's tricky
-   * to check this, so an easier thing is simply to zero the buffer
-   * ahead of time which avoids any security problems.  I measured the
-   * overhead of this and for non-TLS there is no measurable overhead
-   * in the highly intensive loopback case.  For TLS we get a
-   * performance gain, go figure.  For an older server with only
-   * simple replies, it's still better to do the same memset() so we
-   * don't have behavior that is server-dependent.
+  /* For NBD_CMD_READ, cmd->data was pre-zeroed in the prologue
+   * created by the generator.  Thus, if a (non-compliant) server with
+   * structured replies fails to send back sufficient data to cover
+   * the whole buffer, we still behave as if it had sent zeroes for
+   * those portions, rather than leaking any uninitialized data, and
+   * without having to complicate our state machine to track which
+   * portions of the read buffer were actually populated.
    */
-  if (cmd->data && type == NBD_CMD_READ)
-    memset (cmd->data, 0, cmd->count);
 
   /* Add the command to the end of the queue. Kick the state machine
    * if there is no other command being processed, otherwise, it will
