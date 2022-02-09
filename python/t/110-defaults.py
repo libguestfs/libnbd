@@ -1,5 +1,5 @@
 # libnbd Python bindings
-# Copyright (C) 2010-2020 Red Hat Inc.
+# Copyright (C) 2010-2022 Red Hat Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,5 +22,6 @@ assert h.get_export_name() == ""
 assert h.get_full_info() is False
 assert h.get_tls() == nbd.TLS_DISABLE
 assert h.get_request_structured_replies() is True
+assert h.get_pread_initialize() is True
 assert h.get_handshake_flags() == nbd.HANDSHAKE_FLAG_MASK
 assert h.get_opt_mode() is False

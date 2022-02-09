@@ -778,6 +778,49 @@ the time of compilation.";
                 Link "aio_is_created"; Link "aio_is_ready"];
   };
 
+  "set_pread_initialize", {
+    default_call with
+    args = [Bool "request"]; ret = RErr;
+    shortdesc = "control whether libnbd pre-initializes read buffers";
+    longdesc = "\
+By default, libnbd will pre-initialize the contents of a buffer
+passed to calls such as L<nbd_pread(3)> to all zeroes prior to
+checking for any other errors, so that even if a client application
+passed in an uninitialized buffer but fails to check for errors, it
+will not result in a potential security risk caused by an accidental
+leak of prior heap contents (see CVE-2022-0485 in
+L<libnbd-security(3)> for an example of a security hole in an
+application built against an earlier version of libnbd that lacked
+consistent pre-initialization).  However, for a client application
+that has audited that an uninitialized buffer is never dereferenced,
+or which performs its own pre-initialization, libnbd's sanitization
+efforts merely pessimize performance (although the time spent in
+pre-initialization may pale in comparison to time spent waiting on
+network packets).
+
+Calling this function with C<request> set to false tells libnbd to
+skip the buffer initialization step in read commands.";
+    see_also = [Link "get_pread_initialize";
+                Link "set_strict_mode";
+                Link "pread"; Link "pread_structured"; Link "aio_pread";
+                Link "aio_pread_structured"];
+  };
+
+  "get_pread_initialize", {
+    default_call with
+    args = []; ret = RBool;
+    may_set_error = false;
+    shortdesc = "see whether libnbd pre-initializes read buffers";
+    longdesc = "\
+Return whether libnbd performs a pre-initialization of a buffer passed
+to L<nbd_pread(3)> and similar to all zeroes, as set by
+L<nbd_set_pread_initialize(3)>.";
+    see_also = [Link "set_pread_initialize";
+                Link "set_strict_mode";
+                Link "pread"; Link "pread_structured"; Link "aio_pread";
+                Link "aio_pread_structured"];
+  };
+
   "set_strict_mode", {
     default_call with
     args = [ Flags ("flags", strict_flags) ]; ret = RErr;
@@ -1831,11 +1874,16 @@ L<nbd_get_block_size(3)>.
 The C<flags> parameter must be C<0> for now (it exists for future NBD
 protocol extensions).
 
-Note that if this command fails, it is unspecified whether the contents
-of C<buf> will read as zero or as partial results from the server."
+Note that if this command fails, and L<nbd_get_pread_initialize(3)>
+returns true, then libnbd sanitized C<buf>, but it is unspecified
+whether the contents of C<buf> will read as zero or as partial results
+from the server.  If L<nbd_get_pread_initialize(3)> returns false,
+then libnbd did not sanitize C<buf>, and the contents are undefined
+on failure."
 ^ strict_call_description;
     see_also = [Link "aio_pread"; Link "pread_structured";
-                Link "get_block_size"; Link "set_strict_mode"];
+                Link "get_block_size"; Link "set_strict_mode";
+                Link "set_pread_initialize"];
     example = Some "examples/fetch-first-sector.c";
   };
 
@@ -1919,12 +1967,16 @@ more than one fragment (if that is supported - some servers cannot do
 this, see L<nbd_can_df(3)>). Libnbd does not validate that the server
 actually obeys the flag.
 
-Note that if this command fails, it is unspecified whether the contents
-of C<buf> will read as zero or as partial results from the server."
+Note that if this command fails, and L<nbd_get_pread_initialize(3)>
+returns true, then libnbd sanitized C<buf>, but it is unspecified
+whether the contents of C<buf> will read as zero or as partial results
+from the server.  If L<nbd_get_pread_initialize(3)> returns false,
+then libnbd did not sanitize C<buf>, and the contents are undefined
+on failure."
 ^ strict_call_description;
     see_also = [Link "can_df"; Link "pread";
                 Link "aio_pread_structured"; Link "get_block_size";
-                Link "set_strict_mode"];
+                Link "set_strict_mode"; Link "set_pread_initialize"];
   };
 
   "pwrite", {
@@ -2463,14 +2515,19 @@ as described in L<libnbd(3)/Completion callbacks>.
 Note that you must ensure C<buf> is valid until the command has
 completed.  Furthermore, if the C<error> parameter to
 C<completion_callback> is set or if L<nbd_aio_command_completed(3)>
-reports failure, it is unspecified whether the contents
-of C<buf> will read as zero or as partial results from the server.
+reports failure, and if L<nbd_get_pread_initialize(3)> returns true,
+then libnbd sanitized C<buf>, but it is unspecified whether the
+contents of C<buf> will read as zero or as partial results from the
+server.  If L<nbd_get_pread_initialize(3)> returns false, then
+libnbd did not sanitize C<buf>, and the contents are undefined
+on failure.
+
 Other parameters behave as documented in L<nbd_pread(3)>."
 ^ strict_call_description;
     example = Some "examples/aio-connect-read.c";
     see_also = [SectionLink "Issuing asynchronous commands";
                 Link "aio_pread_structured"; Link "pread";
-                Link "set_strict_mode"];
+                Link "set_strict_mode"; Link "set_pread_initialize"];
   };
 
   "aio_pread_structured", {
@@ -2492,13 +2549,18 @@ as described in L<libnbd(3)/Completion callbacks>.
 Note that you must ensure C<buf> is valid until the command has
 completed.  Furthermore, if the C<error> parameter to
 C<completion_callback> is set or if L<nbd_aio_command_completed(3)>
-reports failure, it is unspecified whether the contents
-of C<buf> will read as zero or as partial results from the server.
+reports failure, and if L<nbd_get_pread_initialize(3)> returns true,
+then libnbd sanitized C<buf>, but it is unspecified whether the
+contents of C<buf> will read as zero or as partial results from the
+server.  If L<nbd_get_pread_initialize(3)> returns false, then
+libnbd did not sanitize C<buf>, and the contents are undefined
+on failure.
+
 Other parameters behave as documented in L<nbd_pread_structured(3)>."
 ^ strict_call_description;
     see_also = [SectionLink "Issuing asynchronous commands";
                 Link "aio_pread"; Link "pread_structured";
-                Link "set_strict_mode"];
+                Link "set_strict_mode"; Link "set_pread_initialize"];
   };
 
   "aio_pwrite", {
@@ -3135,6 +3197,10 @@ let first_version = [
   "set_private_data", (1, 8);
   "get_private_data", (1, 8);
   "get_uri", (1, 8);
+
+  (* Added in 1.11.x development cycle, will be stable and supported in 1.12. *)
+  "set_pread_initialize", (1, 12);
+  "get_pread_initialize", (1, 12);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

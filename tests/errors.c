@@ -213,7 +213,15 @@ main (int argc, char *argv[])
   }
 
 
-  /* Issue a connected command when not connected. */
+  /* Issue a connected command when not connected. pread_initialize defaults
+   * to set.
+   */
+  if (nbd_get_pread_initialize (nbd) != 1) {
+    fprintf (stderr, "%s: test failed: "
+             "nbd_get_pread_initialize gave unexpected result\n",
+             argv[0]);
+    exit (EXIT_FAILURE);
+  }
   buf[0] = '1';
   if (nbd_pread (nbd, buf, 512, 0, 0) != -1) {
     fprintf (stderr, "%s: test failed: "
@@ -294,7 +302,14 @@ main (int argc, char *argv[])
   }
   check (EINVAL, "nbd_aio_command_completed: ");
 
-  /* Read from an invalid offset, client-side */
+  /* Read from an invalid offset, client-side. When pread_initialize is off,
+   * libnbd should not have touched our buffer.
+   */
+  if (nbd_set_pread_initialize (nbd, false) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  buf[0] = '1';
   strict = nbd_get_strict_mode (nbd) | LIBNBD_STRICT_BOUNDS;
   if (nbd_set_strict_mode (nbd, strict) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
@@ -307,6 +322,12 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
   check (EINVAL, "nbd_aio_pread: ");
+  if (buf[0] != '1') {
+    fprintf (stderr, "%s: test failed: "
+             "nbd_pread incorrectly sanitized buffer on client-side error\n",
+             argv[0]);
+    exit (EXIT_FAILURE);
+  }
 
   /* We guarantee callbacks will be freed even on all error paths. */
   if (nbd_aio_pread_structured (nbd, buf, 512, -1,

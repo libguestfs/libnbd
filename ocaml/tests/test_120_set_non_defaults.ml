@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* libnbd OCaml test case
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -42,6 +42,9 @@ let () =
       NBD.set_request_structured_replies nbd false;
       let sr = NBD.get_request_structured_replies nbd in
       assert (sr = false);
+      NBD.set_pread_initialize nbd false;
+      let init = NBD.get_pread_initialize nbd in
+      assert (init = false);
       (try
          NBD.set_handshake_flags nbd [ NBD.HANDSHAKE_FLAG.UNKNOWN 2 ];
          assert false

@@ -93,6 +93,18 @@ func Test120SetNonDefaults(t *testing.T) {
 		t.Fatalf("unexpected structured replies state")
 	}
 
+	err = h.SetPreadInitialize(false)
+	if err != nil {
+		t.Fatalf("could not set pread initialize state: %s", err)
+	}
+	init, err := h.GetPreadInitialize()
+	if err != nil {
+		t.Fatalf("could not get pread initialize state: %s", err)
+	}
+	if init != false {
+		t.Fatalf("unexpected pread initialize state")
+	}
+
 	err = h.SetHandshakeFlags(HANDSHAKE_FLAG_MASK + 1)
 	if err == nil {
 		t.Fatalf("expect failure for out-of-range flags")
