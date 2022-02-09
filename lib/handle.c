@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -64,6 +64,7 @@ nbd_create (void)
   h->unique = 1;
   h->tls_verify_peer = true;
   h->request_sr = true;
+  h->pread_initialize = true;
 
   h->uri_allow_transports = LIBNBD_ALLOW_TRANSPORT_MASK;
   h->uri_allow_tls = LIBNBD_TLS_ALLOW;
@@ -391,6 +392,20 @@ uint32_t
 nbd_unlocked_get_handshake_flags (struct nbd_handle *h)
 {
   return h->gflags;
+}
+
+int
+nbd_unlocked_set_pread_initialize (struct nbd_handle *h, bool request)
+{
+  h->pread_initialize = request;
+  return 0;
+}
+
+/* NB: may_set_error = false. */
+int
+nbd_unlocked_get_pread_initialize (struct nbd_handle *h)
+{
+  return h->pread_initialize;
 }
 
 int

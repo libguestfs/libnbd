@@ -496,7 +496,8 @@ let generate_lib_api_c () =
       function
       | BytesOut (n, count)
       | BytesPersistOut (n, count) ->
-         pr "  memset (%s, 0, %s);\n" n count
+         pr "  if (h->pread_initialize)\n";
+         pr "    memset (%s, 0, %s);\n" n count
       | _ -> ()
     ) args;
 

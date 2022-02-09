@@ -1,5 +1,5 @@
 /* nbd client library in userspace: internal definitions
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -122,6 +122,9 @@ struct nbd_handle {
 
   /* Full info mode. */
   bool full_info;
+
+  /* Sanitization for pread. */
+  bool pread_initialize;
 
   /* Global flags from the server. */
   uint16_t gflags;

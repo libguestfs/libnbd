@@ -1,5 +1,5 @@
 /* libnbd golang tests
- * Copyright (C) 2013-2021 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -57,6 +57,14 @@ func Test110Defaults(t *testing.T) {
 	}
 	if sr != true {
 		t.Fatalf("unexpected structured replies state")
+	}
+
+	init, err := h.GetPreadInitialize()
+	if err != nil {
+		t.Fatalf("could not get pread initialize state: %s", err)
+	}
+	if init != true {
+		t.Fatalf("unexpected pread initialize state")
 	}
 
 	flags, err := h.GetHandshakeFlags()
