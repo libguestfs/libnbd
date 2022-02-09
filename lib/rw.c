@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -250,9 +250,11 @@ nbd_internal_command_common (struct nbd_handle *h,
    * ahead of time which avoids any security problems.  I measured the
    * overhead of this and for non-TLS there is no measurable overhead
    * in the highly intensive loopback case.  For TLS we get a
-   * performance gain, go figure.
+   * performance gain, go figure.  For an older server with only
+   * simple replies, it's still better to do the same memset() so we
+   * don't have behavior that is server-dependent.
    */
-  if (h->structured_replies && cmd->data && type == NBD_CMD_READ)
+  if (cmd->data && type == NBD_CMD_READ)
     memset (cmd->data, 0, cmd->count);
 
   /* Add the command to the end of the queue. Kick the state machine
