@@ -61,6 +61,25 @@ open_one_nbd_handle (struct rw_nbd *rwn)
 
   nbd_set_debug (nbd, verbose);
 
+  /* Set the handle name for debugging.  We could use rwn->rw.name
+   * here but it is usually set to the lengthy NBD URI
+   * (eg. "nbd://localhost:10809") which makes debug messages very
+   * long.
+   */
+  if (verbose) {
+    char *name;
+    const size_t index = rwn->handles.len;
+
+    if (asprintf (&name, "%s%zu",
+                  rwn->d == READING ? "src" : "dst",
+                  index) == -1) {
+      perror ("asprintf");
+      exit (EXIT_FAILURE);
+    }
+    nbd_set_handle_name (nbd, name);
+    free (name);
+  }
+
   if (extents && rwn->d == READING &&
       nbd_add_meta_context (nbd, "base:allocation") == -1) {
     fprintf (stderr, "%s: %s\n", prog, nbd_get_error ());
