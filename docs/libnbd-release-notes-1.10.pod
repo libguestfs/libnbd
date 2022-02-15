@@ -40,7 +40,7 @@ Fix invalid use of C<unsafe.Pointer> in Go bindings.
 
 =head2 Tools
 
-L<nbdcopy(1)> now uses a default request size of 2M (instead of 32M).
+L<nbdcopy(1)> now uses a default request size of 256K (instead of 32M).
 This default performs better in most cases.
 
 L<nbdinfo(1)> has a new I<--map --totals> mode which displays a
