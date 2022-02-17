@@ -344,7 +344,7 @@ poll_both_ends (uintptr_t index)
  */
 static struct command *
 copy_subcommand (struct command *command, uint64_t offset, size_t len,
-                 bool hole)
+                 bool zero)
 {
   const uint64_t end = command->offset + command->slice.len;
   struct command *newcommand;
@@ -359,7 +359,7 @@ copy_subcommand (struct command *command, uint64_t offset, size_t len,
   }
   newcommand->offset = offset;
   newcommand->slice.len = len;
-  if (!hole) {
+  if (!zero) {
     newcommand->slice.buffer = command->slice.buffer;
     newcommand->slice.buffer->refs++;
     newcommand->slice.base = offset - command->offset;
@@ -397,7 +397,7 @@ finished_read (void *vp, int *error)
     const uint64_t start = command->offset;
     const uint64_t end = start + command->slice.len;
     uint64_t last_offset = start;
-    bool last_is_hole = false;
+    bool last_is_zero = false;
     uint64_t i;
     struct command *newcommand;
     int dummy = 0;
@@ -409,11 +409,11 @@ finished_read (void *vp, int *error)
          i + sparse_size <= end;
          i += sparse_size) {
       if (is_zero (slice_ptr (command->slice) + i-start, sparse_size)) {
-        /* It's a hole.  If the last was a hole too then we do nothing
-         * here which coalesces.  Otherwise write the last data and
-         * start a new hole.
+        /* It's a zero range.  If the last was a zero too then we do
+         * nothing here which coalesces.  Otherwise write the last data
+         * and start a new zero range.
          */
-        if (!last_is_hole) {
+        if (!last_is_zero) {
           /* Write the last data (if any). */
           if (i - last_offset > 0) {
             newcommand = copy_subcommand (command,
@@ -425,18 +425,18 @@ finished_read (void *vp, int *error)
                                       .user_data = newcommand,
                                     });
           }
-          /* Start the new hole. */
+          /* Start the new zero range. */
           last_offset = i;
-          last_is_hole = true;
+          last_is_zero = true;
         }
       }
       else {
         /* It's data.  If the last was data too, do nothing =>
-         * coalesce.  Otherwise write the last hole and start a new
-         * data.
+         * coalesce.  Otherwise write the last zero range and start a
+         * new data.
          */
-        if (last_is_hole) {
-          /* Write the last hole (if any). */
+        if (last_is_zero) {
+          /* Write the last zero range (if any). */
           if (i - last_offset > 0) {
             newcommand = copy_subcommand (command,
                                           last_offset, i - last_offset,
@@ -445,14 +445,14 @@ finished_read (void *vp, int *error)
           }
           /* Start the new data. */
           last_offset = i;
-          last_is_hole = false;
+          last_is_zero = false;
         }
       }
     } /* for i */
 
     /* Write the last_offset up to i. */
     if (i - last_offset > 0) {
-      if (!last_is_hole) {
+      if (!last_is_zero) {
         newcommand = copy_subcommand (command,
                                       last_offset, i - last_offset,
                                       false);
@@ -490,8 +490,8 @@ finished_read (void *vp, int *error)
 }
 
 /* Fill a range in dst with zeroes.  This is called from the copying
- * loop when we see a hole in the source.  Depending on the command
- * line flags this could mean:
+ * loop when we see a zero range in the source.  Depending on the
+ * command line flags this could mean:
  *
  * --destination-is-zero:
  *                 do nothing
