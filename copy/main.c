@@ -520,7 +520,7 @@ print_rw (struct rw *rw, const char *prefix, FILE *fp)
  * don't/can't support extents.  Also used for the --no-extents case.
  */
 void
-default_get_extents (struct rw *rw, uintptr_t index,
+default_get_extents (struct rw *rw, size_t index,
                      uint64_t offset, uint64_t count,
                      extent_list *ret)
 {
@@ -541,7 +541,7 @@ default_get_extents (struct rw *rw, uintptr_t index,
  * which don't support polling.
  */
 void
-get_polling_fd_not_supported (struct rw *rw, uintptr_t index,
+get_polling_fd_not_supported (struct rw *rw, size_t index,
                               int *fd_rtn, int *direction_rtn)
 {
   /* Not an error, this causes poll to ignore the fd. */
@@ -550,7 +550,7 @@ get_polling_fd_not_supported (struct rw *rw, uintptr_t index,
 }
 
 void
-asynch_notify_read_write_not_supported (struct rw *rw, uintptr_t index)
+asynch_notify_read_write_not_supported (struct rw *rw, size_t index)
 {
   /* nothing */
 }

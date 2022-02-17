@@ -384,7 +384,7 @@ add_extent (void *vp, const char *metacontext,
 }
 
 static unsigned
-nbd_ops_in_flight (struct rw *rw, uintptr_t index)
+nbd_ops_in_flight (struct rw *rw, size_t index)
 {
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
 
@@ -395,7 +395,7 @@ nbd_ops_in_flight (struct rw *rw, uintptr_t index)
 }
 
 static void
-nbd_ops_get_polling_fd (struct rw *rw, uintptr_t index,
+nbd_ops_get_polling_fd (struct rw *rw, size_t index,
                         int *fd, int *direction)
 {
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
@@ -419,7 +419,7 @@ error:
 }
 
 static void
-nbd_ops_asynch_notify_read (struct rw *rw, uintptr_t index)
+nbd_ops_asynch_notify_read (struct rw *rw, size_t index)
 {
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
   if (nbd_aio_notify_read (rwn->handles.ptr[index]) == -1) {
@@ -429,7 +429,7 @@ nbd_ops_asynch_notify_read (struct rw *rw, uintptr_t index)
 }
 
 static void
-nbd_ops_asynch_notify_write (struct rw *rw, uintptr_t index)
+nbd_ops_asynch_notify_write (struct rw *rw, size_t index)
 {
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
   if (nbd_aio_notify_write (rwn->handles.ptr[index]) == -1) {
@@ -445,7 +445,7 @@ nbd_ops_asynch_notify_write (struct rw *rw, uintptr_t index)
  * request for extents in a single round trip.
  */
 static void
-nbd_ops_get_extents (struct rw *rw, uintptr_t index,
+nbd_ops_get_extents (struct rw *rw, size_t index,
                      uint64_t offset, uint64_t count,
                      extent_list *ret)
 {

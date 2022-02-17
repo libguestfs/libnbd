@@ -154,7 +154,7 @@ pipe_asynch_zero (struct rw *rw, struct command *command,
 }
 
 static unsigned
-pipe_in_flight (struct rw *rw, uintptr_t index)
+pipe_in_flight (struct rw *rw, size_t index)
 {
   return 0;
 }

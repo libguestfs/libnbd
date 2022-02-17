@@ -133,13 +133,13 @@ null_asynch_zero (struct rw *rw, struct command *command,
 }
 
 static unsigned
-null_in_flight (struct rw *rw, uintptr_t index)
+null_in_flight (struct rw *rw, size_t index)
 {
   return 0;
 }
 
 static void
-null_get_extents (struct rw *rw, uintptr_t index,
+null_get_extents (struct rw *rw, size_t index,
                   uint64_t offset, uint64_t count,
                   extent_list *ret)
 {

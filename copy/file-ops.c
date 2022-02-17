@@ -621,13 +621,13 @@ file_asynch_zero (struct rw *rw, struct command *command,
 }
 
 static unsigned
-file_in_flight (struct rw *rw, uintptr_t index)
+file_in_flight (struct rw *rw, size_t index)
 {
   return 0;
 }
 
 static void
-file_get_extents (struct rw *rw, uintptr_t index,
+file_get_extents (struct rw *rw, size_t index,
                   uint64_t offset, uint64_t count,
                   extent_list *ret)
 {

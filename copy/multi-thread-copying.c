@@ -77,12 +77,12 @@ get_next_offset (uint64_t *offset, uint64_t *count)
   return r;
 }
 
-static void *worker_thread (void *ip);
+static void *worker_thread (void *wp);
 
 void
 multi_thread_copying (void)
 {
-  pthread_t *workers;
+  struct worker *workers;
   size_t i;
   int err;
 
@@ -99,16 +99,17 @@ multi_thread_copying (void)
 */
   assert (src->size != -1);
 
-  workers = malloc (sizeof (pthread_t) * threads);
+  workers = calloc (threads, sizeof *workers);
   if (workers == NULL) {
-    perror ("malloc");
+    perror ("calloc");
     exit (EXIT_FAILURE);
   }
 
   /* Start the worker threads. */
   for (i = 0; i < threads; ++i) {
-    err = pthread_create (&workers[i], NULL, worker_thread,
-                          (void *)(uintptr_t)i);
+    workers[i].index = i;
+    err = pthread_create (&workers[i].thread, NULL, worker_thread,
+                          &workers[i]);
     if (err != 0) {
       errno = err;
       perror ("pthread_create");
@@ -118,7 +119,7 @@ multi_thread_copying (void)
 
   /* Wait until all worker threads exit. */
   for (i = 0; i < threads; ++i) {
-    err = pthread_join (workers[i], NULL);
+    err = pthread_join (workers[i].thread, NULL);
     if (err != 0) {
       errno = err;
       perror ("pthread_join");
@@ -129,23 +130,23 @@ multi_thread_copying (void)
   free (workers);
 }
 
-static void wait_for_request_slots (uintptr_t index);
-static unsigned in_flight (uintptr_t index);
-static void poll_both_ends (uintptr_t index);
+static void wait_for_request_slots (size_t index);
+static unsigned in_flight (size_t index);
+static void poll_both_ends (size_t index);
 static int finished_read (void *vp, int *error);
 static int finished_command (void *vp, int *error);
 static void free_command (struct command *command);
 static void fill_dst_range_with_zeroes (struct command *command);
 static struct command *create_command (uint64_t offset, size_t len, bool zero,
-                                       uintptr_t index);
+                                       size_t index);
 
 /* There are 'threads' worker threads, each copying work ranges from
  * src to dst until there are no more work ranges.
  */
 static void *
-worker_thread (void *indexp)
+worker_thread (void *wp)
 {
-  uintptr_t index = (uintptr_t) indexp;
+  struct worker *w = wp;
   uint64_t offset, count;
   extent_list exts = empty_vector;
 
@@ -154,9 +155,9 @@ worker_thread (void *indexp)
 
     assert (0 < count && count <= THREAD_WORK_SIZE);
     if (extents)
-      src->ops->get_extents (src, index, offset, count, &exts);
+      src->ops->get_extents (src, w->index, offset, count, &exts);
     else
-      default_get_extents (src, index, offset, count, &exts);
+      default_get_extents (src, w->index, offset, count, &exts);
 
     for (i = 0; i < exts.len; ++i) {
       struct command *command;
@@ -167,7 +168,7 @@ worker_thread (void *indexp)
          * fast zeroing, or writing zeroes at the destination.
          */
         command = create_command (exts.ptr[i].offset, exts.ptr[i].length,
-                                  true, index);
+                                  true, w->index);
         fill_dst_range_with_zeroes (command);
       }
 
@@ -182,9 +183,9 @@ worker_thread (void *indexp)
             len = request_size;
 
           command = create_command (exts.ptr[i].offset, len,
-                                    false, index);
+                                    false, w->index);
 
-          wait_for_request_slots (index);
+          wait_for_request_slots (w->index);
 
           /* Begin the asynch read operation. */
           src->ops->asynch_read (src, command,
@@ -204,8 +205,8 @@ worker_thread (void *indexp)
   }
 
   /* Wait for in flight NBD requests to finish. */
-  while (in_flight (index) > 0)
-    poll_both_ends (index);
+  while (in_flight (w->index) > 0)
+    poll_both_ends (w->index);
 
   free (exts.ptr);
   return NULL;
@@ -223,7 +224,7 @@ worker_thread (void *indexp)
  * limit. XXX
  */
 static void
-wait_for_request_slots (uintptr_t index)
+wait_for_request_slots (size_t index)
 {
   while (in_flight (index) >= max_requests)
     poll_both_ends (index);
@@ -231,7 +232,7 @@ wait_for_request_slots (uintptr_t index)
 
 /* Count the number of asynchronous commands in flight. */
 static unsigned
-in_flight (uintptr_t index)
+in_flight (size_t index)
 {
   return src->ops->in_flight (src, index) + dst->ops->in_flight (dst, index);
 }
@@ -240,7 +241,7 @@ in_flight (uintptr_t index)
  * along.  This is a lightly modified nbd_poll.
  */
 static void
-poll_both_ends (uintptr_t index)
+poll_both_ends (size_t index)
 {
   struct pollfd fds[2];
   int r, direction;
@@ -338,7 +339,7 @@ create_buffer (size_t len)
 
 /* Create a new command for read or zero. */
 static struct command *
-create_command (uint64_t offset, size_t len, bool zero, uintptr_t index)
+create_command (uint64_t offset, size_t len, bool zero, size_t index)
 {
   struct command *command;
 

@@ -78,6 +78,12 @@ struct slice {
 
 #define slice_ptr(slice) ((slice).buffer->data + (slice).base)
 
+/* Worker state used by multi-threaded copying. */
+struct worker {
+  pthread_t thread;
+  size_t index;
+};
+
 /* Commands for asynchronous operations in flight.
  *
  * We don't store the command type (read/write/zero/etc) because it is
@@ -93,7 +99,7 @@ struct slice {
 struct command {
   uint64_t offset;              /* Offset relative to start of disk. */
   struct slice slice;           /* Data slice. */
-  uintptr_t index;              /* Thread number. */
+  size_t index;                 /* Thread number. */
 };
 
 /* List of extents for rw->ops->get_extents. */
@@ -180,17 +186,17 @@ struct rw_ops {
                        nbd_completion_callback cb, bool allocate);
 
   /* Number of asynchronous commands in flight for a particular thread. */
-  unsigned (*in_flight) (struct rw *rw, uintptr_t index);
+  unsigned (*in_flight) (struct rw *rw, size_t index);
 
   /* Get polling file descriptor and direction, and notify read/write.
    * For sources which cannot be polled (such as files and pipes)
    * get_polling_fd returns fd == -1 (NOT an error), and the
    * asynch_notify_* functions are no-ops.
    */
-  void (*get_polling_fd) (struct rw *rw, uintptr_t index,
+  void (*get_polling_fd) (struct rw *rw, size_t index,
                           int *fd_rtn, int *direction_rtn);
-  void (*asynch_notify_read) (struct rw *rw, uintptr_t index);
-  void (*asynch_notify_write) (struct rw *rw, uintptr_t index);
+  void (*asynch_notify_read) (struct rw *rw, size_t index);
+  void (*asynch_notify_write) (struct rw *rw, size_t index);
 
   /* Read base:allocation extents metadata for a region of the source.
    * For local files the same information is read from the kernel.
@@ -199,18 +205,18 @@ struct rw_ops {
    * and we want to avoid doing that because it had very negative
    * behaviour for certain sources (ie. VDDK).
    */
-  void (*get_extents) (struct rw *rw, uintptr_t index,
+  void (*get_extents) (struct rw *rw, size_t index,
                        uint64_t offset, uint64_t count,
                        extent_list *ret);
 };
 
-extern void default_get_extents (struct rw *rw, uintptr_t index,
+extern void default_get_extents (struct rw *rw, size_t index,
                                  uint64_t offset, uint64_t count,
                                  extent_list *ret);
-extern void get_polling_fd_not_supported (struct rw *rw, uintptr_t index,
+extern void get_polling_fd_not_supported (struct rw *rw, size_t index,
                                           int *fd_rtn, int *direction_rtn);
 extern void asynch_notify_read_write_not_supported (struct rw *rw,
-                                                    uintptr_t index);
+                                                    size_t index);
 
 extern bool allocated;
 extern unsigned connections;
