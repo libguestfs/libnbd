@@ -135,6 +135,8 @@ static void poll_both_ends (uintptr_t index);
 static int finished_read (void *vp, int *error);
 static int free_command (void *vp, int *error);
 static void fill_dst_range_with_zeroes (struct command *command);
+static struct command *create_command (uint64_t offset, size_t len, bool zero,
+                                       uintptr_t index);
 
 /* There are 'threads' worker threads, each copying work ranges from
  * src to dst until there are no more work ranges.
@@ -157,23 +159,14 @@ worker_thread (void *indexp)
 
     for (i = 0; i < exts.len; ++i) {
       struct command *command;
-      struct buffer *buffer;
-      char *data;
       size_t len;
 
       if (exts.ptr[i].zero) {
         /* The source is zero so we can proceed directly to skipping,
          * fast zeroing, or writing zeroes at the destination.
          */
-        command = calloc (1, sizeof *command);
-        if (command == NULL) {
-          perror ("malloc");
-          exit (EXIT_FAILURE);
-        }
-        command->offset = exts.ptr[i].offset;
-        command->slice.len = exts.ptr[i].length;
-        command->slice.base = 0;
-        command->index = index;
+        command = create_command (exts.ptr[i].offset, exts.ptr[i].length,
+                                  true, index);
         fill_dst_range_with_zeroes (command);
       }
 
@@ -186,28 +179,9 @@ worker_thread (void *indexp)
           len = exts.ptr[i].length;
           if (len > request_size)
             len = request_size;
-          data = malloc (len);
-          if (data == NULL) {
-            perror ("malloc");
-            exit (EXIT_FAILURE);
-          }
-          buffer = calloc (1, sizeof *buffer);
-          if (buffer == NULL) {
-            perror ("malloc");
-            exit (EXIT_FAILURE);
-          }
-          buffer->data = data;
-          buffer->refs = 1;
-          command = calloc (1, sizeof *command);
-          if (command == NULL) {
-            perror ("malloc");
-            exit (EXIT_FAILURE);
-          }
-          command->offset = exts.ptr[i].offset;
-          command->slice.len = len;
-          command->slice.base = 0;
-          command->slice.buffer = buffer;
-          command->index = index;
+
+          command = create_command (exts.ptr[i].offset, len,
+                                    false, index);
 
           wait_for_request_slots (index);
 
@@ -336,6 +310,53 @@ poll_both_ends (uintptr_t index)
       exit (EXIT_FAILURE);
     }
   }
+}
+
+/* Create a new buffer. */
+static struct buffer*
+create_buffer (size_t len)
+{
+  struct buffer *buffer;
+
+  buffer = calloc (1, sizeof *buffer);
+  if (buffer == NULL) {
+    perror ("calloc");
+    exit (EXIT_FAILURE);
+  }
+
+  buffer->data = malloc (len);
+  if (buffer->data == NULL) {
+    perror ("malloc");
+    exit (EXIT_FAILURE);
+  }
+
+  buffer->refs = 1;
+
+  return buffer;
+}
+
+/* Create a new command for read or zero. */
+static struct command *
+create_command (uint64_t offset, size_t len, bool zero, uintptr_t index)
+{
+  struct command *command;
+
+  command = calloc (1, sizeof *command);
+  if (command == NULL) {
+    perror ("calloc");
+    exit (EXIT_FAILURE);
+  }
+
+  command->offset = offset;
+  command->slice.len = len;
+  command->slice.base = 0;
+
+  if (!zero)
+    command->slice.buffer = create_buffer (len);
+
+  command->index = index;
+
+  return command;
 }
 
 /* Create a sub-command of an existing command.  This creates a slice
