@@ -339,12 +339,11 @@ poll_both_ends (uintptr_t index)
 }
 
 /* Create a sub-command of an existing command.  This creates a slice
- * referencing the buffer of the existing command in order to avoid
- * copying.
+ * referencing the buffer of the existing command without copying.
  */
 static struct command *
-copy_subcommand (struct command *command, uint64_t offset, size_t len,
-                 bool zero)
+create_subcommand (struct command *command, uint64_t offset, size_t len,
+                   bool zero)
 {
   const uint64_t end = command->offset + command->slice.len;
   struct command *newcommand;
@@ -416,9 +415,9 @@ finished_read (void *vp, int *error)
         if (!last_is_zero) {
           /* Write the last data (if any). */
           if (i - last_offset > 0) {
-            newcommand = copy_subcommand (command,
-                                          last_offset, i - last_offset,
-                                          false);
+            newcommand = create_subcommand (command,
+                                            last_offset, i - last_offset,
+                                            false);
             dst->ops->asynch_write (dst, newcommand,
                                     (nbd_completion_callback) {
                                       .callback = free_command,
@@ -438,9 +437,9 @@ finished_read (void *vp, int *error)
         if (last_is_zero) {
           /* Write the last zero range (if any). */
           if (i - last_offset > 0) {
-            newcommand = copy_subcommand (command,
-                                          last_offset, i - last_offset,
-                                          true);
+            newcommand = create_subcommand (command,
+                                            last_offset, i - last_offset,
+                                            true);
             fill_dst_range_with_zeroes (newcommand);
           }
           /* Start the new data. */
@@ -453,9 +452,9 @@ finished_read (void *vp, int *error)
     /* Write the last_offset up to i. */
     if (i - last_offset > 0) {
       if (!last_is_zero) {
-        newcommand = copy_subcommand (command,
-                                      last_offset, i - last_offset,
-                                      false);
+        newcommand = create_subcommand (command,
+                                        last_offset, i - last_offset,
+                                        false);
         dst->ops->asynch_write (dst, newcommand,
                                 (nbd_completion_callback) {
                                   .callback = free_command,
@@ -463,16 +462,16 @@ finished_read (void *vp, int *error)
                                 });
       }
       else {
-        newcommand = copy_subcommand (command,
-                                      last_offset, i - last_offset,
-                                      true);
+        newcommand = create_subcommand (command,
+                                        last_offset, i - last_offset,
+                                        true);
         fill_dst_range_with_zeroes (newcommand);
       }
     }
 
     /* There may be an unaligned tail, so write that. */
     if (end - i > 0) {
-      newcommand = copy_subcommand (command, i, end - i, false);
+      newcommand = create_subcommand (command, i, end - i, false);
       dst->ops->asynch_write (dst, newcommand,
                               (nbd_completion_callback) {
                                 .callback = free_command,
