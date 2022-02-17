@@ -138,7 +138,7 @@ static int finished_command (void *vp, int *error);
 static void free_command (struct command *command);
 static void fill_dst_range_with_zeroes (struct command *command);
 static struct command *create_command (uint64_t offset, size_t len, bool zero,
-                                       size_t index);
+                                       struct worker *worker);
 
 /* There are 'threads' worker threads, each copying work ranges from
  * src to dst until there are no more work ranges.
@@ -168,7 +168,7 @@ worker_thread (void *wp)
          * fast zeroing, or writing zeroes at the destination.
          */
         command = create_command (exts.ptr[i].offset, exts.ptr[i].length,
-                                  true, w->index);
+                                  true, w);
         fill_dst_range_with_zeroes (command);
       }
 
@@ -183,7 +183,7 @@ worker_thread (void *wp)
             len = request_size;
 
           command = create_command (exts.ptr[i].offset, len,
-                                    false, w->index);
+                                    false, w);
 
           wait_for_request_slots (w->index);
 
@@ -339,7 +339,7 @@ create_buffer (size_t len)
 
 /* Create a new command for read or zero. */
 static struct command *
-create_command (uint64_t offset, size_t len, bool zero, size_t index)
+create_command (uint64_t offset, size_t len, bool zero, struct worker *worker)
 {
   struct command *command;
 
@@ -356,7 +356,7 @@ create_command (uint64_t offset, size_t len, bool zero, size_t index)
   if (!zero)
     command->slice.buffer = create_buffer (len);
 
-  command->index = index;
+  command->worker = worker;
 
   return command;
 }
@@ -386,7 +386,7 @@ create_subcommand (struct command *command, uint64_t offset, size_t len,
     newcommand->slice.buffer->refs++;
     newcommand->slice.base = offset - command->offset;
   }
-  newcommand->index = command->index;
+  newcommand->worker = command->worker;
 
   return newcommand;
 }

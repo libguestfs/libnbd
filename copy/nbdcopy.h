@@ -99,7 +99,7 @@ struct worker {
 struct command {
   uint64_t offset;              /* Offset relative to start of disk. */
   struct slice slice;           /* Data slice. */
-  size_t index;                 /* Thread number. */
+  struct worker *worker;        /* The worker owning this command. */
 };
 
 /* List of extents for rw->ops->get_extents. */

@@ -303,7 +303,7 @@ nbd_ops_asynch_read (struct rw *rw,
 {
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
 
-  if (nbd_aio_pread (rwn->handles.ptr[command->index],
+  if (nbd_aio_pread (rwn->handles.ptr[command->worker->index],
                      slice_ptr (command->slice),
                      command->slice.len, command->offset,
                      cb, 0) == -1) {
@@ -319,7 +319,7 @@ nbd_ops_asynch_write (struct rw *rw,
 {
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
 
-  if (nbd_aio_pwrite (rwn->handles.ptr[command->index],
+  if (nbd_aio_pwrite (rwn->handles.ptr[command->worker->index],
                       slice_ptr (command->slice),
                       command->slice.len, command->offset,
                       cb, 0) == -1) {
@@ -339,7 +339,7 @@ nbd_ops_asynch_zero (struct rw *rw, struct command *command,
 
   assert (command->slice.len <= UINT32_MAX);
 
-  if (nbd_aio_zero (rwn->handles.ptr[command->index],
+  if (nbd_aio_zero (rwn->handles.ptr[command->worker->index],
                     command->slice.len, command->offset,
                     cb, allocate ? LIBNBD_CMD_FLAG_NO_HOLE : 0) == -1) {
     fprintf (stderr, "%s: %s\n", rw->name, nbd_get_error ());
