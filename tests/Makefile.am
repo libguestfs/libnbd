@@ -163,6 +163,24 @@ if HAVE_NBDKIT
 
 check_PROGRAMS += \
 	errors \
+	errors-enum \
+	errors-bitmask \
+	errors-not-connected \
+	errors-name-too-long \
+	errors-poll-no-fd \
+	errors-connect-twice \
+	errors-not-negotiating \
+	errors-notify-not-blocked \
+	errors-bad-cookie \
+	errors-pread-structured \
+	errors-server-invalid-offset \
+	errors-client-oversize \
+	errors-client-unadvertised-cmd \
+	errors-server-unadvertised-cmd \
+	errors-client-unknown-flags \
+	errors-server-unknown-flags \
+	errors-client-zerosize \
+	errors-server-zerosize \
 	server-death \
 	shutdown-flags \
 	get-size \
@@ -203,10 +221,29 @@ check_PROGRAMS += \
 	synch-parallel \
 	meta-base-allocation \
 	closure-lifetimes \
+	pread-initialize \
 	$(NULL)
 
 TESTS += \
 	errors \
+	errors-enum \
+	errors-bitmask \
+	errors-not-connected \
+	errors-name-too-long \
+	errors-poll-no-fd \
+	errors-connect-twice \
+	errors-not-negotiating \
+	errors-notify-not-blocked \
+	errors-bad-cookie \
+	errors-pread-structured \
+	errors-server-invalid-offset \
+	errors-client-oversize \
+	errors-client-unadvertised-cmd \
+	errors-server-unadvertised-cmd \
+	errors-client-unknown-flags \
+	errors-server-unknown-flags \
+	errors-client-zerosize \
+	errors-server-zerosize \
 	server-death \
 	shutdown-flags \
 	get-size \
@@ -246,6 +283,7 @@ TESTS += \
 	synch-parallel.sh \
 	meta-base-allocation \
 	closure-lifetimes \
+	pread-initialize \
 	$(NULL)
 
 # This test is compiled but not run because it requires a fixed port:
@@ -253,6 +291,60 @@ TESTS += \
 
 errors_SOURCES = errors.c
 errors_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_enum_SOURCES = errors-enum.c
+errors_enum_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_bitmask_SOURCES = errors-bitmask.c
+errors_bitmask_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_not_connected_SOURCES = errors-not-connected.c
+errors_not_connected_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_name_too_long_SOURCES = errors-name-too-long.c
+errors_name_too_long_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_poll_no_fd_SOURCES = errors-poll-no-fd.c
+errors_poll_no_fd_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_connect_twice_SOURCES = errors-connect-twice.c
+errors_connect_twice_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_not_negotiating_SOURCES = errors-not-negotiating.c
+errors_not_negotiating_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_notify_not_blocked_SOURCES = errors-notify-not-blocked.c
+errors_notify_not_blocked_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_bad_cookie_SOURCES = errors-bad-cookie.c
+errors_bad_cookie_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_pread_structured_SOURCES = errors-pread-structured.c
+errors_pread_structured_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_server_invalid_offset_SOURCES = errors-server-invalid-offset.c
+errors_server_invalid_offset_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_client_oversize_SOURCES = errors-client-oversize.c
+errors_client_oversize_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_client_unadvertised_cmd_SOURCES = errors-client-unadvertised-cmd.c
+errors_client_unadvertised_cmd_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_server_unadvertised_cmd_SOURCES = errors-server-unadvertised-cmd.c
+errors_server_unadvertised_cmd_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_client_unknown_flags_SOURCES = errors-client-unknown-flags.c
+errors_client_unknown_flags_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_server_unknown_flags_SOURCES = errors-server-unknown-flags.c
+errors_server_unknown_flags_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_client_zerosize_SOURCES = errors-client-zerosize.c
+errors_client_zerosize_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_server_zerosize_SOURCES = errors-server-zerosize.c
+errors_server_zerosize_LDADD = $(top_builddir)/lib/libnbd.la
 
 server_death_SOURCES = server-death.c
 server_death_LDADD = $(top_builddir)/lib/libnbd.la
@@ -489,6 +581,9 @@ meta_base_allocation_LDADD = $(top_builddir)/lib/libnbd.la
 
 closure_lifetimes_SOURCES = closure-lifetimes.c
 closure_lifetimes_LDADD = $(top_builddir)/lib/libnbd.la
+
+pread_initialize_SOURCES = pread-initialize.c
+pread_initialize_LDADD = $(top_builddir)/lib/libnbd.la
 
 #----------------------------------------------------------------------
 # Testing TLS support.
