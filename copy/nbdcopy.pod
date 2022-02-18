@@ -7,8 +7,9 @@ nbdcopy - copy to and from an NBD server
  nbdcopy [--allocated] [-C N|--connections=N]
          [--destination-is-zero|--target-is-zero] [--flush]
          [--no-extents] [-p|--progress|--progress=FD]
-         [--request-size=N] [-R N|--requests=N] [-S N|--sparse=N]
-         [--synchronous] [-T N|--threads=N] [-v|--verbose]
+         [--queue-size=N] [--request-size=N] [-R N|--requests=N]
+         [-S N|--sparse=N] [--synchronous] [-T N|--threads=N]
+         [-v|--verbose]
          SOURCE DESTINATION
 
  SOURCE, DESTINATION := - | FILE | DEVICE | NBD-URI | [ CMD ARGS ... ]
@@ -151,6 +152,13 @@ following shell commands:
  exec 3>/tmp/progress
  nbdcopy --progress=3 ...
  exec 3>&-
+
+=item B<--queue-size=>N
+
+Set the maximum number of bytes to queue for in flight requests. The
+default value is 16 MiB, allowing up to 64 256k requests per NBD
+connection. If you use larger B<--request-size> you may want to increase
+this value.
 
 =item B<--request-size=>N
 

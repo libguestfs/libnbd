@@ -233,6 +233,7 @@ extern unsigned max_requests;
 extern bool progress;
 extern int progress_fd;
 extern unsigned request_size;
+extern unsigned queue_size;
 extern unsigned sparse_size;
 extern bool synchronous;
 extern unsigned threads;

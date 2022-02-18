@@ -43,22 +43,23 @@
 #include "version.h"
 #include "nbdcopy.h"
 
-bool allocated;                 /* --allocated flag */
-unsigned connections = 4;       /* --connections */
-bool destination_is_zero;       /* --destination-is-zero flag */
-bool extents = true;            /* ! --no-extents flag */
-bool flush;                     /* --flush flag */
-unsigned max_requests = 64;     /* --requests */
-bool progress;                  /* -p flag */
-int progress_fd = -1;           /* --progress=FD */
-unsigned request_size = 1<<18;  /* --request-size */
-unsigned sparse_size = 4096;    /* --sparse */
-bool synchronous;               /* --synchronous flag */
-unsigned threads;               /* --threads */
-struct rw *src, *dst;           /* The source and destination. */
-bool verbose;                   /* --verbose flag */
+bool allocated;                     /* --allocated flag */
+unsigned connections = 4;           /* --connections */
+bool destination_is_zero;           /* --destination-is-zero flag */
+bool extents = true;                /* ! --no-extents flag */
+bool flush;                         /* --flush flag */
+unsigned max_requests = 64;         /* --requests */
+bool progress;                      /* -p flag */
+int progress_fd = -1;               /* --progress=FD */
+unsigned queue_size = 16<<20;       /* --queue-size */
+unsigned request_size = 1<<18;      /* --request-size */
+unsigned sparse_size = 4096;        /* --sparse */
+bool synchronous;                   /* --synchronous flag */
+unsigned threads;                   /* --threads */
+struct rw *src, *dst;               /* The source and destination. */
+bool verbose;                       /* --verbose flag */
 
-const char *prog;               /* program name (== basename argv[0]) */
+const char *prog;                   /* program name (== basename argv[0]) */
 
 static bool is_nbd_uri (const char *s);
 static struct rw *open_local (const char *filename, direction d);
@@ -74,8 +75,9 @@ usage (FILE *fp, int exitcode)
 "    nbdcopy [--allocated] [-C N|--connections=N]\n"
 "            [--destination-is-zero|--target-is-zero] [--flush]\n"
 "            [--no-extents] [-p|--progress|--progress=FD]\n"
-"            [--request-size=N] [-R N|--requests=N] [-S N|--sparse=N]\n"
-"            [--synchronous] [-T N|--threads=N] [-v|--verbose]\n"
+"            [--queue-size=N] [--request-size=N] [-R N|--requests=N]\n"
+"            [-S N|--sparse=N] [--synchronous] [-T N|--threads=N] \n"
+"            [-v|--verbose]\n"
 "            SOURCE DESTINATION\n"
 "\n"
 "    SOURCE, DESTINATION := - | FILE | DEVICE | NBD-URI | [ CMD ARGS ... ]\n"
@@ -110,6 +112,7 @@ main (int argc, char *argv[])
     DESTINATION_IS_ZERO_OPTION,
     FLUSH_OPTION,
     NO_EXTENTS_OPTION,
+    QUEUE_SIZE_OPTION,
     REQUEST_SIZE_OPTION,
     SYNCHRONOUS_OPTION,
   };
@@ -123,6 +126,7 @@ main (int argc, char *argv[])
     { "flush",              no_argument,       NULL, FLUSH_OPTION },
     { "no-extents",         no_argument,       NULL, NO_EXTENTS_OPTION },
     { "progress",           optional_argument, NULL, 'p' },
+    { "queue-size",         required_argument, NULL, QUEUE_SIZE_OPTION },
     { "request-size",       required_argument, NULL, REQUEST_SIZE_OPTION },
     { "requests",           required_argument, NULL, 'R' },
     { "short-options",      no_argument,       NULL, SHORT_OPTIONS },
@@ -201,6 +205,14 @@ main (int argc, char *argv[])
                    prog, optarg);
           exit (EXIT_FAILURE);
         }
+      }
+      break;
+
+    case QUEUE_SIZE_OPTION:
+      if (sscanf (optarg, "%u", &queue_size) != 1) {
+        fprintf (stderr, "%s: --queue-size: could not parse: %s\n",
+                 prog, optarg);
+        exit (EXIT_FAILURE);
       }
       break;
 
@@ -366,6 +378,10 @@ main (int argc, char *argv[])
     threads = connections;
   if (threads < connections)
     connections = threads;
+
+  /* Adapt queue to size to request size if needed. */
+  if (request_size > queue_size)
+    queue_size = request_size;
 
   /* Truncate the destination to the same size as the source.  Only
    * has an effect on regular files.

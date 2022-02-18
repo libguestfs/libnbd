@@ -130,7 +130,7 @@ multi_thread_copying (void)
   free (workers);
 }
 
-static void wait_for_request_slots (size_t index);
+static void wait_for_request_slots (struct worker *worker);
 static unsigned in_flight (size_t index);
 static void poll_both_ends (size_t index);
 static int finished_read (void *vp, int *error);
@@ -155,6 +155,7 @@ static struct command *create_command (uint64_t offset, size_t len, bool zero,
 static inline void
 increase_queue_size (struct worker *worker, size_t len)
 {
+  assert (worker->queue_size < queue_size);
   worker->queue_size += len;
 }
 
@@ -210,7 +211,7 @@ worker_thread (void *wp)
           command = create_command (exts.ptr[i].offset, len,
                                     false, w);
 
-          wait_for_request_slots (w->index);
+          wait_for_request_slots (w);
 
           /* NOTE: Must increase the queue size after waiting. */
           increase_queue_size (w, len);
@@ -240,9 +241,9 @@ worker_thread (void *wp)
   return NULL;
 }
 
-/* If the number of requests in flight exceeds the limit, poll
- * waiting for at least one request to finish.  This enforces
- * the user --requests option.
+/* If the number of requests or queued bytes in flight exceed limits,
+ * then poll until enough requests finish.  This enforces the user
+ * --requests and --queue-size options.
  *
  * NB: Unfortunately it's not possible to call this from a callback,
  * since it will deadlock trying to grab the libnbd handle lock.  This
@@ -252,10 +253,11 @@ worker_thread (void *wp)
  * limit. XXX
  */
 static void
-wait_for_request_slots (size_t index)
+wait_for_request_slots (struct worker *worker)
 {
-  while (in_flight (index) >= max_requests)
-    poll_both_ends (index);
+  while (in_flight (worker->index) >= max_requests ||
+         worker->queue_size >= queue_size)
+    poll_both_ends (worker->index);
 }
 
 /* Count the number of asynchronous commands in flight. */
