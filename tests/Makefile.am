@@ -162,7 +162,6 @@ endif
 if HAVE_NBDKIT
 
 check_PROGRAMS += \
-	errors \
 	errors-enum \
 	errors-bitmask \
 	errors-not-connected \
@@ -173,6 +172,7 @@ check_PROGRAMS += \
 	errors-notify-not-blocked \
 	errors-bad-cookie \
 	errors-pread-structured \
+	errors-multiple-disconnects \
 	errors-server-invalid-offset \
 	errors-client-oversize \
 	errors-client-unadvertised-cmd \
@@ -227,7 +227,6 @@ check_PROGRAMS += \
 	$(NULL)
 
 TESTS += \
-	errors \
 	errors-enum \
 	errors-bitmask \
 	errors-not-connected \
@@ -238,6 +237,7 @@ TESTS += \
 	errors-notify-not-blocked \
 	errors-bad-cookie \
 	errors-pread-structured \
+	errors-multiple-disconnects \
 	errors-server-invalid-offset \
 	errors-client-oversize \
 	errors-client-unadvertised-cmd \
@@ -293,9 +293,6 @@ TESTS += \
 # This test is compiled but not run because it requires a fixed port:
 #	aio-connect-port
 
-errors_SOURCES = errors.c
-errors_LDADD = $(top_builddir)/lib/libnbd.la
-
 errors_enum_SOURCES = errors-enum.c
 errors_enum_LDADD = $(top_builddir)/lib/libnbd.la
 
@@ -325,6 +322,9 @@ errors_bad_cookie_LDADD = $(top_builddir)/lib/libnbd.la
 
 errors_pread_structured_SOURCES = errors-pread-structured.c
 errors_pread_structured_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_multiple_disconnects_SOURCES = errors-multiple-disconnects.c
+errors_multiple_disconnects_LDADD = $(top_builddir)/lib/libnbd.la
 
 errors_server_invalid_offset_SOURCES = errors-server-invalid-offset.c
 errors_server_invalid_offset_LDADD = $(top_builddir)/lib/libnbd.la

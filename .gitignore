@@ -191,7 +191,6 @@ Makefile.in
 /tests/debug
 /tests/debug-environment
 /tests/dlopen
-/tests/errors
 /tests/errors-bad-cookie
 /tests/errors-bitmask
 /tests/errors-client-oversize
@@ -201,6 +200,7 @@ Makefile.in
 /tests/errors-client-zerosize
 /tests/errors-connect-twice
 /tests/errors-enum
+/tests/errors-multiple-disconnects
 /tests/errors-name-too-long
 /tests/errors-not-connected
 /tests/errors-not-negotiating
