@@ -133,7 +133,8 @@ static void wait_for_request_slots (uintptr_t index);
 static unsigned in_flight (uintptr_t index);
 static void poll_both_ends (uintptr_t index);
 static int finished_read (void *vp, int *error);
-static int free_command (void *vp, int *error);
+static int finished_command (void *vp, int *error);
+static void free_command (struct command *command);
 static void fill_dst_range_with_zeroes (struct command *command);
 static struct command *create_command (uint64_t offset, size_t len, bool zero,
                                        uintptr_t index);
@@ -409,7 +410,7 @@ finished_read (void *vp, int *error)
      */
     dst->ops->asynch_write (dst, command,
                             (nbd_completion_callback) {
-                              .callback = free_command,
+                              .callback = finished_command,
                               .user_data = command,
                             });
   }
@@ -420,7 +421,6 @@ finished_read (void *vp, int *error)
     bool last_is_zero = false;
     uint64_t i;
     struct command *newcommand;
-    int dummy = 0;
 
     /* Iterate over whole blocks in the command, starting on a block
      * boundary.
@@ -441,7 +441,7 @@ finished_read (void *vp, int *error)
                                             false);
             dst->ops->asynch_write (dst, newcommand,
                                     (nbd_completion_callback) {
-                                      .callback = free_command,
+                                      .callback = finished_command,
                                       .user_data = newcommand,
                                     });
           }
@@ -478,7 +478,7 @@ finished_read (void *vp, int *error)
                                         false);
         dst->ops->asynch_write (dst, newcommand,
                                 (nbd_completion_callback) {
-                                  .callback = free_command,
+                                  .callback = finished_command,
                                   .user_data = newcommand,
                                 });
       }
@@ -495,7 +495,7 @@ finished_read (void *vp, int *error)
       newcommand = create_subcommand (command, i, end - i, false);
       dst->ops->asynch_write (dst, newcommand,
                               (nbd_completion_callback) {
-                                .callback = free_command,
+                                .callback = finished_command,
                                 .user_data = newcommand,
                               });
     }
@@ -503,7 +503,7 @@ finished_read (void *vp, int *error)
     /* Free the original command since it has been split into
      * subcommands and the original is no longer needed.
      */
-    free_command (command, &dummy);
+    free_command (command);
   }
 
   return 1; /* auto-retires the command */
@@ -530,7 +530,6 @@ fill_dst_range_with_zeroes (struct command *command)
 {
   char *data;
   size_t data_size;
-  int dummy = 0;
 
   if (destination_is_zero)
     goto free_and_return;
@@ -538,7 +537,7 @@ fill_dst_range_with_zeroes (struct command *command)
   /* Try efficient zeroing. */
   if (dst->ops->asynch_zero (dst, command,
                              (nbd_completion_callback) {
-                               .callback = free_command,
+                               .callback = finished_command,
                                .user_data = command,
                              },
                              allocated))
@@ -566,20 +565,29 @@ fill_dst_range_with_zeroes (struct command *command)
   free (data);
 
  free_and_return:
-  free_command (command, &dummy);
+  free_command (command);
 }
 
 static int
-free_command (void *vp, int *error)
+finished_command (void *vp, int *error)
 {
   struct command *command = vp;
-  struct buffer *buffer = command->slice.buffer;
 
   if (*error) {
     fprintf (stderr, "write at offset %" PRId64 " failed: %s\n",
              command->offset, strerror (*error));
     exit (EXIT_FAILURE);
   }
+
+  free_command (command);
+
+  return 1; /* auto-retires the command */
+}
+
+static void
+free_command (struct command *command)
+{
+  struct buffer *buffer = command->slice.buffer;
 
   if (buffer != NULL) {
     if (--buffer->refs == 0) {
@@ -589,6 +597,4 @@ free_command (void *vp, int *error)
   }
 
   free (command);
-
-  return 1; /* auto-retires the command */
 }
