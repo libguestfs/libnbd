@@ -82,6 +82,12 @@ struct slice {
 struct worker {
   pthread_t thread;
   size_t index;
+
+  /* The number of bytes queued for in flight read and write requests.
+   * Tracking this allows issuing many small requests, but limiting the
+   * number of large requests.
+   */
+  size_t queue_size;
 };
 
 /* Commands for asynchronous operations in flight.

@@ -140,6 +140,31 @@ static void fill_dst_range_with_zeroes (struct command *command);
 static struct command *create_command (uint64_t offset, size_t len, bool zero,
                                        struct worker *worker);
 
+/* Tracking worker queue size.
+ *
+ * The queue size is increased when starting a read command.
+ *
+ * The queue size is decreased when a read command is converted to zero
+ * subcommand in finished_read(), or when a write command completes in
+ * finished_command().
+ *
+ * Zero commands are not considered in the queue size since they have no
+ * payload.
+ */
+
+static inline void
+increase_queue_size (struct worker *worker, size_t len)
+{
+  worker->queue_size += len;
+}
+
+static inline void
+decrease_queue_size (struct worker *worker, size_t len)
+{
+  assert (worker->queue_size >= len);
+  worker->queue_size -= len;
+}
+
 /* There are 'threads' worker threads, each copying work ranges from
  * src to dst until there are no more work ranges.
  */
@@ -186,6 +211,9 @@ worker_thread (void *wp)
                                     false, w);
 
           wait_for_request_slots (w->index);
+
+          /* NOTE: Must increase the queue size after waiting. */
+          increase_queue_size (w, len);
 
           /* Begin the asynch read operation. */
           src->ops->asynch_read (src, command,
@@ -462,6 +490,7 @@ finished_read (void *vp, int *error)
             newcommand = create_subcommand (command,
                                             last_offset, i - last_offset,
                                             true);
+            decrease_queue_size (command->worker, newcommand->slice.len);
             fill_dst_range_with_zeroes (newcommand);
           }
           /* Start the new data. */
@@ -487,6 +516,7 @@ finished_read (void *vp, int *error)
         newcommand = create_subcommand (command,
                                         last_offset, i - last_offset,
                                         true);
+        decrease_queue_size (command->worker, newcommand->slice.len);
         fill_dst_range_with_zeroes (newcommand);
       }
     }
@@ -579,6 +609,9 @@ finished_command (void *vp, int *error)
              command->offset, strerror (*error));
     exit (EXIT_FAILURE);
   }
+
+  if (command->slice.buffer)
+    decrease_queue_size (command->worker, command->slice.len);
 
   free_command (command);
 
