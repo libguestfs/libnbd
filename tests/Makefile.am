@@ -177,6 +177,8 @@ check_PROGRAMS += \
 	errors-client-oversize \
 	errors-client-unadvertised-cmd \
 	errors-server-unadvertised-cmd \
+	errors-client-unaligned \
+	errors-server-unaligned \
 	errors-client-unknown-flags \
 	errors-server-unknown-flags \
 	errors-client-zerosize \
@@ -240,6 +242,8 @@ TESTS += \
 	errors-client-oversize \
 	errors-client-unadvertised-cmd \
 	errors-server-unadvertised-cmd \
+	errors-client-unaligned \
+	errors-server-unaligned \
 	errors-client-unknown-flags \
 	errors-server-unknown-flags \
 	errors-client-zerosize \
@@ -333,6 +337,14 @@ errors_client_unadvertised_cmd_LDADD = $(top_builddir)/lib/libnbd.la
 
 errors_server_unadvertised_cmd_SOURCES = errors-server-unadvertised-cmd.c
 errors_server_unadvertised_cmd_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_client_unaligned_SOURCES = errors-client-unaligned.c \
+				  requires.c requires.h
+errors_client_unaligned_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_server_unaligned_SOURCES = errors-server-unaligned.c \
+				  requires.c requires.h
+errors_server_unaligned_LDADD = $(top_builddir)/lib/libnbd.la
 
 errors_client_unknown_flags_SOURCES = errors-client-unknown-flags.c
 errors_client_unknown_flags_LDADD = $(top_builddir)/lib/libnbd.la

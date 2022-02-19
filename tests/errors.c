@@ -75,34 +75,6 @@ cleanup (void)
   }
 }
 
-static void
-check_server_fail (struct nbd_handle *h, int64_t cookie,
-                   const char *cmd, int experr)
-{
-  int r;
-
-  if (cookie == -1) {
-    fprintf (stderr, "%s: test failed: %s not sent to server\n",
-             progname, cmd);
-    exit (EXIT_FAILURE);
-  }
-
-  while ((r = nbd_aio_command_completed (h, cookie)) == 0) {
-    if (nbd_poll (h, -1) == -1) {
-      fprintf (stderr, "%s: test failed: poll failed while awaiting %s: %s\n",
-               progname, cmd, nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-  }
-
-  if (r != -1) {
-    fprintf (stderr, "%s: test failed: %s did not fail at server\n",
-             progname, cmd);
-    exit (EXIT_FAILURE);
-  }
-  check (experr, "nbd_aio_command_completed: ");
-}
-
 int
 main (int argc, char *argv[])
 {
@@ -114,7 +86,6 @@ main (int argc, char *argv[])
    */
   const char *cmd[] = { "nbdkit", "-s", "-v", "--exit-with-parent", "sh",
                         script, NULL };
-  uint32_t strict;
 
   progname = argv[0];
 
@@ -175,34 +146,6 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
   check (ENOMEM, "nbd_pread: ");
-
-  /* XXX nbdkit does not yet have a way to test STRICT_ALIGN */
-  if (nbd_get_block_size (nbd, LIBNBD_SIZE_MINIMUM) > 1) {
-    /* Send an unaligned read, client-side */
-    strict = nbd_get_strict_mode (nbd) | LIBNBD_STRICT_ALIGN;
-    if (nbd_set_strict_mode (nbd, strict) == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    if (nbd_aio_pread (nbd, buf, 1, 1, NBD_NULL_COMPLETION, 0) != -1) {
-      fprintf (stderr, "%s: test failed: "
-               "unaligned nbd_aio_pread did not fail\n",
-               argv[0]);
-      exit (EXIT_FAILURE);
-    }
-    check (EINVAL, "nbd_aio_pread: ");
-    /* Send an unaligned read, server-side */
-    strict &= ~LIBNBD_STRICT_ALIGN;
-    if (nbd_set_strict_mode (nbd, strict) == -1) {
-      fprintf (stderr, "%s\n", nbd_get_error ());
-      exit (EXIT_FAILURE);
-    }
-    check_server_fail (nbd,
-                       nbd_aio_pread (nbd, buf, 1, 1, NBD_NULL_COMPLETION, 0),
-                       "unaligned nbd_aio_pread", EINVAL);
-  }
-  else
-    fprintf (stderr, "skipping alignment tests, nbdkit too old\n");
 
   /* Queue up two write commands so large that we block on POLLIN (the
    * first might not block when under load, such as valgrind, but the

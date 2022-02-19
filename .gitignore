@@ -196,6 +196,7 @@ Makefile.in
 /tests/errors-bitmask
 /tests/errors-client-oversize
 /tests/errors-client-unadvertised-cmd
+/tests/errors-client-unaligned
 /tests/errors-client-unknown-flags
 /tests/errors-client-zerosize
 /tests/errors-connect-twice
@@ -208,6 +209,7 @@ Makefile.in
 /tests/errors-pread-structured
 /tests/errors-server-invalid-offset
 /tests/errors-server-unadvertised-cmd
+/tests/errors-server-unaligned
 /tests/errors-server-unknown-flags
 /tests/errors-server-zerosize
 /tests/export-name
