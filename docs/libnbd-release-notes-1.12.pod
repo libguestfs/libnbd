@@ -11,7 +11,16 @@ libnbd 1.12.0 was released on B<XX Xxxxx 2022>.
 
 =head2 Security
 
-There were no security bugs found in libnbd during this release cycle.
+=over 4
+
+=item CVE-2022-0485
+
+Silent data corruption when using L<nbdcopy(1)>.
+
+See the full announcement here:
+L<https://listman.redhat.com/archives/libguestfs/2022-February/msg00104.html>
+
+=back
 
 If you find a security issue, please read F<SECURITY> in the source
 (online here:
@@ -21,7 +30,17 @@ L<libnbd-security(3)>.
 
 =head2 New APIs
 
-No new APIs were added in 1.12.
+=over 4
+
+=item get_pread_initialize
+
+=item set_pread_initialize
+
+Control whether libnbd clears the pread buffer to avoid leaking memory
+contents if the client does not properly handle errors.  These were
+added as part of the fix for CVE-2022-0485.
+
+=back
 
 =head2 Enhancements to existing APIs
 
@@ -33,11 +52,20 @@ improved to make common mistakes clearer for the user.
 New syntax: C<nbdinfo [ CMD ... ]> allowing you to query the
 properties of an NBD server directly.
 
+L<nbdcopy(1)> now names the source and destination handles to make it
+easier to understand debug output.
+
 =head2 Tests
 
 Adopt libvirt-ci's F<ci/gitlab.yml> (Martin Kletzander).
 
 Fix the OCaml extents example (thanks Laszlo Ersek).
+
+Golang benchmarks were added to the test suite (Nir Soffer).
+
+The large F<tests/errors.c> test was split into about a dozen separate
+tests.  Also this adds a new test for checking server-side block size
+constraint error policy which was missing before.
 
 =head2 Other improvements and bug fixes
 
@@ -63,6 +91,17 @@ The performance of the internal vector library has been improved
 greatly and overflow is now handled correctly (Nir Soffer, Laszlo
 Ersek and Eric Blake).
 
+Add C<simple_copy> and C<aio_copy> Golang examples (Nir Soffer).
+
+Error handling was reviewed and fixed across many of the example
+programs and documentation (Eric Blake, Nir Soffer).
+
+Simplify and optimize handling of the extents callback in Golang (Nir
+Soffer).
+
+Golang AioBuffer was enhanced, making it safer to use, faster and
+adding documentation (Nir Soffer).
+
 =head2 Documentation
 
 Document the limits on lengths and sizes of parameters to various APIs
@@ -78,6 +117,9 @@ Compatibility with OCaml 4.13.
 
 Line locations in the state machine should be more accurate when
 stepping through with a debugger like gdb.
+
+F<.editorconfig> file can be used to help code formatting, see
+L<https://editorconfig.org/> (Nir Soffer, Eric Blake).
 
 =head1 SEE ALSO
 
