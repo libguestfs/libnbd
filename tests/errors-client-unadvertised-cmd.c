@@ -31,6 +31,8 @@
 
 #include <libnbd.h>
 
+#include "requires.h"
+
 static char *progname;
 
 static void
@@ -68,6 +70,8 @@ main (int argc, char *argv[])
   uint32_t strict;
 
   progname = argv[0];
+
+  requires ("nbdkit --version eval");
 
   nbd = nbd_create ();
   if (nbd == NULL) {

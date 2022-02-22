@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2020 Red Hat Inc.
+# Copyright (C) 2013-2022 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -332,10 +332,12 @@ errors_server_invalid_offset_LDADD = $(top_builddir)/lib/libnbd.la
 errors_client_oversize_SOURCES = errors-client-oversize.c
 errors_client_oversize_LDADD = $(top_builddir)/lib/libnbd.la
 
-errors_client_unadvertised_cmd_SOURCES = errors-client-unadvertised-cmd.c
+errors_client_unadvertised_cmd_SOURCES = errors-client-unadvertised-cmd.c \
+				  requires.c requires.h
 errors_client_unadvertised_cmd_LDADD = $(top_builddir)/lib/libnbd.la
 
-errors_server_unadvertised_cmd_SOURCES = errors-server-unadvertised-cmd.c
+errors_server_unadvertised_cmd_SOURCES = errors-server-unadvertised-cmd.c \
+				  requires.c requires.h
 errors_server_unadvertised_cmd_LDADD = $(top_builddir)/lib/libnbd.la
 
 errors_client_unaligned_SOURCES = errors-client-unaligned.c \
