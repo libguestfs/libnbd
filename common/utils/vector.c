@@ -109,7 +109,7 @@ generic_vector_reserve_page_aligned (struct generic_vector *v,
   long pagesize;
   size_t extra, extra_items;
 
-  pagesize = sysconf (_SC_PAGE_SIZE);
+  pagesize = sysconf (_SC_PAGESIZE);
   assert (pagesize > 1);
 
   assert (pagesize % itemsize == 0);
