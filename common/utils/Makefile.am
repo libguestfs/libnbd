@@ -36,6 +36,7 @@ noinst_LTLIBRARIES = libutils.la
 libutils_la_SOURCES = \
 	human-size.c \
 	human-size.h \
+	nbdkit-string.h \
 	vector.c \
 	vector.h \
 	version.c \
