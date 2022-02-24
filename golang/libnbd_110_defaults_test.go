@@ -59,6 +59,14 @@ func Test110Defaults(t *testing.T) {
 		t.Fatalf("unexpected structured replies state")
 	}
 
+	bs, err := h.GetRequestBlockSize()
+	if err != nil {
+		t.Fatalf("could not get block size state: %s", err)
+	}
+	if bs != true {
+		t.Fatalf("unexpected block size state")
+	}
+
 	init, err := h.GetPreadInitialize()
 	if err != nil {
 		t.Fatalf("could not get pread initialize state: %s", err)

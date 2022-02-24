@@ -120,8 +120,9 @@ struct nbd_handle {
   uint8_t opt_current; /* 0 or one of NBD_OPT_* */
   struct command_cb opt_cb;
 
-  /* Full info mode. */
-  bool full_info;
+  /* Tweak what OPT_INFO/GO requests. */
+  bool request_block_size; /* default true, for INFO_BLOCK_SIZE */
+  bool full_info; /* default false, for INFO_NAME, INFO_DESCRIPTION */
 
   /* Sanitization for pread. */
   bool pread_initialize;

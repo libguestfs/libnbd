@@ -395,6 +395,40 @@ of an empty string C<\"\">)";
                 Link "get_canonical_export_name"];
   };
 
+  "set_request_block_size", {
+    default_call with
+    args = [Bool "request"]; ret = RErr;
+    permitted_states = [ Created; Negotiating ];
+    shortdesc = "control whether NBD_OPT_GO requests block size";
+    longdesc = "\
+By default, when connecting to an export, libnbd requests that the
+server report any block size restrictions.  The NBD protocol states
+that a server may supply block sizes regardless of whether the client
+requests them, and libnbd will report those block sizes (see
+L<nbd_get_block_size(3)>); conversely, if a client does not request
+block sizes, the server may reject the connection instead of dealing
+with a client sending unaligned requests.  This function makes it
+possible to test server behavior by emulating older clients.
+
+Note that even when block size is requested, the server is not
+obligated to provide any.  Furthermore, if block sizes are provided
+(whether or not the client requested them), libnbd enforces alignment
+to those sizes unless L<nbd_set_strict_mode(3)> is used to bypass
+client-side safety checks.";
+    see_also = [Link "get_request_block_size"; Link "set_full_info";
+                Link "get_block_size"; Link "set_strict_mode"];
+  };
+
+  "get_request_block_size", {
+    default_call with
+    args = []; ret = RBool;
+    permitted_states = [];
+    shortdesc = "see if NBD_OPT_GO requests block size";
+    longdesc = "\
+Return the state of the block size request flag on this handle.";
+    see_also = [Link "set_request_block_size"];
+  };
+
   "set_full_info", {
     default_call with
     args = [Bool "request"]; ret = RErr;
@@ -413,10 +447,11 @@ libnbd will provide that hint.
 Note that even when full info is requested, the server is not
 obligated to reply with all information that libnbd requested.
 Similarly, libnbd will ignore any optional server information that
-libnbd has not yet been taught to recognize.";
-    example = Some "examples/server-flags.c";
+libnbd has not yet been taught to recognize.  Furthermore, the
+hint to request block sizes is independently controlled via
+L<nbd_set_request_block_size(3)>.";
     see_also = [Link "get_full_info"; Link "get_canonical_export_name";
-                Link "get_export_description"];
+                Link "get_export_description"; Link "set_request_block_size"];
   };
 
   "get_full_info", {
@@ -1839,9 +1874,13 @@ abruptly disconnect if a transaction involves more than 32M.
 =back
 
 Future NBD extensions may result in additional C<size_type> values.
+Note that by default, libnbd requests all available block sizes,
+but that a server may differ in what sizes it chooses to report
+if L<nbd_set_request_block_size(3)> alters whether the client
+requests sizes.
 "
 ^ non_blocking_test_call_description;
-    see_also = [Link "get_protocol";
+    see_also = [Link "get_protocol"; Link "set_request_block_size";
                 Link "get_size"; Link "opt_info"]
   };
 
@@ -1976,7 +2015,8 @@ on failure."
 ^ strict_call_description;
     see_also = [Link "can_df"; Link "pread";
                 Link "aio_pread_structured"; Link "get_block_size";
-                Link "set_strict_mode"; Link "set_pread_initialize"];
+                Link "set_strict_mode"; Link "set_pread_initialize";
+                Link "set_request_block_size"];
   };
 
   "pwrite", {
@@ -3201,6 +3241,8 @@ let first_version = [
   (* Added in 1.11.x development cycle, will be stable and supported in 1.12. *)
   "set_pread_initialize", (1, 12);
   "get_pread_initialize", (1, 12);
+  "set_request_block_size", (1, 12);
+  "get_request_block_size", (1, 12);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

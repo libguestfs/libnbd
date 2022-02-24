@@ -1,5 +1,5 @@
 /* libnbd golang tests
- * Copyright (C) 2013-2021 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -91,6 +91,18 @@ func Test120SetNonDefaults(t *testing.T) {
 	}
 	if sr != false {
 		t.Fatalf("unexpected structured replies state")
+	}
+
+	err = h.SetRequestBlockSize(false)
+	if err != nil {
+		t.Fatalf("could not set block size state: %s", err)
+	}
+	bs, err := h.GetRequestBlockSize()
+	if err != nil {
+		t.Fatalf("could not get block size state: %s", err)
+	}
+	if bs != false {
+		t.Fatalf("unexpected block size state")
 	}
 
 	err = h.SetPreadInitialize(false)

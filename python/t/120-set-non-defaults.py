@@ -33,6 +33,8 @@ if h.supports_tls():
     assert h.get_tls() == nbd.TLS_ALLOW
 h.set_request_structured_replies(False)
 assert h.get_request_structured_replies() is False
+h.set_request_block_size(False)
+assert h.get_request_block_size() is False
 h.set_pread_initialize(False)
 assert h.get_pread_initialize() is False
 try:

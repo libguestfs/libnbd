@@ -42,6 +42,9 @@ let () =
       NBD.set_request_structured_replies nbd false;
       let sr = NBD.get_request_structured_replies nbd in
       assert (sr = false);
+      NBD.set_request_block_size nbd false;
+      let bs = NBD.get_request_block_size nbd in
+      assert (bs = false);
       NBD.set_pread_initialize nbd false;
       let init = NBD.get_pread_initialize nbd in
       assert (init = false);

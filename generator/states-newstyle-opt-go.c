@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,7 +20,12 @@
 
 STATE_MACHINE {
  NEWSTYLE.OPT_GO.START:
-  uint16_t nrinfos = h->full_info ? 3 : 1;
+  uint16_t nrinfos = 0;
+
+  if (h->request_block_size)
+    nrinfos++;
+  if (h->full_info)
+    nrinfos += 2;
 
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
   if (h->opt_current == NBD_OPT_INFO)
@@ -67,7 +72,12 @@ STATE_MACHINE {
   return 0;
 
  NEWSTYLE.OPT_GO.SEND_EXPORT:
-  uint16_t nrinfos = h->full_info ? 3 : 1;
+  uint16_t nrinfos = 0;
+
+  if (h->request_block_size)
+    nrinfos++;
+  if (h->full_info)
+    nrinfos += 2;
 
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
@@ -80,14 +90,17 @@ STATE_MACHINE {
   return 0;
 
  NEWSTYLE.OPT_GO.SEND_NRINFOS:
-  uint16_t nrinfos = h->full_info ? 3 : 1;
+  uint16_t nrinfos = 0;
 
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
-    h->sbuf.info[0] = htobe16 (NBD_INFO_BLOCK_SIZE);
-    h->sbuf.info[1] = htobe16 (NBD_INFO_NAME);
-    h->sbuf.info[2] = htobe16 (NBD_INFO_DESCRIPTION);
+    if (h->request_block_size)
+      h->sbuf.info[nrinfos++] = htobe16 (NBD_INFO_BLOCK_SIZE);
+    if (h->full_info) {
+      h->sbuf.info[nrinfos++] = htobe16 (NBD_INFO_NAME);
+      h->sbuf.info[nrinfos++] = htobe16 (NBD_INFO_DESCRIPTION);
+    }
     h->wbuf = &h->sbuf;
     h->wlen = sizeof h->sbuf.info[0] * nrinfos;
     SET_NEXT_STATE (%SEND_INFO);

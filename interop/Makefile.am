@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2021 Red Hat Inc.
+# Copyright (C) 2013-2022 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -20,6 +20,7 @@ include $(top_srcdir)/subdir-rules.mk
 EXTRA_DIST = \
 	dirty-bitmap.sh \
 	interop-qemu-storage-daemon.sh \
+	interop-qemu-block-size.sh \
 	list-exports-nbd-config \
 	list-exports-test-dir/disk1 \
 	list-exports-test-dir/disk2 \
@@ -141,6 +142,7 @@ TESTS += \
 	socket-activation-qemu-nbd \
 	dirty-bitmap.sh \
 	structured-read.sh \
+	interop-qemu-block-size.sh \
 	$(NULL)
 
 interop_qemu_nbd_SOURCES = \

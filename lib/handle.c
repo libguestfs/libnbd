@@ -64,6 +64,7 @@ nbd_create (void)
   h->unique = 1;
   h->tls_verify_peer = true;
   h->request_sr = true;
+  h->request_block_size = true;
   h->pread_initialize = true;
 
   h->uri_allow_transports = LIBNBD_ALLOW_TRANSPORT_MASK;
@@ -240,6 +241,19 @@ nbd_unlocked_get_export_name (struct nbd_handle *h)
   }
 
   return copy;
+}
+
+int
+nbd_unlocked_set_request_block_size (struct nbd_handle *h, bool request)
+{
+  h->request_block_size = request;
+  return 0;
+}
+
+int
+nbd_unlocked_get_request_block_size (struct nbd_handle *h)
+{
+  return h->request_block_size;
 }
 
 int
