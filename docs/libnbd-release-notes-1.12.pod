@@ -60,7 +60,7 @@ New syntax: C<nbdinfo [ CMD ... ]> allowing you to query the
 properties of an NBD server directly.
 
 L<nbdcopy(1)> new I<--queue-size> option to control the maximum size
-of the internal buffer.
+of the internal buffer (Nir Soffer).
 
 L<nbdcopy(1)> now names the source and destination handles to make it
 easier to understand debug output.
