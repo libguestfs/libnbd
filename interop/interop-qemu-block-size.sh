@@ -26,6 +26,7 @@ requires qemu-nbd --version
 requires nbdsh --version
 requires qemu-img --version
 requires truncate --version
+requires timeout --version
 
 f="qemu-block-size.raw"
 sock=$(mktemp -u /tmp/interop-qemu.XXXXXX)
@@ -39,9 +40,9 @@ fail=0
 # run_test FMT REQUEST EXP_INFO EXP_GO
 run_test() {
     # No -t or -e, so qemu-nbd should exit once nbdsh disconnects
-    qemu-nbd -k $sock $1 $f &
+    timeout 60s qemu-nbd -k $sock $1 $f &
     pid=$!
-    $VG nbdsh -c - <<EOF || fail=1
+    $VG nbdsh -c - <<EOF
 import os
 
 sock = os.environ["sock"]
@@ -51,6 +52,10 @@ assert h.get_request_block_size()
 h.set_request_block_size($2)
 assert h.get_request_block_size() is $2
 h.connect_unix(sock)
+
+if not h.aio_is_negotiating():
+    nbd.shutdown()
+    exit(77)    # Oldstyle negotiation lacks block size advertisement
 
 try:
     h.opt_info()
@@ -63,6 +68,13 @@ assert h.get_block_size(nbd.SIZE_MINIMUM) == $4
 
 h.shutdown()
 EOF
+    st=$?
+    if [ $st = 77 ]; then
+        echo "$0: skipping: qemu-nbd too old for this test"
+        exit 77
+    elif [ $st != 0 ]; then
+        fail=1
+    fi
     wait $pid || fail=1
 }
 
