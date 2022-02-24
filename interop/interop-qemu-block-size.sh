@@ -39,9 +39,17 @@ fail=0
 
 # run_test FMT REQUEST EXP_INFO EXP_GO
 run_test() {
+    rm -f $sock
     # No -t or -e, so qemu-nbd should exit once nbdsh disconnects
     timeout 60s qemu-nbd -k $sock $1 $f &
     pid=$!
+    # Wait for the socket to appear
+    for i in {1..30}; do
+        if test -e $sock; then
+            break
+        fi
+        sleep 1
+    done
     $VG nbdsh -c - <<EOF
 import os
 
@@ -54,7 +62,7 @@ assert h.get_request_block_size() is $2
 h.connect_unix(sock)
 
 if not h.aio_is_negotiating():
-    nbd.shutdown()
+    h.shutdown()
     exit(77)    # Oldstyle negotiation lacks block size advertisement
 
 try:
