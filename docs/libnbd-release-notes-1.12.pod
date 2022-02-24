@@ -7,7 +7,7 @@ libnbd-release-notes-1.12 - release notes for libnbd 1.12
 These are the release notes for libnbd stable release 1.12.
 This describes the major changes since 1.10.
 
-libnbd 1.12.0 was released on B<XX Xxxxx 2022>.
+libnbd 1.12.0 was released on B<24 February 2022>.
 
 =head2 Security
 
@@ -38,7 +38,14 @@ L<libnbd-security(3)>.
 
 Control whether libnbd clears the pread buffer to avoid leaking memory
 contents if the client does not properly handle errors.  These were
-added as part of the fix for CVE-2022-0485.
+added as part of the fix for CVE-2022-0485 (Eric Blake).
+
+=item get_request_block_size
+
+=item set_request_block_size
+
+Control whether libnbd requests block size constraints from the server
+during negotiation (Eric Blake).
 
 =back
 
@@ -51,6 +58,9 @@ improved to make common mistakes clearer for the user.
 
 New syntax: C<nbdinfo [ CMD ... ]> allowing you to query the
 properties of an NBD server directly.
+
+L<nbdcopy(1)> new I<--queue-size> option to control the maximum size
+of the internal buffer.
 
 L<nbdcopy(1)> now names the source and destination handles to make it
 easier to understand debug output.
@@ -120,6 +130,8 @@ stepping through with a debugger like gdb.
 
 F<.editorconfig> file can be used to help code formatting, see
 L<https://editorconfig.org/> (Nir Soffer, Eric Blake).
+
+C<MIN> and C<MAX> macros can be nested (thanks Eric Blake).
 
 =head1 SEE ALSO
 
