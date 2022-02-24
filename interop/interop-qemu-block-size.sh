@@ -22,7 +22,9 @@ source ../tests/functions.sh
 set -e
 set -x
 
-requires qemu-nbd --version
+# versions of qemu-nbd older than 4.0 reported inaccurate block sizes
+# Use 'qemu-nbd --list' as our witness, it was also added in 4.0
+requires qemu-nbd --list --version
 requires nbdsh --version
 requires qemu-img --version
 requires truncate --version
