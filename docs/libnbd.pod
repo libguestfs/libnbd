@@ -367,7 +367,9 @@ cases are:
 
 =item C<EINVAL>
 
-Invalid parameters or state for the current libnbd call.
+Invalid parameters or state for the current libnbd call.  (This can
+also indicate that requests are not aligned to
+L</Block size constraints>).
 
 =item C<ENOTSUP>
 
@@ -542,6 +544,23 @@ Flag calls are: __API_FLAG_LINKS__
 To get the size of the export in bytes, use L<nbd_get_size(3)>:
 
  int64_t size = nbd_get_size (nbd);
+
+=head2 Block size constraints
+
+Some NBD servers cannot handle requests at any byte boundary.  They
+might, for example, require all requests to be aligned to 512 byte
+sectors.
+
+Also some servers advertise a preferred block size.  This is not a
+requirement, but is the minimum block size that can be accessed
+efficiently (usually without triggering expensive read-modify-write
+cycles inside the server).
+
+These are referred to as block size constraints and can be queried by
+calling L<nbd_get_block_size(3)>.  Pay attention in particular to the
+C<LIBNBD_SIZE_MINIMUM> constraint as some servers will fail requests
+which are smaller or not aligned to this block size with C<EINVAL>
+("Invalid argument") errors.
 
 =head1 DATA COMMANDS
 
