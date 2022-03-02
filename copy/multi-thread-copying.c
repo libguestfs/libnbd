@@ -381,7 +381,6 @@ create_command (uint64_t offset, size_t len, bool zero, struct worker *worker)
 
   command->offset = offset;
   command->slice.len = len;
-  command->slice.base = 0;
 
   if (!zero)
     command->slice.buffer = create_buffer (len);
@@ -623,6 +622,9 @@ finished_command (void *vp, int *error)
 static void
 free_command (struct command *command)
 {
+  if (command == NULL)
+    return;
+
   struct buffer *buffer = command->slice.buffer;
 
   if (buffer != NULL) {
