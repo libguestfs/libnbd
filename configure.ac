@@ -556,7 +556,7 @@ AC_CONFIG_FILES([sh/nbdsh],
                 [chmod +x,-w sh/nbdsh])
 
 AC_CONFIG_FILES([Makefile
-                 bash/Makefile
+                 bash-completion/Makefile
                  common/include/Makefile
                  common/utils/Makefile
                  copy/Makefile

@@ -28,9 +28,9 @@ Makefile.in
 
 /aclocal.m4
 /autom4te.cache
-/bash/nbdcopy
-/bash/nbdfuse
-/bash/nbdinfo
+/bash-completion/nbdcopy
+/bash-completion/nbdfuse
+/bash-completion/nbdinfo
 /common/include/test-checked-overflow
 /common/utils/test-human-size
 /common/utils/test-vector

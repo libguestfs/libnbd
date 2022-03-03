@@ -6,4 +6,4 @@ Tip: To test the bash completions without having to install them,
 simply start a new shell and run this command:
 
   ./run bash
-  source ./bash/nbdsh
+  source ./bash-completion/nbdsh
