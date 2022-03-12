@@ -31,7 +31,7 @@
 #endif
 
 #include "internal.h"
-#include "vector.h"
+#include "nbdkit-string.h"
 
 int
 nbd_unlocked_set_tls (struct nbd_handle *h, int tls)
@@ -107,8 +107,6 @@ nbd_unlocked_set_tls_username (struct nbd_handle *h, const char *username)
   h->tls_username = new_user;
   return 0;
 }
-
-DEFINE_VECTOR_TYPE (string, char)
 
 char *
 nbd_unlocked_get_tls_username (struct nbd_handle *h)
