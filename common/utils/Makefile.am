@@ -34,9 +34,11 @@ include $(top_srcdir)/common-rules.mk
 noinst_LTLIBRARIES = libutils.la
 
 libutils_la_SOURCES = \
+	const-string-vector.h \
 	human-size.c \
 	human-size.h \
 	nbdkit-string.h \
+	string-vector.h \
 	vector.c \
 	vector.h \
 	version.c \
