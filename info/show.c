@@ -29,11 +29,9 @@
 #include <libnbd.h>
 
 #include "human-size.h"
-#include "vector.h"
+#include "string-vector.h"
 
 #include "nbdinfo.h"
-
-DEFINE_VECTOR_TYPE (string_vector, char *)
 
 static int collect_context (void *opaque, const char *name);
 static char *get_content (struct nbd_handle *, int64_t size);

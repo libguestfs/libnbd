@@ -27,10 +27,12 @@
 
 #include "nbdcopy.h"
 
+#include "const-string-vector.h"
+#include "vector.h"
+
 static struct rw_ops nbd_ops;
 
 DEFINE_VECTOR_TYPE (handles, struct nbd_handle *)
-DEFINE_VECTOR_TYPE (const_string_vector, const char *);
 
 struct rw_nbd {
   struct rw rw;

@@ -39,8 +39,8 @@
 
 #include "byte-swapping.h"
 #include "states.h"
+#include "string-vector.h"
 #include "unlocked.h"
-#include "vector.h"
 
 /* Define unlikely macro, but only for GCC.  These are used to move
  * debug and error handling code out of hot paths, making the hot path
@@ -82,8 +82,6 @@ struct command_cb {
   } fn;
   nbd_completion_callback completion;
 };
-
-DEFINE_VECTOR_TYPE (string_vector, char *)
 
 struct nbd_handle {
   /* Unique name assigned to this handle for debug messages
