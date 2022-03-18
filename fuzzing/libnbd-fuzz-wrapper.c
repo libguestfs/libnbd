@@ -109,6 +109,26 @@ main (int argc, char *argv[])
   _exit (EXIT_SUCCESS);
 }
 
+/* Structured reads callback, does nothing. */
+static int
+chunk_callback (void *user_data, const void *subbuf,
+                size_t count, uint64_t offset,
+                unsigned status, int *error)
+{
+  return 0;
+}
+
+/* Block status (extents) callback, does nothing. */
+static int
+extent_callback (void *user_data,
+                 const char *metacontext,
+                 uint64_t offset, uint32_t *entries,
+                 size_t nr_entries, int *error)
+{
+  return 0;
+}
+
+/* This is the client (parent process) running libnbd. */
 static void
 client (int sock)
 {
@@ -124,20 +144,42 @@ client (int sock)
   /* Note we ignore errors in these calls because we are only
    * interested in whether the process crashes.
    */
+
+  /* Enable a metadata context, for block status below. */
+  nbd_add_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION);
+
   /* This tests the handshake phase. */
   nbd_connect_socket (nbd, sock);
 
+  /* Test common synchronous I/O calls. */
   nbd_pread (nbd, buf, sizeof buf, 0, 0);
   nbd_pwrite (nbd, buf, sizeof buf, 0, 0);
   nbd_flush (nbd, 0);
   nbd_trim (nbd, 512, 0, 0);
   nbd_cache (nbd, 512, 0, 0);
 
-  /* XXX Test structured reads and block status. */
+  /* Test structured reads. */
+  nbd_pread_structured (nbd, buf, sizeof buf, 0,
+                        (nbd_chunk_callback) {
+                          .callback = chunk_callback,
+                          .user_data = NULL,
+                          .free = NULL
+                        },
+                        0);
+
+  /* Test block status. */
+  nbd_block_status (nbd, sizeof buf, 0,
+                    (nbd_extent_callback) {
+                      .callback = extent_callback,
+                      .user_data = NULL,
+                      .free = NULL
+                    },
+                    0);
 
   nbd_shutdown (nbd, 0);
 }
 
+/* This is the server (child process) acting like an NBD server. */
 static void
 server (int fd, int sock)
 {
