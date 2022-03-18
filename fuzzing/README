@@ -15,6 +15,14 @@ You will need to recompile libnbd with AFL instrumentation:
   make clean
   make
 
+To use clang instead (recommended with AFL++):
+
+  ./configure CC=/usr/bin/afl-clang-lto CXX=/usr/bin/afl-clang-lto++ \
+      --disable-shared \
+      --disable-golang --disable-ocaml --disable-python
+  make clean
+  make
+
 The fuzzing/testcase_dir directory contains some initial testcases
 that AFL can use.
 
