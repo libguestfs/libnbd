@@ -166,11 +166,13 @@ extent_callback (void *user_data,
 }
 
 /* This is the client (parent process) running libnbd. */
+static char buf[512];
+static char prbuf[65536];
+
 static void
 client (int sock)
 {
   struct nbd_handle *nbd;
-  char buf[512];
   int64_t length;
 
   nbd = nbd_create ();
@@ -200,7 +202,7 @@ client (int sock)
   nbd_cache (nbd, 8192, 0, 0);
 
   /* Test structured reads. */
-  nbd_pread_structured (nbd, buf, sizeof buf, 0,
+  nbd_pread_structured (nbd, prbuf, sizeof prbuf, 8192,
                         (nbd_chunk_callback) {
                           .callback = chunk_callback,
                           .user_data = NULL,
