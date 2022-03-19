@@ -171,6 +171,7 @@ client (int sock)
 {
   struct nbd_handle *nbd;
   char buf[512];
+  int64_t length;
 
   nbd = nbd_create ();
   if (nbd == NULL) {
@@ -188,12 +189,15 @@ client (int sock)
   /* This tests the handshake phase. */
   nbd_connect_socket (nbd, sock);
 
+  length = nbd_get_size (nbd);
+
   /* Test common synchronous I/O calls. */
   nbd_pread (nbd, buf, sizeof buf, 0, 0);
   nbd_pwrite (nbd, buf, sizeof buf, 0, 0);
   nbd_flush (nbd, 0);
-  nbd_trim (nbd, 512, 0, 0);
-  nbd_cache (nbd, 512, 0, 0);
+  nbd_trim (nbd, 8192, 8192, 0);
+  nbd_zero (nbd, 8192, 65536, 0);
+  nbd_cache (nbd, 8192, 0, 0);
 
   /* Test structured reads. */
   nbd_pread_structured (nbd, buf, sizeof buf, 0,
@@ -205,7 +209,7 @@ client (int sock)
                         0);
 
   /* Test block status. */
-  nbd_block_status (nbd, sizeof buf, 0,
+  nbd_block_status (nbd, length, 0,
                     (nbd_extent_callback) {
                       .callback = extent_callback,
                       .user_data = NULL,
