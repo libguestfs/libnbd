@@ -17,6 +17,7 @@ You will need to recompile libnbd with AFL instrumentation:
 
 To use clang instead (recommended with AFL++):
 
+  export AFL_USE_ASAN=1
   ./configure CC=/usr/bin/afl-clang-lto CXX=/usr/bin/afl-clang-lto++ \
       --disable-shared \
       --disable-golang --disable-ocaml --disable-python
