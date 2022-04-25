@@ -363,7 +363,7 @@ x86_64-freebsd-12:
     NAME: freebsd-12
     CIRRUS_VM_INSTANCE_TYPE: freebsd_instance
     CIRRUS_VM_IMAGE_SELECTOR: image_family
-    CIRRUS_VM_IMAGE_NAME: freebsd-12-2
+    CIRRUS_VM_IMAGE_NAME: freebsd-12-3
     UPDATE_COMMAND: pkg update
     UPGRADE_COMMAND: pkg upgrade -y
     INSTALL_COMMAND: pkg install -y
