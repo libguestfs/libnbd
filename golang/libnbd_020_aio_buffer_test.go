@@ -191,7 +191,7 @@ func BenchmarkAioBufferBytes(b *testing.B) {
 	}
 }
 
-// Benchmark creating a slice without copying the underling buffer.
+// Benchmark creating a slice without copying the underlying buffer.
 func BenchmarkAioBufferSlice(b *testing.B) {
 	buf := MakeAioBuffer(bufferSize)
 	defer buf.Free()
