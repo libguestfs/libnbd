@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -159,6 +159,7 @@ PyObject *
 nbd_internal_py_aio_buffer_from_bytearray (PyObject *self, PyObject *args)
 {
   PyObject *obj;
+  PyObject *arr = NULL;
   Py_ssize_t len;
   void *data;
   struct py_aio_buffer *buf;
@@ -169,9 +170,17 @@ nbd_internal_py_aio_buffer_from_bytearray (PyObject *self, PyObject *args)
                          &obj))
     return NULL;
 
+  if (! PyByteArray_Check (obj)) {
+    arr = PyByteArray_FromObject (obj);
+    if (arr == NULL)
+      return NULL;
+    obj = arr;
+  }
   data = PyByteArray_AsString (obj);
   if (!data) {
-    PyErr_SetString (PyExc_RuntimeError, "parameter is not a bytearray");
+    PyErr_SetString (PyExc_RuntimeError,
+                     "parameter is not a bytearray or buffer");
+    Py_XDECREF (arr);
     return NULL;
   }
   len = PyByteArray_Size (obj);
@@ -179,6 +188,7 @@ nbd_internal_py_aio_buffer_from_bytearray (PyObject *self, PyObject *args)
   buf = malloc (sizeof *buf);
   if (buf == NULL) {
     PyErr_NoMemory ();
+    Py_XDECREF (arr);
     return NULL;
   }
 
@@ -187,9 +197,11 @@ nbd_internal_py_aio_buffer_from_bytearray (PyObject *self, PyObject *args)
   if (buf->data == NULL) {
     PyErr_NoMemory ();
     free (buf);
+    Py_XDECREF (arr);
     return NULL;
   }
   memcpy (buf->data, data, len);
+  Py_XDECREF (arr);
 
   ret = PyCapsule_New (buf, aio_buffer_name, free_aio_buffer);
   if (ret == NULL) {
