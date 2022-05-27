@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -436,7 +436,8 @@ STATE_MACHINE {
      * 0-length replies are broken. Still, it's easy enough to support
      * them as an extension, and this works even when length == 0.
      */
-    memset (cmd->data + offset, 0, length);
+    if (!cmd->initialized)
+      memset (cmd->data + offset, 0, length);
     if (CALLBACK_IS_NOT_NULL (cmd->cb.fn.chunk)) {
       int error = cmd->error;
 

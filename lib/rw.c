@@ -244,14 +244,18 @@ nbd_internal_command_common (struct nbd_handle *h,
   if (cb)
     cmd->cb = *cb;
 
-  /* For NBD_CMD_READ, cmd->data was pre-zeroed in the prologue
-   * created by the generator.  Thus, if a (non-compliant) server with
-   * structured replies fails to send back sufficient data to cover
-   * the whole buffer, we still behave as if it had sent zeroes for
-   * those portions, rather than leaking any uninitialized data, and
-   * without having to complicate our state machine to track which
-   * portions of the read buffer were actually populated.
+  /* For NBD_CMD_READ, cmd->data defaults to being pre-zeroed in the
+   * prologue created by the generator.  Thus, if a (non-compliant)
+   * server with structured replies fails to send back sufficient data
+   * to cover the whole buffer, we still behave as if it had sent
+   * zeroes for those portions, rather than leaking any uninitialized
+   * data, and without having to complicate our state machine to track
+   * which portions of the read buffer were actually populated.  But
+   * if the user opts in to disabling set_pread_initialize, then we
+   * need to memset zeroes as they are read (and the user gets their
+   * own garbage back in the case of a non-compliant server).
    */
+  cmd->initialized = h->pread_initialize;
 
   /* Add the command to the end of the queue. Kick the state machine
    * if there is no other command being processed, otherwise, it will
