@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* nbd client library in userspace: Python bindings
- * Copyright (C) 2013-2021 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -293,7 +293,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesIn (n, _) ->
        pr "  Py_buffer %s = { .obj = NULL };\n" n
     | BytesOut (n, count) ->
-       pr "  char *%s = NULL;\n" n;
+       pr "  PyObject *%s = NULL;\n" n;
        pr "  Py_ssize_t %s;\n" count
     | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) ->
@@ -432,8 +432,8 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Bool _ -> ()
     | BytesIn _ -> ()
     | BytesOut (n, count) ->
-       pr "  %s = malloc (%s);\n" n count;
-       pr "  if (%s == NULL) { PyErr_NoMemory (); goto out; }\n" n
+       pr "  %s = PyByteArray_FromStringAndSize (NULL, %s);\n" n count;
+       pr "  if (%s == NULL) goto out;\n" n
     | BytesPersistIn (n, _) | BytesPersistOut (n, _) ->
        pr "  %s_buf = nbd_internal_py_get_aio_buffer (%s);\n" n n;
        pr "  if (!%s_buf) goto out;\n" n;
@@ -479,7 +479,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     function
     | Bool n -> pr ", %s" n
     | BytesIn (n, _) -> pr ", %s.buf, %s.len" n n
-    | BytesOut (n, count) -> pr ", %s, %s" n count
+    | BytesOut (n, count) -> pr ", PyByteArray_AS_STRING (%s), %s" n count
     | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) -> pr ", %s_buf->data, %s_buf->len" n n
     | Closure { cbname } -> pr ", %s" cbname
@@ -524,8 +524,9 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   let use_ret = ref true in
   List.iter (
     function
-    | BytesOut (n, count) ->
-       pr "  py_ret = PyBytes_FromStringAndSize (%s, %s);\n" n count;
+    | BytesOut (n, _) ->
+       pr "  py_ret = %s;\n" n;
+       pr "  %s = NULL;\n" n;
        use_ret := false
     | Bool _
     | BytesIn _
@@ -572,7 +573,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesIn (n, _) ->
        pr "  if (%s.obj)\n" n;
        pr "    PyBuffer_Release (&%s);\n" n
-    | BytesOut (n, _) -> pr "  free (%s);\n" n
+    | BytesOut (n, _) -> pr "  Py_XDECREF (%s);\n" n
     | BytesPersistIn _ | BytesPersistOut _ -> ()
     | Closure { cbname } ->
        pr "  free_user_data (%s_user_data);\n" cbname
