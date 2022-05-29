@@ -127,7 +127,7 @@ virtual files:
  $ ls -l dir/
  total 0
  -rw-rw-rw-. 1 nbd nbd 6442450944 Jan  1 10:10 disk.iso
- $ file dir/disk.iso 
+ $ file dir/disk.iso
  dir/disk.iso: DOS/MBR boot sector
  $ qemu-system-x86_64 -m 4G \
        -drive file=dir/disk.iso,format=raw,if=virtio,snapshot=on
