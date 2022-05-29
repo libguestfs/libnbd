@@ -836,7 +836,14 @@ let generate_docs_nbd_pod name { args; optargs; ret;
                                  first_version = (major, minor) } () =
   pr "=head1 NAME\n";
   pr "\n";
-  pr_wrap ' ' (fun () -> pr "nbd_%s - %s" name shortdesc);
+  pr "nbd_%s -" name;
+  (* Don't use pr_wrap here because it leaves trailing whitespace. *)
+  let words = nsplit " " shortdesc in
+  List.iter (
+    fun word ->
+      if output_column () + String.length word > 70 then pr "\n%s" word
+      else pr " %s" word
+  ) words;
   pr "\n";
   pr "\n";
 

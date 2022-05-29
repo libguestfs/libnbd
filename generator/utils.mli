@@ -53,6 +53,7 @@ val output_to : string -> (unit -> 'a) -> unit
 val pr : ('a, unit, string, unit) format4 -> 'a
 val pr_wrap : ?maxcol:int -> char -> (unit -> 'a) -> unit
 val output_lineno : unit -> int
+val output_column : unit -> int
 
 val noloc : location
 val string_of_location : location -> string

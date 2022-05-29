@@ -200,6 +200,7 @@ let pr_wrap ?(maxcol = 76) c code =
      pr "%s" (String.concat "\n" rest)
 
 let output_lineno () = !lineno
+let output_column () = !col
 
 let string_of_location (file, lineno) = sprintf "%s:%d" file lineno
 let line_directive_of_location (file, lineno) =
