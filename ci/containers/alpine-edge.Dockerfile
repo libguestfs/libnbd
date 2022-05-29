@@ -32,6 +32,7 @@ RUN apk update && \
         libtool \
         libxml2-dev \
         make \
+        musl-dev \
         nbd \
         nbd-client \
         ocaml \
@@ -45,6 +46,7 @@ RUN apk update && \
         qemu-img \
         sed \
         valgrind && \
+    apk list | sort > /packages.txt && \
     mkdir -p /usr/libexec/ccache-wrappers && \
     ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/c++ && \
     ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/cc && \

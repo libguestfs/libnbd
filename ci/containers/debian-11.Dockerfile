@@ -47,7 +47,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
             perl-base \
             pkgconf \
             python3-dev \
-            qemu \
+            qemu-system \
             qemu-utils \
             sed \
             valgrind && \

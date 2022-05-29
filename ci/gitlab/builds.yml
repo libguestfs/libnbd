@@ -1,0 +1,254 @@
+# THIS FILE WAS AUTO-GENERATED
+#
+#  $ lcitool manifest ci/manifest.yml
+#
+# https://gitlab.com/libvirt/libvirt-ci
+
+
+# Native build jobs
+
+x86_64-alpine-314:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-alpine-314-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: alpine-314
+
+
+x86_64-almalinux-8:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-almalinux-8-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: almalinux-8
+
+
+x86_64-almalinux-8-clang:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-almalinux-8-container
+      optional: true
+  allow_failure: false
+  variables:
+    CC: clang
+    NAME: almalinux-8
+
+
+x86_64-alpine-edge:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-alpine-edge-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: alpine-edge
+
+
+x86_64-centos-stream-8:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-centos-stream-8-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: centos-stream-8
+
+
+x86_64-debian-10:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-debian-10-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: debian-10
+
+
+x86_64-debian-11:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-debian-11-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: debian-11
+
+
+x86_64-debian-sid:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-debian-sid-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: debian-sid
+
+
+x86_64-fedora-35:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-fedora-35-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: fedora-35
+
+
+x86_64-fedora-36:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-fedora-36-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: fedora-36
+
+
+x86_64-fedora-rawhide:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-fedora-rawhide-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: fedora-rawhide
+
+
+x86_64-fedora-rawhide-clang:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-fedora-rawhide-container
+      optional: true
+  allow_failure: false
+  variables:
+    CC: clang
+    NAME: fedora-rawhide
+
+
+x86_64-opensuse-leap-153:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-opensuse-leap-153-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: opensuse-leap-153
+
+
+x86_64-opensuse-tumbleweed:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-opensuse-tumbleweed-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: opensuse-tumbleweed
+
+
+x86_64-ubuntu-1804:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-ubuntu-1804-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: ubuntu-1804
+
+
+x86_64-ubuntu-2004:
+  extends: .native_build_job
+  needs:
+    - job: x86_64-ubuntu-2004-container
+      optional: true
+  allow_failure: false
+  variables:
+    NAME: ubuntu-2004
+
+
+
+# Cross build jobs
+
+i686-debian-10:
+  extends: .cross_build_job
+  needs:
+    - job: i686-debian-10-container
+      optional: true
+  allow_failure: false
+  variables:
+    CROSS: i686
+    NAME: debian-10
+
+
+i686-debian-11:
+  extends: .cross_build_job
+  needs:
+    - job: i686-debian-11-container
+      optional: true
+  allow_failure: false
+  variables:
+    CROSS: i686
+    NAME: debian-11
+
+
+# Native cirrus build jobs
+
+x86_64-freebsd-12:
+  extends: .cirrus_build_job
+  needs: []
+  allow_failure: false
+  variables:
+    CIRRUS_VM_IMAGE_NAME: freebsd-12-3
+    CIRRUS_VM_IMAGE_SELECTOR: image_family
+    CIRRUS_VM_INSTANCE_TYPE: freebsd_instance
+    INSTALL_COMMAND: pkg install -y
+    NAME: freebsd-12
+    UPDATE_COMMAND: pkg update
+    UPGRADE_COMMAND: pkg upgrade -y
+
+
+x86_64-freebsd-13:
+  extends: .cirrus_build_job
+  needs: []
+  allow_failure: false
+  variables:
+    CIRRUS_VM_IMAGE_NAME: freebsd-13-0
+    CIRRUS_VM_IMAGE_SELECTOR: image_family
+    CIRRUS_VM_INSTANCE_TYPE: freebsd_instance
+    INSTALL_COMMAND: pkg install -y
+    NAME: freebsd-13
+    UPDATE_COMMAND: pkg update
+    UPGRADE_COMMAND: pkg upgrade -y
+
+
+x86_64-freebsd-current:
+  extends: .cirrus_build_job
+  needs: []
+  allow_failure: false
+  variables:
+    CIRRUS_VM_IMAGE_NAME: freebsd-13-0-snap
+    CIRRUS_VM_IMAGE_SELECTOR: image_family
+    CIRRUS_VM_INSTANCE_TYPE: freebsd_instance
+    INSTALL_COMMAND: pkg install -y
+    NAME: freebsd-current
+    UPDATE_COMMAND: pkg update
+    UPGRADE_COMMAND: pkg upgrade -y
+
+
+x86_64-macos-11:
+  extends: .cirrus_build_job
+  needs: []
+  allow_failure: false
+  variables:
+    CIRRUS_VM_IMAGE_NAME: big-sur-base
+    CIRRUS_VM_IMAGE_SELECTOR: image
+    CIRRUS_VM_INSTANCE_TYPE: osx_instance
+    INSTALL_COMMAND: brew install
+    NAME: macos-11
+    PATH_EXTRA: /usr/local/opt/ccache/libexec:/usr/local/opt/gettext/bin:/usr/local/opt/libpcap/bin:/usr/local/opt/libxslt/bin:/usr/local/opt/rpcgen/bin
+    PKG_CONFIG_PATH: /usr/local/opt/curl/lib/pkgconfig:/usr/local/opt/libpcap/lib/pkgconfig:/usr/local/opt/libxml2/lib/pkgconfig:/usr/local/opt/ncurses/lib/pkgconfig:/usr/local/opt/readline/lib/pkgconfig
+    UPDATE_COMMAND: brew update
+    UPGRADE_COMMAND: brew upgrade
