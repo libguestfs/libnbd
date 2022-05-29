@@ -12,10 +12,16 @@ nbdcopy - copy to and from an NBD server
          [-v|--verbose]
          SOURCE DESTINATION
 
+=for paragraph
+
  SOURCE, DESTINATION := - | FILE | DEVICE | NBD-URI | [ CMD ARGS ... ]
  DESTINATION += null:
 
+=for paragraph
+
  nbdcopy --help
+
+=for paragraph
 
  nbdcopy -V|--version
 

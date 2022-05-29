@@ -5,10 +5,10 @@ libnbd - network block device (NBD) client library in userspace
 =head1 SYNOPSIS
 
  #include <libnbd.h>
- 
+
  struct nbd_handle *nbd;
  char buf[512];
- 
+
  if ((nbd = nbd_create ()) == NULL ||
      nbd_connect_tcp (nbd, "server.example.com", "nbd") == -1 ||
      nbd_pread (nbd, buf, sizeof buf, 0, 0) == -1)
@@ -17,6 +17,8 @@ libnbd - network block device (NBD) client library in userspace
    exit (EXIT_FAILURE);
  }
  nbd_close (nbd);
+
+=for paragraph
 
  cc prog.c -o prog -lnbd
 or:
@@ -61,7 +63,7 @@ To use the API at all you must first open a handle by calling
 L<nbd_create(3)> (or its equivalent in other languages):
 
  struct nbd_handle *nbd;
- 
+
  nbd = nbd_create ();
 
 This creates and returns a handle, which is associated with
@@ -106,7 +108,7 @@ that each libnbd function blocks until it is finished.
 Create a handle and connect to the server:
 
  struct nbd_handle *nbd;
- 
+
  nbd = nbd_create ();
  if (!nbd) {
    fprintf (stderr, "%s\n", nbd_get_error ());
@@ -122,7 +124,7 @@ Create a handle and connect to the server:
 Read the first sector (512 bytes) from the NBD export:
 
  char buf[512];
- 
+
  if (nbd_pread (nbd, buf, sizeof buf, 0, 0) == -1) {
    fprintf (stderr, "%s\n", nbd_get_error ());
    nbd_close (nbd);
@@ -154,7 +156,7 @@ Use the C<nbd_aio_*> variants to issue commands asynchronously
 example the asynchronous variant of L<nbd_pread(3)> is:
 
  int64_t cookie;
- 
+
  cookie = nbd_aio_pread (nbd, buf, sizeof buf,
                          NBD_NULL_COMPLETION, 0);
  if (cookie == -1) {
@@ -223,16 +225,16 @@ to check the direction I<again> (since it may have been changed by
 another thread), and notify libnbd:
 
  int r = 0;
- 
+
  dir = nbd_aio_get_direction (nbd);
- 
+
  if ((dir & LIBNBD_AIO_DIRECTION_READ) &&
                  a_read_event_occurred ())
    r = nbd_aio_notify_read (nbd);
  else if ((dir & LIBNBD_AIO_DIRECTION_WRITE) &&
                  a_write_event_occurred ())
    r = nbd_aio_notify_write (nbd);
- 
+
  if (r == -1) {
    fprintf (stderr, "%s\n", nbd_get_error ());
    // ...
@@ -255,7 +257,7 @@ Some examples of using L<nbd_poll(3)> follow.
 As with the high level API, it all starts by creating a handle:
 
  struct nbd_handle *nbd;
- 
+
  nbd = nbd_create ();
  if (nbd == NULL) {
    fprintf (stderr, "%s\n", nbd_get_error ());
@@ -270,7 +272,7 @@ until the connection becomes ready:
  int fd;
  struct sockaddr_un addr;
  socklen_t len;
- 
+
  /* some code to set up addr,
     then ... */
  if (nbd_aio_connect (nbd, &addr, len) == -1) {
@@ -292,7 +294,7 @@ command has completed:
 
  int64_t cookie;
  char buf[512];
- 
+
  cookie = nbd_aio_pread (nbd, buf, sizeof buf, offset,
                          NBD_NULL_COMPLETION, 0);
  if (cookie == -1) {
@@ -426,6 +428,8 @@ You can connect to a URI as in these examples (using the high level
 API):
 
  nbd_connect_uri (nbd, "nbd://example.com/");
+
+=for paragraph
 
  nbd_connect_uri (nbd, "nbds+unix:///export?socket=/tmp/nbd.sock");
 
@@ -702,7 +706,7 @@ would look like this:
  struct nbd_handle *nbd[4];
  size_t i;
  bool supports_multi_conn;
- 
+
  nbd[0] = nbd_create ();
  nbd_connect_tcp (nbd[0], "server", "10809");
  supports_multi_conn = nbd_can_multi_conn (nbd[0]) > 0;
@@ -840,7 +844,7 @@ libnbd, including in the case where the API fails.
 This can be used to free associated C<user_data>.  For example:
 
  void *my_data = malloc (...);
- 
+
  nbd_aio_pread_structured (nbd, buf, sizeof buf, offset,
                 (nbd_chunk_callback) { .callback = my_fn,
                                        .user_data = my_data,

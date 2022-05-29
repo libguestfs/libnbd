@@ -8,15 +8,27 @@ nbdfuse - mount a network block device in the local filesystem
          [-r] [-s] [-v|--verbose]
          MOUNTPOINT[/FILENAME] URI
 
+=for paragraph
+
  nbdfuse MOUNTPOINT[/FILENAME] [ CMD [ARGS ...] ]
+
+=for paragraph
 
  nbdfuse MOUNTPOINT[/FILENAME] --command CMD [ARGS ...]
 
+=for paragraph
+
  nbdfuse MOUNTPOINT[/FILENAME] --fd N
+
+=for paragraph
 
  nbdfuse MOUNTPOINT[/FILENAME] --tcp HOST PORT
 
+=for paragraph
+
  nbdfuse MOUNTPOINT[/FILENAME] --unix SOCKET
+
+=for paragraph
 
  nbdfuse MOUNTPOINT[/FILENAME] --vsock CID PORT
 
@@ -28,7 +40,11 @@ Other options:
 
  nbdfuse --help
 
+=for paragraph
+
  nbdfuse --fuse-help
+
+=for paragraph
 
  nbdfuse -V|--version
 

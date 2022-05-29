@@ -7,13 +7,23 @@ handles and fetch errors
 
  #include <libnbd.h>
 
+=for paragraph
+
  struct nbd_handle *nbd;
+
+=for paragraph
 
  struct nbd_handle *nbd_create (void);
 
+=for paragraph
+
  void nbd_close (struct nbd_handle *nbd);
 
+=for paragraph
+
  const char *nbd_get_error (void);
+
+=for paragraph
 
  int nbd_get_errno (void);
 
@@ -67,11 +77,11 @@ handling works in libnbd.
 =head1 EXAMPLE
 
  #include <libnbd.h>
- 
+
  main ()
  {
    struct nbd_handle *nbd;
- 
+
    nbd = nbd_create ();
    if (nbd == NULL) {
      fprintf (stderr, "%s\n", nbd_get_error ());

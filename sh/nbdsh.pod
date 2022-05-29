@@ -5,13 +5,13 @@ nbdsh - network block device (NBD) shell
 =head1 SYNOPSIS
 
  $ nbdsh
- 
+
  Welcome to nbdsh, the shell for interacting with
  Network Block Device (NBD) servers.
- 
+
  The ‘nbd’ module has already been imported and there
  is an open NBD handle called ‘h’.
- 
+
  nbd> h.connect_command(["nbdkit", "-s", "memory", "1G"])
  nbd> h.get_size()
  1073741824

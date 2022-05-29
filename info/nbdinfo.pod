@@ -11,17 +11,31 @@ C<NBD> is an NBD URI or subprocess:
  NBD := nbd://... | nbd+unix:// (or other URI formats)
       | [ CMD ARGS ... ]
 
+=for paragraph
+
  nbdinfo --size [--json] NBD
+
+=for paragraph
 
  nbdinfo --is read-only|rotational NBD
 
+=for paragraph
+
  nbdinfo --can cache|connect|... NBD
+
+=for paragraph
 
  nbdinfo --map [--totals] [--json] NBD
 
+=for paragraph
+
  nbdinfo -L|--list [--json] NBD
 
+=for paragraph
+
  nbdinfo --help
+
+=for paragraph
 
  nbdinfo --version
 
@@ -102,6 +116,8 @@ scripting) use the I<--size> parameter:
 
  $ nbdinfo --size nbd://localhost
  1048576
+
+=for paragraph
 
  $ nbdinfo --size [ nbdkit null 1M ]
  1048576
@@ -256,6 +272,8 @@ For example, to give general information or display the map of a qcow2
 file:
 
  nbdinfo -- [ qemu-nbd -r -f qcow2 file.qcow2 ]
+
+=for paragraph
 
  nbdinfo --map -- [ qemu-nbd -r -f qcow2 file.qcow2 ]
 
