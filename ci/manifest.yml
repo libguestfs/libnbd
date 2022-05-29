@@ -36,9 +36,9 @@ targets:
 
   debian-sid: x86_64
 
-  fedora-34: x86_64
-
   fedora-35: x86_64
+
+  fedora-36: x86_64
 
   fedora-rawhide:
     jobs:
@@ -55,7 +55,7 @@ targets:
 
   freebsd-current: x86_64
 
-  opensuse-leap-152: x86_64
+  opensuse-leap-153: x86_64
 
   opensuse-tumbleweed: x86_64
 
