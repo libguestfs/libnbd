@@ -5,7 +5,7 @@ libnbd-golang - how to use libnbd from Go
 =head1 SYNOPSIS
 
  import "libguestfs.org/libnbd"
-
+ 
  h, err := libnbd.Create()
  if err != nil {
      panic(err)
