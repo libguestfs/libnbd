@@ -67,7 +67,7 @@ handling works in libnbd.
 =head1 EXAMPLE
 
  #include <libnbd.h>
-
+ 
  main ()
  {
    struct nbd_handle *nbd;
