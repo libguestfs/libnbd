@@ -950,9 +950,10 @@ let generate_docs_nbd_pod name { args; optargs; ret;
       (try
          while true do
            let line = input_line chan in
-           if String.length line > 60 then
+           let len = String.length line in
+           if len > 60 then
              failwithf "%s: %s: line too long in example" name filename;
-           pr " %s\n" line
+           if len = 0 then pr "\n" else pr " %s\n" line
          done
        with End_of_file -> ()
       );
