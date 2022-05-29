@@ -149,6 +149,15 @@ let pr fs =
       | Buffer b -> Buffer.add_string b str
   ) fs
 
+(* Wrap the output at maxcol, breaking up lines when a 'c' character
+ * occurs.  For example:
+ *   foobar = a, b, c, d, e, f, g
+ *            └── pr_wrap ',' ──┘
+ * becomes:
+ *   foobar = a, b, c,
+ *            d, e, f,
+ *            g
+ *)
 let pr_wrap ?(maxcol = 76) c code =
   (* Save the current output channel and replace it with a
    * temporary buffer while running ‘code’.  Then we wrap the
