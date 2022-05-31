@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -40,7 +40,7 @@ STATE_MACHINE {
   if (cmd->error == 0 && cmd->type == NBD_CMD_READ) {
     h->rbuf = cmd->data;
     h->rlen = cmd->count;
-    cmd->data_seen = true;
+    cmd->data_seen = cmd->count;
     SET_NEXT_STATE (%RECV_READ_PAYLOAD);
   }
   else {

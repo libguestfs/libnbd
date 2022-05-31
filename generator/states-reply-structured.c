@@ -354,7 +354,6 @@ STATE_MACHINE {
     assert (cmd); /* guaranteed by CHECK */
 
     assert (cmd->data && cmd->type == NBD_CMD_READ);
-    cmd->data_seen = true;
 
     /* Length of the data following. */
     length -= 8;
@@ -364,6 +363,8 @@ STATE_MACHINE {
       SET_NEXT_STATE (%.DEAD);
       return 0;
     }
+    if (cmd->data_seen <= cmd->count)
+      cmd->data_seen += length;
     /* Now this is the byte offset in the read buffer. */
     offset -= cmd->offset;
 
@@ -422,13 +423,14 @@ STATE_MACHINE {
     assert (cmd); /* guaranteed by CHECK */
 
     assert (cmd->data && cmd->type == NBD_CMD_READ);
-    cmd->data_seen = true;
 
     /* Is the data within bounds? */
     if (! structured_reply_in_bounds (offset, length, cmd)) {
       SET_NEXT_STATE (%.DEAD);
       return 0;
     }
+    if (cmd->data_seen <= cmd->count)
+      cmd->data_seen += length;
     /* Now this is the byte offset in the read buffer. */
     offset -= cmd->offset;
 

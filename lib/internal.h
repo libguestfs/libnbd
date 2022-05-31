@@ -352,8 +352,8 @@ struct command {
   void *data; /* Buffer for read/write */
   struct command_cb cb;
   enum state state; /* State to resume with on next POLLIN */
-  bool data_seen; /* For read, true if at least one data chunk seen */
   bool initialized; /* For read, true if getting a hole may skip memset */
+  uint32_t data_seen; /* For read, cumulative size of data chunks seen */
   uint32_t error; /* Local errno value */
 };
 

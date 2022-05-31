@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -91,8 +91,11 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
   assert (cmd->type != NBD_CMD_DISC);
   /* The spec states that a 0-length read request is unspecified; but
    * it is easy enough to treat it as successful as an extension.
+   * Conversely, make sure a server sending structured replies sent
+   * enough data chunks to cover the overall count (although we do not
+   * detect if it duplicated some bytes while omitting others).
    */
-  if (type == NBD_CMD_READ && !cmd->data_seen && cmd->count && !error)
+  if (type == NBD_CMD_READ && cmd->data_seen != cmd->count && !error)
     error = EIO;
 
   /* Retire it from the list and free it. */
