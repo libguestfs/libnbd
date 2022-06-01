@@ -89,7 +89,6 @@ Recommended - if not present, some features will be disabled:
 * GnuTLS is recommended for TLS support.
   If not available then you will not be able to access encrypted
   servers and some APIs related to TLS will always return an error.
-
 * libxml2 is recommended for NBD URI support.
   If not available then a few APIs related to URIs will always return
   an error, and the nbdinfo tool is not built.
