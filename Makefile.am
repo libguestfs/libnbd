@@ -25,6 +25,7 @@ EXTRA_DIST = \
 	.gitattributes \
 	.gitignore \
 	html/pod.css \
+	README.md \
 	scripts/git.orderfile \
 	SECURITY \
 	$(NULL)
