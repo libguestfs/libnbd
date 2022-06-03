@@ -96,16 +96,23 @@ nbd_internal_py_display_version (PyObject *self, PyObject *args)
   return Py_None;
 }
 
-/* Return new reference to MemoryView wrapping aio_buffer contents */
+/* Return new reference to MemoryView wrapping buffer or aio_buffer contents.
+ * buffertype is PyBUF_READ or PyBUF_WRITE, for how the buffer will be used
+ * (remember, aio_pwrite READS the buffer, aio_pread WRITES into the buffer).
+ */
 PyObject *
-nbd_internal_py_get_aio_view (PyObject *object, bool require_init)
+nbd_internal_py_get_aio_view (PyObject *object, int buffertype)
 {
   PyObject *buffer = NULL;
 
-  if (PyObject_IsInstance (object, nbd_internal_py_get_nbd_buffer_type ())) {
+  if (PyObject_CheckBuffer (object))
+    buffer = object;
+  else if (PyObject_IsInstance (object,
+                                nbd_internal_py_get_nbd_buffer_type ())) {
     buffer = PyObject_GetAttrString (object, "_o");
 
-    if (require_init && ! PyObject_HasAttrString (object, "_init")) {
+    if (buffertype == PyBUF_READ &&
+        ! PyObject_HasAttrString (object, "_init")) {
       assert (PyByteArray_Check (buffer));
       memset (PyByteArray_AS_STRING (buffer), 0,
               PyByteArray_GET_SIZE (buffer));
@@ -115,10 +122,10 @@ nbd_internal_py_get_aio_view (PyObject *object, bool require_init)
   }
 
   if (buffer)
-    return PyMemoryView_FromObject (buffer);
+    return PyMemoryView_GetContiguous (buffer, buffertype, 'A');
 
   PyErr_SetString (PyExc_TypeError,
-                   "aio_buffer: expecting nbd.Buffer instance");
+                   "aio_buffer: expecting buffer or nbd.Buffer instance");
   return NULL;
 }
 

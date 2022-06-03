@@ -38,7 +38,7 @@ extern char **nbd_internal_py_get_string_list (PyObject *);
 extern void nbd_internal_py_free_string_list (char **);
 extern int nbd_internal_py_get_sockaddr (PyObject *,
     struct sockaddr_storage *, socklen_t *);
-extern PyObject *nbd_internal_py_get_aio_view (PyObject *, bool);
+extern PyObject *nbd_internal_py_get_aio_view (PyObject *, int);
 extern int nbd_internal_py_init_aio_buffer (PyObject *);
 extern PyObject *nbd_internal_py_get_nbd_buffer_type (void);
 extern PyObject *nbd_internal_py_wrap_errptr (int);
@@ -287,7 +287,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  Py_ssize_t %s;\n" count
     | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) ->
-       pr "  PyObject *%s; /* Instance of nbd.Buffer */\n" n;
+       pr "  PyObject *%s; /* Buffer-like object or nbd.Buffer */\n" n;
        pr "  PyObject *%s_view = NULL; /* PyMemoryView of %s */\n" n n;
        pr "  Py_buffer *py_%s; /* buffer of %s_view */\n" n n
     | Closure { cbname } ->
@@ -420,12 +420,12 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  %s = PyByteArray_FromStringAndSize (NULL, %s);\n" n count;
        pr "  if (%s == NULL) goto out;\n" n
     | BytesPersistIn (n, _) ->
-       pr "  %s_view = nbd_internal_py_get_aio_view (%s, true);\n" n n;
+       pr "  %s_view = nbd_internal_py_get_aio_view (%s, PyBUF_READ);\n" n n;
        pr "  if (!%s_view) goto out;\n" n;
        pr "  py_%s = PyMemoryView_GET_BUFFER (%s_view);\n" n n;
        pr "  completion_user_data->view = %s_view;\n" n
     | BytesPersistOut (n, _) ->
-       pr "  %s_view = nbd_internal_py_get_aio_view (%s, false);\n" n n;
+       pr "  %s_view = nbd_internal_py_get_aio_view (%s, PyBUF_WRITE);\n" n n;
        pr "  if (!%s_view) goto out;\n" n;
        pr "  py_%s = PyMemoryView_GET_BUFFER (%s_view);\n" n n;
        pr "  completion_user_data->view = %s_view;\n" n

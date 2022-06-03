@@ -45,3 +45,24 @@ if sys.byteorder == 'little':
     arr.byteswap()
 assert buf1 == memoryview(arr).cast('B')[:512]
 assert buf2 == memoryview(arr).cast('B')[512:]
+
+# It is also possible to read directly into any writeable buffer-like object.
+# However, aio.Buffer(n) with h.set_pread_initialize(False) may be faster,
+# because it skips python's pre-initialization of bytearray(n).
+try:
+    h.aio_pread(bytes(512), 0)
+    assert False
+except BufferError:
+    pass
+buf3 = bytearray(512)
+cookie = h.aio_pread(buf3, 0)
+# While the read is pending, the buffer cannot be resized
+try:
+    buf3.pop()
+    assert False
+except BufferError:
+    pass
+while not h.aio_command_completed(cookie):
+    h.poll(-1)
+buf3.append(buf3.pop())
+assert buf3 == buf1

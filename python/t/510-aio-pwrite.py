@@ -67,4 +67,21 @@ with open(datafile, "rb") as f:
 
 assert nbd.Buffer.from_bytearray(content).is_zero()
 
+# It is also possible to write any buffer-like object.
+# While the write is pending, the buffer cannot be resized
+cookie = h.aio_pwrite(buf, 0, flags=nbd.CMD_FLAG_FUA)
+try:
+    buf.pop()
+    assert False
+except BufferError:
+    pass
+while not h.aio_command_completed(cookie):
+    h.poll(-1)
+buf.append(buf.pop())
+
+with open(datafile, "rb") as f:
+    content = f.read()
+
+assert buf == content
+
 os.unlink(datafile)
