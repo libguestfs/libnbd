@@ -143,9 +143,11 @@ PyInit_libnbdmod (void)
     return NULL;
 
   nbd_internal_py_Error = PyErr_NewException (\"nbd.Error\", NULL, NULL);
-  if (nbd_internal_py_Error == NULL)
+  if (PyModule_AddObject (mod, \"Error\", nbd_internal_py_Error) < 0) {
+    Py_XDECREF (nbd_internal_py_Error);
+    Py_DECREF (mod);
     return NULL;
-  PyModule_AddObject (mod, \"Error\", nbd_internal_py_Error);
+  }
 
   return mod;
 }
