@@ -795,31 +795,31 @@ class NBD(object):
       let args =
         List.map (
           function
-          | Bool n -> n, None, None
-          | BytesIn (n, _) -> n, None, None
-          | BytesOut (_, count) -> count, None, None
-          | BytesPersistIn (n, _) -> n, None, None
-          | BytesPersistOut (n, _) -> n, None, None
-          | Closure { cbname } -> cbname, None, None
-          | Enum (n, _) -> n, None, None
-          | Flags (n, _) -> n, None, None
-          | Fd n | Int n -> n, None, None
-          | Int64 n -> n, None, None
-          | Path n -> n, None, None
-          | SizeT n -> n, None, None
-          | SockAddrAndLen (n, _) -> n, None, None
-          | String n -> n, None, None
-          | StringList n -> n, None, None
-          | UInt n -> n, None, None
-          | UInt32 n -> n, None, None
-          | UInt64 n -> n, None, None
-          | UIntPtr n -> n, None, None
+          | Bool n -> n, None
+          | BytesIn (n, _) -> n, None
+          | BytesOut (_, count) -> count, None
+          | BytesPersistIn (n, _) -> n, None
+          | BytesPersistOut (n, _) -> n, None
+          | Closure { cbname } -> cbname, None
+          | Enum (n, _) -> n, None
+          | Flags (n, _) -> n, None
+          | Fd n | Int n -> n, None
+          | Int64 n -> n, None
+          | Path n -> n, None
+          | SizeT n -> n, None
+          | SockAddrAndLen (n, _) -> n, None
+          | String n -> n, None
+          | StringList n -> n, None
+          | UInt n -> n, None
+          | UInt32 n -> n, None
+          | UInt64 n -> n, None
+          | UIntPtr n -> n, None
         ) args in
       let optargs =
         List.map (
           function
-          | OClosure { cbname } -> cbname, Some "None", None
-          | OFlags (n, _, _) -> n, Some "0", None
+          | OClosure { cbname } -> cbname, Some "None"
+          | OFlags (n, _, _) -> n, Some "0"
         ) optargs in
       let args = args @ optargs in
       pr "    def %s(" name;
@@ -827,8 +827,8 @@ class NBD(object):
           pr "self";
           List.iter (
             function
-            | n, None, _ -> pr ", %s" n
-            | n, Some default, _ -> pr ", %s=%s" n default
+            | n, None -> pr ", %s" n
+            | n, Some default -> pr ", %s=%s" n default
           ) args);
       pr "):\n";
       let longdesc = Str.global_replace py_fn_rex "C<nbd.\\1>" longdesc in
@@ -840,8 +840,7 @@ class NBD(object):
           pr "self._o";
           List.iter (
             function
-            | _, _, Some getter -> pr ", %s" getter
-            | n, _, None -> pr ", %s" n
+            | n, _ -> pr ", %s" n
           ) args);
       pr ")\n";
       pr "\n"
