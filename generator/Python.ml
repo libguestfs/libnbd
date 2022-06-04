@@ -762,28 +762,33 @@ class Buffer(object):
     '''Asynchronous I/O persistent buffer'''
 
     def __init__(self, len):
-        '''allocate an uninitialized AIO buffer used for nbd.aio_pread'''
+        '''Allocate an uninitialized AIO buffer used for nbd.aio_pread.'''
         self._o = libnbdmod.alloc_aio_buffer(len)
 
     @classmethod
     def from_bytearray(cls, ba):
-        '''create an AIO buffer from a bytearray'''
+        '''Create an AIO buffer from a bytearray or other buffer-like object.
+
+        If ba is not a buffer, it is tried as the parameter to the
+        bytearray constructor.  Otherwise, ba is copied.  Either way, the
+        resulting AIO buffer is independent from the original.
+        '''
         o = libnbdmod.aio_buffer_from_bytearray(ba)
         self = cls(0)
         self._o = o
         return self
 
     def to_bytearray(self):
-        '''copy an AIO buffer into a bytearray'''
+        '''Copy an AIO buffer into a bytearray.'''
         return libnbdmod.aio_buffer_to_bytearray(self._o)
 
     def size(self):
-        '''return the size of an AIO buffer'''
+        '''Return the size of an AIO buffer.'''
         return libnbdmod.aio_buffer_size(self._o)
 
     def is_zero(self, offset=0, size=-1):
-        '''
-        Returns true if and only if all bytes in the buffer are zeroes.
+        '''Returns true if and only if all bytes in the buffer are zeroes.
+
         Note that a freshly allocated buffer is uninitialized, not zero.
 
         By default this tests the whole buffer, but you can restrict
@@ -800,11 +805,11 @@ class NBD(object):
     '''NBD handle'''
 
     def __init__(self):
-        '''create a new NBD handle'''
+        '''Create a new NBD handle.'''
         self._o = libnbdmod.create()
 
     def __del__(self):
-        '''close the NBD handle and underlying connection'''
+        '''Close the NBD handle and underlying connection.'''
         if hasattr(self, '_o'):
             libnbdmod.close(self._o)
 
@@ -854,7 +859,7 @@ class NBD(object):
       let longdesc = Str.global_replace py_fn_rex "C<nbd.\\1>" longdesc in
       let longdesc = Str.global_replace py_const_rex "C<" longdesc in
       let longdesc = pod2text longdesc in
-      pr "        '''▶ %s\n\n%s'''\n" shortdesc (String.concat "\n" longdesc);
+      pr "        u'''▶ %s\n\n%s'''\n" shortdesc (String.concat "\n" longdesc);
       pr "        return libnbdmod.%s(" name;
       pr_wrap ',' (fun () ->
           pr "self._o";
