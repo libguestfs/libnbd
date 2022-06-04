@@ -749,6 +749,10 @@ class Buffer(object):
 
     def size(self):
         '''Return the size of an AIO buffer.'''
+        return len(self)
+
+    def __len__(self):
+        '''Return the size of an AIO buffer.'''
         return len(self._o)
 
     def is_zero(self, offset=0, size=-1):

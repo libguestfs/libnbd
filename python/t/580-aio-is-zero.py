@@ -24,6 +24,7 @@ import nbd
 ba = bytearray(2**20)
 buf = nbd.Buffer.from_bytearray(ba)
 assert buf.size() == 2**20
+assert len(buf) == 2**20
 assert buf.is_zero()
 
 # The above buffer is 2**20 (= 1MB), slices of it should also be zero.
@@ -74,5 +75,6 @@ assert buf.is_zero(2**21-1, 1)
 # used with aio_pread; but it will be zeroed if accessed prematurely
 buf = nbd.Buffer(1024)
 assert buf.size() == 1024
+assert len(buf) == 1024
 assert buf.is_zero()
 assert nbd.Buffer.from_bytearray(buf.to_bytearray()).is_zero()
