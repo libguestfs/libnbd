@@ -127,6 +127,7 @@ nbd_internal_py_alloc_aio_buffer (PyObject *self, PyObject *args)
     return NULL;
   }
 
+  buf->initialized = false;
   if (!PyArg_ParseTuple (args, "n:nbd_internal_py_alloc_aio_buffer",
                          &buf->len)) {
     free (buf);
@@ -202,6 +203,7 @@ nbd_internal_py_aio_buffer_from_bytearray (PyObject *self, PyObject *args)
   }
   memcpy (buf->data, data, len);
   Py_XDECREF (arr);
+  buf->initialized = true;
 
   ret = PyCapsule_New (buf, aio_buffer_name, free_aio_buffer);
   if (ret == NULL) {
@@ -227,6 +229,11 @@ nbd_internal_py_aio_buffer_to_bytearray (PyObject *self, PyObject *args)
   buf = nbd_internal_py_get_aio_buffer (obj);
   if (buf == NULL)
     return NULL;
+
+  if (!buf->initialized) {
+    memset (buf->data, 0, buf->len);
+    buf->initialized = true;
+  }
 
   return PyByteArray_FromStringAndSize (buf->data, buf->len);
 }
@@ -288,7 +295,7 @@ nbd_internal_py_aio_buffer_is_zero (PyObject *self, PyObject *args)
     return NULL;
   }
 
-  if (is_zero (buf->data + offset, size))
+  if (!buf->initialized || is_zero (buf->data + offset, size))
     Py_RETURN_TRUE;
   else
     Py_RETURN_FALSE;

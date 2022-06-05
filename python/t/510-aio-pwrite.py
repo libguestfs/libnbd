@@ -1,5 +1,5 @@
 # libnbd Python bindings
-# Copyright (C) 2010-2019 Red Hat Inc.
+# Copyright (C) 2010-2022 Red Hat Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -49,5 +49,16 @@ with open(datafile, "rb") as f:
     content = f.read()
 
 assert buf == content
+
+# Also check that an uninitialized buffer doesn't leak heap contents
+buf3 = nbd.Buffer(512)
+cookie = h.aio_pwrite(buf3, 0, flags=nbd.CMD_FLAG_FUA)
+while not h.aio_command_completed(cookie):
+    h.poll(-1)
+
+with open(datafile, "rb") as f:
+    content = f.read()
+
+assert nbd.Buffer.from_bytearray(content).is_zero()
 
 os.unlink(datafile)
