@@ -69,3 +69,10 @@ assert not buf.is_zero(2**20-1, 1)
 assert buf.is_zero(2**20, 1)
 assert not buf.is_zero(0, 1)
 assert buf.is_zero(2**21-1, 1)
+
+# A buffer created with only a size is generally uninitialized until
+# used with aio_pread; but it will be zeroed if accessed prematurely
+buf = nbd.Buffer(1024)
+assert buf.size() == 1024
+assert buf.is_zero()
+assert nbd.Buffer.from_bytearray(buf.to_bytearray()).is_zero()

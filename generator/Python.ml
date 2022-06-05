@@ -37,6 +37,7 @@ let generate_python_methods_h () =
 struct py_aio_buffer {
   Py_ssize_t len;
   void *data;
+  bool initialized;
 };
 
 extern char **nbd_internal_py_get_string_list (PyObject *);
@@ -408,6 +409,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   pr "))\n";
   pr "    goto out;\n";
 
+  (* Two passes over parameters. Any 'goto err' must be in first pass. *)
   pr "  h = get_handle (py_h);\n";
   pr "  if (!h) goto out;\n";
   List.iter (
@@ -475,7 +477,18 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   ) args;
   pr "\n";
 
-  (* Call the underlying C function. *)
+  (* Second pass, and call the underlying C function. *)
+  List.iter (
+    function
+    | BytesPersistIn (n, _) ->
+       pr "  if (!%s_buf->initialized) {\n" n;
+       pr "    memset (%s_buf->data, 0, %s_buf->len);\n" n n;
+       pr "    %s_buf->initialized = true;\n" n;
+       pr "  }\n"
+    | BytesPersistOut (n, _) ->
+       pr "  %s_buf->initialized = true;\n" n
+    | _ -> ()
+  ) args;
   pr "  ret = nbd_%s (h" name;
   List.iter (
     function
@@ -789,7 +802,9 @@ class Buffer(object):
     def is_zero(self, offset=0, size=-1):
         '''Returns true if and only if all bytes in the buffer are zeroes.
 
-        Note that a freshly allocated buffer is uninitialized, not zero.
+        Note that although a freshly allocated buffer is uninitialized,
+        this will report it as all zeroes, as it will be force-initialized
+        to zero before any code that can access the buffer's contents.
 
         By default this tests the whole buffer, but you can restrict
         the test to a sub-range of the buffer using the optional
