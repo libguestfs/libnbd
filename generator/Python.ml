@@ -736,6 +736,21 @@ class Buffer(object):
         self._o = libnbdmod.alloc_aio_buffer(len)
 
     @classmethod
+    def from_buffer(cls, buf):
+        '''Create an AIO buffer that shares an existing buffer-like object.
+
+        Because the buffer is shared, changes to the original are visible
+        to nbd.aio_pwrite, and changes in nbd.aio_pread are visible to the
+        original.
+        '''
+        self = cls(0)
+        # Ensure that buf is already buffer-like
+        with memoryview(buf):
+            self._o = buf
+        self._init = True
+        return self
+
+    @classmethod
     def from_bytearray(cls, ba):
         '''Create an AIO buffer from a bytearray or other buffer-like object.
 
@@ -743,16 +758,28 @@ class Buffer(object):
         bytearray constructor.  Otherwise, ba is copied.  Either way, the
         resulting AIO buffer is independent from the original.
         '''
-        self = cls(0)
-        self._o = bytearray(ba)
-        self._init = True
-        return self
+        return cls.from_buffer(bytearray(ba))
 
-    def to_bytearray(self):
-        '''Copy an AIO buffer into a bytearray.'''
+    def to_buffer(self):
+        '''Return a shared view of the AIO buffer contents.
+
+        This exposes the underlying buffer; changes to the buffer are
+        visible to nbd.aio_pwrite, and changes from nbd.aio_pread are
+        visible in the buffer.
+        '''
         if not hasattr(self, '_init'):
             self._o = bytearray(len(self._o))
             self._init = True
+        return self._o
+
+    def to_bytearray(self):
+        '''Copy an AIO buffer into a bytearray.
+
+        This copies the contents of an AIO buffer to a new bytearray, which
+        remains independent from the original.
+        '''
+        if not hasattr(self, '_init'):
+            return bytearray(len(self._o))
         return bytearray(self._o)
 
     def size(self):
