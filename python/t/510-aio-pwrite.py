@@ -45,6 +45,12 @@ while not h.aio_command_completed(cookie):
 
 assert buf == buf2.to_bytearray()
 
+# Check that .from_bytearray() defaults to copying
+buf[511] = 0x55
+assert buf != buf1.to_bytearray()
+buf[511] = 0xAA
+assert buf == buf1.to_bytearray()
+
 with open(datafile, "rb") as f:
     content = f.read()
 
