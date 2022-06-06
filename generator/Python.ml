@@ -209,30 +209,31 @@ let print_python_closure_wrapper { cbname; cbargs } =
   ) cbargs;
   pr "\n";
 
-  pr "  py_args = Py_BuildValue (\"(\"";
-  List.iter (
-    function
-    | CBArrayAndLen (UInt32 n, len) -> pr " \"O\""
-    | CBBytesIn (n, len) -> pr " \"y#\""
-    | CBInt n -> pr " \"i\""
-    | CBInt64 n -> pr " \"L\""
-    | CBMutable (Int n) -> pr " \"O\""
-    | CBString n -> pr " \"s\""
-    | CBUInt n -> pr " \"I\""
-    | CBUInt64 n -> pr " \"K\""
-    | CBArrayAndLen _ | CBMutable _ -> assert false
-  ) cbargs;
-  pr " \")\"";
-  List.iter (
-    function
-    | CBArrayAndLen (UInt32 n, _) -> pr ", py_%s" n
-    | CBBytesIn (n, len) -> pr ", %s, (int) %s" n len
-    | CBMutable (Int n) -> pr ", py_%s" n
-    | CBInt n | CBInt64 n
-    | CBString n
-    | CBUInt n | CBUInt64 n -> pr ", %s" n
-    | CBArrayAndLen _ | CBMutable _ -> assert false
-  ) cbargs;
+  let params =
+    List.map (
+      function
+      | CBArrayAndLen (UInt32 n, _) -> "O", sprintf "py_%s" n
+      | CBBytesIn (n, len) -> "y#", sprintf "%s, (int) %s" n len
+      | CBInt n -> "i", n
+      | CBInt64 n -> "L", n
+      | CBMutable (Int n) -> "O", sprintf "py_%s" n
+      | CBString n -> "s", n
+      | CBUInt n -> "I", n
+      | CBUInt64 n -> "K", n
+      | CBArrayAndLen _ | CBMutable _ -> assert false
+    ) cbargs in
+  pr "  py_args = Py_BuildValue (";
+  pr_wrap ',' (fun () ->
+      pr "\"(";
+      List.iter (
+        function
+        | n, _ -> pr "%s" n
+        ) params;
+      pr ")\"";
+      List.iter (
+        function
+        | _, n -> pr ", %s" n
+        ) params);
   pr ");\n";
   pr "  if (!py_args) { PyErr_PrintEx (0); goto out; }\n";
   pr "\n";
@@ -284,7 +285,9 @@ let print_python_closure_wrapper { cbname; cbargs } =
 (* Generate the Python binding. *)
 let print_python_binding name { args; optargs; ret; may_set_error } =
   pr "PyObject *\n";
-  pr "nbd_internal_py_%s (PyObject *self, PyObject *args)\n" name;
+  pr "nbd_internal_py_%s (" name;
+  pr_wrap ',' (fun () -> pr "PyObject *self, PyObject *args");
+  pr ")\n";
   pr "{\n";
   pr "  PyObject *py_h;\n";
   pr "  struct nbd_handle *h;\n";
@@ -353,59 +356,51 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   pr "\n";
 
   (* Parse the Python parameters. *)
-  pr "  if (!PyArg_ParseTuple (args, \"O\"";
-  List.iter (
-    function
-    | Bool n -> pr " \"p\""
-    | BytesIn (n, _) -> pr " \"y*\""
-    | BytesPersistIn (n, _) -> pr " \"O\""
-    | BytesOut (_, count) -> pr " \"n\""
-    | BytesPersistOut (_, count) -> pr " \"O\""
-    | Closure _ -> pr " \"O\""
-    | Enum _ -> pr " \"i\""
-    | Flags _ -> pr " \"I\""
-    | Fd n | Int n -> pr " \"i\""
-    | Int64 n -> pr " \"L\""
-    | Path n -> pr " \"O&\""
-    | SizeT n -> pr " \"n\""
-    | SockAddrAndLen (n, _) -> pr " \"O\""
-    | String n -> pr " \"s\""
-    | StringList n -> pr " \"O\""
-    | UInt n | UIntPtr n -> pr " \"I\""
-    | UInt32 n -> pr " \"I\""
-    | UInt64 n -> pr " \"K\""
-  ) args;
-  List.iter (
-    function
-    | OClosure _ -> pr " \"O\""
-    | OFlags _ -> pr " \"I\""
-  ) optargs;
-  pr "\n";
-  pr "                         \":nbd_%s\",\n" name;
-  pr "                         &py_h";
-  List.iter (
-    function
-    | Bool n -> pr ", &%s" n
-    | BytesIn (n, _) | BytesPersistIn (n, _)
-    | BytesPersistOut (n, _) -> pr ", &%s" n
-    | BytesOut (_, count) -> pr ", &%s" count
-    | Closure { cbname } -> pr ", &py_%s_fn" cbname
-    | Enum (n, _) -> pr ", &%s" n
-    | Flags (n, _) -> pr ", &%s" n
-    | Fd n | Int n | SizeT n | Int64 n -> pr ", &%s" n
-    | Path n -> pr ", PyUnicode_FSConverter, &py_%s" n
-    | SockAddrAndLen (n, _) -> pr ", &%s" n
-    | String n -> pr ", &%s" n
-    | StringList n -> pr ", &py_%s" n
-    | UInt n | UIntPtr n -> pr ", &%s" n
-    | UInt32 n -> pr ", &%s" n
-    | UInt64 n -> pr ", &%s" n
-  ) args;
-  List.iter (
-    function
-    | OClosure { cbname } -> pr ", &py_%s_fn" cbname
-    | OFlags (n, _, _) -> pr ", &%s" n
-  ) optargs;
+  let params =
+    List.map (
+      function
+      | Bool n -> "p", sprintf "&%s" n, n
+      | BytesIn (n, _) -> "y*", sprintf "&%s" n, sprintf "%s.buf, %s.len" n n
+      | BytesOut (n, count) ->
+         "n", sprintf "&%s" count,
+         sprintf "PyByteArray_AS_STRING (%s), %s" n count
+      | BytesPersistIn (n, _) | BytesPersistOut (n, _) ->
+         "O", sprintf "&%s" n, sprintf "%s_buf->data, %s_buf->len" n n
+      | Closure { cbname } -> "O", sprintf "&py_%s_fn" cbname, cbname
+      | Enum (n, _) -> "i", sprintf "&%s" n, n
+      | Flags (n, _) -> "I", sprintf "&%s" n, sprintf "%s_u32" n
+      | Fd n | Int n -> "i", sprintf "&%s" n, n
+      | Int64 n -> "L", sprintf "&%s" n, sprintf "%s_i64" n
+      | Path n -> "O&", sprintf "PyUnicode_FSConverter, &py_%s" n, n
+      | SizeT n -> "n", sprintf "&%s" n, sprintf "(size_t)%s" n
+      | SockAddrAndLen (n, _) ->
+         "O", sprintf "&%s" n,
+         sprintf "(struct sockaddr *) &%s_sa, %s_len" n n
+      | String n -> "s", sprintf "&%s" n, n
+      | StringList n -> "O", sprintf "&py_%s" n, n
+      | UInt n | UIntPtr n -> "I", sprintf "&%s" n, n
+      | UInt32 n -> "I", sprintf "&%s" n, sprintf "%s_u32" n
+      | UInt64 n -> "K", sprintf "&%s" n, sprintf "%s_u64" n
+    ) args in
+  let optparams =
+    List.map (
+      function
+      | OClosure { cbname } -> "O", sprintf "&py_%s_fn" cbname, cbname
+      | OFlags (n, _, _) -> "I", sprintf "&%s" n, sprintf "%s_u32" n
+    ) optargs in
+  let params = params @ optparams in
+  pr "  if (!PyArg_ParseTuple (";
+  pr_wrap ',' (fun () ->
+      pr "args, \"O";
+      List.iter (
+        function
+        | n, _, _ -> pr "%s" n
+        ) params;
+      pr ":nbd_%s\", &py_h" name;
+      List.iter (
+        function
+        | _, n, _ -> pr ", %s" n
+        ) params);
   pr "))\n";
   pr "    goto out;\n";
 
@@ -489,33 +484,13 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  %s_buf->initialized = true;\n" n
     | _ -> ()
   ) args;
-  pr "  ret = nbd_%s (h" name;
-  List.iter (
-    function
-    | Bool n -> pr ", %s" n
-    | BytesIn (n, _) -> pr ", %s.buf, %s.len" n n
-    | BytesOut (n, count) -> pr ", PyByteArray_AS_STRING (%s), %s" n count
-    | BytesPersistIn (n, _)
-    | BytesPersistOut (n, _) -> pr ", %s_buf->data, %s_buf->len" n n
-    | Closure { cbname } -> pr ", %s" cbname
-    | Enum (n, _) -> pr ", %s" n
-    | Flags (n, _) -> pr ", %s_u32" n
-    | Fd n | Int n -> pr ", %s" n
-    | Int64 n -> pr ", %s_i64" n
-    | Path n -> pr ", %s" n
-    | SizeT n -> pr ", (size_t)%s" n
-    | SockAddrAndLen (n, _) -> pr ", (struct sockaddr *) &%s_sa, %s_len" n n
-    | String n -> pr ", %s" n
-    | StringList n -> pr ", %s" n
-    | UInt n | UIntPtr n -> pr ", %s" n
-    | UInt32 n -> pr ", %s_u32" n
-    | UInt64 n -> pr ", %s_u64" n
-  ) args;
-  List.iter (
-    function
-    | OClosure { cbname } -> pr ", %s" cbname
-    | OFlags (n, _, _) -> pr ", %s_u32" n
-  ) optargs;
+  pr "  ret = nbd_%s (" name;
+  pr_wrap ',' (fun () ->
+      pr "h";
+      List.iter (
+        function
+        | _, _, n -> pr ", %s" n
+        ) params);
   pr ");\n";
   List.iter (
     function
@@ -543,23 +518,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  py_ret = %s;\n" n;
        pr "  %s = NULL;\n" n;
        use_ret := false
-    | Bool _
-    | BytesIn _
-    | BytesPersistIn _ | BytesPersistOut _
-    | Closure _
-    | Enum _
-    | Flags _
-    | Fd _ | Int _
-    | Int64 _
-    | Path _
-    | SockAddrAndLen _
-    | SizeT _
-    | String _
-    | StringList _
-    | UInt _
-    | UIntPtr _
-    | UInt32 _
-    | UInt64 _ -> ()
+    | _ -> ()
   ) args;
   if !use_ret then (
     match ret with
