@@ -34,17 +34,12 @@ let generate_python_methods_h () =
   pr "#include <assert.h>\n";
   pr "\n";
   pr "\
-struct py_aio_buffer {
-  Py_ssize_t len;
-  void *data;
-  bool initialized;
-};
-
 extern char **nbd_internal_py_get_string_list (PyObject *);
 extern void nbd_internal_py_free_string_list (char **);
 extern int nbd_internal_py_get_sockaddr (PyObject *,
     struct sockaddr_storage *, socklen_t *);
-extern struct py_aio_buffer *nbd_internal_py_get_aio_buffer (PyObject *);
+extern PyObject *nbd_internal_py_get_aio_view (PyObject *, bool);
+extern int nbd_internal_py_init_aio_buffer (PyObject *);
 
 static inline struct nbd_handle *
 get_handle (PyObject *obj)
@@ -305,7 +300,8 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesPersistOut (n, _) ->
        pr "  PyObject *%s; /* PyCapsule pointing to struct py_aio_buffer */\n"
           n;
-       pr "  struct py_aio_buffer *%s_buf;\n" n
+       pr "  PyObject *%s_view = NULL; /* PyMemoryView of %s */\n" n n;
+       pr "  Py_buffer *py_%s; /* buffer of %s_view */\n" n n
     | Closure { cbname } ->
        pr "  struct user_data *%s_user_data = NULL;\n" cbname;
        pr "  PyObject *py_%s_fn;\n" cbname;
@@ -365,7 +361,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
          "n", sprintf "&%s" count,
          sprintf "PyByteArray_AS_STRING (%s), %s" n count
       | BytesPersistIn (n, _) | BytesPersistOut (n, _) ->
-         "O", sprintf "&%s" n, sprintf "%s_buf->data, %s_buf->len" n n
+         "O", sprintf "&%s" n, sprintf "py_%s->buf, py_%s->len" n n
       | Closure { cbname } -> "O", sprintf "&py_%s_fn" cbname, cbname
       | Enum (n, _) -> "i", sprintf "&%s" n, n
       | Flags (n, _) -> "I", sprintf "&%s" n, sprintf "%s_u32" n
@@ -433,9 +429,17 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | BytesOut (n, count) ->
        pr "  %s = PyByteArray_FromStringAndSize (NULL, %s);\n" n count;
        pr "  if (%s == NULL) goto out;\n" n
-    | BytesPersistIn (n, _) | BytesPersistOut (n, _) ->
-       pr "  %s_buf = nbd_internal_py_get_aio_buffer (%s);\n" n n;
-       pr "  if (!%s_buf) goto out;\n" n;
+    | BytesPersistIn (n, _) ->
+       pr "  %s_view = nbd_internal_py_get_aio_view (%s, true);\n" n n;
+       pr "  if (!%s_view) goto out;\n" n;
+       pr "  py_%s = PyMemoryView_GET_BUFFER (%s_view);\n" n n;
+       pr "  /* Increment refcount since buffer may be saved by libnbd. */\n";
+       pr "  Py_INCREF (%s);\n" n;
+       pr "  completion_user_data->buf = %s;\n" n
+    | BytesPersistOut (n, _) ->
+       pr "  %s_view = nbd_internal_py_get_aio_view (%s, false);\n" n n;
+       pr "  if (!%s_view) goto out;\n" n;
+       pr "  py_%s = PyMemoryView_GET_BUFFER (%s_view);\n" n n;
        pr "  /* Increment refcount since buffer may be saved by libnbd. */\n";
        pr "  Py_INCREF (%s);\n" n;
        pr "  completion_user_data->buf = %s;\n" n
@@ -475,13 +479,8 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
   (* Second pass, and call the underlying C function. *)
   List.iter (
     function
-    | BytesPersistIn (n, _) ->
-       pr "  if (!%s_buf->initialized) {\n" n;
-       pr "    memset (%s_buf->data, 0, %s_buf->len);\n" n n;
-       pr "    %s_buf->initialized = true;\n" n;
-       pr "  }\n"
     | BytesPersistOut (n, _) ->
-       pr "  %s_buf->initialized = true;\n" n
+       pr "  if (nbd_internal_py_init_aio_buffer (%s) < 0) goto out;\n" n
     | _ -> ()
   ) args;
   pr "  ret = nbd_%s (" name;
@@ -548,7 +547,8 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  if (%s.obj)\n" n;
        pr "    PyBuffer_Release (&%s);\n" n
     | BytesOut (n, _) -> pr "  Py_XDECREF (%s);\n" n
-    | BytesPersistIn _ | BytesPersistOut _ -> ()
+    | BytesPersistIn (n, _) | BytesPersistOut (n, _) ->
+       pr "  Py_XDECREF (%s_view);\n" n
     | Closure { cbname } ->
        pr "  free_user_data (%s_user_data);\n" cbname
     | Enum _ -> ()

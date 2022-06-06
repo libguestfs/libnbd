@@ -40,6 +40,12 @@
 
 #include "methods.h"
 
+struct py_aio_buffer {
+  Py_ssize_t len;
+  void *data;
+  bool initialized;
+};
+
 static inline PyObject *
 put_handle (struct nbd_handle *h)
 {
@@ -98,10 +104,39 @@ nbd_internal_py_display_version (PyObject *self, PyObject *args)
 
 static const char aio_buffer_name[] = "nbd.Buffer";
 
-struct py_aio_buffer *
+/* Return internal buffer pointer of nbd.Buffer */
+static struct py_aio_buffer *
 nbd_internal_py_get_aio_buffer (PyObject *capsule)
 {
   return PyCapsule_GetPointer (capsule, aio_buffer_name);
+}
+
+/* Return new reference to MemoryView wrapping aio_buffer contents */
+PyObject *
+nbd_internal_py_get_aio_view (PyObject *capsule, bool require_init)
+{
+  struct py_aio_buffer *buf = nbd_internal_py_get_aio_buffer (capsule);
+
+  if (!buf)
+    return NULL;
+
+  if (require_init && !buf->initialized) {
+    memset (buf->data, 0, buf->len);
+    buf->initialized = true;
+  }
+
+  return PyMemoryView_FromMemory (buf->data, buf->len,
+                                  require_init ? PyBUF_READ : PyBUF_WRITE);
+}
+
+int
+nbd_internal_py_init_aio_buffer (PyObject *capsule)
+{
+  struct py_aio_buffer *buf = nbd_internal_py_get_aio_buffer (capsule);
+
+  assert (buf);
+  buf->initialized = true;
+  return 0;
 }
 
 static void
@@ -219,23 +254,21 @@ PyObject *
 nbd_internal_py_aio_buffer_to_bytearray (PyObject *self, PyObject *args)
 {
   PyObject *obj;
-  struct py_aio_buffer *buf;
+  PyObject *view;
+  PyObject *ret;
 
   if (!PyArg_ParseTuple (args,
                          "O:nbd_internal_py_aio_buffer_to_bytearray",
                          &obj))
     return NULL;
 
-  buf = nbd_internal_py_get_aio_buffer (obj);
-  if (buf == NULL)
+  view = nbd_internal_py_get_aio_view (obj, true);
+  if (view == NULL)
     return NULL;
 
-  if (!buf->initialized) {
-    memset (buf->data, 0, buf->len);
-    buf->initialized = true;
-  }
-
-  return PyByteArray_FromStringAndSize (buf->data, buf->len);
+  ret = PyByteArray_FromObject (view);
+  Py_DECREF (view);
+  return ret;
 }
 
 PyObject *
