@@ -52,7 +52,7 @@ nbd_internal_py_create (PyObject *self, PyObject *args)
 {
   struct nbd_handle *h;
 
-  if (!PyArg_ParseTuple (args, (char *) ":nbd_create"))
+  if (!PyArg_ParseTuple (args, ":nbd_create"))
     return NULL;
   h = nbd_create ();
   if (h == NULL) {
@@ -69,7 +69,7 @@ nbd_internal_py_close (PyObject *self, PyObject *args)
   PyObject *py_h;
   struct nbd_handle *h;
 
-  if (!PyArg_ParseTuple (args, (char *) "O:nbd_close", &py_h))
+  if (!PyArg_ParseTuple (args, "O:nbd_close", &py_h))
     return NULL;
   h = get_handle (py_h);
 
@@ -87,7 +87,7 @@ nbd_internal_py_display_version (PyObject *self, PyObject *args)
 {
   const char *program_name;
 
-  if (!PyArg_ParseTuple (args, (char *) "s:display_version", &program_name))
+  if (!PyArg_ParseTuple (args, "s:display_version", &program_name))
     return NULL;
 
   display_version (program_name);
@@ -127,7 +127,7 @@ nbd_internal_py_alloc_aio_buffer (PyObject *self, PyObject *args)
     return NULL;
   }
 
-  if (!PyArg_ParseTuple (args, (char *) "n:nbd_internal_py_alloc_aio_buffer",
+  if (!PyArg_ParseTuple (args, "n:nbd_internal_py_alloc_aio_buffer",
                          &buf->len)) {
     free (buf);
     return NULL;
@@ -166,7 +166,7 @@ nbd_internal_py_aio_buffer_from_bytearray (PyObject *self, PyObject *args)
   PyObject *ret;
 
   if (!PyArg_ParseTuple (args,
-                         (char *) "O:nbd_internal_py_aio_buffer_from_bytearray",
+                         "O:nbd_internal_py_aio_buffer_from_bytearray",
                          &obj))
     return NULL;
 
@@ -220,7 +220,7 @@ nbd_internal_py_aio_buffer_to_bytearray (PyObject *self, PyObject *args)
   struct py_aio_buffer *buf;
 
   if (!PyArg_ParseTuple (args,
-                         (char *) "O:nbd_internal_py_aio_buffer_to_bytearray",
+                         "O:nbd_internal_py_aio_buffer_to_bytearray",
                          &obj))
     return NULL;
 
@@ -238,7 +238,7 @@ nbd_internal_py_aio_buffer_size (PyObject *self, PyObject *args)
   struct py_aio_buffer *buf;
 
   if (!PyArg_ParseTuple (args,
-                         (char *) "O:nbd_internal_py_aio_buffer_size",
+                         "O:nbd_internal_py_aio_buffer_size",
                          &obj))
     return NULL;
 
@@ -257,7 +257,7 @@ nbd_internal_py_aio_buffer_is_zero (PyObject *self, PyObject *args)
   Py_ssize_t offset, size;
 
   if (!PyArg_ParseTuple (args,
-                         (char *) "Onn:nbd_internal_py_aio_buffer_is_zero",
+                         "Onn:nbd_internal_py_aio_buffer_is_zero",
                          &obj, &offset, &size))
     return NULL;
 
