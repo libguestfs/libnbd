@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -154,4 +154,22 @@ nbd_internal_py_get_sockaddr (PyObject *addr,
     PyErr_SetString (PyExc_TypeError, "get_sockaddr: unknown address type");
     return -1;
   }
+}
+
+/* Obtain the type object for nbd.Buffer */
+PyObject *
+nbd_internal_py_get_nbd_buffer_type (void)
+{
+  static PyObject *type;
+
+  if (!type) {
+    PyObject *modname = PyUnicode_FromString ("nbd");
+    PyObject *module = PyImport_Import (modname);
+    assert (module);
+    type = PyObject_GetAttrString (module, "Buffer");
+    assert (type);
+    Py_DECREF (modname);
+    Py_DECREF (module);
+  }
+  return type;
 }

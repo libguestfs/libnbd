@@ -40,6 +40,7 @@ extern int nbd_internal_py_get_sockaddr (PyObject *,
     struct sockaddr_storage *, socklen_t *);
 extern PyObject *nbd_internal_py_get_aio_view (PyObject *, bool);
 extern int nbd_internal_py_init_aio_buffer (PyObject *);
+extern PyObject *nbd_internal_py_get_nbd_buffer_type (void);
 
 static inline struct nbd_handle *
 get_handle (PyObject *obj)
@@ -298,8 +299,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  Py_ssize_t %s;\n" count
     | BytesPersistIn (n, _)
     | BytesPersistOut (n, _) ->
-       pr "  PyObject *%s; /* PyCapsule pointing to struct py_aio_buffer */\n"
-          n;
+       pr "  PyObject *%s; /* Instance of nbd.Buffer */\n" n;
        pr "  PyObject *%s_view = NULL; /* PyMemoryView of %s */\n" n n;
        pr "  Py_buffer *py_%s; /* buffer of %s_view */\n" n n
     | Closure { cbname } ->
@@ -753,11 +753,11 @@ class Buffer(object):
 
     def to_bytearray(self):
         '''Copy an AIO buffer into a bytearray.'''
-        return libnbdmod.aio_buffer_to_bytearray(self._o)
+        return libnbdmod.aio_buffer_to_bytearray(self)
 
     def size(self):
         '''Return the size of an AIO buffer.'''
-        return libnbdmod.aio_buffer_size(self._o)
+        return libnbdmod.aio_buffer_size(self)
 
     def is_zero(self, offset=0, size=-1):
         '''Returns true if and only if all bytes in the buffer are zeroes.
@@ -773,7 +773,7 @@ class Buffer(object):
         always returns true.  If size > 0, we check the interval
         [offset..offset+size-1].
         '''
-        return libnbdmod.aio_buffer_is_zero(self._o, offset, size)
+        return libnbdmod.aio_buffer_is_zero(self, offset, size)
 
 
 class NBD(object):
@@ -798,8 +798,8 @@ class NBD(object):
           | Bool n -> n, None, None
           | BytesIn (n, _) -> n, None, None
           | BytesOut (_, count) -> count, None, None
-          | BytesPersistIn (n, _) -> n, None, Some (sprintf "%s._o" n)
-          | BytesPersistOut (n, _) -> n, None, Some (sprintf "%s._o" n)
+          | BytesPersistIn (n, _) -> n, None, None
+          | BytesPersistOut (n, _) -> n, None, None
           | Closure { cbname } -> cbname, None, None
           | Enum (n, _) -> n, None, None
           | Flags (n, _) -> n, None, None

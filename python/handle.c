@@ -106,16 +106,24 @@ static const char aio_buffer_name[] = "nbd.Buffer";
 
 /* Return internal buffer pointer of nbd.Buffer */
 static struct py_aio_buffer *
-nbd_internal_py_get_aio_buffer (PyObject *capsule)
+nbd_internal_py_get_aio_buffer (PyObject *object)
 {
-  return PyCapsule_GetPointer (capsule, aio_buffer_name);
+  if (PyObject_IsInstance (object, nbd_internal_py_get_nbd_buffer_type ())) {
+    PyObject *capsule = PyObject_GetAttrString(object, "_o");
+
+    return PyCapsule_GetPointer (capsule, aio_buffer_name);
+  }
+
+  PyErr_SetString (PyExc_TypeError,
+                   "aio_buffer: expecting nbd.Buffer instance");
+  return NULL;
 }
 
 /* Return new reference to MemoryView wrapping aio_buffer contents */
 PyObject *
-nbd_internal_py_get_aio_view (PyObject *capsule, bool require_init)
+nbd_internal_py_get_aio_view (PyObject *object, bool require_init)
 {
-  struct py_aio_buffer *buf = nbd_internal_py_get_aio_buffer (capsule);
+  struct py_aio_buffer *buf = nbd_internal_py_get_aio_buffer (object);
 
   if (!buf)
     return NULL;
@@ -130,9 +138,9 @@ nbd_internal_py_get_aio_view (PyObject *capsule, bool require_init)
 }
 
 int
-nbd_internal_py_init_aio_buffer (PyObject *capsule)
+nbd_internal_py_init_aio_buffer (PyObject *object)
 {
-  struct py_aio_buffer *buf = nbd_internal_py_get_aio_buffer (capsule);
+  struct py_aio_buffer *buf = nbd_internal_py_get_aio_buffer (object);
 
   assert (buf);
   buf->initialized = true;
