@@ -40,12 +40,6 @@
 
 #include "methods.h"
 
-struct py_aio_buffer {
-  Py_ssize_t len;
-  void *data;
-  bool initialized;
-};
-
 static inline PyObject *
 put_handle (struct nbd_handle *h)
 {
@@ -102,242 +96,100 @@ nbd_internal_py_display_version (PyObject *self, PyObject *args)
   return Py_None;
 }
 
-static const char aio_buffer_name[] = "nbd.Buffer";
-
-/* Return internal buffer pointer of nbd.Buffer */
-static struct py_aio_buffer *
-nbd_internal_py_get_aio_buffer (PyObject *object)
+/* Return new reference to MemoryView wrapping aio_buffer contents */
+PyObject *
+nbd_internal_py_get_aio_view (PyObject *object, bool require_init)
 {
-  if (PyObject_IsInstance (object, nbd_internal_py_get_nbd_buffer_type ())) {
-    PyObject *capsule = PyObject_GetAttrString(object, "_o");
+  PyObject *buffer = NULL;
 
-    return PyCapsule_GetPointer (capsule, aio_buffer_name);
+  if (PyObject_IsInstance (object, nbd_internal_py_get_nbd_buffer_type ())) {
+    buffer = PyObject_GetAttrString (object, "_o");
+
+    if (require_init && ! PyObject_HasAttrString (object, "_init")) {
+      assert (PyByteArray_Check (buffer));
+      memset (PyByteArray_AS_STRING (buffer), 0,
+              PyByteArray_GET_SIZE (buffer));
+      if (PyObject_SetAttrString (object, "_init", Py_True) < 0)
+        return NULL;
+    }
   }
+
+  if (buffer)
+    return PyMemoryView_FromObject (buffer);
 
   PyErr_SetString (PyExc_TypeError,
                    "aio_buffer: expecting nbd.Buffer instance");
   return NULL;
 }
 
-/* Return new reference to MemoryView wrapping aio_buffer contents */
-PyObject *
-nbd_internal_py_get_aio_view (PyObject *object, bool require_init)
-{
-  struct py_aio_buffer *buf = nbd_internal_py_get_aio_buffer (object);
-
-  if (!buf)
-    return NULL;
-
-  if (require_init && !buf->initialized) {
-    memset (buf->data, 0, buf->len);
-    buf->initialized = true;
-  }
-
-  return PyMemoryView_FromMemory (buf->data, buf->len,
-                                  require_init ? PyBUF_READ : PyBUF_WRITE);
-}
-
 int
 nbd_internal_py_init_aio_buffer (PyObject *object)
 {
-  struct py_aio_buffer *buf = nbd_internal_py_get_aio_buffer (object);
-
-  assert (buf);
-  buf->initialized = true;
+  if (PyObject_IsInstance (object, nbd_internal_py_get_nbd_buffer_type ()))
+    return PyObject_SetAttrString (object, "_init", Py_True);
   return 0;
 }
 
-static void
-free_aio_buffer (PyObject *capsule)
-{
-  struct py_aio_buffer *buf = PyCapsule_GetPointer (capsule, aio_buffer_name);
-
-  if (buf)
-    free (buf->data);
-  free (buf);
-}
-
-/* Allocate a persistent buffer used for nbd_aio_pread. */
+/* Allocate an uninitialized persistent buffer used for nbd_aio_pread. */
 PyObject *
 nbd_internal_py_alloc_aio_buffer (PyObject *self, PyObject *args)
 {
-  struct py_aio_buffer *buf;
-  PyObject *ret;
-
-  buf = malloc (sizeof *buf);
-  if (buf == NULL) {
-    PyErr_NoMemory ();
-    return NULL;
-  }
-
-  buf->initialized = false;
-  if (!PyArg_ParseTuple (args, "n:nbd_internal_py_alloc_aio_buffer",
-                         &buf->len)) {
-    free (buf);
-    return NULL;
-  }
-
-  if (buf->len < 0) {
-    PyErr_SetString (PyExc_RuntimeError, "length < 0");
-    free (buf);
-    return NULL;
-  }
-  buf->data = malloc (buf->len);
-  if (buf->data == NULL) {
-    PyErr_NoMemory ();
-    free (buf);
-    return NULL;
-  }
-
-  ret = PyCapsule_New (buf, aio_buffer_name, free_aio_buffer);
-  if (ret == NULL) {
-    free (buf->data);
-    free (buf);
-    return NULL;
-  }
-
-  return ret;
-}
-
-PyObject *
-nbd_internal_py_aio_buffer_from_bytearray (PyObject *self, PyObject *args)
-{
-  PyObject *obj;
-  PyObject *arr = NULL;
   Py_ssize_t len;
-  void *data;
-  struct py_aio_buffer *buf;
-  PyObject *ret;
 
-  if (!PyArg_ParseTuple (args,
-                         "O:nbd_internal_py_aio_buffer_from_bytearray",
-                         &obj))
+  if (!PyArg_ParseTuple (args, "n:nbd_internal_py_alloc_aio_buffer",
+                         &len))
     return NULL;
 
-  if (! PyByteArray_Check (obj)) {
-    arr = PyByteArray_FromObject (obj);
-    if (arr == NULL)
-      return NULL;
-    obj = arr;
-  }
-  data = PyByteArray_AsString (obj);
-  if (!data) {
-    PyErr_SetString (PyExc_RuntimeError,
-                     "parameter is not a bytearray or buffer");
-    Py_XDECREF (arr);
-    return NULL;
-  }
-  len = PyByteArray_Size (obj);
-
-  buf = malloc (sizeof *buf);
-  if (buf == NULL) {
-    PyErr_NoMemory ();
-    Py_XDECREF (arr);
-    return NULL;
-  }
-
-  buf->len = len;
-  buf->data = malloc (len);
-  if (buf->data == NULL) {
-    PyErr_NoMemory ();
-    free (buf);
-    Py_XDECREF (arr);
-    return NULL;
-  }
-  memcpy (buf->data, data, len);
-  Py_XDECREF (arr);
-  buf->initialized = true;
-
-  ret = PyCapsule_New (buf, aio_buffer_name, free_aio_buffer);
-  if (ret == NULL) {
-    free (buf->data);
-    free (buf);
-    return NULL;
-  }
-
-  return ret;
-}
-
-PyObject *
-nbd_internal_py_aio_buffer_to_bytearray (PyObject *self, PyObject *args)
-{
-  PyObject *obj;
-  PyObject *view;
-  PyObject *ret;
-
-  if (!PyArg_ParseTuple (args,
-                         "O:nbd_internal_py_aio_buffer_to_bytearray",
-                         &obj))
-    return NULL;
-
-  view = nbd_internal_py_get_aio_view (obj, true);
-  if (view == NULL)
-    return NULL;
-
-  ret = PyByteArray_FromObject (view);
-  Py_DECREF (view);
-  return ret;
-}
-
-PyObject *
-nbd_internal_py_aio_buffer_size (PyObject *self, PyObject *args)
-{
-  PyObject *obj;
-  struct py_aio_buffer *buf;
-
-  if (!PyArg_ParseTuple (args,
-                         "O:nbd_internal_py_aio_buffer_size",
-                         &obj))
-    return NULL;
-
-  buf = nbd_internal_py_get_aio_buffer (obj);
-  if (buf == NULL)
-    return NULL;
-
-  return PyLong_FromSsize_t (buf->len);
+  /* Constructing bytearray(len) in python zeroes the memory; doing it this
+   * way gives uninitialized memory.  This correctly flags negative len.
+   */
+  return PyByteArray_FromStringAndSize (NULL, len);
 }
 
 PyObject *
 nbd_internal_py_aio_buffer_is_zero (PyObject *self, PyObject *args)
 {
-  PyObject *obj;
-  struct py_aio_buffer *buf;
+  Py_buffer buf;
   Py_ssize_t offset, size;
+  int init;
+  PyObject *ret = NULL;
 
   if (!PyArg_ParseTuple (args,
-                         "Onn:nbd_internal_py_aio_buffer_is_zero",
-                         &obj, &offset, &size))
+                         "y*nnp:nbd_internal_py_aio_buffer_is_zero",
+                         &buf, &offset, &size, &init))
     return NULL;
 
-  if (size == 0)
-    Py_RETURN_TRUE;
-
-  buf = nbd_internal_py_get_aio_buffer (obj);
-  if (buf == NULL)
-    return NULL;
+  if (size == 0) {
+    ret = Py_True;
+    goto out;
+  }
 
   /* Check the bounds of the offset. */
-  if (offset < 0 || offset > buf->len) {
+  if (offset < 0 || offset > buf.len) {
     PyErr_SetString (PyExc_IndexError, "offset out of range");
-    return NULL;
+    goto out;
   }
 
   /* Compute or check the length. */
   if (size == -1)
-    size = buf->len - offset;
+    size = buf.len - offset;
   else if (size < 0) {
     PyErr_SetString (PyExc_IndexError,
                      "size cannot be negative, "
                      "except -1 to mean to the end of the buffer");
-    return NULL;
+    goto out;
   }
-  else if ((size_t) offset + size > buf->len) {
+  else if ((size_t) offset + size > buf.len) {
     PyErr_SetString (PyExc_IndexError, "size out of range");
-    return NULL;
+    goto out;
   }
 
-  if (!buf->initialized || is_zero (buf->data + offset, size))
-    Py_RETURN_TRUE;
+  if (!init || is_zero (buf.buf + offset, size))
+    ret = Py_True;
   else
-    Py_RETURN_FALSE;
+    ret = Py_False;
+ out:
+  PyBuffer_Release (&buf);
+  Py_XINCREF (ret);
+  return ret;
 }

@@ -73,9 +73,6 @@ raise_exception ()
   ) ([ "create"; "close";
        "display_version";
        "alloc_aio_buffer";
-       "aio_buffer_from_bytearray";
-       "aio_buffer_to_bytearray";
-       "aio_buffer_size";
        "aio_buffer_is_zero" ] @ List.map fst handle_calls);
 
   pr "\n";
@@ -105,9 +102,6 @@ let generate_python_libnbdmod_c () =
   ) ([ "create"; "close";
        "display_version";
        "alloc_aio_buffer";
-       "aio_buffer_from_bytearray";
-       "aio_buffer_to_bytearray";
-       "aio_buffer_size";
        "aio_buffer_is_zero" ] @ List.map fst handle_calls);
   pr "  { NULL, NULL, 0, NULL }\n";
   pr "};\n";
@@ -746,18 +740,21 @@ class Buffer(object):
         bytearray constructor.  Otherwise, ba is copied.  Either way, the
         resulting AIO buffer is independent from the original.
         '''
-        o = libnbdmod.aio_buffer_from_bytearray(ba)
         self = cls(0)
-        self._o = o
+        self._o = bytearray(ba)
+        self._init = True
         return self
 
     def to_bytearray(self):
         '''Copy an AIO buffer into a bytearray.'''
-        return libnbdmod.aio_buffer_to_bytearray(self)
+        if not hasattr(self, '_init'):
+            self._o = bytearray(len(self._o))
+            self._init = True
+        return bytearray(self._o)
 
     def size(self):
         '''Return the size of an AIO buffer.'''
-        return libnbdmod.aio_buffer_size(self)
+        return len(self._o)
 
     def is_zero(self, offset=0, size=-1):
         '''Returns true if and only if all bytes in the buffer are zeroes.
@@ -773,7 +770,8 @@ class Buffer(object):
         always returns true.  If size > 0, we check the interval
         [offset..offset+size-1].
         '''
-        return libnbdmod.aio_buffer_is_zero(self, offset, size)
+        return libnbdmod.aio_buffer_is_zero(self._o, offset, size,
+                                            hasattr(self, '_init'))
 
 
 class NBD(object):
