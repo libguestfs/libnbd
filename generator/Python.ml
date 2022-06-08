@@ -306,9 +306,10 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | Closure { cbname } ->
        pr "  struct user_data *%s_user_data = NULL;\n" cbname;
        pr "  PyObject *py_%s_fn;\n" cbname;
-       pr "  nbd_%s_callback %s = { .callback = %s_wrapper,\n"
-         cbname cbname cbname;
-       pr "                         .free = free_user_data };\n"
+       pr "  nbd_%s_callback %s = { " cbname cbname;
+       pr_wrap ',' (fun () ->
+           pr ".callback = %s_wrapper, .free = free_user_data" cbname);
+       pr " };\n"
     | Enum (n, _) -> pr "  int %s;\n" n
     | Flags (n, _) ->
        pr "  uint32_t %s_u32;\n" n;
@@ -343,9 +344,10 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | OClosure { cbname } ->
        pr "  struct user_data *%s_user_data = NULL;\n" cbname;
        pr "  PyObject *py_%s_fn;\n" cbname;
-       pr "  nbd_%s_callback %s = { .callback = %s_wrapper,\n"
-         cbname cbname cbname;
-       pr "                         .free = free_user_data };\n"
+       pr "  nbd_%s_callback %s = { " cbname cbname;
+       pr_wrap ',' (fun () ->
+           pr ".callback = %s_wrapper, .free = free_user_data" cbname);
+       pr " };\n"
     | OFlags (n, _, _) ->
        pr "  uint32_t %s_u32;\n" n;
        pr "  unsigned int %s; /* really uint32_t */\n" n
