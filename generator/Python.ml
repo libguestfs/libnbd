@@ -41,6 +41,7 @@ extern int nbd_internal_py_get_sockaddr (PyObject *,
 extern PyObject *nbd_internal_py_get_aio_view (PyObject *, bool);
 extern int nbd_internal_py_init_aio_buffer (PyObject *);
 extern PyObject *nbd_internal_py_get_nbd_buffer_type (void);
+extern PyObject *nbd_internal_py_wrap_errptr (int);
 
 static inline struct nbd_handle *
 get_handle (PyObject *obj)
@@ -184,13 +185,7 @@ let print_python_closure_wrapper { cbname; cbargs } =
     | CBInt _
     | CBInt64 _ -> ()
     | CBMutable (Int n) ->
-       pr "  PyObject *py_%s_modname = PyUnicode_FromString (\"ctypes\");\n" n;
-       pr "  if (!py_%s_modname) { PyErr_PrintEx (0); goto out; }\n" n;
-       pr "  PyObject *py_%s_mod = PyImport_Import (py_%s_modname);\n" n n;
-       pr "  Py_DECREF (py_%s_modname);\n" n;
-       pr "  if (!py_%s_mod) { PyErr_PrintEx (0); goto out; }\n" n;
-       pr "  py_%s = PyObject_CallMethod (py_%s_mod, \"c_int\", \"i\", *%s);\n" n n n;
-       pr "  Py_DECREF (py_%s_mod);\n" n;
+       pr "  py_%s = nbd_internal_py_wrap_errptr (*%s);\n" n n;
        pr "  if (!py_%s) { PyErr_PrintEx (0); goto out; }\n" n;
     | CBString _
     | CBUInt _

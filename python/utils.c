@@ -173,3 +173,22 @@ nbd_internal_py_get_nbd_buffer_type (void)
   }
   return type;
 }
+
+/* Helper to package callback *error into modifiable PyObject */
+PyObject *
+nbd_internal_py_wrap_errptr (int err)
+{
+  static PyObject *py_ctypes_mod;
+
+  if (!py_ctypes_mod) {
+    PyObject *py_modname = PyUnicode_FromString ("ctypes");
+    if (!py_modname)
+      return NULL;
+    py_ctypes_mod = PyImport_Import (py_modname);
+    Py_DECREF (py_modname);
+    if (!py_ctypes_mod)
+      return NULL;
+  }
+
+  return PyObject_CallMethod (py_ctypes_mod, "c_int", "i", err);
+}
