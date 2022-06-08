@@ -192,3 +192,37 @@ nbd_internal_py_wrap_errptr (int err)
 
   return PyObject_CallMethod (py_ctypes_mod, "c_int", "i", err);
 }
+
+/* Helper to compute view.toreadonly()[start:end] in chunk callback */
+PyObject *
+nbd_internal_py_get_subview (PyObject *view, const char *subbuf, size_t count)
+{
+  Py_buffer *orig;
+  const char *base;
+  PyObject *start, *end, *slice;
+  PyObject *ret;
+
+  assert (PyMemoryView_Check (view));
+  orig = PyMemoryView_GET_BUFFER (view);
+  assert (PyBuffer_IsContiguous (orig, 'A'));
+  base = orig->buf;
+  assert (subbuf >= base && count <= orig->len &&
+          subbuf + count <= base + orig->len);
+  start = PyLong_FromLong (subbuf - base);
+  if (!start) return NULL;
+  end = PyLong_FromLong (subbuf - base + count);
+  if (!end) { Py_DECREF (start); return NULL; }
+  slice = PySlice_New (start, end, NULL);
+  Py_DECREF (start);
+  Py_DECREF (end);
+  if (!slice) return NULL;
+  ret = PyObject_GetItem (view, slice);
+  Py_DECREF (slice);
+  /* memoryview.toreadonly() was only added in Python 3.8.
+   * PyMemoryView_GetContiguous (ret, PyBuf_READ, 'A') doesn't force readonly.
+   * So we mess around directly with the Py_buffer.
+   */
+  if (ret)
+    PyMemoryView_GET_BUFFER (ret)->readonly = 1;
+  return ret;
+}

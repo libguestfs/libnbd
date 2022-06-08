@@ -42,6 +42,7 @@ extern PyObject *nbd_internal_py_get_aio_view (PyObject *, int);
 extern int nbd_internal_py_init_aio_buffer (PyObject *);
 extern PyObject *nbd_internal_py_get_nbd_buffer_type (void);
 extern PyObject *nbd_internal_py_wrap_errptr (int);
+extern PyObject *nbd_internal_py_get_subview (PyObject *, const char *, size_t);
 
 static inline struct nbd_handle *
 get_handle (PyObject *obj)
@@ -163,8 +164,8 @@ let print_python_closure_wrapper { cbname; cbargs } =
   pr "  PyObject *py_args, *py_ret;\n";
   List.iter (
     function
-    | CBArrayAndLen (UInt32 n, _) ->
-       pr "  PyObject *py_%s = NULL;\n" n
+    | CBArrayAndLen (UInt32 n, _)
+    | CBBytesIn (n, _)
     | CBMutable (Int n) ->
        pr "  PyObject *py_%s = NULL;\n" n
     | _ -> ()
@@ -181,7 +182,9 @@ let print_python_closure_wrapper { cbname; cbargs } =
        pr "    if (!py_e_%s) { PyErr_PrintEx (0); goto out; }\n" n;
        pr "    PyList_SET_ITEM (py_%s, i_%s, py_e_%s);\n" n n n;
        pr "  }\n"
-    | CBBytesIn _
+    | CBBytesIn (n, len) ->
+       pr "  py_%s = nbd_internal_py_get_subview (data->view, %s, %s);\n" n n len;
+       pr "  if (!py_%s) { PyErr_PrintEx (0); goto out; }\n" n
     | CBInt _
     | CBInt64 _ -> ()
     | CBMutable (Int n) ->
@@ -198,7 +201,7 @@ let print_python_closure_wrapper { cbname; cbargs } =
     List.map (
       function
       | CBArrayAndLen (UInt32 n, _) -> "O", sprintf "py_%s" n
-      | CBBytesIn (n, len) -> "y#", sprintf "%s, (int) %s" n len
+      | CBBytesIn (n, _) -> "O", sprintf "py_%s" n
       | CBInt n -> "i", n
       | CBInt64 n -> "L", n
       | CBMutable (Int n) -> "O", sprintf "py_%s" n
@@ -248,6 +251,8 @@ let print_python_closure_wrapper { cbname; cbargs } =
     function
     | CBArrayAndLen (UInt32 n, _) ->
        pr "  Py_XDECREF (py_%s);\n" n
+    | CBBytesIn (n, _) ->
+       pr "  Py_XDECREF (py_%s);\n" n
     | CBMutable (Int n) ->
        pr "  if (py_%s) {\n" n;
        pr "    PyObject *py_%s_ret = PyObject_GetAttrString (py_%s, \"value\");\n" n n;
@@ -255,7 +260,6 @@ let print_python_closure_wrapper { cbname; cbargs } =
        pr "    Py_DECREF (py_%s_ret);\n" n;
        pr "    Py_DECREF (py_%s);\n" n;
        pr "  }\n"
-    | CBBytesIn _
     | CBInt _ | CBInt64 _
     | CBString _
     | CBUInt _ | CBUInt64 _ -> ()
@@ -439,7 +443,11 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  }\n";
        pr "  /* Increment refcount since pointer may be saved by libnbd. */\n";
        pr "  Py_INCREF (py_%s_fn);\n" cbname;
-       pr "  %s_user_data->fn = py_%s_fn;\n" cbname cbname
+       pr "  %s_user_data->fn = py_%s_fn;\n" cbname cbname;
+       if cbname = "chunk" then (
+         pr "  chunk_user_data->view = nbd_internal_py_get_aio_view (buf, PyBUF_WRITE);\n";
+         pr "  if (!chunk_user_data->view) goto out;\n"
+       )
     | Enum _ -> ()
     | Flags (n, _) -> pr "  %s_u32 = %s;\n" n n
     | Fd _ | Int _ -> ()
