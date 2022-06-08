@@ -423,16 +423,12 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  %s_view = nbd_internal_py_get_aio_view (%s, true);\n" n n;
        pr "  if (!%s_view) goto out;\n" n;
        pr "  py_%s = PyMemoryView_GET_BUFFER (%s_view);\n" n n;
-       pr "  /* Increment refcount since buffer may be saved by libnbd. */\n";
-       pr "  Py_INCREF (%s);\n" n;
-       pr "  completion_user_data->buf = %s;\n" n
+       pr "  completion_user_data->view = %s_view;\n" n
     | BytesPersistOut (n, _) ->
        pr "  %s_view = nbd_internal_py_get_aio_view (%s, false);\n" n n;
        pr "  if (!%s_view) goto out;\n" n;
        pr "  py_%s = PyMemoryView_GET_BUFFER (%s_view);\n" n n;
-       pr "  /* Increment refcount since buffer may be saved by libnbd. */\n";
-       pr "  Py_INCREF (%s);\n" n;
-       pr "  completion_user_data->buf = %s;\n" n
+       pr "  completion_user_data->view = %s_view;\n" n
     | Closure { cbname } ->
        pr "  %s.user_data = %s_user_data = alloc_user_data ();\n" cbname cbname;
        pr "  if (%s_user_data == NULL) goto out;\n" cbname;
@@ -539,8 +535,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  if (%s.obj)\n" n;
        pr "    PyBuffer_Release (&%s);\n" n
     | BytesOut (n, _) -> pr "  Py_XDECREF (%s);\n" n
-    | BytesPersistIn (n, _) | BytesPersistOut (n, _) ->
-       pr "  Py_XDECREF (%s_view);\n" n
+    | BytesPersistIn (n, _) | BytesPersistOut (n, _) -> ()
     | Closure { cbname } ->
        pr "  free_user_data (%s_user_data);\n" cbname
     | Enum _ -> ()
@@ -589,7 +584,7 @@ let generate_python_methods_c () =
   pr " */\n";
   pr "struct user_data {\n";
   pr "  PyObject *fn;    /* Optional pointer to Python function. */\n";
-  pr "  PyObject *buf;   /* Optional pointer to persistent buffer. */\n";
+  pr "  PyObject *view;  /* Optional PyMemoryView of persistent buffer. */\n";
   pr "};\n";
   pr "\n";
   pr "static struct user_data *\n";
@@ -611,7 +606,7 @@ let generate_python_methods_c () =
   pr "  if (data) {\n";
   pr "    PyGILState_STATE py_save = PyGILState_Ensure ();\n";
   pr "    Py_XDECREF (data->fn);\n";
-  pr "    Py_XDECREF (data->buf);\n";
+  pr "    Py_XDECREF (data->view);\n";
   pr "    PyGILState_Release (py_save);\n";
   pr "    free (data);\n";
   pr "  }\n";
