@@ -95,7 +95,9 @@ else
 fi
 export CGO_LDFLAGS
 # This implements complete pointer checking in cgo.
-export GODEBUG=cgocheck=2
+export GODEBUG=cgocheck=2,invalidptr=1
+# On failure, crash (giving us a useful core dump) instead of hiding that.
+export GOTRACEBACK=crash
 
 # Allow dependent packages to be compiled against local libnbd.
 prepend PKG_CONFIG_PATH "$b/lib/local"
