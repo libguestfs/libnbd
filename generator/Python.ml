@@ -168,7 +168,7 @@ let print_python_closure_wrapper { cbname; cbargs } =
   pr "  const struct user_data *data = user_data;\n";
   pr "  int ret = -1;\n";
   pr "\n";
-  pr "  PyGILState_STATE py_save = PyGILState_UNLOCKED;\n";
+  pr "  PyGILState_STATE py_save = PyGILState_Ensure();\n";
   pr "  PyObject *py_args, *py_ret;\n";
   List.iter (
     function
@@ -236,9 +236,7 @@ let print_python_closure_wrapper { cbname; cbargs } =
   pr ");\n";
   pr "  if (!py_args) { PyErr_PrintEx (0); goto out; }\n";
   pr "\n";
-  pr "  py_save = PyGILState_Ensure ();\n";
   pr "  py_ret = PyObject_CallObject (data->fn, py_args);\n";
-  pr "  PyGILState_Release (py_save);\n";
   pr "\n";
   pr "  Py_DECREF (py_args);\n";
   pr "\n";
@@ -277,6 +275,7 @@ let print_python_closure_wrapper { cbname; cbargs } =
     | CBUInt _ | CBUInt64 _ -> ()
     | CBArrayAndLen _ | CBMutable _ -> assert false
   ) cbargs;
+  pr "  PyGILState_Release (py_save);\n";
   pr "  return ret;\n";
   pr "}\n";
   pr "\n"
@@ -491,6 +490,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  %s_buf->initialized = true;\n" n
     | _ -> ()
   ) args;
+  pr "  Py_BEGIN_ALLOW_THREADS\n";
   pr "  ret = nbd_%s (h" name;
   List.iter (
     function
@@ -519,6 +519,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | OFlags (n, _, _) -> pr ", %s_u32" n
   ) optargs;
   pr ");\n";
+  pr "  Py_END_ALLOW_THREADS\n";
   List.iter (
     function
     | Closure { cbname } -> pr "  %s_user_data = NULL;\n" cbname
@@ -659,8 +660,10 @@ let generate_python_methods_c () =
   pr "  struct user_data *data = user_data;\n";
   pr "\n";
   pr "  if (data) {\n";
+  pr "    PyGILState_STATE py_save = PyGILState_Ensure();\n";
   pr "    Py_XDECREF (data->fn);\n";
   pr "    Py_XDECREF (data->buf);\n";
+  pr "    PyGILState_Release (py_save);\n";
   pr "    free (data);\n";
   pr "  }\n";
   pr "}\n";
