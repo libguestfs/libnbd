@@ -72,6 +72,9 @@ func (b *AioBuffer) Free() {
 // slice. Modifying the returned slice does not modify the underlying buffer
 // backing array.
 func (b *AioBuffer) Bytes() []byte {
+	if b.P == nil {
+		panic("Using AioBuffer after Free()")
+	}
 	return C.GoBytes(b.P, C.int(b.Size))
 }
 
@@ -79,6 +82,9 @@ func (b *AioBuffer) Bytes() []byte {
 // used to access or modify the contents of the underlying array. The slice
 // must not be used after caling Free().
 func (b *AioBuffer) Slice() []byte {
+	if b.P == nil {
+		panic("Using AioBuffer after Free()")
+	}
 	// See https://github.com/golang/go/wiki/cgo#turning-c-arrays-into-go-slices
 	// TODO: Use unsafe.Slice() when we require Go 1.17.
 	return (*[1 << 30]byte)(b.P)[:b.Size:b.Size]
@@ -88,5 +94,8 @@ func (b *AioBuffer) Slice() []byte {
 // be used to modify the underlying array. The pointer must not be used after
 // calling Free().
 func (b *AioBuffer) Get(i uint) *byte {
+	if b.P == nil {
+		panic("Using AioBuffer after Free()")
+	}
 	return (*byte)(unsafe.Pointer(uintptr(b.P) + uintptr(i)))
 }
