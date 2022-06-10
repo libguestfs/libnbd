@@ -158,7 +158,7 @@ let print_python_closure_wrapper { cbname; cbargs } =
   pr "  const struct user_data *data = user_data;\n";
   pr "  int ret = -1;\n";
   pr "\n";
-  pr "  PyGILState_STATE py_save = PyGILState_Ensure();\n";
+  pr "  PyGILState_STATE py_save = PyGILState_Ensure ();\n";
   pr "  PyObject *py_args, *py_ret;\n";
   List.iter (
     function
@@ -614,7 +614,7 @@ let generate_python_methods_c () =
   pr "  struct user_data *data = user_data;\n";
   pr "\n";
   pr "  if (data) {\n";
-  pr "    PyGILState_STATE py_save = PyGILState_Ensure();\n";
+  pr "    PyGILState_STATE py_save = PyGILState_Ensure ();\n";
   pr "    Py_XDECREF (data->fn);\n";
   pr "    Py_XDECREF (data->buf);\n";
   pr "    PyGILState_Release (py_save);\n";
