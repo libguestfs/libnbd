@@ -31,6 +31,7 @@ if sys.byteorder == 'little':
 expected = memoryview(arr).cast('B')
 stash = None
 
+
 def chunk(user_data, buf2, offset, s, err):
     print("in chunk, user_data %d" % user_data)
     assert err.value == 0

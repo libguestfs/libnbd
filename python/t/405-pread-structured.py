@@ -31,6 +31,7 @@ if sys.byteorder == 'little':
 expected = memoryview(arr).cast('B')
 stash = None
 
+
 def f(user_data, buf2, offset, s, err):
     assert err.value == 0
     err.value = errno.EPROTO
