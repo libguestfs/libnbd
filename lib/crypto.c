@@ -28,6 +28,7 @@
 
 #ifdef HAVE_GNUTLS
 #include <gnutls/gnutls.h>
+#include <gnutls/socket.h>
 #endif
 
 #include "internal.h"
@@ -703,15 +704,36 @@ nbd_internal_crypto_debug_tls_enabled (struct nbd_handle *h)
     const gnutls_cipher_algorithm_t cipher = gnutls_cipher_get (session);
     const gnutls_kx_algorithm_t kx = gnutls_kx_get (session);
     const gnutls_mac_algorithm_t mac = gnutls_mac_get (session);
+#ifdef HAVE_GNUTLS_TRANSPORT_IS_KTLS_ENABLED
+    const char *ktls_status;
+    gnutls_transport_ktls_enable_flags_t ktls_enabled;
+#else
+    const char *ktls_status = "disabled";
+#endif
+
+#ifdef HAVE_GNUTLS_TRANSPORT_IS_KTLS_ENABLED
+    ktls_enabled = gnutls_transport_is_ktls_enabled (session);
+    switch (ktls_enabled) {
+    case GNUTLS_KTLS_RECV: ktls_status = "enabled receive only"; break;
+    case GNUTLS_KTLS_SEND: ktls_status = "enabled send only"; break;
+    case GNUTLS_KTLS_DUPLEX: ktls_status = "enabled"; break;
+    default:
+      if ((int) ktls_enabled == 0)
+        ktls_status = "disabled";
+      else
+        ktls_status = "unknown";
+    }
+#endif
 
     debug (h,
            "connection is using TLS: "
-           "cipher %s (%zu bits) key exchange %s mac %s (%zu bits)",
+           "cipher %s (%zu bits) key exchange %s mac %s (%zu bits) kTLS %s",
            gnutls_cipher_get_name (cipher),
            8 * gnutls_cipher_get_key_size (cipher),
            gnutls_kx_get_name (kx),
            gnutls_mac_get_name (mac),
-           8 * gnutls_mac_get_key_size (mac)
+           8 * gnutls_mac_get_key_size (mac),
+           ktls_status
            );
   }
 }
