@@ -175,7 +175,9 @@ AS_IF([test "$GNUTLS_LIBS" != ""],[
     old_LIBS="$LIBS"
     LIBS="$GNUTLS_LIBS $LIBS"
     AC_CHECK_FUNCS([\
-        gnutls_session_set_verify_cert])
+        gnutls_session_set_verify_cert \
+        gnutls_transport_is_ktls_enabled \
+    ])
     LIBS="$old_LIBS"
 ])
 
