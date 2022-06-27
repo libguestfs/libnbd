@@ -429,8 +429,8 @@ finished_read (void *vp, int *error)
   struct command *command = vp;
 
   if (*error) {
-    fprintf (stderr, "read at offset %" PRId64 " failed: %s\n",
-             command->offset, strerror (*error));
+    fprintf (stderr, "%s: read at offset %" PRId64 " failed: %s\n",
+             prog, command->offset, strerror (*error));
     exit (EXIT_FAILURE);
   }
 
@@ -606,8 +606,8 @@ finished_command (void *vp, int *error)
   struct command *command = vp;
 
   if (*error) {
-    fprintf (stderr, "write at offset %" PRId64 " failed: %s\n",
-             command->offset, strerror (*error));
+    fprintf (stderr, "%s: write at offset %" PRId64 " failed: %s\n",
+             prog, command->offset, strerror (*error));
     exit (EXIT_FAILURE);
   }
 
