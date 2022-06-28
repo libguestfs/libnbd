@@ -241,13 +241,15 @@ seek_hole_supported (int fd)
 
 struct rw *
 file_create (const char *name, int fd,
-             off_t st_size, bool is_block, direction d)
+             off_t st_size, uint64_t preferred,
+             bool is_block, direction d)
 {
   struct rw_file *rwf = calloc (1, sizeof *rwf);
   if (rwf == NULL) { perror ("calloc"); exit (EXIT_FAILURE); }
 
   rwf->rw.ops = &file_ops;
   rwf->rw.name = name;
+  rwf->rw.preferred = preferred;
   rwf->fd = fd;
   rwf->is_block = is_block;
 

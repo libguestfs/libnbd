@@ -43,6 +43,7 @@ pipe_create (const char *name, int fd)
   rwp->rw.ops = &pipe_ops;
   rwp->rw.name = name;
   rwp->rw.size = -1;
+  rwp->rw.preferred = 4096;
   rwp->fd = fd;
   return &rwp->rw;
 }

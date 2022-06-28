@@ -43,6 +43,7 @@ struct rw {
   struct rw_ops *ops;           /* Operations. */
   const char *name;             /* Printable name, for error messages etc. */
   int64_t size;                 /* May be -1 for streams. */
+  uint64_t preferred;           /* Preferred block size. */
   /* Followed by private data for the particular subtype. */
 };
 
@@ -53,7 +54,8 @@ typedef enum { READING, WRITING } direction;
 
 /* Create subtypes. */
 extern struct rw *file_create (const char *name, int fd,
-                               off_t st_size, bool is_block, direction d);
+                               off_t st_size, uint64_t preferred,
+                               bool is_block, direction d);
 extern struct rw *nbd_rw_create_uri (const char *name,
                                      const char *uri, direction d);
 extern struct rw *nbd_rw_create_subprocess (const char **argv, size_t argc,

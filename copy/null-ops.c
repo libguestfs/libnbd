@@ -45,6 +45,7 @@ null_create (const char *name)
   rw->rw.ops = &null_ops;
   rw->rw.name = name;
   rw->rw.size = INT64_MAX;
+  rw->rw.preferred = 4096;
   return &rw->rw;
 }
 
