@@ -252,7 +252,7 @@ nbd_ops_start_multi_conn (struct rw *rw)
 
 static size_t
 nbd_ops_synch_read (struct rw *rw,
-                void *data, size_t len, uint64_t offset)
+                    void *data, size_t len, uint64_t offset)
 {
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
 
@@ -271,7 +271,7 @@ nbd_ops_synch_read (struct rw *rw,
 
 static void
 nbd_ops_synch_write (struct rw *rw,
-                 const void *data, size_t len, uint64_t offset)
+                     const void *data, size_t len, uint64_t offset)
 {
   struct rw_nbd *rwn = (struct rw_nbd *) rw;
 
