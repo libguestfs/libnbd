@@ -112,12 +112,22 @@ open_one_nbd_handle (struct rw_nbd *rwn)
    * the same way.
    */
   if (rwn->handles.len == 0) {
+    int64_t block_size;
+
     rwn->can_zero = nbd_can_zero (nbd) > 0;
+
     rwn->rw.size = nbd_get_size (nbd);
     if (rwn->rw.size == -1) {
       fprintf (stderr, "%s: %s: %s\n", prog, rwn->rw.name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
+
+    block_size = nbd_get_block_size (nbd, LIBNBD_SIZE_PREFERRED);
+    if (block_size == -1) {
+      fprintf (stderr, "%s: %s: %s\n", prog, rwn->rw.name, nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    rwn->rw.preferred = block_size == 0 ? 4096 : block_size;
   }
 
   if (handles_append (&rwn->handles, nbd) == -1) {

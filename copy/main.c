@@ -512,10 +512,26 @@ open_local (const char *filename, direction d)
     fprintf (stderr, "%s: %s: %m\n", prog, filename);
     exit (EXIT_FAILURE);
   }
-  if (S_ISBLK (stat.st_mode) || S_ISREG (stat.st_mode))
-    return file_create (filename, fd, stat.st_size, S_ISBLK (stat.st_mode), d);
-  else {
-    /* Probably stdin/stdout, a pipe or a socket. */
+  if (S_ISREG (stat.st_mode))   /* Regular file. */
+    return file_create (filename, fd,
+                        stat.st_size, (uint64_t) stat.st_blksize, false, d);
+  else if (S_ISBLK (stat.st_mode)) { /* Block device. */
+    unsigned int blkioopt;
+
+#ifdef BLKIOOPT
+    if (ioctl (fd, BLKIOOPT, &blkioopt) == -1) {
+      fprintf (stderr, "warning: cannot get optimal I/O size: %s: %m",
+               filename);
+      blkioopt = 4096;
+    }
+#else
+    blkioopt = 4096;
+#endif
+
+    return file_create (filename, fd,
+                        stat.st_size, (uint64_t) blkioopt, true, d);
+  }
+  else {              /* Probably stdin/stdout, a pipe or a socket. */
     synchronous = true;        /* Force synchronous mode for pipes. */
     return pipe_create (filename, fd);
   }
@@ -528,8 +544,9 @@ print_rw (struct rw *rw, const char *prefix, FILE *fp)
   char buf[HUMAN_SIZE_LONGEST];
 
   fprintf (fp, "%s: %s \"%s\"\n", prefix, rw->ops->ops_name, rw->name);
-  fprintf (fp, "%s: size=%" PRIi64 " (%s)\n",
-           prefix, rw->size, human_size (buf, rw->size, NULL));
+  fprintf (fp, "%s: size=%" PRIi64 " (%s), preferred block size=%" PRIu64 "\n",
+           prefix, rw->size, human_size (buf, rw->size, NULL),
+           rw->preferred);
 }
 
 /* Default implementation of rw->ops->get_extents for backends which
