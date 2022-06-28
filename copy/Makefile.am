@@ -23,6 +23,7 @@ EXTRA_DIST = \
 	copy-file-to-nbd.sh \
 	copy-file-to-null.sh \
 	copy-file-to-qcow2.sh \
+	copy-file-to-qcow2-compressed.sh \
 	copy-nbd-to-block.sh \
 	copy-nbd-to-file.sh \
 	copy-nbd-to-hexdump.sh \
@@ -142,7 +143,10 @@ TESTS += \
 	$(NULL)
 
 if HAVE_QEMU_NBD
-TESTS += copy-file-to-qcow2.sh
+TESTS += \
+	copy-file-to-qcow2.sh \
+	copy-file-to-qcow2-compressed.sh \
+	$(NULL)
 endif
 
 if HAVE_GNUTLS

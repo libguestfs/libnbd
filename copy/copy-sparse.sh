@@ -16,8 +16,6 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-# This test depends on the nbdkit default sparse block size (32K).
-
 . ../tests/functions.sh
 
 set -e
@@ -34,8 +32,9 @@ cleanup_fn rm -f $out
 # Copy from a sparse data disk to an nbdkit-eval-plugin instance which
 # is logging everything.  This allows us to see exactly what nbdcopy
 # is writing, to ensure it is writing and zeroing the target as
-# expected.
-$VG nbdcopy -S 0 -- \
+# expected.  Force request size to match nbdkit default sparse
+# allocator block size (32K).
+$VG nbdcopy -S 0 --request-size=32768 -- \
     [ nbdkit --exit-with-parent data data='
              1
              @1073741823 1
