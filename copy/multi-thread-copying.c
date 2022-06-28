@@ -166,6 +166,62 @@ decrease_queue_size (struct worker *worker, size_t len)
   worker->queue_size -= len;
 }
 
+/* Using the extents map 'exts', check if the region
+ * [offset..offset+len-1] intersects only with zero extents.
+ *
+ * The invariant for '*i' is always an extent which starts before or
+ * equal to the current offset.
+ */
+static bool
+only_zeroes (const extent_list exts, size_t *i,
+             uint64_t offset, unsigned len)
+{
+  size_t j;
+
+  /* Invariant. */
+  assert (*i < exts.len);
+  assert (exts.ptr[*i].offset <= offset);
+
+  /* Update the invariant.  Search for the last possible extent in the
+   * list which is <= offset.
+   */
+  for (j = *i + 1; j < exts.len; ++j) {
+    if (exts.ptr[j].offset <= offset)
+      *i = j;
+    else
+      break;
+  }
+
+  /* Check invariant again. */
+  assert (*i < exts.len);
+  assert (exts.ptr[*i].offset <= offset);
+
+  /* If *i is not the last extent, then the next extent starts
+   * strictly beyond our current offset.
+   */
+  assert (*i == exts.len - 1 || exts.ptr[*i + 1].offset > offset);
+
+  /* Search forward, look for any non-zero extents overlapping the region. */
+  for (j = *i; j < exts.len; ++j) {
+    uint64_t start, end;
+
+    /* [start..end-1] is the current extent. */
+    start = exts.ptr[j].offset;
+    end = exts.ptr[j].offset + exts.ptr[j].length;
+
+    assert (end > offset);
+
+    if (start >= offset + len)
+      break;
+
+    /* Non-zero extent covering this region => test failed. */
+    if (!exts.ptr[j].zero)
+      return false;
+  }
+
+  return true;
+}
+
 /* There are 'threads' worker threads, each copying work ranges from
  * src to dst until there are no more work ranges.
  */
@@ -177,7 +233,10 @@ worker_thread (void *wp)
   extent_list exts = empty_vector;
 
   while (get_next_offset (&offset, &count)) {
-    size_t i;
+    struct command *command;
+    size_t extent_index;
+    bool is_zeroing = false;
+    uint64_t zeroing_start = 0; /* initialized to avoid bogus GCC warning */
 
     assert (0 < count && count <= THREAD_WORK_SIZE);
     if (extents)
@@ -185,52 +244,64 @@ worker_thread (void *wp)
     else
       default_get_extents (src, w->index, offset, count, &exts);
 
-    for (i = 0; i < exts.len; ++i) {
-      struct command *command;
-      size_t len;
+    extent_index = 0; // index into extents array used to optimize only_zeroes
+    while (count) {
+      const size_t len = MIN (count, request_size);
 
-      if (exts.ptr[i].zero) {
+      if (only_zeroes (exts, &extent_index, offset, len)) {
         /* The source is zero so we can proceed directly to skipping,
-         * fast zeroing, or writing zeroes at the destination.
+         * fast zeroing, or writing zeroes at the destination.  Defer
+         * zeroing so we can send it as a single large command.
          */
-        command = create_command (exts.ptr[i].offset, exts.ptr[i].length,
-                                  true, w);
-        fill_dst_range_with_zeroes (command);
-      }
-
-      else /* data */ {
-        /* As the extent might be larger than permitted for a single
-         * command, we may have to split this into multiple read
-         * requests.
-         */
-        while (exts.ptr[i].length > 0) {
-          len = exts.ptr[i].length;
-          if (len > request_size)
-            len = request_size;
-
-          command = create_command (exts.ptr[i].offset, len,
-                                    false, w);
-
-          wait_for_request_slots (w);
-
-          /* NOTE: Must increase the queue size after waiting. */
-          increase_queue_size (w, len);
-
-          /* Begin the asynch read operation. */
-          src->ops->asynch_read (src, command,
-                                 (nbd_completion_callback) {
-                                   .callback = finished_read,
-                                   .user_data = command,
-                                 });
-
-          exts.ptr[i].offset += len;
-          exts.ptr[i].length -= len;
+        if (!is_zeroing) {
+          is_zeroing = true;
+          zeroing_start = offset;
         }
       }
+      else /* data */ {
+        /* If we were in the middle of deferred zeroing, do it now. */
+        if (is_zeroing) {
+          /* Note that offset-zeroing_start can never exceed
+           * THREAD_WORK_SIZE, so there is no danger of overflowing
+           * size_t.
+           */
+          command = create_command (zeroing_start, offset-zeroing_start,
+                                    true, w);
+          fill_dst_range_with_zeroes (command);
+          is_zeroing = false;
+        }
 
-      offset += count;
-      count = 0;
-    } /* for extents */
+        /* Issue the asynchronous read command. */
+        command = create_command (offset, len, false, w);
+
+        wait_for_request_slots (w);
+
+        /* NOTE: Must increase the queue size after waiting. */
+        increase_queue_size (w, len);
+
+        /* Begin the asynch read operation. */
+        src->ops->asynch_read (src, command,
+                               (nbd_completion_callback) {
+                                 .callback = finished_read,
+                                 .user_data = command,
+                               });
+      }
+
+      offset += len;
+      count -= len;
+    } /* while (count) */
+
+    /* If we were in the middle of deferred zeroing, do it now. */
+    if (is_zeroing) {
+      /* Note that offset-zeroing_start can never exceed
+       * THREAD_WORK_SIZE, so there is no danger of overflowing
+       * size_t.
+       */
+      command = create_command (zeroing_start, offset - zeroing_start,
+                                true, w);
+      fill_dst_range_with_zeroes (command);
+      is_zeroing = false;
+    }
   }
 
   /* Wait for in flight NBD requests to finish. */

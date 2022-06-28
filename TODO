@@ -28,7 +28,9 @@ Performance: Chart it over various buffer sizes and threads, as that
 Examine other fuzzers: https://gitlab.com/akihe/radamsa
 
 nbdcopy:
- - Minimum/preferred/maximum block size.
+ - Enforce maximum block size.
+ - Synchronous loop should be adjusted to take into account
+   the NBD preferred block size, as was done for multi-thread loop.
  - Benchmark.
  - Better page cache usage, see nbdkit-file-plugin options
    fadvise=sequential cache=none.

@@ -182,8 +182,9 @@ Set the maximum number of requests in flight per NBD connection.
 =item B<--sparse=>N
 
 Detect all zero blocks of size N (bytes) and make them sparse on the
-output.  You can also turn off sparse detection using S<I<-S 0>>.
-The default is 4096 bytes.
+output.  You can also turn off sparse detection using S<I<-S 0>>.  The
+default is 4096 bytes, or the destination preferred block size,
+whichever is larger.
 
 =item B<--synchronous>
 

@@ -17,8 +17,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
 # Adapted from copy-sparse.sh.
-#
-# This test depends on the nbdkit default sparse block size (32K).
 
 . ../tests/functions.sh
 
@@ -33,7 +31,7 @@ requires nbdkit eval --version
 out=copy-sparse-allocated.out
 cleanup_fn rm -f $out
 
-$VG nbdcopy --allocated -- \
+$VG nbdcopy --allocated --request-size=32768 -- \
     [ nbdkit --exit-with-parent data data='
              1
              @1073741823 1

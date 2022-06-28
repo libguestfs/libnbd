@@ -40,6 +40,7 @@
 
 #include "ispowerof2.h"
 #include "human-size.h"
+#include "minmax.h"
 #include "version.h"
 #include "nbdcopy.h"
 
@@ -379,9 +380,21 @@ main (int argc, char *argv[])
   if (threads < connections)
     connections = threads;
 
+  /* request_size must always be at least as large as the preferred
+   * size of source & destination.
+   */
+  request_size = MAX (request_size, src->preferred);
+  request_size = MAX (request_size, dst->preferred);
+
   /* Adapt queue to size to request size if needed. */
   if (request_size > queue_size)
     queue_size = request_size;
+
+  /* Sparse size (if using) must not be smaller than the destination
+   * preferred size, otherwise we end up creating too small requests.
+   */
+  if (sparse_size > 0 && sparse_size < dst->preferred)
+    sparse_size = dst->preferred;
 
   /* Truncate the destination to the same size as the source.  Only
    * has an effect on regular files.
