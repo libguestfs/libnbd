@@ -350,41 +350,6 @@ nbd_ops_asynch_zero (struct rw *rw, struct command *command,
   return true;
 }
 
-static int
-add_extent (void *vp, const char *metacontext,
-            uint64_t offset, uint32_t *entries, size_t nr_entries,
-            int *error)
-{
-  extent_list *ret = vp;
-  size_t i;
-
-  if (strcmp (metacontext, "base:allocation") != 0 || *error)
-    return 0;
-
-  for (i = 0; i < nr_entries; i += 2) {
-    struct extent e;
-
-    e.offset = offset;
-    e.length = entries[i];
-
-    /* Note we deliberately don't care about the HOLE flag.  There is
-     * no need to read extent that reads as zeroes.  We will convert
-     * to it to a hole or allocated extents based on the command line
-     * arguments.
-     */
-    e.zero = (entries[i+1] & LIBNBD_STATE_ZERO) != 0;
-
-    if (extent_list_append (ret, e) == -1) {
-      perror ("realloc");
-      exit (EXIT_FAILURE);
-    }
-
-    offset += entries[i];
-  }
-
-  return 0;
-}
-
 static unsigned
 nbd_ops_in_flight (struct rw *rw, size_t index)
 {
@@ -440,12 +405,18 @@ nbd_ops_asynch_notify_write (struct rw *rw, size_t index)
   }
 }
 
-/* This is done synchronously, but that's fine because commands from
+/* Get the extents.
+ *
+ * This is done synchronously, but that's fine because commands from
  * the previous work range in flight continue to run, it's difficult
  * to (sanely) start new work until we have the full list of extents,
  * and in almost every case the remote NBD server can answer our
  * request for extents in a single round trip.
  */
+static int add_extent (void *vp, const char *metacontext,
+                       uint64_t offset, uint32_t *entries, size_t nr_entries,
+                       int *error);
+
 static void
 nbd_ops_get_extents (struct rw *rw, size_t index,
                      uint64_t offset, uint64_t count,
@@ -506,6 +477,41 @@ nbd_ops_get_extents (struct rw *rw, size_t index,
   }
 
   free (exts.ptr);
+}
+
+static int
+add_extent (void *vp, const char *metacontext,
+            uint64_t offset, uint32_t *entries, size_t nr_entries,
+            int *error)
+{
+  extent_list *ret = vp;
+  size_t i;
+
+  if (strcmp (metacontext, "base:allocation") != 0 || *error)
+    return 0;
+
+  for (i = 0; i < nr_entries; i += 2) {
+    struct extent e;
+
+    e.offset = offset;
+    e.length = entries[i];
+
+    /* Note we deliberately don't care about the HOLE flag.  There is
+     * no need to read extent that reads as zeroes.  We will convert
+     * to it to a hole or allocated extents based on the command line
+     * arguments.
+     */
+    e.zero = (entries[i+1] & LIBNBD_STATE_ZERO) != 0;
+
+    if (extent_list_append (ret, e) == -1) {
+      perror ("realloc");
+      exit (EXIT_FAILURE);
+    }
+
+    offset += entries[i];
+  }
+
+  return 0;
 }
 
 static struct rw_ops nbd_ops = {
