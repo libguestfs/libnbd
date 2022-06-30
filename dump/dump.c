@@ -418,7 +418,7 @@ do_dump (void)
 
       /* Print the offset. */
       ansi_green ();
-      printf ("%010zx", offset + i);
+      printf ("%010" PRIx64, offset + i);
       ansi_grey ();
       printf (": ");
 
