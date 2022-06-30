@@ -1044,6 +1044,7 @@ L<libnbd-release-notes-1.2(1)>.
 
 L<libnbd-security(3)>,
 L<nbdcopy(1)>,
+L<nbddump(1)>,
 L<nbdfuse(1)>,
 L<nbdinfo(1)>,
 L<nbdsh(1)>,

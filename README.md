@@ -15,6 +15,7 @@ The key features are:
 * Bindings in several programming languages.
 * Shell (nbdsh) for command line and scripting.
 * Copying tool (nbdcopy) for high performance copying and streaming.
+* Hexdump tool (nbddump) to print NBD content.
 * Query tool (nbdinfo) to query NBD servers.
 * FUSE support (nbdfuse) to mount NBD in the local filesystem.
 

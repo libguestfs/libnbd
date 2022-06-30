@@ -285,7 +285,7 @@ Some examples follow.
 In this example, L<qemu-nbd(8)> is run as a subprocess.  The
 subprocess opens F<disk.qcow2> and exposes it as NBD to nbdcopy.
 nbdcopy streams this to stdout (C<->) into the pipe which is read by
-L<hexdump(1)>.
+L<hexdump(1)>.  (See also L<nbddump(1)>)
 
 =head2 nbdcopy -- [ qemu-nbd -f qcow2 disk.qcow2 ] [ nbdkit memory 1G ]
 
@@ -311,6 +311,7 @@ server will match a hole in the other.
 =head1 SEE ALSO
 
 L<libnbd(3)>,
+L<nbddump(1)>,
 L<nbdfuse(1)>,
 L<nbdinfo(1)>,
 L<nbdsh(1)>,

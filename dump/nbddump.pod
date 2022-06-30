@@ -1,0 +1,116 @@
+=head1 NAME
+
+nbddump - hexdump the content of a disk over NBD
+
+=head1 SYNOPSIS
+
+ nbddump NBD
+
+C<NBD> is an NBD URI or subprocess:
+
+ NBD := nbd://... | nbd+unix:// (or other URI formats)
+      | [ CMD ARGS ... ]
+
+=for paragraph
+
+ nbddump --help
+
+=for paragraph
+
+ nbddump --version
+
+=head1 DESCRIPTION
+
+nbddump prints the content of a disk from an NBD server using the
+usual hexdump format:
+
+ $ nbddump nbd://localhost
+ 0000: 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 │················│
+ 0010: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 │················│
+ ☆
+ 0100: 68 65 6c 6c 6f 2c 20 77 6f 72 6c 64 21 00 00 00 │hello, world!···│
+ 0110: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 │················│
+ ☆
+ 1000: 00 00 00 21                                     │···!            │
+
+=head2 Output format
+
+The first field (before the C<:>) is the offset within the file, in
+hexadecimal.
+
+The second field shows the hex codes of bytes read from the file.
+
+The third field shows the ASCII equivalent characters (if printable).
+
+A splat character (C<☆>) indicates lines of repeated output which have
+been squashed.  (Note this is not just for lines of zero bytes, but
+any case where the next line shown would be the same as the previous
+line.)
+
+=head2 Subprocess
+
+nbddump can also run an NBD server as a subprocess.  This requires an
+NBD server which understands systemd socket activation, such as
+L<qemu-nbd(8)> or L<nbdkit(1)>.
+
+For example, to dump out a qcow2 file as raw data:
+
+ nbddump -- [ qemu-nbd -r -f qcow2 file.qcow2 ]
+
+Note that S<C<[ ... ]>> are separate parameters, and must be
+surrounded by spaces.  C<--> separates nbddump parameters from
+subprocess parameters.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<--help>
+
+Display brief command line help and exit.
+
+=item B<--color>
+
+=item B<--colour>
+
+=item B<--no-color>
+
+=item B<--no-colour>
+
+Enable or disable ANSI colours in output.  By default we use colours
+if the output seems to be a terminal, and disable them if not.
+
+=item B<--length=>N
+
+=item B<-n> N
+
+Dump up to I<N> bytes and then stop.
+
+=item B<-V>
+
+=item B<--version>
+
+Display the package name and version and exit.
+
+=back
+
+=head1 SEE ALSO
+
+L<libnbd(3)>,
+L<nbdcopy(1)>,
+L<nbdfuse(1)>,
+L<nbdinfo(1)>,
+L<nbdsh(1)>,
+L<hexdump(1)>,
+L<file(1)>,
+L<qemu-img(1)>,
+L<nbdkit(1)>,
+L<qemu-nbd(8)>.
+
+=head1 AUTHORS
+
+Richard W.M. Jones
+
+=head1 COPYRIGHT
+
+Copyright (C) 2022 Red Hat Inc.

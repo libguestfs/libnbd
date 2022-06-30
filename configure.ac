@@ -563,6 +563,7 @@ AC_CONFIG_FILES([Makefile
                  common/utils/Makefile
                  copy/Makefile
                  docs/Makefile
+                 dump/Makefile
                  examples/Makefile
                  fuse/Makefile
                  fuzzing/Makefile

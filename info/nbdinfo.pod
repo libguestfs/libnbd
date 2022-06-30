@@ -407,6 +407,7 @@ Display the package name and version and exit.
 
 L<libnbd(3)>,
 L<nbdcopy(1)>,
+L<nbddump(1)>,
 L<nbdfuse(1)>,
 L<nbdsh(1)>,
 L<file(1)>,

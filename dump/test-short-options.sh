@@ -1,5 +1,6 @@
+#!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2013-2020 Red Hat Inc.
+# Copyright (C) 2019-2022 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -15,37 +16,20 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-include $(top_srcdir)/subdir-rules.mk
+# Test that nbddump --short-options looks sane.
 
-EXTRA_DIST = \
-	README \
-	nbdsh \
-	$(NULL)
+. ../tests/functions.sh
+set -e
+set -x
 
-if HAVE_BASH_COMPLETION
+output=test-short-options.out
+cleanup_fn rm -f $output
 
-bashcomp_DATA = nbddump nbdfuse nbdsh
-
-if HAVE_LIBXML2
-bashcomp_DATA += nbdcopy nbdinfo
-endif HAVE_LIBXML2
-
-nbdcopy: nbdsh
-	rm -f $@
-	$(LN_S) $(srcdir)/nbdsh $@
-
-nbddump: nbdsh
-	rm -f $@
-	$(LN_S) $(srcdir)/nbdsh $@
-
-nbdfuse: nbdsh
-	rm -f $@
-	$(LN_S) $(srcdir)/nbdsh $@
-
-nbdinfo: nbdsh
-	rm -f $@
-	$(LN_S) $(srcdir)/nbdsh $@
-
-CLEANFILES += nbdcopy nbddump nbdfuse nbdinfo
-
-endif
+$VG nbddump --short-options > $output
+if [ $? != 0 ]; then
+    echo "$0: unexpected exit status"
+    fail=1
+fi
+cat $output
+grep -- -n $output
+grep -- -V $output

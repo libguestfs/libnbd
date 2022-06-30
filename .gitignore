@@ -29,6 +29,7 @@ Makefile.in
 /aclocal.m4
 /autom4te.cache
 /bash-completion/nbdcopy
+/bash-completion/nbddump
 /bash-completion/nbdfuse
 /bash-completion/nbdinfo
 /common/include/test-checked-overflow
@@ -56,6 +57,8 @@ Makefile.in
 !/docs/nbd_close.3
 !/docs/nbd_create.pod
 !/docs/nbd_get_err??.3
+/dump/nbddump
+/dump/nbddump.1
 /examples/aio-connect-read
 /examples/batched-read-write
 /examples/connect-command
