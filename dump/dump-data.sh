@@ -23,6 +23,7 @@ set -x
 
 requires nbdkit --version
 requires nbdkit data --dump-plugin
+requires nbdkit -U - null --run 'test "$uri" != ""'
 
 output=dump-data.out
 rm -f $output
