@@ -25,6 +25,10 @@ requires nbdkit --version
 requires nbdkit data --dump-plugin
 requires nbdkit -U - null --run 'test "$uri" != ""'
 
+# This test requires nbdkit >= 1.22.
+minor=$( nbdkit --dump-config | grep ^version_minor | cut -d= -f2 )
+requires test $minor -ge 22
+
 output=dump-data.out
 rm -f $output
 cleanup_fn rm -f $output
