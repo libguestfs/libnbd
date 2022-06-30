@@ -38,9 +38,9 @@ qemu-img create -f qcow2 $file $size
 nbddump -- [ $QEMU_NBD -r -f qcow2 $file ] > $output
 cat $output
 
-if [ "$(cat $output)" != '0000000000: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|
+if [ "$(cat $output)" != '0000000000: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|
 *
-003ffffff0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|' ]; then
+003ffffff0: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00 |................|' ]; then
     echo "$0: unexpected output from nbddump command"
     exit 1
 fi

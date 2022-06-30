@@ -429,10 +429,13 @@ do_dump (void)
         else
           ansi_grey ();
         printf ("%02x ", buffer[j]);
+        if ((j - i) == 7) printf (" ");
       }
       ansi_grey ();
-      for (; j < i+16; ++j)
+      for (; j < i+16; ++j) {
         printf ("   ");
+        if ((j - i) == 7) printf (" ");
+      }
 
       /* Print the ASCII codes. */
       printf ("%s", pipe);
