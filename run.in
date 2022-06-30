@@ -58,6 +58,7 @@ b="$(cd @abs_builddir@ && pwd)"
 
 # Set the PATH to contain all libnbd binaries.
 prepend PATH "$b/copy"
+prepend PATH "$b/dump"
 prepend PATH "$b/fuse"
 prepend PATH "$b/info"
 prepend PATH "$b/sh"

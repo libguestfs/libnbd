@@ -1,5 +1,6 @@
+#!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2013-2020 Red Hat Inc.
+# Copyright (C) 2020-2022 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -15,37 +16,31 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 
-include $(top_srcdir)/subdir-rules.mk
+. ../tests/functions.sh
 
-EXTRA_DIST = \
-	README \
-	nbdsh \
-	$(NULL)
+set -e
+set -x
 
-if HAVE_BASH_COMPLETION
+requires $QEMU_NBD --version
+requires qemu-img --version
 
-bashcomp_DATA = nbddump nbdfuse nbdsh
+file=dump-empty-qcow2.qcow2
+output=dump-empty-qcow2.out
+rm -f $file $output
+cleanup_fn rm -f $file $output
 
-if HAVE_LIBXML2
-bashcomp_DATA += nbdcopy nbdinfo
-endif HAVE_LIBXML2
+size=1G
 
-nbdcopy: nbdsh
-	rm -f $@
-	$(LN_S) $(srcdir)/nbdsh $@
+# Create a large, empty qcow2 file.
+qemu-img create -f qcow2 $file $size
 
-nbddump: nbdsh
-	rm -f $@
-	$(LN_S) $(srcdir)/nbdsh $@
+# Dump it and check the output.
+nbddump -- [ $QEMU_NBD -r -f qcow2 $file ] > $output
+cat $output
 
-nbdfuse: nbdsh
-	rm -f $@
-	$(LN_S) $(srcdir)/nbdsh $@
-
-nbdinfo: nbdsh
-	rm -f $@
-	$(LN_S) $(srcdir)/nbdsh $@
-
-CLEANFILES += nbdcopy nbddump nbdfuse nbdinfo
-
-endif
+if [ "$(cat $output)" != '0000000000: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|
+*
+003ffffff0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 |................|' ]; then
+    echo "$0: unexpected output from nbddump command"
+    exit 1
+fi

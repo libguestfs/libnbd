@@ -147,6 +147,7 @@ L<https://gitlab.com/nbdkit/libnbd/tree/master/python/examples>.
 L<libnbd(3)>,
 L<libnbd-security(3)>,
 L<nbdcopy(1)>,
+L<nbddump(1)>,
 L<nbdfuse(1)>,
 L<nbdinfo(1)>,
 L<qemu-img(1)>.

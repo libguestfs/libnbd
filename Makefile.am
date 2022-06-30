@@ -46,6 +46,7 @@ SUBDIRS = \
 	sh \
 	info \
 	copy \
+	dump \
 	fuse \
 	ocaml \
 	ocaml/examples \
