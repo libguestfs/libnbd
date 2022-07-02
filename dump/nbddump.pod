@@ -57,6 +57,11 @@ For example, to dump out a qcow2 file as raw data:
 
  nbddump -- [ qemu-nbd -r -f qcow2 file.qcow2 ]
 
+To dump out an empty floppy disk created by L<nbdkit-floppy-plugin(1)>:
+
+ mkdir /var/tmp/empty
+ nbddump -- [ nbdkit floppy /var/tmp/empty ]
+
 Note that S<C<[ ... ]>> are separate parameters, and must be
 surrounded by spaces.  C<--> separates nbddump parameters from
 subprocess parameters.
