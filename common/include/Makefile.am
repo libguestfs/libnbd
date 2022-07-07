@@ -18,8 +18,10 @@
 include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
+	array-size.h \
 	byte-swapping.h \
 	checked-overflow.h \
+	compiler-macros.h \
 	isaligned.h \
 	ispowerof2.h \
 	iszero.h \
@@ -31,9 +33,14 @@ EXTRA_DIST = \
 # Unit tests.
 
 TESTS = \
+	test-array-size \
 	test-checked-overflow \
 	$(NULL)
 check_PROGRAMS = $(TESTS)
+
+test_array_size_SOURCES = test-array-size.c array-size.h
+test_array_size_CPPFLAGS = -I$(srcdir)
+test_array_size_CFLAGS = $(WARNINGS_CFLAGS)
 
 test_checked_overflow_SOURCES = test-checked-overflow.c checked-overflow.h
 test_checked_overflow_CPPFLAGS = -I$(srcdir)

@@ -31,6 +31,7 @@ Makefile.in
 /bash-completion/nbdcopy
 /bash-completion/nbdfuse
 /bash-completion/nbdinfo
+/common/include/test-array-size
 /common/include/test-checked-overflow
 /common/utils/test-human-size
 /common/utils/test-vector
