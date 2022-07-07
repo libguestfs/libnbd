@@ -44,6 +44,7 @@ requires.c: $(top_srcdir)/tests/requires.c
 # Common flags.
 # Note there is no such thing as "AM_LDADD".
 AM_CPPFLAGS = \
+	-I$(top_srcdir)/common/include \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/tests \
 	$(NULL)

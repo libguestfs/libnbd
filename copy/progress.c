@@ -29,6 +29,8 @@
 
 #include <libnbd.h>
 
+#include "array-size.h"
+
 #include "nbdcopy.h"
 
 /* Display the progress bar. */
@@ -68,7 +70,7 @@ do_progress_bar (off_t pos, int64_t size)
     n = strcspn (msg, "-");
     for (i = 0; i < 40*frac; ++i)
       msg[n+i] = '*';
-    spinpos = (spinpos+1) % (sizeof spinner / sizeof spinner[0]);
+    spinpos = (spinpos+1) % ARRAY_SIZE (spinner);
   }
 
 #pragma GCC diagnostic push

@@ -27,6 +27,8 @@
 
 #include <libnbd.h>
 
+#include "array-size.h"
+
 #include "../tests/requires.h"
 
 #ifdef NEEDS_TMPFILE
@@ -41,9 +43,8 @@ unlink_tmpfile (void)
 #endif /* NEEDS_TMPFILE */
 
 static const char *exports[] = { EXPORTS };
-#define nr_exports  (sizeof exports / sizeof exports[0])
-static const char *descriptions[nr_exports] = { DESCRIPTIONS };
-static char *actual[nr_exports][2]; /* (name, description)'s received */
+static const char *descriptions[ARRAY_SIZE (exports)] = { DESCRIPTIONS };
+static char *actual[ARRAY_SIZE (exports)][2]; /* (name, description) recvd */
 
 static char *progname;
 
@@ -53,7 +54,7 @@ append (void *opaque, const char *name, const char *description)
   size_t *ip = opaque;
   size_t i = *ip;
 
-  if (i >= nr_exports) {
+  if (i >= ARRAY_SIZE (exports)) {
     fprintf (stderr, "%s: server returned more exports than expected",
              progname);
     exit (EXIT_FAILURE);
@@ -82,7 +83,7 @@ free_actuals (void)
 {
   size_t i;
 
-  for (i = 0; i < nr_exports; ++i) {
+  for (i = 0; i < ARRAY_SIZE (exports); ++i) {
     free (actual[i][0]);
     free (actual[i][1]);
   }
@@ -137,9 +138,9 @@ main (int argc, char *argv[])
   }
 
   /* Check for expected number of exports. */
-  if (i != nr_exports) {
+  if (i != ARRAY_SIZE (exports)) {
     fprintf (stderr, "%s: expected %zu export, but got %zu\n",
-             argv[0], nr_exports, i);
+             argv[0], ARRAY_SIZE (exports), i);
     exit (EXIT_FAILURE);
   }
 
@@ -148,9 +149,9 @@ main (int argc, char *argv[])
    * order they are read from the directory by readdir.  Sort before
    * comparing.
    */
-  qsort (actual, nr_exports, sizeof actual[0], compare_actuals);
+  qsort (actual, ARRAY_SIZE (exports), sizeof actual[0], compare_actuals);
 
-  for (i = 0; i < nr_exports; ++i) {
+  for (i = 0; i < ARRAY_SIZE (exports); ++i) {
     if (strcmp (actual[i][0], exports[i]) != 0) {
       fprintf (stderr, "%s: expected export \"%s\", but got \"%s\"\n",
                progname, exports[i], actual[i][0]);
