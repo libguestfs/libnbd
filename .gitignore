@@ -32,6 +32,7 @@ Makefile.in
 /bash-completion/nbddump
 /bash-completion/nbdfuse
 /bash-completion/nbdinfo
+/common/include/test-array-size
 /common/include/test-checked-overflow
 /common/utils/test-human-size
 /common/utils/test-vector
