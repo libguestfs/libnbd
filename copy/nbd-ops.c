@@ -28,6 +28,7 @@
 #include "nbdcopy.h"
 
 #include "const-string-vector.h"
+#include "ispowerof2.h"
 #include "vector.h"
 
 static struct rw_ops nbd_ops;
@@ -127,7 +128,10 @@ open_one_nbd_handle (struct rw_nbd *rwn)
       fprintf (stderr, "%s: %s: %s\n", prog, rwn->rw.name, nbd_get_error ());
       exit (EXIT_FAILURE);
     }
-    rwn->rw.preferred = block_size == 0 ? 4096 : block_size;
+    if (block_size > 0 && is_power_of_2 (block_size))
+      rwn->rw.preferred = block_size;
+    else
+      rwn->rw.preferred = 4096;
   }
 
   if (handles_append (&rwn->handles, nbd) == -1) {

@@ -249,9 +249,13 @@ file_create (const char *name, int fd,
 
   rwf->rw.ops = &file_ops;
   rwf->rw.name = name;
-  rwf->rw.preferred = preferred;
   rwf->fd = fd;
   rwf->is_block = is_block;
+
+  if (preferred > 0 && is_power_of_2 (preferred))
+    rwf->rw.preferred = preferred;
+  else
+    rwf->rw.preferred = 4096;
 
   if (is_block) {
     /* Block device - ignore size passed in. */

@@ -341,6 +341,8 @@ main (int argc, char *argv[])
   assert (src->name != NULL);
   assert (dst->ops != NULL);
   assert (dst->name != NULL);
+  assert (src->preferred > 0 && is_power_of_2 (src->preferred));
+  assert (dst->preferred > 0 && is_power_of_2 (dst->preferred));
 
   /* Obviously this is not going to work if the destination is
    * read-only, so fail early with a nice error message.
@@ -385,6 +387,8 @@ main (int argc, char *argv[])
    */
   request_size = MAX (request_size, src->preferred);
   request_size = MAX (request_size, dst->preferred);
+  assert (request_size > 0);
+  assert (is_power_of_2 (request_size));
 
   /* Adapt queue to size to request size if needed. */
   if (request_size > queue_size)
@@ -395,6 +399,7 @@ main (int argc, char *argv[])
    */
   if (sparse_size > 0 && sparse_size < dst->preferred)
     sparse_size = dst->preferred;
+  assert (sparse_size == 0 || is_power_of_2 (sparse_size));
 
   /* Truncate the destination to the same size as the source.  Only
    * has an effect on regular files.
