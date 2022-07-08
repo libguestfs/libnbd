@@ -40,15 +40,22 @@ seed=$RANDOM
 # sparse-random files should compress easily because by default each
 # block uses repeated bytes.
 qemu-img create -f qcow2 $file1 $size
+opts=driver=compress
+opts+=,file.driver=qcow2
+opts+=,file.file.driver=file
+opts+=,file.file.filename=$file1
 nbdcopy -- [ nbdkit --exit-with-parent sparse-random $size seed=$seed ] \
-        [ $QEMU_NBD --image-opts driver=compress,file.driver=qcow2,file.file.driver=file,file.file.filename=$file1 ]
+        [ $QEMU_NBD --image-opts "$opts" ]
 
 ls -l $file1
 
 # Create an uncompressed qcow2 file2 with the same data.
 qemu-img create -f qcow2 $file2 $size
+opts=driver=qcow2
+opts+=,file.driver=file
+opts+=,file.filename=$file2
 nbdcopy -- [ nbdkit --exit-with-parent sparse-random $size seed=$seed ] \
-        [ $QEMU_NBD --image-opts driver=qcow2,file.driver=file,file.filename=$file2 ]
+        [ $QEMU_NBD --image-opts "$opts" ]
 
 ls -l $file2
 
