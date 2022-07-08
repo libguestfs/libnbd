@@ -388,6 +388,8 @@ main (int argc, char *argv[])
   request_size = MAX (request_size, src->preferred);
   request_size = MAX (request_size, dst->preferred);
   assert (request_size > 0);
+  assert (request_size <= MAX_REQUEST_SIZE);
+  assert (request_size <= THREAD_WORK_SIZE);
   assert (is_power_of_2 (request_size));
 
   /* Adapt queue to size to request size if needed. */
