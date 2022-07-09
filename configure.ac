@@ -638,6 +638,20 @@ feature "OCaml"                 test "x$HAVE_OCAML_TRUE" = "x"
 feature "Python"                test "x$HAVE_PYTHON_TRUE" = "x"
 
 echo
+echo "Server interoperability testing:"
+echo
+feature "qemu-nbd"              test "x$HAVE_QEMU_NBD_TRUE" = "x"
+feature "qemu-storage-daemon"   test "x$HAVE_QEMU_STORAGE_DAEMON_TRUE" = "x"
+feature "nbdkit"                test "x$HAVE_NBDKIT_TRUE" = "x"
+feature "nbd-server"            test "x$HAVE_NBD_SERVER_TRUE" = "x"
+
+echo
+echo "Examples:"
+echo
+feature "glib example"          test "x$GLIB_LIBS" != "x"
+feature "libev example"         test "x$LIBEV_LIBS" != "x"
+
+echo
 echo "If any optional component is configured ‘no’ when you expected ‘yes’"
 echo "then you should check the preceding messages and README."
 echo
