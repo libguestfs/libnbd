@@ -598,36 +598,37 @@ echo
 echo "This is how we have configured the optional components for you today:"
 echo
 
+print ()
+{
+    printf '    %.40s %s\n' \
+        "$1 ........................................" "$2"
+}
+
 feature ()
 {
-    printf %s "    $1"
+    feat="$1"
     shift
-    if $@; then echo "yes"; else echo "no"; fi
+    if "$@"; then
+        print "$feat" "yes"
+    else
+        print "$feat" "no"
+    fi
 }
 
 echo "Optional library features:"
 echo
-feature "TLS support ............................ " \
-        test "x$HAVE_GNUTLS_TRUE" = "x"
-feature "NBD URI support ........................ " \
-        test "x$HAVE_LIBXML2_TRUE" = "x"
-feature "FUSE support ........................... " \
-        test "x$HAVE_FUSE_TRUE" = "x"
-feature "Manual pages ........................... " \
-        test "x$HAVE_POD_TRUE" = "x"
-feature "Bash tab completion .................... " \
-        test "x$HAVE_BASH_COMPLETION_TRUE" = "x"
+feature "TLS support"           test "x$HAVE_GNUTLS_TRUE" = "x"
+feature "NBD URI support"       test "x$HAVE_LIBXML2_TRUE" = "x"
+feature "FUSE support"          test "x$HAVE_FUSE_TRUE" = "x"
+feature "Manual pages"          test "x$HAVE_POD_TRUE" = "x"
+feature "Bash tab completion"   test "x$HAVE_BASH_COMPLETION_TRUE" = "x"
 
 echo
 echo "Language bindings:"
 echo
-feature "Go ..................................... " \
-        test "x$HAVE_GOLANG_TRUE" = "x"
-feature "OCaml .................................. " \
-        test "x$HAVE_OCAML_TRUE" = "x"
-feature "Python ................................. " \
-        test "x$HAVE_PYTHON_TRUE" = "x"
-
+feature "Go"                    test "x$HAVE_GOLANG_TRUE" = "x"
+feature "OCaml"                 test "x$HAVE_OCAML_TRUE" = "x"
+feature "Python"                test "x$HAVE_PYTHON_TRUE" = "x"
 
 echo
 echo "If any optional component is configured ‘no’ when you expected ‘yes’"
