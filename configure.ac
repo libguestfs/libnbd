@@ -206,10 +206,12 @@ AS_IF([test "$with_libxml2" != "no"],[
 ])
 AM_CONDITIONAL([HAVE_LIBXML2], [test "x$LIBXML2_LIBS" != "x"])
 
-dnl nbdkit, basic plugins and nbdkit-sh-plugin are only needed to run
-dnl the test suite.
-nbdkit_plugins="memory null pattern sh"
+dnl nbdkit and some plugins are only needed to run the test suite.
+dnl
+dnl List the minimum version and plugins which are used by C code,
+dnl because shell script tests can use 'requires' tests.
 nbdkit_min_minor="12" ;# 1.12
+nbdkit_plugins="file memory null pattern sh"
 AC_CHECK_PROG([NBDKIT], [nbdkit], [nbdkit])
 AS_IF([test "x$NBDKIT" != "x"], [
     have_nbdkit_features=yes
