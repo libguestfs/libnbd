@@ -151,6 +151,7 @@ AC_ARG_WITH([gnutls],
     [with_gnutls=check])
 AS_IF([test "$with_gnutls" != "no"],[
     PKG_CHECK_MODULES([GNUTLS], [gnutls >= 3.3.0], [
+        printf "gnutls version is "; $PKG_CONFIG --modversion gnutls
         AC_SUBST([GNUTLS_CFLAGS])
         AC_SUBST([GNUTLS_LIBS])
         AC_DEFINE([HAVE_GNUTLS],[1],[gnutls found at compile time.])
@@ -197,6 +198,7 @@ AC_ARG_WITH([libxml2],
     [with_libxml2=check])
 AS_IF([test "$with_libxml2" != "no"],[
     PKG_CHECK_MODULES([LIBXML2], [libxml-2.0], [
+        printf "libxml2 version is "; $PKG_CONFIG --modversion libxml-2.0
         AC_SUBST([LIBXML2_CFLAGS])
         AC_SUBST([LIBXML2_LIBS])
         AC_DEFINE([HAVE_LIBXML2],[1],[libxml2 found at compile time.])
@@ -254,6 +256,7 @@ AM_CONDITIONAL([HAVE_QEMU_STORAGE_DAEMON],
 
 dnl glib2 main loop for examples that interoperate with the glib main loop.
 PKG_CHECK_MODULES([GLIB], [glib-2.0], [
+    printf "glib2 version is "; $PKG_CONFIG --modversion glib-2.0
     AC_SUBST([GLIB_CFLAGS])
     AC_SUBST([GLIB_LIBS])
 ],[
@@ -263,6 +266,7 @@ AM_CONDITIONAL([HAVE_GLIB], [test "x$GLIB_LIBS" != "x"])
 
 dnl libev support for examples that interoperate with libev event loop.
 PKG_CHECK_MODULES([LIBEV], [libev], [
+    printf "libev version is "; $PKG_CONFIG --modversion libev
     AC_SUBST([LIBEV_CFLAGS])
     AC_SUBST([LIBEV_LIBS])
 ],[
@@ -309,6 +313,7 @@ AC_ARG_ENABLE([fuse],
     [enable_fuse=yes])
 AS_IF([test "x$enable_fuse" != "xno"],[
     PKG_CHECK_MODULES([FUSE],[fuse3],[
+        printf "fuse3 version is "; $PKG_CONFIG --modversion fuse3
         AC_SUBST([FUSE_CFLAGS])
         AC_SUBST([FUSE_LIBS])
         AC_DEFINE([HAVE_FUSE],[1],[Define to 1 if you have FUSE.])
