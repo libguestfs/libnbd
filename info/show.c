@@ -66,8 +66,13 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
   if (nbd_aio_is_negotiating (nbd) &&
       nbd_opt_info (nbd) == -1 &&
       nbd_opt_go (nbd) == -1) {
-    fprintf (stderr, "%s: %s: %s\n", progname, nbd_get_export_name (nbd),
-             nbd_get_error ());
+    fprintf (stderr, "%s: %s", progname, nbd_get_error ());
+
+    char *e = nbd_get_export_name (nbd);
+    if (e) fprintf (stderr, " for export: %s", e);
+    free (e);
+    fprintf (stderr, "\n");
+
     return false;
   }
   size = nbd_get_size (nbd);
