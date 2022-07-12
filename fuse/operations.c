@@ -176,8 +176,12 @@ operations_thread (void *arg)
     pthread_mutex_unlock (&thread->in_flight_mutex);
 
     /* Dispatch work while there are commands in flight. */
-    while (thread->in_flight > 0)
-      nbd_poll (h, -1);
+    while (thread->in_flight > 0) {
+      if (nbd_poll (h, -1) == -1) {
+        fprintf (stderr, "%s\n", nbd_get_error ());
+        exit (EXIT_FAILURE);
+      }
+    }
   }
 
   /*NOTREACHED*/
