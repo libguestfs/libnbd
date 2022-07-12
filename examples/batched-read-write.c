@@ -123,7 +123,7 @@ static void
 alarm_handler (int sig)
 {
   fprintf (stderr, "alarm fired; deadlock probably occurred\n");
-  exit (EXIT_FAILURE);
+  _exit (EXIT_FAILURE);
 }
 
 int
