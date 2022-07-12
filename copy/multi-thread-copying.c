@@ -300,7 +300,7 @@ worker_thread (void *wp)
       command = create_command (zeroing_start, offset - zeroing_start,
                                 true, w);
       fill_dst_range_with_zeroes (command);
-      is_zeroing = false;
+      //is_zeroing = false;
     }
   }
 
