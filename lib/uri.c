@@ -142,7 +142,7 @@ parse_uri_queries (const char *query_raw, uri_query_list *list)
   return 0;
 
 error:
-  for (i = 0; i < list->len; ++list) {
+  for (i = 0; i < list->len; ++i) {
     free (list->ptr[i].name);
     free (list->ptr[i].value);
   }
