@@ -361,7 +361,7 @@ nbdkit (int fd, int sock)
   close (rfd[1]);
   close (wfd[0]);
 
-  while (!parent_dead && rfd[0] >= 0) {
+  while (!parent_dead || rfd[0] >= 0) {
     pfds[0].fd = parent_dead ? -1 : sock;
     pfds[0].events = POLLIN;
     pfds[0].revents = 0;
