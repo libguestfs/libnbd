@@ -224,6 +224,7 @@ AS_IF([test "x$NBDKIT" != "x"], [
     )"
     AS_IF([test $nbdkit_minor -ge $nbdkit_min_minor],[
         AC_MSG_RESULT([yes (1.$nbdkit_minor)])
+        printf "nbdkit version is "; $NBDKIT --version
     ],[
         AC_MSG_RESULT([no (1.$nbdkit_minor)])
         AC_MSG_WARN([nbdkit is too old, some tests will be disabled])
@@ -249,6 +250,9 @@ AC_CHECK_PROG([NBD_SERVER], [nbd-server], [nbd-server])
 AM_CONDITIONAL([HAVE_NBD_SERVER], [test "x$NBD_SERVER" != "x"])
 AC_CHECK_PROG([QEMU_NBD], [qemu-nbd], [qemu-nbd])
 AM_CONDITIONAL([HAVE_QEMU_NBD], [test "x$QEMU_NBD" != "x"])
+AS_IF([test "x$QEMU_NBD" != "x"], [
+   printf "qemu-nbd version is "; $QEMU_NBD --version | head -1
+])
 AC_CHECK_PROG([QEMU_STORAGE_DAEMON],
                [qemu-storage-daemon], [qemu-storage-daemon])
 AM_CONDITIONAL([HAVE_QEMU_STORAGE_DAEMON],
