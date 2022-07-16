@@ -692,6 +692,7 @@ check_PROGRAMS += \
 TESTS += \
 	connect-uri-nbd \
 	connect-uri-nbd-unix \
+	connect-uri-nbd-vsock.sh \
 	$(NULL)
 
 RANDOM1 := $(shell bash -c 'echo $$(( 32768 + (RANDOM & 16383) ))')
