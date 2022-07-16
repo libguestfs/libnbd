@@ -297,18 +297,6 @@ and stored temporarily in the RAM disk (L<nbdkit-memory-plugin(1)>).
 When nbdcopy exits both servers are killed and the RAM disk goes away,
 so this command has no overall effect, but is useful for testing.
 
-=head1 COMPARING NBD SERVER CONTENT
-
-You can use nbdcopy, L<cmp(1)> and L<bash(1)> process substitution to
-compare the content of two NBD servers for equality:
-
- cmp <( nbdcopy nbd://server1 - ) <( nbdcopy nbd://server2 - )
-
-Note this tests that the content is logically equal.  It does not
-compare the NBD metadata such as sparseness (see L<nbdinfo(1)>
-I<--map> option).  Thus for example a run of allocated zeroes in one
-server will match a hole in the other.
-
 =head1 SEE ALSO
 
 L<libnbd(3)>,
