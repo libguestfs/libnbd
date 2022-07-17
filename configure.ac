@@ -164,7 +164,7 @@ AM_CONDITIONAL([HAVE_GNUTLS], [test "x$GNUTLS_LIBS" != "x"])
 AS_IF([test "$GNUTLS_LIBS" != ""],[
     AC_MSG_CHECKING([for default TLS session priority string])
     AC_ARG_WITH([tls-priority],
-        [AS_HELP_STRING([--with-tls-priority],
+        [AS_HELP_STRING([--with-tls-priority=...],
                         [default TLS session priority string @<:@default=NORMAL@:>@])],
         [tls_priority=$withval],
         [tls_priority=NORMAL])
@@ -481,7 +481,7 @@ AS_IF([test "x$enable_python" != "xno"],[
         AC_MSG_RESULT([$PYTHON_PREFIX])
 
         AC_ARG_WITH([python-installdir],
-                    [AS_HELP_STRING([--with-python-installdir],
+                    [AS_HELP_STRING([--with-python-installdir=...],
                         [directory to install python modules @<:@default=check@:>@])],
                         [PYTHON_INSTALLDIR="$withval"
                          AC_MSG_NOTICE([Python install dir $PYTHON_INSTALLDIR])],
