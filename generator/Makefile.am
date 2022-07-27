@@ -64,6 +64,7 @@ sources = \
 	$(NULL)
 
 EXTRA_DIST = \
+	README.state-machine.md \
 	$(states_code) \
 	$(sources) \
 	$(NULL)
