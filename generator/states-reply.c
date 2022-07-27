@@ -72,11 +72,12 @@ STATE_MACHINE {
 
   r = h->sock->ops->recv (h, h->sock, h->rbuf, h->rlen);
   if (r == -1) {
-    /* This should never happen because when we enter this state we
-     * should have notification that the socket is ready to read.
-     * However if for some reason it does happen, ignore it - we will
-     * reenter this same state again next time the socket is ready to
-     * read.
+    /* In theory this should never happen because when we enter this
+     * state we should have notification that the socket is ready to
+     * read.  However it can in fact happen when using TLS in
+     * conjunction with a slow, remote server.  If it does happen,
+     * ignore it - we will reenter this same state again next time the
+     * socket is ready to read.
      */
     if (errno == EAGAIN || errno == EWOULDBLOCK)
       return 0;

@@ -750,7 +750,7 @@ and reply_state_machine = [
     default_state with
     name = "START";
     comment = "Prepare to receive a reply from the remote server";
-    external_events = [];
+    external_events = [ NotifyRead, "" ];
   };
 
   State {
