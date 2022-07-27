@@ -172,6 +172,9 @@ AS_IF([test "$GNUTLS_LIBS" != ""],[
     AC_DEFINE_UNQUOTED([TLS_PRIORITY],["$tls_priority"],
                        [Default TLS session priority string])
 
+    # Check for gnutls/socket.h
+    AC_CHECK_HEADERS([gnutls/socket.h])
+
     # Check for APIs which may not be present.
     old_LIBS="$LIBS"
     LIBS="$GNUTLS_LIBS $LIBS"
