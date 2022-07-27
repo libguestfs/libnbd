@@ -588,7 +588,12 @@ nbd_internal_crypto_create_session (struct nbd_handle *h,
   gnutls_psk_client_credentials_t pskcreds = NULL;
   gnutls_certificate_credentials_t xcreds = NULL;
 
-  err = gnutls_init (&session, GNUTLS_CLIENT|GNUTLS_NONBLOCK);
+  err = gnutls_init (&session,
+                     GNUTLS_CLIENT | GNUTLS_NONBLOCK
+#if HAVE_GNUTLS_NO_SIGNAL
+                     | GNUTLS_NO_SIGNAL
+#endif
+                     );
   if (err < 0) {
     set_error (errno, "gnutls_init: %s", gnutls_strerror (err));
     return NULL;

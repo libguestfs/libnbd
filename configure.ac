@@ -179,6 +179,21 @@ AS_IF([test "$GNUTLS_LIBS" != ""],[
         gnutls_session_set_verify_cert \
         gnutls_transport_is_ktls_enabled \
     ])
+    AC_MSG_CHECKING([if gnutls has GNUTLS_NO_SIGNAL])
+    AC_COMPILE_IFELSE(
+        [AC_LANG_PROGRAM([
+            #include <gnutls/gnutls.h>
+            gnutls_session_t session;
+         ], [
+            gnutls_init(&session, GNUTLS_CLIENT|GNUTLS_NO_SIGNAL);
+         ])
+    ], [
+        AC_MSG_RESULT([yes])
+        AC_DEFINE([HAVE_GNUTLS_NO_SIGNAL], [1],
+                  [GNUTLS_NO_SIGNAL found at compile time])
+    ], [
+        AC_MSG_RESULT([no])
+    ])
     LIBS="$old_LIBS"
 ])
 

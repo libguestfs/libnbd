@@ -84,6 +84,16 @@ main (int argc, char *argv[])
   REQUIRES
 #endif
 
+  /* Ignore SIGPIPE.  We only need this for GnuTLS < 3.4.2, since
+   * newer GnuTLS has the GNUTLS_NO_SIGNAL flag which adds
+   * MSG_NOSIGNAL to each write call.
+   */
+#if !HAVE_GNUTLS_NO_SIGNAL
+#if TLS
+  signal (SIGPIPE, SIG_IGN);
+#endif
+#endif
+
   /* Create a large sparse temporary file. */
 #ifdef NEEDS_TMPFILE
   int fd = mkstemp (TMPFILE);
