@@ -187,6 +187,22 @@ tls_recv (struct nbd_handle *h, struct socket *sock, void *buf, size_t len)
       errno = EAGAIN;
       return -1;
     }
+    if (h->tls_shut_writes &&
+        (r == GNUTLS_E_PULL_ERROR || r == GNUTLS_E_PREMATURE_TERMINATION)) {
+      /* qemu-nbd doesn't call gnutls_bye to cleanly shut down the
+       * connection after we send NBD_CMD_DISC, instead it simply
+       * closes the connection.  On the client side we see
+       * "gnutls_record_recv: The TLS connection was non-properly
+       * terminated" or "gnutls_record_recv: Error in the pull
+       * function.".
+       *
+       * If we see these errors after we shut down the write side
+       * (h->tls_shut_writes), which happens after we have sent
+       * NBD_CMD_DISC on the wire, downgrade them to a debug message.
+       */
+      debug (h, "gnutls_record_recv: %s", gnutls_strerror (r));
+      return 0; /* EOF */
+    }
     set_error (0, "gnutls_record_recv: %s", gnutls_strerror (r));
     errno = EIO;
     return -1;
@@ -234,6 +250,7 @@ tls_shut_writes (struct nbd_handle *h, struct socket *sock)
     return false;
   if (r != 0)
     debug (h, "ignoring gnutls_bye failure: %s", gnutls_strerror (r));
+  h->tls_shut_writes = true;
   return sock->u.tls.oldsock->ops->shut_writes (h, sock->u.tls.oldsock);
 }
 
