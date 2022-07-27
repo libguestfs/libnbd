@@ -28,7 +28,9 @@
 
 #ifdef HAVE_GNUTLS
 #include <gnutls/gnutls.h>
+#ifdef HAVE_GNUTLS_SOCKET_H
 #include <gnutls/socket.h>
+#endif
 #endif
 
 #include "internal.h"
