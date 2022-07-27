@@ -17,6 +17,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *)
 
+(* For explanation see generator/README.state-machine.md *)
+
 open Printf
 
 type external_event =

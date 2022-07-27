@@ -19,7 +19,7 @@
 /* This isn't "real" C code.  It is read by the generator, parsed, and
  * put into generated files.  Also it won't make much sense unless you
  * read the generator state machine and documentation in
- * generator/generator first.
+ * generator/README.state-machine.md first.
  */
 
 #include <config.h>
