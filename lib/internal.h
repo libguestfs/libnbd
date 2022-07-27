@@ -307,6 +307,7 @@ struct nbd_handle {
   struct command *reply_cmd;
 
   bool disconnect_request;      /* True if we've queued NBD_CMD_DISC */
+  bool tls_shut_writes;         /* Used by lib/crypto.c to track disconnect. */
 };
 
 struct meta_context {
