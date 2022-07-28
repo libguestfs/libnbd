@@ -191,7 +191,7 @@ interop_qemu_nbd_tls_psk_SOURCES = \
 	$(NULL)
 interop_qemu_nbd_tls_psk_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
-	-DREQUIRES=' requires ("test -f $(abs_top_builddir)/tests/keys.psk"); requires_qemu_nbd_tls_support ("$(QEMU_NBD)"); ' \
+	-DREQUIRES=' requires ("test -f $(abs_top_builddir)/tests/keys.psk"); requires_qemu_nbd_tls_support ("$(QEMU_NBD)"); requires_qemu_nbd_tls_psk_support ("$(QEMU_NBD)"); ' \
 	-DSOCKET_ACTIVATION=1 \
 	-DNEEDS_TMPFILE=1 \
 	-DSERVER=\"$(QEMU_NBD)\" \
