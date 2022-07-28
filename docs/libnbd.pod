@@ -940,6 +940,18 @@ should return C<1> on all control paths, even when handling errors
 (note that with automatic retirement, assigning into C<error> is
 pointless as there is no later API to see that value).
 
+=head1 SIGNALS
+
+Libnbd does not install signal handlers.  It attempts to disable
+C<SIGPIPE> when writing to the NBD socket using the C<MSG_NOSIGNAL>
+flag of L<send(2)>, or the C<SO_NOSIGPIPE> socket option, on platforms
+that support those.
+
+On some old Linux or newer non-Linux platforms the main program may
+wish to register a signal handler to ignore SIGPIPE:
+
+ signal (SIGPIPE, SIG_IGN);
+
 =head1 COMPILING YOUR PROGRAM
 
 On most systems, C programs that use libnbd can be compiled like this:
