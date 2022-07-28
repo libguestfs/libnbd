@@ -27,6 +27,14 @@ requires nbdkit sparse-random --dump-plugin
 requires qemu-img --version
 requires stat --version
 
+# Check the compress driver is supported by this qemu-nbd.
+# Note that qemu-nbd opens the socket before checking --image-opts!
+sock=$(mktemp -u /tmp/libnbd-test-copy.XXXXXX)
+cleanup_fn rm -f $sock
+export sock
+requires_not bash -c 'qemu-nbd -k $sock --image-opts driver=compress |&
+                      grep -sq "Unknown driver.*compress"'
+
 file1=copy-file-to-qcow2-compressed.file1
 file2=copy-file-to-qcow2-compressed.file2
 rm -f $file1 $file2
