@@ -1,0 +1,107 @@
+=head1 NAME
+
+libnbd-release-notes-1.14 - release notes for libnbd 1.14
+
+=head1 DESCRIPTION
+
+These are the release notes for libnbd stable release 1.14.
+This describes the major changes since 1.12.
+
+libnbd 1.14.0 was released on B<XX XXXX 2022>.
+
+=head2 Security
+
+No security issues were found in this release.
+
+If you find a security issue, please read F<SECURITY> in the source
+(online here:
+L<https://gitlab.com/nbdkit/libnbd/blob/master/SECURITY>).  To
+find out about previous security issues in libnbd, see
+L<libnbd-security(3)>.
+
+=head2 New APIs
+
+No new APIs were added in this release.
+
+=head2 Enhancements to existing APIs
+
+Optimizations to L<nbd_pread_structured(3)> (Eric Blake).
+
+Many performance enhancements in the Python bindings: C<nbd.pread> now
+avoids an extra memory allocation and copy.  Buffers can now be passed
+to C<nbd.Buffer.from_bytearray>.  New methods
+C<nbd.Buffer.{to,from}_buffer> allow control over copying and sharing
+C<nbd.Buffer>.  Any buffer-like object can be used in
+C<nbd.aio_{pread,pwrite}>.  C<len(nbd.Buffer(n))> now works.  Improve
+error messages when the wrong types are passed to several APIs.  Fix
+usage of C<PyGILState>.  (Eric Blake)
+
+Golang C<AioBuffer> now calls panic on invalid usage (Nir Soffer).
+
+In golang tests, use C<GOTRACEBACK=crash> so we get full core dumps on
+failures.
+
+kTLS should now work (transparently) when available in the kernel and
+GnuTLS.  Use of kTLS will be indicated in debug output.  (Daiki Ueno,
+František Krenželok)
+
+=head2 Tools
+
+New L<nbddump(1)> tool which can efficiently hexdump the contents of
+an NBD server.
+
+L<nbdcopy(1)> now obeys the NBD server minimum/preferred block size
+when copying, which should make it more efficient and avoids issues
+with some qemu-nbd configurations where the minimum block size must be
+obeyed for correct operation.
+
+=head2 Tests
+
+New tests for C<nbd+vsock://> URI support.
+
+=head2 Other improvements and bug fixes
+
+Fixed rare TLS deadlock when reading from slow servers, and support
+for clean shutdown when connecting to qemu-nbd over TLS (thanks
+Michael Ablassmeier).
+
+Various enhancements to fuzzing were made, including support for AFL++
+clang-LTO mode, ASAN, allowing seed test cases to be captured, and
+extended testing of APIs.
+
+=head2 Documentation
+
+No changes in this release.
+
+=head2 Build
+
+C<ARRAY_SIZE> macro added to simplify static array sizing (thanks
+Laszlo Ersek).
+
+Various errors found by Coverity were fixed.
+
+=head1 SEE ALSO
+
+L<libnbd(3)>.
+
+=head1 AUTHORS
+
+=begin comment
+
+git shortlog -s v1.12.0..
+
+=end comment
+
+=over 4
+
+=item Eric Blake
+
+=item Nir Soffer
+
+=item Richard W.M. Jones
+
+=back
+
+=head1 COPYRIGHT
+
+Copyright (C) 2019-2022 Red Hat Inc.

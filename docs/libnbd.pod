@@ -1033,6 +1033,7 @@ L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>.
 
 =head2 Release notes
 
+L<libnbd-release-notes-1.14(1)>,
 L<libnbd-release-notes-1.12(1)>,
 L<libnbd-release-notes-1.10(1)>,
 L<libnbd-release-notes-1.8(1)>,
@@ -1058,4 +1059,4 @@ Richard W.M. Jones
 
 =head1 COPYRIGHT
 
-Copyright (C) 2019-2021 Red Hat Inc.
+Copyright (C) 2019-2022 Red Hat Inc.
