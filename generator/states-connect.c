@@ -45,6 +45,21 @@ disable_nagle (int sock)
   setsockopt (sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof flag);
 }
 
+/* Disable SIGPIPE on FreeBSD & MacOS.
+ *
+ * Does nothing on other platforms, but if those platforms have
+ * MSG_NOSIGNAL then we will set that when writing.  (FreeBSD has both.)
+ */
+static void
+disable_sigpipe (int sock)
+{
+#ifdef SO_NOSIGPIPE
+  const int flag = 1;
+
+  setsockopt (sock, SOL_SOCKET, SO_NOSIGPIPE, &flag, sizeof flag);
+#endif
+}
+
 STATE_MACHINE {
  CONNECT.START:
   sa_family_t family;
@@ -65,6 +80,7 @@ STATE_MACHINE {
   }
 
   disable_nagle (fd);
+  disable_sigpipe (fd);
 
   r = connect (fd, (struct sockaddr *) &h->connaddr, h->connaddrlen);
   if (r == 0 || (r == -1 && errno == EINPROGRESS))
@@ -177,6 +193,7 @@ STATE_MACHINE {
   }
 
   disable_nagle (fd);
+  disable_sigpipe (fd);
 
   if (connect (fd, h->rp->ai_addr, h->rp->ai_addrlen) == -1) {
     if (errno != EINPROGRESS) {
