@@ -62,6 +62,21 @@ requires_qemu_nbd_tls_support (const char *qemu_nbd)
   requires (cmd);
 }
 
+/* Check qemu-nbd supports PSK (version 3.0.0 and above). */
+void
+requires_qemu_nbd_tls_psk_support (const char *qemu_nbd)
+{
+  char cmd[256];
+
+  /* Note the qemu-nbd command will fail in some way.  We're only
+   * interested in the error message that it prints.
+   */
+  snprintf (cmd, sizeof cmd,
+            "if %s --object tls-creds-psk,id=tls0 / |& grep -sq 'invalid object type'; then exit 1; else exit 0; fi",
+            qemu_nbd);
+  requires (cmd);
+}
+
 /* On some distros, nbd-server is built without support for syslog
  * which prevents use of inetd mode.  Instead nbd-server will exit with
  * this error:
