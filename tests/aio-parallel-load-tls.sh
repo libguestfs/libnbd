@@ -18,6 +18,13 @@
 
 # Test AIO random load.
 
+. ../tests/functions.sh
+
+set -e
+set -x
+
+requires nbdkit --tls-verify-peer -U - null --run 'exit 0'
+
 nbdkit -U - --tls=require --tls-verify-peer --tls-psk=keys.psk \
        memory size=64M \
        --run '$VG ./aio-parallel-load-tls $unixsocket'

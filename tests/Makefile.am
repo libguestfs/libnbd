@@ -610,7 +610,7 @@ check_PROGRAMS += connect-tls-certs
 check_DATA += pki/stamp-pki
 TESTS += connect-tls-certs
 
-connect_tls_certs_SOURCES = connect-tls.c
+connect_tls_certs_SOURCES = connect-tls.c requires.c requires.h
 connect_tls_certs_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-DCERTS=1 \
@@ -641,7 +641,7 @@ TESTS += \
 	$(NULL)
 check_DATA += keys.psk
 
-connect_tls_psk_SOURCES = connect-tls.c
+connect_tls_psk_SOURCES = connect-tls.c requires.c requires.h
 connect_tls_psk_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-DPSK=1 \
@@ -697,7 +697,7 @@ TESTS += \
 	$(NULL)
 
 RANDOM1 := $(shell bash -c 'echo $$(( 32768 + (RANDOM & 16383) ))')
-connect_uri_nbd_SOURCES = connect-uri.c
+connect_uri_nbd_SOURCES = connect-uri.c requires.c requires.h
 connect_uri_nbd_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-DSERVER_PARAMS='"-p", "$(RANDOM1)"' \
@@ -707,7 +707,7 @@ connect_uri_nbd_CPPFLAGS = \
 connect_uri_nbd_CFLAGS = $(AM_CFLAGS)
 connect_uri_nbd_LDADD = $(top_builddir)/lib/libnbd.la
 
-connect_uri_nbd_unix_SOURCES = connect-uri.c
+connect_uri_nbd_unix_SOURCES = connect-uri.c requires.c requires.h
 connect_uri_nbd_unix_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-DNEEDS_UNIX_SOCKET=1 \
@@ -729,20 +729,22 @@ TESTS += \
 	$(NULL)
 
 RANDOM2 := $(shell bash -c 'echo $$(( 32768 + (RANDOM & 16383) ))')
-connect_uri_nbds_certs_SOURCES = connect-uri.c
+connect_uri_nbds_certs_SOURCES = connect-uri.c requires.c requires.h
 connect_uri_nbds_certs_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-DSERVER_PARAMS='"-p", "$(RANDOM2)", "--tls=require", "--tls-verify-peer", "--tls-certificates=pki"' \
+	-DREQUIRES_NBDKIT_TLS_VERIFY_PEER=1 \
 	-DPIDFILE='"connect-uri-nbds-certs.pid"' \
 	-DURI='"nbds://localhost:$(RANDOM2)/?tls-certificates=pki"' \
 	$(NULL)
 connect_uri_nbds_certs_LDADD = $(top_builddir)/lib/libnbd.la
 
-connect_uri_nbds_unix_certs_SOURCES = connect-uri.c
+connect_uri_nbds_unix_certs_SOURCES = connect-uri.c requires.c requires.h
 connect_uri_nbds_unix_certs_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-DNEEDS_UNIX_SOCKET=1 \
 	-DSERVER_PARAMS='"-U", UNIX_SOCKET, "--tls=require", "--tls-verify-peer", "--tls-certificates=pki"' \
+	-DREQUIRES_NBDKIT_TLS_VERIFY_PEER=1 \
 	-DPIDFILE='"connect-uri-nbds-unix-certs.pid"' \
 	-DURI='"nbds+unix://alice@/?tls-certificates=pki&socket="' # UNIX_SOCKET appended
 connect_uri_nbds_unix_certs_LDADD = $(top_builddir)/lib/libnbd.la
@@ -761,20 +763,22 @@ TESTS += \
 	$(NULL)
 
 RANDOM3 := $(shell bash -c 'echo $$(( 32768 + (RANDOM & 16383) ))')
-connect_uri_nbds_psk_SOURCES = connect-uri.c
+connect_uri_nbds_psk_SOURCES = connect-uri.c requires.c requires.h
 connect_uri_nbds_psk_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-DSERVER_PARAMS='"-p", "$(RANDOM3)", "--tls=require", "--tls-verify-peer", "--tls-psk=keys.psk"' \
+	-DREQUIRES_NBDKIT_TLS_VERIFY_PEER=1 \
 	-DPIDFILE='"connect-uri-nbds-psk.pid"' \
 	-DURI='"nbds://alice@localhost:$(RANDOM3)/?tls-psk-file=keys.psk"' \
 	$(NULL)
 connect_uri_nbds_psk_LDADD = $(top_builddir)/lib/libnbd.la
 
-connect_uri_nbds_unix_psk_SOURCES = connect-uri.c
+connect_uri_nbds_unix_psk_SOURCES = connect-uri.c requires.c requires.h
 connect_uri_nbds_unix_psk_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-DNEEDS_UNIX_SOCKET=1 \
 	-DSERVER_PARAMS='"-U", UNIX_SOCKET, "--tls=require", "--tls-verify-peer", "--tls-psk=keys.psk"' \
+	-DREQUIRES_NBDKIT_TLS_VERIFY_PEER=1 \
 	-DPIDFILE='"connect-uri-nbds-unix-psk.pid"' \
 	-DURI='"nbds+unix://alice@/?tls-psk-file=keys.psk&socket="' # UNIX_SOCKET appended \
 	$(NULL)

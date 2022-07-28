@@ -29,6 +29,8 @@
 
 #include <libnbd.h>
 
+#include "requires.h"
+
 #ifdef NEEDS_UNIX_SOCKET
 #define UNIX_SOCKET tmp
 static char tmp[] = "/tmp/nbdXXXXXX";
@@ -53,6 +55,13 @@ main (int argc, char *argv[])
   char *uri;
 #else
   const char *uri = URI;
+#endif
+
+  /* If SERVER_PARAMS contains --tls-verify-peer we must make sure
+   * that nbdkit supports that option.
+   */
+#ifdef REQUIRES_NBDKIT_TLS_VERIFY_PEER
+  requires ("nbdkit --tls-verify-peer -U - null --run 'exit 0'");
 #endif
 
 #ifdef NEEDS_UNIX_SOCKET

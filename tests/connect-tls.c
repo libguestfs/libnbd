@@ -30,12 +30,17 @@
 
 #include <libnbd.h>
 
+#include "requires.h"
+
 int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
   char buf[512];
   int64_t actual_size;
+
+  /* Check --tls-verify-peer option is supported. */
+  requires ("nbdkit --tls-verify-peer -U - null --run 'exit 0'");
 
   nbd = nbd_create ();
   if (nbd == NULL) {

@@ -25,6 +25,7 @@ set -x
 
 requires nbdkit --version
 requires nbdkit null --version
+requires nbdkit --tls-verify-peer -U - null --run 'exit 0'
 requires jq --version
 
 # Requires that the test certificates were created.
