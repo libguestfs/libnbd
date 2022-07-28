@@ -18,6 +18,13 @@
 
 # Test synchronous parallel high level API requests.
 
+. ../tests/functions.sh
+
+set -e
+set -x
+
+requires nbdkit --tls-verify-peer -U - null --run 'exit 0'
+
 nbdkit -U - --tls=require --tls-verify-peer --tls-psk=keys.psk \
        --filter=cow \
        pattern size=8M \

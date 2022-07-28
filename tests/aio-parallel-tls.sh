@@ -18,6 +18,13 @@
 
 # Test AIO parallel data integrity.
 
+. ../tests/functions.sh
+
+set -e
+set -x
+
+requires nbdkit --tls-verify-peer -U - null --run 'exit 0'
+
 nbdkit -U - --tls=require --tls-verify-peer --tls-psk=keys.psk \
        --filter=cow \
        pattern size=64M \
