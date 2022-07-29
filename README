@@ -68,6 +68,9 @@ want to run these tests, do:
 
   sudo make check-root
 
+On FreeBSD, OpenBSD and macOS which do not have GNU make by default
+you must use 'gmake' instead of 'make'.
+
 Requirements:
 
  * Linux, FreeBSD or OpenBSD.
