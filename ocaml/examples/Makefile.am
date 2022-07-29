@@ -50,5 +50,5 @@ endif HAVE_OCAML
 # Dependencies.
 #.depend: $(srcdir)/*.mli $(srcdir)/*.ml
 .depend: $(srcdir)/*.ml
-	$(OCAMLFIND) ocamldep -I .. $^ > $@
+	$(OCAMLFIND) ocamldep -I .. $(srcdir)/*.ml > $@
 -include .depend

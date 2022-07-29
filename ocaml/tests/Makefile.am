@@ -142,5 +142,5 @@ check-valgrind:
 # Dependencies.
 #.depend: $(srcdir)/*.mli $(srcdir)/*.ml
 .depend: $(srcdir)/*.ml
-	$(OCAMLFIND) ocamldep -I .. $^ > $@
+	$(OCAMLFIND) ocamldep -I .. $(srcdir)/*.ml > $@
 -include .depend

@@ -25,7 +25,7 @@ noinst_DATA = suppressions
 
 suppressions: $(suppressions_files)
 	rm -f $@ $@-t
-	cat $^ > $@-t
+	cat $(suppressions_files) > $@-t
 	mv $@-t $@
 	chmod 0444 $@
 
