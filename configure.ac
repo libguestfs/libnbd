@@ -173,7 +173,10 @@ AS_IF([test "$GNUTLS_LIBS" != ""],[
                        [Default TLS session priority string])
 
     # Check for gnutls/socket.h
+    old_CFLAGS="$CFLAGS"
+    CFLAGS="$GNUTLS_CFLAGS $CFLAGS"
     AC_CHECK_HEADERS([gnutls/socket.h])
+    CFLAGS="$old_CFLAGS"
 
     # Check for APIs which may not be present.
     old_LIBS="$LIBS"
