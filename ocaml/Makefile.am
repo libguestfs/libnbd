@@ -139,7 +139,7 @@ endif
 
 # Dependencies.
 .depend: $(srcdir)/*.mli $(srcdir)/*.ml
-	$(OCAMLFIND) ocamldep $^ > $@
+	$(OCAMLFIND) ocamldep $(srcdir)/*.mli $(srcdir)/*.ml > $@
 -include .depend
 
 # Run ocamlfind to perform the install.  ocamlfind refuses to install
