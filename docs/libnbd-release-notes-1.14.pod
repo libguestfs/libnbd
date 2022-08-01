@@ -7,7 +7,7 @@ libnbd-release-notes-1.14 - release notes for libnbd 1.14
 These are the release notes for libnbd stable release 1.14.
 This describes the major changes since 1.12.
 
-libnbd 1.14.0 was released on B<XX XXXX 2022>.
+libnbd 1.14.0 was released on B<1 August 2022>.
 
 =head2 Security
 
@@ -65,9 +65,17 @@ Fixed rare TLS deadlock when reading from slow servers, and support
 for clean shutdown when connecting to qemu-nbd over TLS (thanks
 Michael Ablassmeier).
 
+The library now uses the GnuTLS flag C<GNUTLS_NO_SIGNAL> (if
+available) which ensures that TLS connections should not cause the
+main program to exit with C<SIGPIPE> in certain cases of server
+failure.  (Libnbd has long used C<MSG_NOSIGNAL> on non-TLS connections
+which has a similar effect.)
+
 Various enhancements to fuzzing were made, including support for AFL++
 clang-LTO mode, ASAN, allowing seed test cases to be captured, and
 extended testing of APIs.
+
+Tests were fixed so they should pass on RHEL 7 and FreeBSD.
 
 =head2 Documentation
 
