@@ -32,6 +32,7 @@
 
 #include <libnbd.h>
 
+#include "ansi-colours.h"
 #include "minmax.h"
 #include "rounding.h"
 #include "version.h"
@@ -41,7 +42,7 @@ DEFINE_VECTOR_TYPE (uint32_vector, uint32_t)
 
 static const char *progname;
 static struct nbd_handle *nbd;
-static bool colour;
+bool colour;
 static uint64_t limit = UINT64_MAX; /* --length (unlimited by default) */
 static int64_t size;                /* actual size */
 static bool can_meta_context;       /* did we get extent data? */
@@ -244,54 +245,11 @@ do_connect (void)
   }
 }
 
-/* Various ANSI colours, suppressed if --no-colour / not tty output. */
-static void
-ansi_restore (void)
-{
-  if (colour)
-    fputs ("\033[0m", stdout);
-}
-
-static void
-ansi_blue (void)
-{
-  if (colour)
-    fputs ("\033[1;34m", stdout);
-}
-
-static void
-ansi_green (void)
-{
-  if (colour)
-    fputs ("\033[0;32m", stdout);
-}
-
-static void
-ansi_magenta (void)
-{
-  if (colour)
-    fputs ("\033[1;35m", stdout);
-}
-
-static void
-ansi_red (void)
-{
-  if (colour)
-    fputs ("\033[1;31m", stdout);
-}
-
-static void
-ansi_grey (void)
-{
-  if (colour)
-    fputs ("\033[0;90m", stdout);
-}
-
 static void
 catch_signal (int sig)
 {
   printf ("\n");
-  ansi_restore ();
+  ansi_restore (stdout);
   fflush (stdout);
   _exit (EXIT_FAILURE);
 }
@@ -417,21 +375,21 @@ do_dump (void)
       memcpy (last, &buffer[i], 16); /* Save the current line. */
 
       /* Print the offset. */
-      ansi_green ();
+      ansi_colour (ANSI_FG_GREEN, stdout);
       printf ("%010" PRIx64, offset + i);
-      ansi_grey ();
+      ansi_colour (ANSI_FG_GREY, stdout);
       printf (": ");
 
       /* Print the hex codes. */
       for (j = i; j < MIN (i+16, n); ++j) {
         if (buffer[j])
-          ansi_blue ();
+          ansi_colour (ANSI_FG_BRIGHT_BLUE, stdout);
         else
-          ansi_grey ();
+          ansi_colour (ANSI_FG_GREY, stdout);
         printf ("%02x ", buffer[j]);
         if ((j - i) == 7) printf (" ");
       }
-      ansi_grey ();
+      ansi_colour (ANSI_FG_GREY, stdout);
       for (; j < i+16; ++j) {
         printf ("   ");
         if ((j - i) == 7) printf (" ");
@@ -442,23 +400,23 @@ do_dump (void)
       for (j = i; j < MIN (i+16, n); ++j) {
         char c = (char) buffer[j];
         if (isalnum (c)) {
-          ansi_red ();
+          ansi_colour (ANSI_FG_BRIGHT_RED, stdout);
           printf ("%c", c);
         }
         else if (isprint (c)) {
-          ansi_magenta ();
+          ansi_colour (ANSI_FG_BRIGHT_MAGENTA, stdout);
           printf ("%c", c);
         }
         else {
-          ansi_grey ();
+          ansi_colour (ANSI_FG_GREY, stdout);
           printf ("%s", dot);
         }
       }
-      ansi_grey ();
+      ansi_colour (ANSI_FG_GREY, stdout);
       for (; j < i+16; ++j)
         printf (" ");
       printf ("%s\n", pipe);
-      ansi_restore ();
+      ansi_restore (stdout);
     }
 
     offset += n;

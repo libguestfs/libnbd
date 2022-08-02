@@ -18,6 +18,7 @@
 include $(top_srcdir)/subdir-rules.mk
 
 EXTRA_DIST = \
+	ansi-colours.h \
 	array-size.h \
 	byte-swapping.h \
 	checked-overflow.h \
