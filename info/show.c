@@ -71,9 +71,19 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
     fprintf (stderr, "%s: %s", progname, nbd_get_error ());
 
     char *e = nbd_get_export_name (nbd);
-    if (e) fprintf (stderr, " for export: %s", e);
+    if (e) {
+      if (e[0] == '\0')
+        fprintf (stderr, " for the default export");
+      else
+        fprintf (stderr, " for export: %s", e);
+    }
     free (e);
     fprintf (stderr, "\n");
+
+    if (!list_all)
+      fprintf (stderr, "%s: suggestion: "
+               "to list all exports on the server, use --list\n",
+               progname);
 
     return false;
   }
