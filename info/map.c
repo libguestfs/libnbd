@@ -30,6 +30,7 @@
 
 #include <libnbd.h>
 
+#include "ansi-colours.h"
 #include "minmax.h"
 #include "vector.h"
 
@@ -99,7 +100,9 @@ do_map (void)
 
 /* Callback handling --map. */
 static void print_one_extent (uint64_t offset, uint64_t len, uint32_t type);
-static char *extent_description (const char *metacontext, uint32_t type);
+static void extent_description (const char *metacontext, uint32_t type,
+                                char **descr, bool *free_descr,
+                                const char **fg, const char **bg);
 
 static int
 extent_callback (void *user_data, const char *metacontext,
@@ -169,15 +172,25 @@ static void
 print_one_extent (uint64_t offset, uint64_t len, uint32_t type)
 {
   static bool comma = false;
-  char *descr = extent_description (map, type);
+  char *descr;
+  bool free_descr;
+  const char *fg, *bg;
+
+  extent_description (map, type, &descr, &free_descr, &fg, &bg);
 
   if (!json_output) {
+    if (fg)
+      ansi_colour (fg, fp);
+    if (bg)
+      ansi_colour (bg, fp);
     fprintf (fp, "%10" PRIu64 "  "
              "%10" PRIu64 "  "
              "%3" PRIu32,
              offset, len, type);
     if (descr)
       fprintf (fp, "  %s", descr);
+    if (fg || bg)
+      ansi_restore (fp);
     fprintf (fp, "\n");
   }
   else {
@@ -196,7 +209,8 @@ print_one_extent (uint64_t offset, uint64_t len, uint32_t type)
     comma = true;
   }
 
-  free (descr);
+  if (free_descr)
+    free (descr);
 }
 
 /* --map --totals suboption */
@@ -237,14 +251,24 @@ print_totals (uint32_vector *entries, int64_t size)
     }
 
     if (c > 0) {
-      char *descr = extent_description (map, type);
+      char *descr;
+      bool free_descr;
+      const char *fg, *bg;
       double percent = 100.0 * c / size;
 
+      extent_description (map, type, &descr, &free_descr, &fg, &bg);
+
       if (!json_output) {
+        if (fg)
+          ansi_colour (fg, fp);
+        if (bg)
+          ansi_colour (bg, fp);
         fprintf (fp, "%10" PRIu64 " %5.1f%% %3" PRIu32,
                  c, percent, type);
         if (descr)
           fprintf (fp, " %s", descr);
+        if (fg || bg)
+          ansi_restore (fp);
         fprintf (fp, "\n");
       }
       else {
@@ -264,7 +288,8 @@ print_totals (uint32_vector *entries, int64_t size)
         comma = true;
       }
 
-      free (descr);
+      if (free_descr)
+        free (descr);
     }
 
     if (next_type == (uint64_t)UINT32_MAX + 1)
@@ -275,37 +300,67 @@ print_totals (uint32_vector *entries, int64_t size)
   if (json_output) fprintf (fp, "\n]\n");
 }
 
-static char *
-extent_description (const char *metacontext, uint32_t type)
+static void
+extent_description (const char *metacontext, uint32_t type,
+                    char **descr, bool *free_descr,
+                    const char **fg, const char **bg)
 {
-  char *ret;
-
   if (strcmp (metacontext, "base:allocation") == 0) {
     switch (type) {
-    case 0: return strdup ("data");
-    case 1: return strdup ("hole");
-    case 2: return strdup ("zero");
-    case 3: return strdup ("hole,zero");
+    case 0:
+      *descr = "data"; *free_descr = false;
+      *fg = ANSI_FG_BOLD_BLACK; *bg = NULL;
+      return;
+    case 1:
+      *descr = "hole"; *free_descr = false;
+      *fg = *bg = NULL;
+      return;
+    case 2:
+      *descr = "zero"; *free_descr = false;
+      *fg = *bg = NULL;
+      return;
+    case 3:
+      *descr = "hole,zero"; *free_descr = false;
+      *fg = *bg = NULL;
+      return;
     }
   }
   else if (strncmp (metacontext, "qemu:dirty-bitmap:", 18) == 0) {
     switch (type) {
-    case 0: return strdup ("clean");
-    case 1: return strdup ("dirty");
+    case 0:
+      *descr = "clean"; *free_descr = false;
+      *fg = ANSI_FG_GREEN; *bg = NULL;
+      return;
+    case 1:
+      *descr = "dirty"; *free_descr = false;
+      *fg = ANSI_FG_RED; *bg = NULL;
+      return;
     }
   }
   else if (strcmp (metacontext, "qemu:allocation-depth") == 0) {
     switch (type) {
-    case 0: return strdup ("absent");
-    case 1: return strdup ("local");
+    case 0:
+      *descr = "absent"; *free_descr = false;
+      *fg = *bg = NULL;
+      return;
+    case 1:
+      *descr = "local"; *free_descr = false;
+      *fg = ANSI_FG_BRIGHT_WHITE; *bg = ANSI_BG_BLACK;
+      return;
     default:
-      if (asprintf (&ret, "backing depth %u", type) == -1) {
+      if (asprintf (descr, "backing depth %u", type) == -1) {
         perror ("asprintf");
         exit (EXIT_FAILURE);
       }
-      return ret;
+      *free_descr = true;
+      *fg = NULL; *bg = ANSI_BG_LIGHT_GREY;
+      return;
     }
   }
 
-  return NULL;   /* Don't know - description field will be omitted. */
+  /* Don't know - description field will be omitted. */
+  *descr = NULL;
+  *free_descr = false;
+  *fg = NULL;
+  *bg = NULL;
 }

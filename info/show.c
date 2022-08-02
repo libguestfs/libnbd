@@ -28,11 +28,13 @@
 
 #include <libnbd.h>
 
+#include "ansi-colours.h"
 #include "human-size.h"
 #include "string-vector.h"
 
 #include "nbdinfo.h"
 
+static void show_boolean (const char *name, bool cond);
 static int collect_context (void *opaque, const char *name);
 static char *get_content (struct nbd_handle *, int64_t size);
 
@@ -119,6 +121,7 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
   content = get_content (nbd, size);
 
   if (!json_output) {
+    ansi_colour (ANSI_FG_BRIGHT_BLUE, fp);
     fprintf (fp, "export=");
     /* Might as well use the JSON function to get an escaped string here ... */
     print_json_string (export_name);
@@ -133,35 +136,38 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
       fprintf (fp, "\tcontent: %s\n", content);
     if (uri)
       fprintf (fp, "\turi: %s\n", uri);
+    ansi_restore (fp);
+    ansi_colour (ANSI_FG_BLUE, fp);
     if (show_context) {
       fprintf (fp, "\tcontexts:\n");
       for (i = 0; i < contexts.len; ++i)
         fprintf (fp, "\t\t%s\n", contexts.ptr[i]);
     }
+    ansi_restore (fp);
+    ansi_colour (ANSI_FG_MAGENTA, fp);
     if (is_rotational >= 0)
       fprintf (fp, "\t%s: %s\n", "is_rotational",
                is_rotational ? "true" : "false");
     if (is_read_only >= 0)
       fprintf (fp, "\t%s: %s\n", "is_read_only",
                is_read_only ? "true" : "false");
+    ansi_restore (fp);
     if (can_cache >= 0)
-      fprintf (fp, "\t%s: %s\n", "can_cache", can_cache ? "true" : "false");
+      show_boolean ("can_cache", can_cache);
     if (can_df >= 0)
-      fprintf (fp, "\t%s: %s\n", "can_df", can_df ? "true" : "false");
+      show_boolean ("can_df", can_df);
     if (can_fast_zero >= 0)
-      fprintf (fp, "\t%s: %s\n", "can_fast_zero",
-               can_fast_zero ? "true" : "false");
+      show_boolean ("can_fast_zero", can_fast_zero);
     if (can_flush >= 0)
-      fprintf (fp, "\t%s: %s\n", "can_flush", can_flush ? "true" : "false");
+      show_boolean ("can_flush", can_flush);
     if (can_fua >= 0)
-      fprintf (fp, "\t%s: %s\n", "can_fua", can_fua ? "true" : "false");
+      show_boolean ("can_fua", can_fua);
     if (can_multi_conn >= 0)
-      fprintf (fp, "\t%s: %s\n", "can_multi_conn",
-               can_multi_conn ? "true" : "false");
+      show_boolean ("can_multi_conn", can_multi_conn);
     if (can_trim >= 0)
-      fprintf (fp, "\t%s: %s\n", "can_trim", can_trim ? "true" : "false");
+      show_boolean ("can_trim", can_trim);
     if (can_zero >= 0)
-      fprintf (fp, "\t%s: %s\n", "can_zero", can_zero ? "true" : "false");
+      show_boolean ("can_zero", can_zero);
     if (block_minimum > 0)
       fprintf (fp, "\t%s: %" PRId64 "\n", "block_size_minimum", block_minimum);
     if (block_preferred > 0)
@@ -267,6 +273,18 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
   free (export_desc);
   free (uri);
   return true;
+}
+
+/* Used for displaying booleans in non-JSON output. */
+static void
+show_boolean (const char *name, bool cond)
+{
+  if (cond)
+    ansi_colour (ANSI_FG_GREEN, fp);
+  else
+    ansi_colour (ANSI_FG_RED, fp);
+  fprintf (fp, "\t%s: %s\n", name, cond ? "true" : "false");
+  ansi_restore (fp);
 }
 
 static int

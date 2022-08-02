@@ -330,6 +330,17 @@ L<nbd_can_df(3)>, L<nbd_can_fast_zero(3)>, L<nbd_can_flush(3)>,
 L<nbd_can_fua(3)>, L<nbd_can_multi_conn(3)>, L<nbd_can_trim(3)>,
 L<nbd_can_zero(3)>, L<nbd_is_read_only(3)>.
 
+=item B<--color>
+
+=item B<--colour>
+
+=item B<--no-color>
+
+=item B<--no-colour>
+
+Enable or disable ANSI colours in output.  By default we use colours
+if the output seems to be a terminal, and disable them if not.
+
 =item B<--content>
 
 =item B<--no-content>

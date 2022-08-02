@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2020-2021 Red Hat Inc.
+ * Copyright (C) 2020-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,6 +30,7 @@
 
 #include <libnbd.h>
 
+#include "ansi-colours.h"
 #include "version.h"
 
 #include "nbdinfo.h"
@@ -37,6 +38,7 @@
 const char *progname;
 struct nbd_handle *nbd;
 FILE *fp;                       /* output file descriptor */
+bool colour;                    /* --colour / --no-colour option */
 bool list_all = false;          /* --list option */
 bool probe_content = false;     /* --content / --no-content option */
 bool json_output = false;       /* --json option */
@@ -93,6 +95,8 @@ main (int argc, char *argv[])
     HELP_OPTION = CHAR_MAX + 1,
     LONG_OPTIONS,
     SHORT_OPTIONS,
+    COLOUR_OPTION,
+    NO_COLOUR_OPTION,
     CONTENT_OPTION,
     NO_CONTENT_OPTION,
     JSON_OPTION,
@@ -105,6 +109,14 @@ main (int argc, char *argv[])
   const struct option long_options[] = {
     { "help",               no_argument,       NULL, HELP_OPTION },
     { "can",                required_argument, NULL, CAN_OPTION },
+    { "color",              no_argument,       NULL, COLOUR_OPTION },
+    { "colors",             no_argument,       NULL, COLOUR_OPTION },
+    { "colour",             no_argument,       NULL, COLOUR_OPTION },
+    { "colours",            no_argument,       NULL, COLOUR_OPTION },
+    { "no-color",           no_argument,       NULL, NO_COLOUR_OPTION },
+    { "no-colors",          no_argument,       NULL, NO_COLOUR_OPTION },
+    { "no-colour",          no_argument,       NULL, NO_COLOUR_OPTION },
+    { "no-colours",         no_argument,       NULL, NO_COLOUR_OPTION },
     { "content",            no_argument,       NULL, CONTENT_OPTION },
     { "no-content",         no_argument,       NULL, NO_CONTENT_OPTION },
     { "is",                 required_argument, NULL, CAN_OPTION },
@@ -127,6 +139,7 @@ main (int argc, char *argv[])
   bool list_okay = true;
 
   progname = argv[0];
+  colour = isatty (STDOUT_FILENO);
 
   for (;;) {
     c = getopt_long (argc, argv, short_options, long_options, NULL);
@@ -154,6 +167,14 @@ main (int argc, char *argv[])
 
     case JSON_OPTION:
       json_output = true;
+      break;
+
+    case COLOUR_OPTION:
+      colour = true;
+      break;
+
+    case NO_COLOUR_OPTION:
+      colour = false;
       break;
 
     case CONTENT_OPTION:
@@ -288,10 +309,12 @@ main (int argc, char *argv[])
 
     if (!json_output) {
       if (protocol) {
+        ansi_colour (ANSI_FG_MAGENTA, fp);
         fprintf (fp, "protocol: %s", protocol);
         if (tls_negotiated >= 0)
           fprintf (fp, " %s TLS", tls_negotiated ? "with" : "without");
         fprintf (fp, "\n");
+        ansi_restore (fp);
       }
     }
     else {
