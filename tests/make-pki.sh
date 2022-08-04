@@ -75,6 +75,9 @@ chmod 0600 $1/server-key.pem
 cat > $1/server.info <<EOF
 organization = Test
 cn = localhost
+dns_name = localhost
+ip_address = 127.0.0.1
+ip_address = ::1
 tls_www_server
 encryption_key
 signing_key
