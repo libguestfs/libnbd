@@ -131,7 +131,7 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
   content = get_content (nbd, size);
 
   if (!json_output) {
-    ansi_colour (ANSI_FG_BRIGHT_BLUE, fp);
+    ansi_colour (ANSI_FG_BOLD_BLACK, fp);
     fprintf (fp, "export=");
     /* Might as well use the JSON function to get an escaped string here ... */
     print_json_string (export_name);
@@ -147,21 +147,19 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
     if (uri)
       fprintf (fp, "\turi: %s\n", uri);
     ansi_restore (fp);
-    ansi_colour (ANSI_FG_BLUE, fp);
+    ansi_colour (ANSI_FG_GREY, fp);
     if (show_context) {
       fprintf (fp, "\tcontexts:\n");
       for (i = 0; i < contexts.len; ++i)
         fprintf (fp, "\t\t%s\n", contexts.ptr[i]);
     }
-    ansi_restore (fp);
-    ansi_colour (ANSI_FG_MAGENTA, fp);
     if (is_rotational >= 0)
       fprintf (fp, "\t%s: %s\n", "is_rotational",
                is_rotational ? "true" : "false");
+    ansi_restore (fp);
     if (is_read_only >= 0)
       fprintf (fp, "\t%s: %s\n", "is_read_only",
                is_read_only ? "true" : "false");
-    ansi_restore (fp);
     if (can_cache >= 0)
       show_boolean ("can_cache", can_cache);
     if (can_df >= 0)

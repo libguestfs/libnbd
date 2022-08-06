@@ -309,7 +309,7 @@ main (int argc, char *argv[])
 
     if (!json_output) {
       if (protocol) {
-        ansi_colour (ANSI_FG_MAGENTA, fp);
+        ansi_colour (ANSI_FG_GREY, fp);
         fprintf (fp, "protocol: %s", protocol);
         if (tls_negotiated >= 0)
           fprintf (fp, " %s TLS", tls_negotiated ? "with" : "without");
