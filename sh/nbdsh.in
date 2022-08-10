@@ -1,5 +1,5 @@
 #!/bin/sh -
-# Copyright (C) 2011-2019 Red Hat Inc.
+# Copyright (C) 2011-2022 Red Hat Inc.
 #
 # @configure_input@
 #
@@ -16,6 +16,20 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+# macOS's System Integrity Protection (SIP) misfeature removes the
+# DYLD_LIBRARY_PATH environment variable when passed to Apple (only)
+# binaries such as /bin/sh above.  We must restore it here.  Confine
+# this hack to Darwin only so it doesn't cause potential security
+# issues on normal platforms.
+case "@host_os@" in
+    darwin*)
+	if test -z "$DYLD_LIBRARY_PATH" && test -n "$_DYLD_LIBRARY_PATH"; then
+	    DYLD_LIBRARY_PATH="$_DYLD_LIBRARY_PATH"
+	    export DYLD_LIBRARY_PATH
+	fi
+	;;
+esac
 
 # Test if /bin/sh supports exec -a option (only supported in bash 4.2
 # and above, and not part of POSIX).

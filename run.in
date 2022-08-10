@@ -65,10 +65,13 @@ prepend PATH "$b/sh"
 export PATH
 
 # Set LD_LIBRARY_PATH and DYLD_LIBRARY_PATH to contain library.
+# For use of _DYLD_LIBRARY_PATH see sh/nbdsh.
 prepend LD_LIBRARY_PATH "$b/lib/.libs"
 prepend DYLD_LIBRARY_PATH "$b/lib/.libs"
+prepend _DYLD_LIBRARY_PATH "$b/lib/.libs"
 export LD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH
+export _DYLD_LIBRARY_PATH
 
 # For Python.
 export PYTHON="@PYTHON@"
