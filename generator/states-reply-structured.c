@@ -293,7 +293,6 @@ STATE_MACHINE {
     type = be16toh (h->sbuf.sr.structured_reply.type);
 
     assert (cmd); /* guaranteed by CHECK */
-    error = nbd_internal_errno_of_nbd_error (error);
 
     /* The spec requires the server to send a non-zero error */
     if (error == NBD_SUCCESS) {
