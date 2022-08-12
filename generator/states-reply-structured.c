@@ -94,6 +94,7 @@ STATE_MACHINE {
   }
 
   if (!h->structured_replies) {
+  resync:
     h->rbuf = NULL;
     h->rlen = length;
     SET_NEXT_STATE (%RESYNC);
@@ -102,16 +103,8 @@ STATE_MACHINE {
 
   switch (type) {
   case NBD_REPLY_TYPE_NONE:
-    if (length != 0) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "invalid length in NBD_REPLY_TYPE_NONE");
-      break;
-    }
-    if (!(flags & NBD_REPLY_FLAG_DONE)) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "NBD_REPLY_FLAG_DONE must be set in NBD_REPLY_TYPE_NONE");
-      break;
-    }
+    if (length != 0 || !(flags & NBD_REPLY_FLAG_DONE))
+      goto resync;
     SET_NEXT_STATE (%FINISH);
     break;
 
@@ -120,63 +113,28 @@ STATE_MACHINE {
      * 0-length replies are broken. Still, it's easy enough to support
      * them as an extension, so we use < instead of <=.
      */
-    if (cmd->type != NBD_CMD_READ) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "invalid command for receiving offset-data chunk, "
-                 "cmd->type=%" PRIu16 ", "
-                 "this is likely to be a bug in the server",
-                 cmd->type);
-      break;
-    }
-    if (length < sizeof h->sbuf.sr.payload.offset_data) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "too short length in NBD_REPLY_TYPE_OFFSET_DATA");
-      break;
-    }
+    if (cmd->type != NBD_CMD_READ ||
+        length < sizeof h->sbuf.sr.payload.offset_data)
+      goto resync;
     h->rbuf = &h->sbuf.sr.payload.offset_data;
     h->rlen = sizeof h->sbuf.sr.payload.offset_data;
     SET_NEXT_STATE (%RECV_OFFSET_DATA);
     break;
 
   case NBD_REPLY_TYPE_OFFSET_HOLE:
-    if (cmd->type != NBD_CMD_READ) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "invalid command for receiving offset-hole chunk, "
-                 "cmd->type=%" PRIu16 ", "
-                 "this is likely to be a bug in the server",
-                 cmd->type);
-      break;
-    }
-    if (length != sizeof h->sbuf.sr.payload.offset_hole) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "invalid length in NBD_REPLY_TYPE_OFFSET_HOLE");
-      break;
-    }
+    if (cmd->type != NBD_CMD_READ ||
+        length != sizeof h->sbuf.sr.payload.offset_hole)
+      goto resync;
     h->rbuf = &h->sbuf.sr.payload.offset_hole;
     h->rlen = sizeof h->sbuf.sr.payload.offset_hole;
     SET_NEXT_STATE (%RECV_OFFSET_HOLE);
     break;
 
   case NBD_REPLY_TYPE_BLOCK_STATUS:
-    if (cmd->type != NBD_CMD_BLOCK_STATUS) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "invalid command for receiving block-status chunk, "
-                 "cmd->type=%" PRIu16 ", "
-                 "this is likely to be a bug in the server",
-                 cmd->type);
-      break;
-    }
-    /* XXX We should be able to skip the bad reply in these two cases. */
-    if (length < 12 || ((length-4) & 7) != 0) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "invalid length in NBD_REPLY_TYPE_BLOCK_STATUS");
-      break;
-    }
-    if (CALLBACK_IS_NULL (cmd->cb.fn.extent)) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "not expecting NBD_REPLY_TYPE_BLOCK_STATUS here");
-      break;
-    }
+    if (cmd->type != NBD_CMD_BLOCK_STATUS ||
+        length < 12 || ((length-4) & 7) != 0)
+      goto resync;
+    assert (CALLBACK_IS_NOT_NULL (cmd->cb.fn.extent));
     /* We read the context ID followed by all the entries into a
      * single array and deal with it at the end.
      */
@@ -194,25 +152,26 @@ STATE_MACHINE {
 
   default:
     if (NBD_REPLY_TYPE_IS_ERR (type)) {
-      if (length < sizeof h->sbuf.sr.payload.error.error) {
-        SET_NEXT_STATE (%.DEAD);
-        set_error (0, "too short length in structured reply error");
-        break;
-      }
+      /* Any payload shorter than uint32_t cannot even carry an errno
+       * value; anything longer, even if it is not long enough to be
+       * compliant, will favor the wire error over EPROTO during more
+       * length checks in RECV_ERROR_MESSAGE and RECV_ERROR_TAIL.
+       */
+      if (length < sizeof h->sbuf.sr.payload.error.error.error)
+        goto resync;
       h->rbuf = &h->sbuf.sr.payload.error.error;
-      h->rlen = sizeof h->sbuf.sr.payload.error.error;
+      h->rlen = MIN (length, sizeof h->sbuf.sr.payload.error.error);
       SET_NEXT_STATE (%RECV_ERROR);
     }
-    else {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "unknown structured reply type (%" PRIu16 ")", type);
-    }
+    else
+      goto resync;
     break;
   }
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_ERROR:
-  uint32_t length, msglen;
+  struct command *cmd = h->reply_cmd;
+  uint32_t length, msglen, error;
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
@@ -222,13 +181,25 @@ STATE_MACHINE {
     return 0;
   case 0:
     length = be32toh (h->sbuf.sr.structured_reply.length);
-    msglen = be16toh (h->sbuf.sr.payload.error.error.len);
-    if (msglen > length - sizeof h->sbuf.sr.payload.error.error ||
-        msglen > sizeof h->sbuf.sr.payload.error.msg) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "error message length too large");
+    assert (length >= sizeof h->sbuf.sr.payload.error.error.error);
+    assert (cmd);
+
+    if (length < sizeof h->sbuf.sr.payload.error.error) {
+    resync:
+      /* Favor the error packet's errno over RESYNC's EPROTO. */
+      error = be32toh (h->sbuf.sr.payload.error.error.error);
+      if (cmd->error == 0)
+        cmd->error = nbd_internal_errno_of_nbd_error (error);
+      h->rbuf = NULL;
+      h->rlen = length - MIN (length, sizeof h->sbuf.sr.payload.error.error);
+      SET_NEXT_STATE (%RESYNC);
       return 0;
     }
+
+    msglen = be16toh (h->sbuf.sr.payload.error.error.len);
+    if (msglen > length - sizeof h->sbuf.sr.payload.error.error ||
+        msglen > sizeof h->sbuf.sr.payload.error.msg)
+      goto resync;
 
     h->rbuf = h->sbuf.sr.payload.error.msg;
     h->rlen = msglen;
@@ -257,24 +228,21 @@ STATE_MACHINE {
       debug (h, "structured error server message: %.*s", (int) msglen,
              h->sbuf.sr.payload.error.msg);
 
-    /* Special case two specific errors; ignore the tail for all others */
+    /* Special case two specific errors; silently ignore tail for all others */
     h->rbuf = NULL;
     h->rlen = length;
     switch (type) {
     case NBD_REPLY_TYPE_ERROR:
-      if (length != 0) {
-        SET_NEXT_STATE (%.DEAD);
-        set_error (0, "error payload length too large");
-        return 0;
-      }
+      if (length != 0)
+        debug (h, "ignoring unexpected slop after error message, "
+               "the server may have a bug");
       break;
     case NBD_REPLY_TYPE_ERROR_OFFSET:
-      if (length != sizeof h->sbuf.sr.payload.error.offset) {
-        SET_NEXT_STATE (%.DEAD);
-        set_error (0, "invalid error payload length");
-        return 0;
-      }
-      h->rbuf = &h->sbuf.sr.payload.error.offset;
+      if (length != sizeof h->sbuf.sr.payload.error.offset)
+        debug (h, "unable to safely extract error offset, "
+               "the server may have a bug");
+      else
+        h->rbuf = &h->sbuf.sr.payload.error.offset;
       break;
     }
     SET_NEXT_STATE (%RECV_ERROR_TAIL);
@@ -300,22 +268,19 @@ STATE_MACHINE {
     assert (cmd); /* guaranteed by CHECK */
 
     /* The spec requires the server to send a non-zero error */
-    if (error == NBD_SUCCESS) {
-      debug (h, "server forgot to set error; using EINVAL");
-      error = NBD_EINVAL;
-    }
     error = nbd_internal_errno_of_nbd_error (error);
+    if (error == 0) {
+      debug (h, "server forgot to set error; using EPROTO");
+      error = EPROTO;
+    }
 
     /* Sanity check that any error offset is in range, then invoke
-     * user callback if present.
+     * user callback if present.  Ignore the offset if it was bogus.
      */
-    if (type == NBD_REPLY_TYPE_ERROR_OFFSET) {
+    if (type == NBD_REPLY_TYPE_ERROR_OFFSET && h->rbuf) {
       offset = be64toh (h->sbuf.sr.payload.error.offset);
-      if (! structured_reply_in_bounds (offset, 0, cmd)) {
-        SET_NEXT_STATE (%.DEAD);
-        return 0;
-      }
-      if (cmd->type == NBD_CMD_READ &&
+      if (structured_reply_in_bounds (offset, 0, cmd) &&
+          cmd->type == NBD_CMD_READ &&
           CALLBACK_IS_NOT_NULL (cmd->cb.fn.chunk)) {
         int scratch = error;
 
@@ -330,6 +295,8 @@ STATE_MACHINE {
           if (cmd->error == 0)
             cmd->error = scratch;
       }
+      else
+        debug (h, "no use for error offset %" PRIu64, offset);
     }
 
     /* Preserve first error encountered */
