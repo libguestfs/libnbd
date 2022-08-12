@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* nbd client library in userspace: state machine definition
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -868,6 +868,13 @@ and structured_reply_state_machine = [
     default_state with
     name = "RECV_BS_ENTRIES";
     comment = "Receive a structured reply block-status payload";
+    external_events = [];
+  };
+
+  State {
+    default_state with
+    name = "RESYNC";
+    comment = "Ignore payload of an unexpected structured reply";
     external_events = [];
   };
 

@@ -48,11 +48,6 @@ STATE_MACHINE {
   /* We've only read the simple_reply.  The structured_reply is longer,
    * so read the remaining part.
    */
-  if (!h->structured_replies) {
-    set_error (0, "server sent unexpected structured reply");
-    SET_NEXT_STATE(%.DEAD);
-    return 0;
-  }
   h->rbuf = &h->sbuf;
   h->rbuf += sizeof h->sbuf.simple_reply;
   h->rlen = sizeof h->sbuf.sr.structured_reply;
@@ -95,6 +90,13 @@ STATE_MACHINE {
   if (length > MAX_REQUEST_SIZE + sizeof h->sbuf.sr.payload.offset_data) {
     set_error (0, "invalid server reply length");
     SET_NEXT_STATE (%.DEAD);
+    return 0;
+  }
+
+  if (!h->structured_replies) {
+    h->rbuf = NULL;
+    h->rlen = length;
+    SET_NEXT_STATE (%RESYNC);
     return 0;
   }
 
@@ -512,6 +514,32 @@ STATE_MACHINE {
     SET_NEXT_STATE(%FINISH);
   }
   return 0;
+
+ REPLY.STRUCTURED_REPLY.RESYNC:
+  struct command *cmd = h->reply_cmd;
+  uint16_t type;
+  uint32_t length;
+
+  assert (cmd);
+  assert (h->rbuf == NULL);
+  switch (recv_into_rbuf (h)) {
+  case -1: SET_NEXT_STATE (%.DEAD); return 0;
+  case 1:
+    save_reply_state (h);
+    SET_NEXT_STATE (%.READY);
+    return 0;
+  case 0:
+    type = be16toh (h->sbuf.sr.structured_reply.type);
+    length = be32toh (h->sbuf.sr.structured_reply.length);
+    debug (h, "unexpected reply type %u or payload length %" PRIu32
+           " for cookie %" PRIu64 " and command %" PRIu32
+           ", this is probably a server bug",
+           type, length, cmd->cookie, cmd->type);
+    if (cmd->error == 0)
+      cmd->error = EPROTO;
+    SET_NEXT_STATE (%FINISH);
+    return 0;
+  }
 
  REPLY.STRUCTURED_REPLY.FINISH:
   uint16_t flags;
