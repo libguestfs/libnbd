@@ -95,8 +95,10 @@ nbd_unlocked_aio_command_completed (struct nbd_handle *h,
    * enough data chunks to cover the overall count (although we do not
    * detect if it duplicated some bytes while omitting others).
    */
-  if (type == NBD_CMD_READ && cmd->data_seen != cmd->count && !error)
-    error = EIO;
+  if (type == NBD_CMD_READ && cmd->data_seen != cmd->count && !error) {
+    debug (h, "server sent wrong byte length without error; using EPROTO");
+    error = EPROTO;
+  }
 
   /* Retire it from the list and free it. */
   if (h->cmds_done_tail == cmd) {
