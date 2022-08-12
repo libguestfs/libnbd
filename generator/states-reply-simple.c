@@ -49,17 +49,23 @@ STATE_MACHINE {
     return 0;
   }
 
+  /* Although a server with structured replies negotiated is in error
+   * for using a simple reply to NBD_CMD_READ, we can cope with the
+   * packet, but diagnose it by failing the read with EPROTO.
+   */
   if (cmd->type == NBD_CMD_READ && h->structured_replies) {
-    set_error (0, "server sent unexpected simple reply for read");
-    SET_NEXT_STATE(%.DEAD);
-    return 0;
+    debug (h, "server sent unexpected simple reply for read");
+    if (cmd->error == 0)
+      cmd->error = EPROTO;
   }
 
-  cmd->error = nbd_internal_errno_of_nbd_error (error);
-  if (cmd->error == 0 && cmd->type == NBD_CMD_READ) {
+  error = nbd_internal_errno_of_nbd_error (error);
+  if (cmd->error == 0)
+    cmd->error = error;
+  if (error == 0 && cmd->type == NBD_CMD_READ) {
     h->rbuf = cmd->data;
     h->rlen = cmd->count;
-    cmd->data_seen = cmd->count;
+    cmd->data_seen += cmd->count;
     SET_NEXT_STATE (%RECV_READ_PAYLOAD);
   }
   else {
@@ -80,9 +86,8 @@ STATE_MACHINE {
     /* guaranteed by START */
     assert (cmd);
     if (CALLBACK_IS_NOT_NULL (cmd->cb.fn.chunk)) {
-      int error = 0;
+      int error = cmd->error;
 
-      assert (cmd->error == 0);
       if (CALL_CALLBACK (cmd->cb.fn.chunk,
                          cmd->data, cmd->count,
                          cmd->offset, LIBNBD_READ_DATA,
