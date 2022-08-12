@@ -124,7 +124,7 @@ STATE_MACHINE {
   }
   else {
     SET_NEXT_STATE (%.DEAD); /* We've probably lost synchronization. */
-    set_error (0, "invalid reply magic");
+    set_error (0, "invalid reply magic 0x%" PRIx32, magic);
     return 0;
   }
 
@@ -132,21 +132,12 @@ STATE_MACHINE {
    * handle (our cookie) is stored at the same offset.
    */
   cookie = be64toh (h->sbuf.simple_reply.handle);
-  /* Find the command amongst the commands in flight. */
+  /* Find the command amongst the commands in flight. If the server sends
+   * a reply for an unknown cookie, FINISH will diagnose that later.
+   */
   for (cmd = h->cmds_in_flight; cmd != NULL; cmd = cmd->next) {
     if (cmd->cookie == cookie)
       break;
-  }
-  if (cmd == NULL) {
-    /* An unexpected structured reply could be skipped, since it
-     * includes a length; similarly an unexpected simple reply can be
-     * skipped if we assume it was not a read. However, it's more
-     * likely we've lost synchronization with the server.
-     */
-    SET_NEXT_STATE (%.DEAD);
-    set_error (0, "no matching cookie found for server reply, "
-               "this is probably a bug in the server");
-    return 0;
   }
   h->reply_cmd = cmd;
   return 0;
@@ -167,10 +158,16 @@ STATE_MACHINE {
     if (cmd->cookie == cookie)
       break;
   }
-  assert (cmd != NULL);
   assert (h->reply_cmd == cmd);
-  h->reply_cmd = NULL;
+  if (cmd == NULL) {
+    debug (h, "skipped reply for unexpected cookie %" PRIu64
+           ", this is probably a bug in the server", cookie);
+    SET_NEXT_STATE (%.READY);
+    return 0;
+  }
+
   retire = cmd->type == NBD_CMD_DISC;
+  h->reply_cmd = NULL;
 
   /* Notify the user */
   if (CALLBACK_IS_NOT_NULL (cmd->cb.completion)) {

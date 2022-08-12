@@ -25,10 +25,29 @@ STATE_MACHINE {
   uint64_t cookie;
 
   error = be32toh (h->sbuf.simple_reply.error);
-  cookie = be64toh (h->sbuf.simple_reply.handle);
 
-  assert (cmd);
-  assert (cmd->cookie == cookie);
+  if (cmd == NULL) {
+    /* Unexpected reply.  If error was set or we have structured
+     * replies, we know there should be no payload, so the next byte
+     * on the wire (if any) will be another reply, and we can let
+     * FINISH_COMMAND diagnose/ignore the server bug.  If not, we lack
+     * context to know whether the server thinks it was responding to
+     * NBD_CMD_READ, so it is safer to move to DEAD now than to risk
+     * consuming a server's potential data payload as a reply stream
+     * (even though we would be likely to produce a magic number
+     * mismatch on the next pass that would also move us to DEAD).
+     */
+    if (error || h->structured_replies)
+      SET_NEXT_STATE (%^FINISH_COMMAND);
+    else {
+      cookie = be64toh (h->sbuf.simple_reply.handle);
+      SET_NEXT_STATE (%.DEAD);
+      set_error (EPROTO,
+                 "no matching cookie %" PRIu64 " found for server reply, "
+                 "this is probably a server bug", cookie);
+    }
+    return 0;
+  }
 
   if (cmd->type == NBD_CMD_READ && h->structured_replies) {
     set_error (0, "server sent unexpected simple reply for read");

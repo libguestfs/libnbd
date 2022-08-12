@@ -69,16 +69,11 @@ STATE_MACHINE {
  REPLY.STRUCTURED_REPLY.CHECK:
   struct command *cmd = h->reply_cmd;
   uint16_t flags, type;
-  uint64_t cookie;
   uint32_t length;
 
   flags = be16toh (h->sbuf.sr.structured_reply.flags);
   type = be16toh (h->sbuf.sr.structured_reply.type);
-  cookie = be64toh (h->sbuf.sr.structured_reply.handle);
   length = be32toh (h->sbuf.sr.structured_reply.length);
-
-  assert (cmd);
-  assert (cmd->cookie == cookie);
 
   /* Reject a server that replies with too much information, but don't
    * reject a single structured reply to NBD_CMD_READ on the largest
@@ -88,12 +83,13 @@ STATE_MACHINE {
    * not worth keeping the connection alive.
    */
   if (length > MAX_REQUEST_SIZE + sizeof h->sbuf.sr.payload.offset_data) {
-    set_error (0, "invalid server reply length");
+    set_error (0, "invalid server reply length %" PRIu32, length);
     SET_NEXT_STATE (%.DEAD);
     return 0;
   }
 
-  if (!h->structured_replies) {
+  /* Skip an unexpected structured reply, including to an unknown cookie. */
+  if (cmd == NULL || !h->structured_replies) {
   resync:
     h->rbuf = NULL;
     h->rlen = length;
@@ -487,7 +483,6 @@ STATE_MACHINE {
   uint16_t type;
   uint32_t length;
 
-  assert (cmd);
   assert (h->rbuf == NULL);
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
@@ -496,6 +491,15 @@ STATE_MACHINE {
     SET_NEXT_STATE (%.READY);
     return 0;
   case 0:
+    /* If this reply is to an unknown command, FINISH_COMMAND will
+     * diagnose and ignore the server bug.  Otherwise, ensure the
+     * pending command sees a failure of EPROTO if it does not already
+     * have an error.
+     */
+    if (cmd == NULL) {
+      SET_NEXT_STATE (%^FINISH_COMMAND);
+      return 0;
+    }
     type = be16toh (h->sbuf.sr.structured_reply.type);
     length = be32toh (h->sbuf.sr.structured_reply.length);
     debug (h, "unexpected reply type %u or payload length %" PRIu32
@@ -505,10 +509,8 @@ STATE_MACHINE {
     if (cmd->error == 0)
       cmd->error = EPROTO;
     SET_NEXT_STATE (%FINISH);
-    return 0;
-  default:
-    abort ();
   }
+  return 0;
 
  REPLY.STRUCTURED_REPLY.FINISH:
   uint16_t flags;
