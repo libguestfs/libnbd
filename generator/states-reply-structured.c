@@ -98,32 +98,22 @@ STATE_MACHINE {
     return 0;
   }
 
-  if (NBD_REPLY_TYPE_IS_ERR (type)) {
-    if (length < sizeof h->sbuf.sr.payload.error.error) {
-      SET_NEXT_STATE (%.DEAD);
-      set_error (0, "too short length in structured reply error");
-      return 0;
-    }
-    h->rbuf = &h->sbuf.sr.payload.error.error;
-    h->rlen = sizeof h->sbuf.sr.payload.error.error;
-    SET_NEXT_STATE (%RECV_ERROR);
-    return 0;
-  }
-  else if (type == NBD_REPLY_TYPE_NONE) {
+  switch (type) {
+  case NBD_REPLY_TYPE_NONE:
     if (length != 0) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "invalid length in NBD_REPLY_TYPE_NONE");
-      return 0;
+      break;
     }
     if (!(flags & NBD_REPLY_FLAG_DONE)) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "NBD_REPLY_FLAG_DONE must be set in NBD_REPLY_TYPE_NONE");
-      return 0;
+      break;
     }
     SET_NEXT_STATE (%FINISH);
-    return 0;
-  }
-  else if (type == NBD_REPLY_TYPE_OFFSET_DATA) {
+    break;
+
+  case NBD_REPLY_TYPE_OFFSET_DATA:
     /* The spec states that 0-length requests are unspecified, but
      * 0-length replies are broken. Still, it's easy enough to support
      * them as an extension, so we use < instead of <=.
@@ -134,56 +124,56 @@ STATE_MACHINE {
                  "cmd->type=%" PRIu16 ", "
                  "this is likely to be a bug in the server",
                  cmd->type);
-      return 0;
+      break;
     }
     if (length < sizeof h->sbuf.sr.payload.offset_data) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "too short length in NBD_REPLY_TYPE_OFFSET_DATA");
-      return 0;
+      break;
     }
     h->rbuf = &h->sbuf.sr.payload.offset_data;
     h->rlen = sizeof h->sbuf.sr.payload.offset_data;
     SET_NEXT_STATE (%RECV_OFFSET_DATA);
-    return 0;
-  }
-  else if (type == NBD_REPLY_TYPE_OFFSET_HOLE) {
+    break;
+
+  case NBD_REPLY_TYPE_OFFSET_HOLE:
     if (cmd->type != NBD_CMD_READ) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "invalid command for receiving offset-hole chunk, "
                  "cmd->type=%" PRIu16 ", "
                  "this is likely to be a bug in the server",
                  cmd->type);
-      return 0;
+      break;
     }
     if (length != sizeof h->sbuf.sr.payload.offset_hole) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "invalid length in NBD_REPLY_TYPE_OFFSET_HOLE");
-      return 0;
+      break;
     }
     h->rbuf = &h->sbuf.sr.payload.offset_hole;
     h->rlen = sizeof h->sbuf.sr.payload.offset_hole;
     SET_NEXT_STATE (%RECV_OFFSET_HOLE);
-    return 0;
-  }
-  else if (type == NBD_REPLY_TYPE_BLOCK_STATUS) {
+    break;
+
+  case NBD_REPLY_TYPE_BLOCK_STATUS:
     if (cmd->type != NBD_CMD_BLOCK_STATUS) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "invalid command for receiving block-status chunk, "
                  "cmd->type=%" PRIu16 ", "
                  "this is likely to be a bug in the server",
                  cmd->type);
-      return 0;
+      break;
     }
     /* XXX We should be able to skip the bad reply in these two cases. */
     if (length < 12 || ((length-4) & 7) != 0) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "invalid length in NBD_REPLY_TYPE_BLOCK_STATUS");
-      return 0;
+      break;
     }
     if (CALLBACK_IS_NULL (cmd->cb.fn.extent)) {
       SET_NEXT_STATE (%.DEAD);
       set_error (0, "not expecting NBD_REPLY_TYPE_BLOCK_STATUS here");
-      return 0;
+      break;
     }
     /* We read the context ID followed by all the entries into a
      * single array and deal with it at the end.
@@ -193,18 +183,31 @@ STATE_MACHINE {
     if (h->bs_entries == NULL) {
       SET_NEXT_STATE (%.DEAD);
       set_error (errno, "malloc");
-      return 0;
+      break;
     }
     h->rbuf = h->bs_entries;
     h->rlen = length;
     SET_NEXT_STATE (%RECV_BS_ENTRIES);
-    return 0;
+    break;
+
+  default:
+    if (NBD_REPLY_TYPE_IS_ERR (type)) {
+      if (length < sizeof h->sbuf.sr.payload.error.error) {
+        SET_NEXT_STATE (%.DEAD);
+        set_error (0, "too short length in structured reply error");
+        break;
+      }
+      h->rbuf = &h->sbuf.sr.payload.error.error;
+      h->rlen = sizeof h->sbuf.sr.payload.error.error;
+      SET_NEXT_STATE (%RECV_ERROR);
+    }
+    else {
+      SET_NEXT_STATE (%.DEAD);
+      set_error (0, "unknown structured reply type (%" PRIu16 ")", type);
+    }
+    break;
   }
-  else {
-    SET_NEXT_STATE (%.DEAD);
-    set_error (0, "unknown structured reply type (%" PRIu16 ")", type);
-    return 0;
-  }
+  return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_ERROR:
   uint32_t length, msglen;
