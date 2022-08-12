@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,26 +25,28 @@
  * until POLLIN, we instead track where in the state machine we left
  * off, then return to READY to actually block. Then, on entry to
  * REPLY.START, we can tell if this is the start of a new reply (rlen
- * is 0, stay put), a continuation of the preamble (reply_cmd is NULL,
- * resume with RECV_REPLY), or a continuation from any other location
- * (reply_cmd contains the state to jump to).
+ * is 0, stay put), a continuation of the preamble (reply_state is
+ * STATE_START, resume with RECV_REPLY), or a continuation from any
+ * other location (reply_state contains the state to jump to).
  */
 
 static void
 save_reply_state (struct nbd_handle *h)
 {
-  assert (h->reply_cmd);
   assert (h->rlen);
-  h->reply_cmd->state = get_next_state (h);
+  assert (h->reply_state == STATE_START);
+  h->reply_state = get_next_state (h);
+  assert (h->reply_state != STATE_START);
 }
 
 STATE_MACHINE {
  REPLY.START:
   /* If rlen is non-zero, we are resuming an earlier reply cycle. */
   if (h->rlen > 0) {
-    if (h->reply_cmd) {
-      assert (nbd_internal_is_state_processing (h->reply_cmd->state));
-      SET_NEXT_STATE (h->reply_cmd->state);
+    if (h->reply_state != STATE_START) {
+      assert (nbd_internal_is_state_processing (h->reply_state));
+      SET_NEXT_STATE (h->reply_state);
+      h->reply_state = STATE_START;
     }
     else
       SET_NEXT_STATE (%RECV_REPLY);

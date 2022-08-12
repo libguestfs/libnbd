@@ -303,8 +303,9 @@ struct nbd_handle {
   /* length (cmds_to_issue) + length (cmds_in_flight). */
   int in_flight;
 
-  /* Current command during a REPLY cycle */
+  /* Current command and POLLIN resumption point during a REPLY cycle */
   struct command *reply_cmd;
+  enum state reply_state;
 
   bool disconnect_request;      /* True if we've queued NBD_CMD_DISC */
   bool tls_shut_writes;         /* Used by lib/crypto.c to track disconnect. */
@@ -352,7 +353,6 @@ struct command {
   uint32_t count;
   void *data; /* Buffer for read/write */
   struct command_cb cb;
-  enum state state; /* State to resume with on next POLLIN */
   bool initialized; /* For read, true if getting a hole may skip memset */
   uint32_t data_seen; /* For read, cumulative size of data chunks seen */
   uint32_t error; /* Local errno value */
