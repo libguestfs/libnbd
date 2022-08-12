@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -44,33 +44,39 @@ static int
 recv_into_rbuf (struct nbd_handle *h)
 {
   ssize_t r;
-  char *buf = NULL;
   void *rbuf;
   size_t rlen;
+
+  /* As a special case h->rbuf is allowed to be NULL, meaning
+   * throw away the data.
+   *
+   * When building with DUMP_PACKETS, it's worth debugging even
+   * discarded packets; this makes our stack frame larger, but
+   * DUMP_PACKETS is already for developers.  Otherwise, we share a
+   * single static sink buffer across all nbd handles; we don't care
+   * about thread-safety issues with two clients discarding data at
+   * the same time, because we never read the sink.
+   */
+#ifdef DUMP_PACKETS
+  char sink[1024];
+#else
+  static char sink[BUFSIZ];
+#endif
 
   if (h->rlen == 0)
     return 0;                   /* move to next state */
 
-  /* As a special case h->rbuf is allowed to be NULL, meaning
-   * throw away the data.
-   */
   if (h->rbuf) {
     rbuf = h->rbuf;
     rlen = h->rlen;
   }
   else {
-    buf = malloc (BUFSIZ);
-    if (buf == NULL) {
-      set_error (errno, "malloc");
-      return -1;
-    }
-    rbuf = buf;
-    rlen = MIN (h->rlen, BUFSIZ);
+    rbuf = sink;
+    rlen = MIN (h->rlen, sizeof sink);
   }
 
   r = h->sock->ops->recv (h, h->sock, rbuf, rlen);
   if (r == -1) {
-    free (buf);
     if (errno == EAGAIN || errno == EWOULDBLOCK)
       return 1;                 /* more data */
     /* sock->ops->recv called set_error already. */
@@ -78,17 +84,14 @@ recv_into_rbuf (struct nbd_handle *h)
   }
   if (r == 0) {
     set_error (0, "recv: server disconnected unexpectedly");
-    free (buf);
     return -1;
   }
 #ifdef DUMP_PACKETS
-  if (h->rbuf != NULL)
-    nbd_internal_hexdump (h->rbuf, r, stderr);
+  nbd_internal_hexdump (rbuf, r, stderr);
 #endif
   if (h->rbuf)
     h->rbuf += r;
   h->rlen -= r;
-  free (buf);
   if (h->rlen == 0)
     return 0;                   /* move to next state */
   else
