@@ -506,6 +506,8 @@ STATE_MACHINE {
       cmd->error = EPROTO;
     SET_NEXT_STATE (%FINISH);
     return 0;
+  default:
+    abort ();
   }
 
  REPLY.STRUCTURED_REPLY.FINISH:
