@@ -87,3 +87,10 @@ OCaml:
    using the functions in <caml/unixsupport.h>.  This requires a
    change to the generator CBMutable (Int _) -> CBMutable (Errno _)
    which is quite a large change.
+
+testsuite:
+ - connect-uri* tests compiled with $(RANDOMx) in the Makefile have a
+   hard-coded port number at compile time; with bad luck, it can
+   result in a binary that always fails for trying to use a contended
+   port. Rewriting these tests to use pick-a-port.c for a dynamic
+   choice would be safer.
