@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -103,11 +103,8 @@ nbd_internal_set_block_size (struct nbd_handle *h, uint32_t min,
    * At the point of this call, we don't necessarily know exportsize yet;
    * but we ignore server advertisement if any other constraints are wrong.
    */
-  if (!min || min > 64*1024 || min > pref || pref < 512 || pref > max) {
-  ignore:
-    debug (h, "ignoring improper server size constraints");
-    return 0; /* Use return -1 if we want to reject such servers */
-  }
+  if (!min || min > 64*1024 || min > pref || pref < 512 || pref > max)
+    goto ignore;
   if ((min & (min - 1)) != 0 || (pref & (pref - 1)) != 0)
     goto ignore;
   if (max != 0xffffffffU && max % min != 0)
@@ -117,6 +114,10 @@ nbd_internal_set_block_size (struct nbd_handle *h, uint32_t min,
   h->block_preferred = pref;
   h->block_maximum = max;
   return 0;
+
+ ignore:
+  debug (h, "ignoring improper server size constraints");
+  return 0; /* Use return -1 if we want to reject such servers */
 }
 
 static int

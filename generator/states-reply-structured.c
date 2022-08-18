@@ -89,13 +89,8 @@ STATE_MACHINE {
   }
 
   /* Skip an unexpected structured reply, including to an unknown cookie. */
-  if (cmd == NULL || !h->structured_replies) {
-  resync:
-    h->rbuf = NULL;
-    h->rlen = length;
-    SET_NEXT_STATE (%RESYNC);
-    return 0;
-  }
+  if (cmd == NULL || !h->structured_replies)
+    goto resync;
 
   switch (type) {
   case NBD_REPLY_TYPE_NONE:
@@ -165,6 +160,12 @@ STATE_MACHINE {
   }
   return 0;
 
+ resync:
+  h->rbuf = NULL;
+  h->rlen = length;
+  SET_NEXT_STATE (%RESYNC);
+  return 0;
+
  REPLY.STRUCTURED_REPLY.RECV_ERROR:
   struct command *cmd = h->reply_cmd;
   uint32_t length, msglen, error;
@@ -180,17 +181,8 @@ STATE_MACHINE {
     assert (length >= sizeof h->sbuf.sr.payload.error.error.error);
     assert (cmd);
 
-    if (length < sizeof h->sbuf.sr.payload.error.error) {
-    resync:
-      /* Favor the error packet's errno over RESYNC's EPROTO. */
-      error = be32toh (h->sbuf.sr.payload.error.error.error);
-      if (cmd->error == 0)
-        cmd->error = nbd_internal_errno_of_nbd_error (error);
-      h->rbuf = NULL;
-      h->rlen = length - MIN (length, sizeof h->sbuf.sr.payload.error.error);
-      SET_NEXT_STATE (%RESYNC);
-      return 0;
-    }
+    if (length < sizeof h->sbuf.sr.payload.error.error)
+      goto resync;
 
     msglen = be16toh (h->sbuf.sr.payload.error.error.len);
     if (msglen > length - sizeof h->sbuf.sr.payload.error.error ||
@@ -201,6 +193,16 @@ STATE_MACHINE {
     h->rlen = msglen;
     SET_NEXT_STATE (%RECV_ERROR_MESSAGE);
   }
+  return 0;
+
+ resync:
+  /* Favor the error packet's errno over RESYNC's EPROTO. */
+  error = be32toh (h->sbuf.sr.payload.error.error.error);
+  if (cmd->error == 0)
+    cmd->error = nbd_internal_errno_of_nbd_error (error);
+  h->rbuf = NULL;
+  h->rlen = length - MIN (length, sizeof h->sbuf.sr.payload.error.error);
+  SET_NEXT_STATE (%RESYNC);
   return 0;
 
  REPLY.STRUCTURED_REPLY.RECV_ERROR_MESSAGE:
