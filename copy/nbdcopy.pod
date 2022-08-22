@@ -304,6 +304,7 @@ L<nbddump(1)>,
 L<nbdfuse(1)>,
 L<nbdinfo(1)>,
 L<nbdsh(1)>,
+L<nbdublk(1)>,
 L<nbdkit(1)>,
 L<qemu-img(1)>.
 

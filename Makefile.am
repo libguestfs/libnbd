@@ -49,6 +49,7 @@ SUBDIRS = \
 	copy \
 	dump \
 	fuse \
+	ublk \
 	ocaml \
 	ocaml/examples \
 	ocaml/tests \

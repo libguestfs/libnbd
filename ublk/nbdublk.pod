@@ -1,0 +1,235 @@
+=head1 NAME
+
+nbdublk - connect network block device to a local device
+
+=head1 SYNOPSIS
+
+ nbdublk [-C N|--connections N] [-r] [-v|--verbose] /dev/ublkb<N> URI
+
+ nbdublk [-C N|--connections N] [-r] [-v|--verbose] <N> URI
+
+ nbdublk [-C N|--connections N] [-r] [-v|--verbose] - URI
+
+=for paragraph
+
+ nbdublk /dev/ublkb<N> [ CMD [ARGS ...] ]
+
+=for paragraph
+
+ nbdublk /dev/ublkb<N> --command CMD [ARGS ...]
+
+=for paragraph
+
+ nbdublk /dev/ublkb<N> --fd N
+
+=for paragraph
+
+ nbdublk /dev/ublkb<N> --tcp HOST PORT
+
+=for paragraph
+
+ nbdublk /dev/ublkb<N> --unix SOCKET
+
+=for paragraph
+
+ nbdublk /dev/ublkb<N> --vsock CID PORT
+
+To list devices:
+
+ ublk list
+
+To unmount:
+
+ ublk del -n <N>
+
+Other commands:
+
+ nbdublk --help
+
+=for paragraph
+
+ nbdublk -V|--version
+
+=for paragraph
+
+ modprobe ublk_drv
+
+=head1 DESCRIPTION
+
+nbdublk is used to create a Linux device F</dev/ublkbI<E<lt>NE<gt>>>
+from a network block device server.  Reads and writes to the virtual
+device are turned into reads and writes to the NBD server.
+
+The first parameter is the Linux device name of the form
+F</dev/ublkbI<E<lt>NE<gt>>> (for some number I<E<lt>NE<gt>>), for
+example F</dev/ublkb0>, F</dev/ublkb1>, &c.  You can just use the
+number on its own, or use C<-> to get ublk to allocate an unused
+device.
+
+The second and following parameters refer to the NBD server, which can
+be local or remote.  The server can be specified as an NBD URI (like
+C<nbd://localhost>), or as an NBD server running as a subprocess of
+nbdublk (using S<C<[ ... ]>>), or in various other ways (see
+L</MODES>).
+
+Use L<ublk(8)> to list and delete devices.
+
+=head2 Requires Linux and root
+
+This program requires Linux E<ge> 6.0 and the C<ublk_drv.ko> kernel
+module.  You may need to load the kernel module and you usually have
+to run nbdublk as root.
+
+=head1 EXAMPLE
+
+Create an NBD ublk device connected to a remote NBD server:
+
+ # nbdublk /dev/ublkb0 nbd://server
+
+List the device:
+
+ # ublk list
+ dev id 0: nr_hw_queues 4 queue_depth 64 block size 1 dev_capacity 0
+	 max rq size 67108864 daemon pid 32382 flags 0x0 state LIVE
+
+You can then use C</dev/ublkb0> as a regular device.  To disconnect
+the device use:
+
+ # ublk del -n 0
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<--help>
+
+Display brief command line help and exit.
+
+=item B<-C> N
+
+=item B<--connections> N
+
+If multi-conn is used, use N connections to the server.  The default
+is 4.
+
+Multi-conn is enabled by default when possible.  Modes which run a
+subprocess, such as I<--command> are not able to use multi-conn.  Mode
+I<--fd> also cannot use multi-conn.  Also the server must advertise
+multi-conn (use L<nbdinfo(1)> to query what the server supports).
+
+=item B<-C 1>
+
+=item B<--connections 1>
+
+Disable multi-conn.  Only use a single connection to the NBD server.
+See L</THREAD MODEL> below.
+
+=item B<-r>
+
+=item B<--readonly>
+
+Access the network block device read-only.  The virtual file will have
+read-only permissions, and any writes will return errors.
+
+If the remote NBD server is read-only then this flag is added
+automatically.  (Check C<is_read_only:> field in the output of
+L<nbdinfo(1)>).
+
+=item B<-v>
+
+=item B<--verbose>
+
+Enable verbose messages to stderr.  This enables libnbd debugging and
+other messages.
+
+=item B<-V>
+
+=item B<--version>
+
+Display the package name and version and exit.
+
+=back
+
+=head1 MODES
+
+Modes are used to select the NBD server.  Possible modes are:
+
+=over 4
+
+=item nbdublk DEVICE URI
+
+This mode uses an NBD URI (see L<nbd_connect_uri(3)> and
+L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>).
+For example this specifies a TLS-encrypted connection to
+C<example.com> port C<10809>, with export name C<disk>:
+
+ nbdublk /dev/ublkb0 nbds://example.com/disk
+
+=item nbdublk DEVICE B<[> CMD [ARGS ...] B<]>
+
+Run an NBD server as a subprocess.  In this mode an NBD server can be
+run directly from the command line with nbdublk communicating with the
+server over a socket.  This requires that the NBD server supports
+systemd socket activation.  See L</EXAMPLES> above and
+L<nbd_connect_systemd_socket_activation(3)>.
+
+=item nbdublk DEVICE B<--command> CMD [ARGS ...]
+
+Select command mode.  In this mode an NBD server can be run directly
+from the command line with nbdublk communicating with the server over
+the server’s stdin/stdout.  Normally you would use this with
+C<nbdkit -s>.  See L<nbd_connect_command(3)>.
+
+=item nbdublk DEVICE B<--fd> N
+
+Select file descriptor mode.  In this mode a connected socket is
+passed to nbdublk.  nbdublk connects to the socket on the numbered
+file descriptor.  See also L<nbd_connect_socket(3)>.
+
+=item nbdublk DEVICE B<--tcp> HOST PORT
+
+Select TCP mode.  Connect to an NBD server on a host and port over an
+unencrypted TCP socket.  See also L<nbd_connect_tcp(3)>.
+
+=item nbdublk DEVICE B<--unix> SOCKET
+
+Select Unix mode.  Connect to an NBD server on a Unix domain socket.
+See also L<nbd_connect_unix(3)>.
+
+=item nbdublk DEVICE B<--vsock> CID PORT
+
+Select vsock mode.  Connect to an NBD server on a C<AF_VSOCK> socket.
+See also L<nbd_connect_vsock(3)>.
+
+=back
+
+=head1 SEE ALSO
+
+L<libnbd(3)>,
+L<nbdcopy(1)>,
+L<nbddump(1)>,
+L<nbdfuse(1)>,
+L<nbdinfo(1)>,
+L<nbdsh(1)>,
+L<ublk(8)>,
+L<nbd_connect_uri(3)>,
+L<nbd_connect_command(3)>,
+L<nbd_connect_socket(3)>,
+L<nbd_connect_systemd_socket_activation(3)>,
+L<nbd_connect_tcp(3)>,
+L<nbd_connect_unix(3)>,
+L<nbd_connect_vsock(3)>,
+L<nbdkit(1)>,
+L<nbdkit-loop(1)>,
+L<qemu-nbd(8)>,
+L<nbd-client(8)>.
+
+=head1 AUTHORS
+
+Richard W.M. Jones
+
+Ming Lei
+
+=head1 COPYRIGHT
+
+Copyright (C) 2019-2022 Red Hat Inc.

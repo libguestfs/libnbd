@@ -337,6 +337,24 @@ AS_IF([test "x$enable_fuse" != "xno"],[
 ])
 AM_CONDITIONAL([HAVE_FUSE],[test "x$enable_fuse" != "xno"])
 
+dnl libublksrv is optional to build the nbdublk program.
+AC_ARG_ENABLE([ublk],
+    AS_HELP_STRING([--disable-ublk], [disable ublk (nbdublk) support]),
+    [],
+    [enable_ublk=yes])
+AS_IF([test "x$enable_ublk" != "xno"],[
+    PKG_CHECK_MODULES([UBLKSRV],[ublksrv],[
+        printf "ublksrv version is "; $PKG_CONFIG --modversion ublksrv
+        AC_SUBST([UBLKSRV_CFLAGS])
+        AC_SUBST([UBLKSRV_LIBS])
+        AC_DEFINE([HAVE_UBLK],[1],[Define to 1 if you have ublk.])
+    ],[
+        enable_ublk=no
+        AC_MSG_WARN([libublksrv (ublk server) library and headers are missing, so optional nbdublk program won't be built])
+    ])
+])
+AM_CONDITIONAL([HAVE_UBLK],[test "x$enable_ublk" != "xno"])
+
 dnl Check we have enough to run podwrapper.
 AC_CHECK_PROG([PERL],[perl],[perl],[no])
 AS_IF([test "x$PERL" != "xno"],[
@@ -605,6 +623,7 @@ AC_CONFIG_FILES([Makefile
                  sh/Makefile
                  tests/Makefile
                  tests/functions.sh
+                 ublk/Makefile
                  valgrind/Makefile])
 
 AC_OUTPUT
@@ -640,6 +659,7 @@ echo
 feature "TLS support"           test "x$HAVE_GNUTLS_TRUE" = "x"
 feature "NBD URI support"       test "x$HAVE_LIBXML2_TRUE" = "x"
 feature "FUSE support"          test "x$HAVE_FUSE_TRUE" = "x"
+feature "ublk support"          test "x$HAVE_UBLK_TRUE" = "x"
 feature "Manual pages"          test "x$HAVE_POD_TRUE" = "x"
 feature "Bash tab completion"   test "x$HAVE_BASH_COMPLETION_TRUE" = "x"
 

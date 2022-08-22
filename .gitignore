@@ -32,6 +32,7 @@ Makefile.in
 /bash-completion/nbddump
 /bash-completion/nbdfuse
 /bash-completion/nbdinfo
+/bash-completion/nbdublk
 /common/include/test-array-size
 /common/include/test-checked-overflow
 /common/include/test-ispowerof2
@@ -240,4 +241,6 @@ Makefile.in
 /tests/shutdown-flags
 /tests/synch-parallel
 /tests/synch-parallel-tls
+/ublk/nbdublk
+/ublk/nbdublk.1
 /valgrind/suppressions

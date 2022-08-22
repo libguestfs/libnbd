@@ -24,7 +24,7 @@ EXTRA_DIST = \
 
 if HAVE_BASH_COMPLETION
 
-bashcomp_DATA = nbddump nbdfuse nbdsh
+bashcomp_DATA = nbddump nbdfuse nbdsh nbdublk
 
 if HAVE_LIBXML2
 bashcomp_DATA += nbdcopy nbdinfo
@@ -46,6 +46,10 @@ nbdinfo: nbdsh
 	rm -f $@
 	$(LN_S) $(srcdir)/nbdsh $@
 
-CLEANFILES += nbdcopy nbddump nbdfuse nbdinfo
+nbdublk: nbdsh
+	rm -f $@
+	$(LN_S) $(srcdir)/nbdsh $@
+
+CLEANFILES += nbdcopy nbddump nbdfuse nbdinfo nbdublk
 
 endif

@@ -67,9 +67,15 @@ _nbdsh ()
     _libnbd_command nbdsh
 }
 
+_nbdublk ()
+{
+    _libnbd_command nbdublk
+}
+
 # Install the handler function.
 complete -o default -F _nbdcopy nbdcopy
 complete -o default -F _nbddump nbddump
 complete -o default -F _nbdfuse nbdfuse
 complete -o default -F _nbdinfo nbdinfo
 complete -o default -F _nbdsh nbdsh
+complete -o default -F _nbdublk nbdublk

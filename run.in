@@ -62,6 +62,7 @@ prepend PATH "$b/dump"
 prepend PATH "$b/fuse"
 prepend PATH "$b/info"
 prepend PATH "$b/sh"
+prepend PATH "$b/ublk"
 export PATH
 
 # Set LD_LIBRARY_PATH and DYLD_LIBRARY_PATH to contain library.

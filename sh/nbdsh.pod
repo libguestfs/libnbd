@@ -149,6 +149,7 @@ L<libnbd-security(3)>,
 L<nbdcopy(1)>,
 L<nbddump(1)>,
 L<nbdfuse(1)>,
+L<nbdublk(1)>,
 L<nbdinfo(1)>,
 L<qemu-img(1)>.
 

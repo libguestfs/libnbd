@@ -18,6 +18,7 @@ The key features are:
 * Hexdump tool (nbddump) to print NBD content.
 * Query tool (nbdinfo) to query NBD servers.
 * FUSE support (nbdfuse) to mount NBD in the local filesystem.
+* Linux ublk support (nbdublk) to create the userspace block device.
 
 For documentation, see the [docs](docs/) and [examples](examples/)
 subdirectories.
@@ -103,6 +104,7 @@ Optional:
 * OCaml and ocamlfind are both needed to generate the OCaml bindings.
 * Python >= 3.3 to build the Python 3 bindings and NBD shell (nbdsh).
 * FUSE 3 to build the nbdfuse program.
+* Linux >= 6.0 and ublksrv library to build nbdublk program.
 * go and cgo, for compiling the golang bindings and tests.
 * bash-completion >= 1.99 for tab completion.
 
