@@ -22,6 +22,7 @@ STATE_MACHINE {
  NEWSTYLE.OPT_GO.START:
   uint16_t nrinfos = 0;
 
+  nbd_internal_reset_size_and_flags (h);
   if (h->request_block_size)
     nrinfos++;
   if (h->full_info)
