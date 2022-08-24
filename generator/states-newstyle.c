@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -113,9 +113,12 @@ handle_reply_error (struct nbd_handle *h)
 STATE_MACHINE {
  NEWSTYLE.START:
   if (h->opt_mode) {
-    /* NEWSTYLE can be entered multiple times, from MAGIC.CHECK_MAGIC and
-     * during various nbd_opt_* calls during NEGOTIATION.  Each previous
-     * state has informed us what we still need to do.
+    /* NEWSTYLE can be entered multiple times, from MAGIC.CHECK_MAGIC
+     * (h->opt_current is 0, run through OPT_STRUCTURED_REPLY for
+     * opt_mode, or OPT_GO otherwise) and during various nbd_opt_*
+     * calls during NEGOTIATING (h->opt_current is set, run just the
+     * states needed).  Each previous state has informed us what we
+     * still need to do.
      */
     switch (h->opt_current) {
     case NBD_OPT_GO:
@@ -145,6 +148,8 @@ STATE_MACHINE {
       abort ();
     }
   }
+
+  assert (h->opt_current == 0);
   h->rbuf = &h->sbuf;
   h->rlen = sizeof h->sbuf.gflags;
   SET_NEXT_STATE (%RECV_GFLAGS);
