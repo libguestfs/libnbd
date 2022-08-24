@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2020-2021 Red Hat Inc.
+ * Copyright (C) 2020-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -288,10 +288,6 @@ nbd_unlocked_aio_opt_list_meta_context (struct nbd_handle *h,
 {
   if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0) {
     set_error (ENOTSUP, "server is not using fixed newstyle protocol");
-    return -1;
-  }
-  if (!h->structured_replies) {
-    set_error (ENOTSUP, "server lacks structured replies");
     return -1;
   }
 

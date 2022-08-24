@@ -33,7 +33,7 @@ STATE_MACHINE {
    *   nbd_opt_go()
    *     -> conditionally use SET, next state OPT_GO for NBD_OPT_GO
    *   nbd_opt_list_meta_context()
-   *     -> conditionally use LIST, next state NEGOTIATING
+   *     -> unconditionally use LIST, next state NEGOTIATING
    *
    * For now, we start by unconditionally clearing h->exportsize and friends,
    * as well as h->meta_contexts and h->meta_valid.
@@ -42,7 +42,6 @@ STATE_MACHINE {
    * SET then manipulates h->meta_contexts, and sets h->meta_valid on success.
    * If OPT_GO is later successful, it populates h->exportsize and friends,
    * and also sets h->meta_valid if we skipped SET here.
-   * LIST is conditional, skipped if structured replies were not negotiated.
    * There is a callback if and only if the command is LIST.
    */
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
@@ -52,7 +51,6 @@ STATE_MACHINE {
   meta_vector_reset (&h->meta_contexts);
   if (h->opt_current == NBD_OPT_LIST_META_CONTEXT) {
     assert (h->opt_mode);
-    assert (h->structured_replies);
     assert (CALLBACK_IS_NOT_NULL (h->opt_cb.fn.context));
     opt = h->opt_current;
   }
