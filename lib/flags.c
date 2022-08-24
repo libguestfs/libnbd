@@ -28,7 +28,7 @@
 #include "internal.h"
 
 /* Reset connection data.  Called after swapping export name, after
- * failed OPT_GO/OPT_INFO, or when starting a fresh OPT_SET_META_CONTEXT.
+ * failed OPT_GO/OPT_INFO, or after successful OPT_STARTTLS.
  */
 void
 nbd_internal_reset_size_and_flags (struct nbd_handle *h)

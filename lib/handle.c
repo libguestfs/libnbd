@@ -232,6 +232,9 @@ nbd_unlocked_set_export_name (struct nbd_handle *h, const char *export_name)
     return -1;
   }
 
+  if (strcmp (export_name, h->export_name) == 0)
+    return 0;
+
   new_name = strdup (export_name);
   if (!new_name) {
     set_error (errno, "strdup");
@@ -240,6 +243,7 @@ nbd_unlocked_set_export_name (struct nbd_handle *h, const char *export_name)
 
   free (h->export_name);
   h->export_name = new_name;
+  nbd_internal_reset_size_and_flags (h);
   h->meta_valid = false;
   return 0;
 }
