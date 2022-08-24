@@ -26,7 +26,7 @@
 case "$1" in
     open)
         if test "$3" = a; then
-            echo ENOENT export not available
+            echo ENOENT export not available >&2
             exit 1
         fi
         echo "$3" ;;
