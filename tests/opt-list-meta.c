@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -163,5 +163,26 @@ main (int argc, char *argv[])
 
   nbd_opt_abort (nbd);
   nbd_close (nbd);
+
+  /* Repeat but this time without structured replies. */
+  nbd = nbd_create ();
+  if (nbd == NULL ||
+      nbd_set_opt_mode (nbd, true) == -1 ||
+      nbd_set_request_structured_replies (nbd, false) == -1 ||
+      nbd_connect_command (nbd, args) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  /* FIXME: For now, we reject this client-side, but it is overly strict. */
+  p = (struct progress) { .count = 0 };
+  r = nbd_opt_list_meta_context (nbd,
+                                 (nbd_context_callback) { .callback = check,
+                                                          .user_data = &p});
+  if (r != -1) {
+    fprintf (stderr, "not expecting command to succeed\n");
+    exit (EXIT_FAILURE);
+  }
+
   exit (EXIT_SUCCESS);
 }

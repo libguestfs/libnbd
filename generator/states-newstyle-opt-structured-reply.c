@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,7 +22,10 @@ STATE_MACHINE {
  NEWSTYLE.OPT_STRUCTURED_REPLY.START:
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
   if (!h->request_sr) {
-    SET_NEXT_STATE (%^OPT_META_CONTEXT.START);
+    if (h->opt_mode)
+      SET_NEXT_STATE (%.NEGOTIATING);
+    else
+      SET_NEXT_STATE (%^OPT_META_CONTEXT.START);
     return 0;
   }
 
