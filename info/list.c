@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2020-2021 Red Hat Inc.
+ * Copyright (C) 2020-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -104,6 +104,7 @@ list_all_exports (void)
       }
       nbd_set_uri_allow_local_file (nbd2, true); /* Allow ?tls-psk-file. */
       nbd_set_opt_mode (nbd2, true);
+      nbd_set_request_meta_context (nbd2, false);
       nbd_set_full_info (nbd2, true);
 
       do_connect (nbd2);

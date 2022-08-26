@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2020-2021 Red Hat Inc.
+ * Copyright (C) 2020-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -65,6 +65,7 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
    * advertising something it later refuses to serve), return rather
    * than exit, to allow output on the rest of the list.
    */
+  nbd_set_request_meta_context (nbd, false);
   if (nbd_aio_is_negotiating (nbd) &&
       nbd_opt_info (nbd) == -1 &&
       nbd_opt_go (nbd) == -1) {
