@@ -17,6 +17,7 @@
  */
 
 /* Test behavior of nbd_opt_info. */
+/* See also unit test 230 in the various language ports. */
 
 #include <config.h>
 
@@ -80,13 +81,9 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* info on something not present fails, wipes out prior info */
-  if (nbd_set_export_name (nbd, "a") == -1) {
+  /* changing export wipes out prior info */
+  if (nbd_set_export_name (nbd, "b") == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
-    exit (EXIT_FAILURE);
-  }
-  if (nbd_opt_info (nbd) != -1) {
-    fprintf (stderr, "expecting error for opt_info\n");
     exit (EXIT_FAILURE);
   }
   if (nbd_get_size (nbd) != -1) {
@@ -102,6 +99,16 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  /* info on something not present fails */
+  if (nbd_set_export_name (nbd, "a") == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_opt_info (nbd) != -1) {
+    fprintf (stderr, "expecting error for opt_info\n");
+    exit (EXIT_FAILURE);
+  }
+
   /* info for a different export, with automatic meta_context disabled */
   if (nbd_set_export_name (nbd, "b") == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
@@ -112,6 +119,11 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
   if (nbd_opt_info (nbd) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  /* idempotent name change is no-op */
+  if (nbd_set_export_name (nbd, "b") == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

@@ -45,17 +45,22 @@ assert h.get_size() == 0
 assert h.is_read_only() is True
 assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) is True
 
-# info on something not present fails, wipes out prior info
-h.set_export_name("a")
-must_fail(h.opt_info)
+# changing export wipes out prior info
+h.set_export_name("b")
 must_fail(h.get_size)
 must_fail(h.is_read_only)
 must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
+
+# info on something not present fails
+h.set_export_name("a")
+must_fail(h.opt_info)
 
 # info for a different export, with automatic meta_context disabled
 h.set_export_name("b")
 h.set_request_meta_context(False)
 h.opt_info()
+# idempotent name change is no-op
+h.set_export_name("b")
 assert h.get_size() == 1
 assert h.is_read_only() is False
 must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)

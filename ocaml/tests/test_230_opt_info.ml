@@ -62,17 +62,22 @@ let () =
   let meta = NBD.can_meta_context nbd NBD.context_base_allocation in
   assert meta;
 
-  (* info on something not present fails, wipes out prior info *)
-  NBD.set_export_name nbd "a";
-  fail_unary NBD.opt_info nbd;
+  (* changing export wipes out prior info *)
+  NBD.set_export_name nbd "b";
   fail_unary NBD.get_size nbd;
   fail_unary NBD.is_read_only nbd;
   fail_binary NBD.can_meta_context nbd NBD.context_base_allocation;
+
+  (* info on something not present fails *)
+  NBD.set_export_name nbd "a";
+  fail_unary NBD.opt_info nbd;
 
   (* info for a different export, with automatic meta_context disabled *)
   NBD.set_export_name nbd "b";
   NBD.set_request_meta_context nbd false;
   NBD.opt_info nbd;
+  (* idempotent name change is no-op *)
+  NBD.set_export_name nbd "b";
   let size = NBD.get_size nbd in
   assert (size = 1L);
   let ro = NBD.is_read_only nbd in

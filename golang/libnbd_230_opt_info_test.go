@@ -91,14 +91,10 @@ func Test230OptInfo(t *testing.T) {
 		t.Fatalf("unexpected meta context")
 	}
 
-	/* info on something not present fails, wipes out prior info */
-	err = h.SetExportName("a")
+	/* changing export wipes out prior info */
+	err = h.SetExportName("b")
 	if err != nil {
 		t.Fatalf("set export name failed unexpectedly: %s", err)
-	}
-	err = h.OptInfo()
-	if err == nil {
-		t.Fatalf("expected error")
 	}
 	_, err = h.GetSize()
 	if err == nil {
@@ -109,6 +105,16 @@ func Test230OptInfo(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 	_, err = h.CanMetaContext(context_base_allocation)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+
+	/* info on something not present fails */
+	err = h.SetExportName("a")
+	if err != nil {
+		t.Fatalf("set export name failed unexpectedly: %s", err)
+	}
+	err = h.OptInfo()
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -125,6 +131,11 @@ func Test230OptInfo(t *testing.T) {
 	err = h.OptInfo()
 	if err != nil {
 		t.Fatalf("opt_info failed unexpectedly: %s", err)
+	}
+	/* idempotent name change is no-op */
+	err = h.SetExportName("b")
+	if err != nil {
+		t.Fatalf("set export name failed unexpectedly: %s", err)
 	}
 	size, err = h.GetSize()
 	if err != nil {
