@@ -28,6 +28,8 @@ let () =
       assert (tls = NBD.TLS.DISABLE);
       let sr = NBD.get_request_structured_replies nbd in
       assert sr;
+      let meta = NBD.get_request_meta_context nbd in
+      assert meta;
       let bs = NBD.get_request_block_size nbd in
       assert bs;
       let init = NBD.get_pread_initialize nbd in

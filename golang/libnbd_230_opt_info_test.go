@@ -1,5 +1,5 @@
 /* libnbd golang tests
- * Copyright (C) 2013-2021 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -113,10 +113,14 @@ func Test230OptInfo(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 
-	/* info for a different export */
+	/* info for a different export, with automatic meta_context disabled */
 	err = h.SetExportName("b")
 	if err != nil {
 		t.Fatalf("set export name failed unexpectedly: %s", err)
+	}
+	err = h.SetRequestMetaContext(false)
+	if err != nil {
+		t.Fatalf("set request meta context failed unexpectedly: %s", err)
 	}
 	err = h.OptInfo()
 	if err != nil {
@@ -136,12 +140,13 @@ func Test230OptInfo(t *testing.T) {
 	if ro {
 		t.Fatalf("unexpected readonly")
 	}
-	meta, err = h.CanMetaContext(context_base_allocation)
-	if err != nil {
-		t.Fatalf("can_meta failed unexpectedly: %s", err)
+	_, err = h.CanMetaContext(context_base_allocation)
+	if err == nil {
+		t.Fatalf("expected error")
 	}
-	if !meta {
-		t.Fatalf("unexpected meta context")
+	err = h.SetRequestMetaContext(true)
+	if err != nil {
+		t.Fatalf("set request meta context failed unexpectedly: %s", err)
 	}
 
 	/* go on something not present */
@@ -219,6 +224,75 @@ func Test230OptInfo(t *testing.T) {
 	}
 	if size != 4 {
 		t.Fatalf("unexpected size")
+	}
+	meta, err = h.CanMetaContext(context_base_allocation)
+	if err != nil {
+		t.Fatalf("can_meta failed unexpectedly: %s", err)
+	}
+	if !meta {
+		t.Fatalf("unexpected meta context")
+	}
+
+	h.Shutdown(nil)
+
+	/* Another cnonection. This time, check that SET_META triggered by OptInfo
+	 * persists through OptGo with SetRequestMetaContext disabled.
+	 */
+	h, err = Create()
+	if err != nil {
+		t.Fatalf("could not create handle: %s", err)
+	}
+	defer h.Close()
+
+	err = h.SetOptMode(true)
+	if err != nil {
+		t.Fatalf("could not set opt mode: %s", err)
+	}
+	err = h.ConnectCommand([]string{
+		"nbdkit", "-s", "--exit-with-parent", "-v", "sh", script,
+	})
+	if err != nil {
+		t.Fatalf("could not connect: %s", err)
+	}
+	err = h.AddMetaContext("x-unexpected:bogus")
+	if err != nil {
+		t.Fatalf("could not add meta context: %s", err)
+	}
+
+	_, err = h.CanMetaContext(context_base_allocation)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	err = h.OptInfo()
+	if err != nil {
+		t.Fatalf("opt_info failed unexpectedly: %s", err)
+	}
+	meta, err = h.CanMetaContext(context_base_allocation)
+	if err != nil {
+		t.Fatalf("can_meta failed unexpectedly: %s", err)
+	}
+	if meta {
+		t.Fatalf("unexpected meta context")
+	}
+	err = h.SetRequestMetaContext(false)
+	if err != nil {
+		t.Fatalf("set request meta context failed unexpectedly: %s", err)
+	}
+	/* Adding to the request list now won't matter */
+	err = h.AddMetaContext(context_base_allocation)
+	if err != nil {
+		t.Fatalf("could not add meta context: %s", err)
+	}
+	err = h.OptGo()
+	if err != nil {
+		t.Fatalf("opt_go failed unexpectedly: %s", err)
+	}
+	meta, err = h.CanMetaContext(context_base_allocation)
+	if err != nil {
+		t.Fatalf("can_meta failed unexpectedly: %s", err)
+	}
+	if meta {
+		t.Fatalf("unexpected meta context")
 	}
 
 	h.Shutdown(nil)

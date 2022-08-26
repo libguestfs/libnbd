@@ -69,15 +69,16 @@ let () =
   fail_unary NBD.is_read_only nbd;
   fail_binary NBD.can_meta_context nbd NBD.context_base_allocation;
 
-  (* info for a different export *)
+  (* info for a different export, with automatic meta_context disabled *)
   NBD.set_export_name nbd "b";
+  NBD.set_request_meta_context nbd false;
   NBD.opt_info nbd;
   let size = NBD.get_size nbd in
   assert (size = 1L);
   let ro = NBD.is_read_only nbd in
   assert (not ro);
-  let meta = NBD.can_meta_context nbd NBD.context_base_allocation in
-  assert meta;
+  fail_binary NBD.can_meta_context nbd NBD.context_base_allocation;
+  NBD.set_request_meta_context nbd true;
 
   (* go on something not present *)
   NBD.set_export_name nbd "a";
@@ -103,6 +104,31 @@ let () =
   fail_unary NBD.opt_info nbd;
   let size = NBD.get_size nbd in
   assert (size = 4L);
+  let meta = NBD.can_meta_context nbd NBD.context_base_allocation in
+  assert meta;
+
+  NBD.shutdown nbd;
+
+  (* Another connection. This time, check that SET_META triggered by opt_info
+   * persists through nbd_opt_go with set_request_meta_context disabled.
+   *)
+  let nbd = NBD.create () in
+  NBD.set_opt_mode nbd true;
+  NBD.connect_command nbd
+                      ["nbdkit"; "-s"; "--exit-with-parent"; "-v";
+                       "sh"; script];
+  NBD.add_meta_context nbd "x-unexpected:bogus";
+
+  fail_binary NBD.can_meta_context nbd NBD.context_base_allocation;
+  NBD.opt_info nbd;
+  let meta = NBD.can_meta_context nbd NBD.context_base_allocation in
+  assert (not meta);
+  NBD.set_request_meta_context nbd false;
+  (* Adding to the request list now won't matter *)
+  NBD.add_meta_context nbd NBD.context_base_allocation;
+  NBD.opt_go nbd;
+  let meta = NBD.can_meta_context nbd NBD.context_base_allocation in
+  assert (not meta);
 
   NBD.shutdown nbd
 

@@ -59,6 +59,14 @@ func Test110Defaults(t *testing.T) {
 		t.Fatalf("unexpected structured replies state")
 	}
 
+	meta, err := h.GetRequestMetaContext()
+	if err != nil {
+		t.Fatalf("could not get meta context state: %s", err)
+	}
+	if meta != true {
+		t.Fatalf("unexpected meta context state")
+	}
+
 	bs, err := h.GetRequestBlockSize()
 	if err != nil {
 		t.Fatalf("could not get block size state: %s", err)

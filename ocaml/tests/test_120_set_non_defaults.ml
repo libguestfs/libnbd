@@ -42,6 +42,9 @@ let () =
       NBD.set_request_structured_replies nbd false;
       let sr = NBD.get_request_structured_replies nbd in
       assert (not sr);
+      NBD.set_request_meta_context nbd false;
+      let meta = NBD.get_request_meta_context nbd in
+      assert (not meta);
       NBD.set_request_block_size nbd false;
       let bs = NBD.get_request_block_size nbd in
       assert (not bs);

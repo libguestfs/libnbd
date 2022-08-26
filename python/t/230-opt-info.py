@@ -52,12 +52,14 @@ must_fail(h.get_size)
 must_fail(h.is_read_only)
 must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
 
-# info for a different export
+# info for a different export, with automatic meta_context disabled
 h.set_export_name("b")
+h.set_request_meta_context(False)
 h.opt_info()
 assert h.get_size() == 1
 assert h.is_read_only() is False
-assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) is True
+must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
+h.set_request_meta_context(True)
 
 # go on something not present
 h.set_export_name("a")
@@ -78,5 +80,24 @@ must_fail(h.set_export_name, "a")
 assert h.get_export_name() == "good"
 must_fail(h.opt_info)
 assert h.get_size() == 4
+assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) is True
+
+h.shutdown()
+
+# Another connection. This time, check that SET_META triggered by opt_info
+# persists through nbd_opt_go with set_request_meta_context disabled.
+h = nbd.NBD()
+h.set_opt_mode(True)
+h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v", "sh", script])
+h.add_meta_context("x-unexpected:bogus")
+
+must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
+h.opt_info()
+assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) is False
+h.set_request_meta_context(False)
+# Adding to the request list now won't matter
+h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
+h.opt_go()
+assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) is False
 
 h.shutdown()
