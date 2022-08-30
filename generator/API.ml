@@ -2318,6 +2318,19 @@ This function is mainly useful as an example of how you might
 integrate libnbd with your own main loop, rather than being
 intended as something you would use.";
     example = Some "examples/aio-connect-read.c";
+    see_also = [ Link "poll2" ];
+  };
+
+  "poll2", {
+    default_call with
+    args = [Int "fd"; Int "timeout" ]; ret = RInt;
+    shortdesc = "poll the handle once, with fd";
+    longdesc = "\
+This is the same as L<nbd_poll(3)>, but an additional
+file descriptor parameter is passed.  The additional
+fd is also polled (using C<POLLIN>).  One use for this is to
+wait for an L<eventfd(2)>.";
+    see_also = [ Link "poll" ];
   };
 
   "aio_connect", {
@@ -3256,6 +3269,7 @@ let first_version = [
   "get_request_block_size", (1, 12);
 
   (* Added in 1.15.x development cycle, will be stable and supported in 1.16. *)
+  "poll2", (1, 16);
   "supports_vsock", (1, 16);
 
   (* These calls are proposed for a future version of libnbd, but

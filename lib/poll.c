@@ -27,14 +27,18 @@
 #include "internal.h"
 
 /* A simple main loop implementation using poll(2). */
-int
-nbd_unlocked_poll (struct nbd_handle *h, int timeout)
+static int
+do_poll (struct nbd_handle *h, int extra_fd, int timeout)
 {
-  struct pollfd fds[1];
+  struct pollfd fds[2];
   int r;
 
   /* fd might be negative, and poll will ignore it. */
   fds[0].fd = nbd_unlocked_aio_get_fd (h);
+  fds[1].fd = extra_fd;
+  fds[1].events = POLLIN;
+  fds[1].revents = 0;
+
   switch (nbd_internal_aio_get_direction (get_next_state (h))) {
   case LIBNBD_AIO_DIRECTION_READ:
     fds[0].events = POLLIN;
@@ -58,7 +62,7 @@ nbd_unlocked_poll (struct nbd_handle *h, int timeout)
    * passed to poll.
    */
   do {
-    r = poll (fds, 1, timeout);
+    r = poll (fds, 2, timeout);
     debug (h, "poll end: r=%d revents=%x", r, fds[0].revents);
   } while (r == -1 && errno == EINTR);
 
@@ -90,4 +94,16 @@ nbd_unlocked_poll (struct nbd_handle *h, int timeout)
     return -1;
 
   return 1;
+}
+
+int
+nbd_unlocked_poll (struct nbd_handle *h, int timeout)
+{
+  return do_poll (h, -1, timeout);
+}
+
+int
+nbd_unlocked_poll2 (struct nbd_handle *h, int fd, int timeout)
+{
+  return do_poll (h, fd, timeout);
 }
