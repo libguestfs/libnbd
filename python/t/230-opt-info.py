@@ -1,5 +1,5 @@
 # libnbd Python bindings
-# Copyright (C) 2010-2020 Red Hat Inc.
+# Copyright (C) 2010-2022 Red Hat Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -42,8 +42,8 @@ must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
 # info with no prior name gets info on ""
 h.opt_info()
 assert h.get_size() == 0
-assert h.is_read_only() == 1
-assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) == 1
+assert h.is_read_only() is True
+assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) is True
 
 # info on something not present fails, wipes out prior info
 h.set_export_name("a")
@@ -56,8 +56,8 @@ must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
 h.set_export_name("b")
 h.opt_info()
 assert h.get_size() == 1
-assert h.is_read_only() == 0
-assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) == 1
+assert h.is_read_only() is False
+assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) is True
 
 # go on something not present
 h.set_export_name("a")
@@ -70,8 +70,8 @@ must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
 h.set_export_name("good")
 h.opt_go()
 assert h.get_size() == 4
-assert h.is_read_only() == 1
-assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) == 1
+assert h.is_read_only() is True
+assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) is True
 
 # now info is no longer valid, but does not wipe data
 must_fail(h.set_export_name, "a")
