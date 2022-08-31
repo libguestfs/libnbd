@@ -484,18 +484,16 @@ STATE_MACHINE {
 
     /* Look up the context ID. */
     context_id = h->bs_entries[0];
-    for (meta_context = h->meta_contexts;
-         meta_context;
-         meta_context = meta_context->next)
-      if (context_id == meta_context->context_id)
+    for (i = 0; i < h->meta_contexts.len; ++i)
+      if (context_id == h->meta_contexts.ptr[i].context_id)
         break;
 
-    if (meta_context) {
+    if (i < h->meta_contexts.len) {
       /* Call the caller's extent function. */
       int error = cmd->error;
 
       if (CALL_CALLBACK (cmd->cb.fn.extent,
-                         meta_context->name, cmd->offset,
+                         h->meta_contexts.ptr[i].name, cmd->offset,
                          &h->bs_entries[1], (length-4) / 4,
                          &error) == -1)
         if (cmd->error == 0)

@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -44,7 +44,7 @@ STATE_MACHINE {
     }
   }
 
-  assert (h->meta_contexts == NULL);
+  assert (h->meta_contexts.len == 0);
 
   /* Calculate the length of the option request data. */
   len = 4 /* exportname len */ + strlen (h->export_name) + 4 /* nr queries */;
@@ -176,7 +176,7 @@ STATE_MACHINE {
   uint32_t reply;
   uint32_t len;
   const size_t maxpayload = sizeof h->sbuf.or.payload.context;
-  struct meta_context *meta_context;
+  struct meta_context meta_context;
   uint32_t opt;
   int err = 0;
 
@@ -202,33 +202,27 @@ STATE_MACHINE {
       debug (h, "skipping too large meta context");
     else {
       assert (len > sizeof h->sbuf.or.payload.context.context.context_id);
-      meta_context = malloc (sizeof *meta_context);
-      if (meta_context == NULL) {
-        set_error (errno, "malloc");
-        SET_NEXT_STATE (%.DEAD);
-        return 0;
-      }
-      meta_context->context_id =
+      meta_context.context_id =
         be32toh (h->sbuf.or.payload.context.context.context_id);
       /* String payload is not NUL-terminated. */
-      meta_context->name = strndup (h->sbuf.or.payload.context.str,
-                                    len - sizeof meta_context->context_id);
-      if (meta_context->name == NULL) {
+      meta_context.name = strndup (h->sbuf.or.payload.context.str,
+                                   len - sizeof meta_context.context_id);
+      if (meta_context.name == NULL) {
         set_error (errno, "strdup");
         SET_NEXT_STATE (%.DEAD);
-        free (meta_context);
         return 0;
       }
       debug (h, "negotiated %s with context ID %" PRIu32,
-             meta_context->name, meta_context->context_id);
+             meta_context.name, meta_context.context_id);
       if (opt == NBD_OPT_LIST_META_CONTEXT) {
-        CALL_CALLBACK (h->opt_cb.fn.context, meta_context->name);
-        free (meta_context->name);
-        free (meta_context);
+        CALL_CALLBACK (h->opt_cb.fn.context, meta_context.name);
+        free (meta_context.name);
       }
-      else {
-        meta_context->next = h->meta_contexts;
-        h->meta_contexts = meta_context;
+      else if (meta_vector_append (&h->meta_contexts, meta_context) == -1) {
+        set_error (errno, "realloc");
+        free (meta_context.name);
+        SET_NEXT_STATE (%.DEAD);
+        return 0;
       }
     }
     SET_NEXT_STATE (%PREPARE_FOR_REPLY);
