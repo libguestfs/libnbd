@@ -37,9 +37,7 @@ nbd_internal_reset_size_and_flags (struct nbd_handle *h)
 
   h->exportsize = 0;
   h->eflags = 0;
-  for (i = 0; i < h->meta_contexts.len; ++i)
-    free (h->meta_contexts.ptr[i].name);
-  meta_vector_reset (&h->meta_contexts);
+  h->meta_valid = false;
   h->block_minimum = 0;
   h->block_preferred = 0;
   h->block_maximum = 0;
@@ -73,6 +71,11 @@ nbd_internal_set_size_and_flags (struct nbd_handle *h,
       !(eflags & NBD_FLAG_SEND_WRITE_ZEROES)) {
     debug (h, "server lacks write zeroes, ignoring claim of fast zero");
     eflags &= ~NBD_FLAG_SEND_FAST_ZERO;
+  }
+
+  if (!h->structured_replies || h->request_meta_contexts.len == 0) {
+    assert (h->meta_contexts.len == 0);
+    h->meta_valid = true;
   }
 
   h->exportsize = exportsize;
@@ -194,9 +197,8 @@ nbd_unlocked_can_meta_context (struct nbd_handle *h, const char *name)
 {
   size_t i;
 
-  if (h->eflags == 0) {
-    set_error (EINVAL, "server has not returned export flags, "
-               "you need to connect to the server first");
+  if (h->request_meta_contexts.len && !h->meta_valid) {
+    set_error (EINVAL, "need a successful server meta context request first");
     return -1;
   }
 

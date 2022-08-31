@@ -121,6 +121,8 @@ nbd_create (void)
 void
 nbd_close (struct nbd_handle *h)
 {
+  size_t i;
+
   nbd_internal_set_error_context ("nbd_close");
 
   if (h == NULL)
@@ -133,6 +135,9 @@ nbd_close (struct nbd_handle *h)
 
   free (h->bs_entries);
   nbd_internal_reset_size_and_flags (h);
+  for (i = 0; i < h->meta_contexts.len; ++i)
+    free (h->meta_contexts.ptr[i].name);
+  meta_vector_reset (&h->meta_contexts);
   nbd_internal_free_option (h);
   free_cmd_list (h->cmds_to_issue);
   free_cmd_list (h->cmds_in_flight);

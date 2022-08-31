@@ -23,12 +23,33 @@ STATE_MACHINE {
   size_t i;
   uint32_t len, opt;
 
-  /* If the server doesn't support SRs then we must skip this group.
-   * Also we skip the group if the client didn't request any metadata
-   * contexts, when doing SET (but an empty LIST is okay).
+  /* This state group is reached from:
+   * h->opt_mode == false (h->opt_current == 0):
+   *   nbd_connect_*()
+   *     -> conditionally use SET, next state OPT_GO for NBD_OPT_GO
+   * h->opt_mode == true (h->opt_current matches calling API):
+   *   nbd_opt_info()
+   *     -> conditionally use SET, next state OPT_GO for NBD_OPT_INFO
+   *   nbd_opt_go()
+   *     -> conditionally use SET, next state OPT_GO for NBD_OPT_GO
+   *   nbd_opt_list_meta_context()
+   *     -> conditionally use LIST, next state NEGOTIATING
+   *
+   * For now, we start by unconditionally clearing h->exportsize and friends,
+   * as well as h->meta_contexts and h->meta_valid.
+   * If SET is conditional, we skip it if structured replies were
+   * not negotiated, or if there were no contexts to request.
+   * SET then manipulates h->meta_contexts, and sets h->meta_valid on success.
+   * If OPT_GO is later successful, it populates h->exportsize and friends,
+   * and also sets h->meta_valid if we skipped SET here.
+   * LIST is conditional, skipped if structured replies were not negotiated.
+   * There is a callback if and only if the command is LIST.
    */
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
   nbd_internal_reset_size_and_flags (h);
+  for (i = 0; i < h->meta_contexts.len; ++i)
+    free (h->meta_contexts.ptr[i].name);
+  meta_vector_reset (&h->meta_contexts);
   if (h->opt_current == NBD_OPT_LIST_META_CONTEXT) {
     assert (h->opt_mode);
     assert (h->structured_replies);
@@ -44,7 +65,7 @@ STATE_MACHINE {
     }
   }
 
-  assert (h->meta_contexts.len == 0);
+  assert (!h->meta_valid);
 
   /* Calculate the length of the option request data. */
   len = 4 /* exportname len */ + strlen (h->export_name) + 4 /* nr queries */;
@@ -194,8 +215,10 @@ STATE_MACHINE {
       CALL_CALLBACK (h->opt_cb.completion, &err);
       nbd_internal_free_option (h);
     }
-    else
+    else {
       SET_NEXT_STATE (%^OPT_GO.START);
+      h->meta_valid = true;
+    }
     break;
   case NBD_REP_META_CONTEXT:  /* A context. */
     if (len > maxpayload)

@@ -180,6 +180,7 @@ struct nbd_handle {
   bool structured_replies;      /* If we negotiated NBD_OPT_STRUCTURED_REPLY */
 
   /* Vector of negotiated metadata contexts. */
+  bool meta_valid;
   meta_vector meta_contexts;
 
   /* The socket or a wrapper if using GnuTLS. */

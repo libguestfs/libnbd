@@ -1810,7 +1810,9 @@ the server does not."
     longdesc = "\
 Returns true if the server supports the given meta context
 (see L<nbd_add_meta_context(3)>).  Returns false if
-the server does not.
+the server does not.  It is possible for this command to fail if
+meta contexts were requested but there is a missing or failed
+attempt at NBD_OPT_SET_META_CONTEXT during option negotiation.
 
 The single parameter is the name of the metadata context,
 for example C<LIBNBD_CONTEXT_BASE_ALLOCATION>.

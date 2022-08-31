@@ -445,6 +445,7 @@ STATE_MACHINE {
     assert (CALLBACK_IS_NOT_NULL (cmd->cb.fn.extent));
     assert (h->bs_entries);
     assert (length >= 12);
+    assert (h->meta_valid);
 
     /* Need to byte-swap the entries returned, but apart from that we
      * don't validate them.
