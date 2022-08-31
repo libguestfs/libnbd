@@ -64,9 +64,14 @@
  */
 #define MAX_REQUEST_SIZE (64 * 1024 * 1024)
 
-struct meta_context;
 struct socket;
 struct command;
+
+struct meta_context {
+  char *name;                   /* Name of meta context. */
+  uint32_t context_id;          /* Context ID negotiated with the server. */
+};
+DEFINE_VECTOR_TYPE(meta_vector, struct meta_context);
 
 struct export {
   char *name;
@@ -174,8 +179,8 @@ struct nbd_handle {
 
   bool structured_replies;      /* If we negotiated NBD_OPT_STRUCTURED_REPLY */
 
-  /* Linked list of negotiated metadata contexts. */
-  struct meta_context *meta_contexts;
+  /* Vector of negotiated metadata contexts. */
+  meta_vector meta_contexts;
 
   /* The socket or a wrapper if using GnuTLS. */
   struct socket *sock;
@@ -309,12 +314,6 @@ struct nbd_handle {
 
   bool disconnect_request;      /* True if we've queued NBD_CMD_DISC */
   bool tls_shut_writes;         /* Used by lib/crypto.c to track disconnect. */
-};
-
-struct meta_context {
-  struct meta_context *next;    /* Linked list. */
-  char *name;                   /* Name of meta context. */
-  uint32_t context_id;          /* Context ID negotiated with the server. */
 };
 
 struct socket_ops {

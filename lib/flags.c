@@ -33,16 +33,13 @@
 void
 nbd_internal_reset_size_and_flags (struct nbd_handle *h)
 {
-  struct meta_context *m, *m_next;
+  size_t i;
 
   h->exportsize = 0;
   h->eflags = 0;
-  for (m = h->meta_contexts; m != NULL; m = m_next) {
-    m_next = m->next;
-    free (m->name);
-    free (m);
-  }
-  h->meta_contexts = NULL;
+  for (i = 0; i < h->meta_contexts.len; ++i)
+    free (h->meta_contexts.ptr[i].name);
+  meta_vector_reset (&h->meta_contexts);
   h->block_minimum = 0;
   h->block_preferred = 0;
   h->block_maximum = 0;
@@ -195,7 +192,7 @@ nbd_unlocked_can_cache (struct nbd_handle *h)
 int
 nbd_unlocked_can_meta_context (struct nbd_handle *h, const char *name)
 {
-  struct meta_context *meta_context;
+  size_t i;
 
   if (h->eflags == 0) {
     set_error (EINVAL, "server has not returned export flags, "
@@ -203,10 +200,8 @@ nbd_unlocked_can_meta_context (struct nbd_handle *h, const char *name)
     return -1;
   }
 
-  for (meta_context = h->meta_contexts;
-       meta_context;
-       meta_context = meta_context->next)
-    if (strcmp (meta_context->name, name) == 0)
+  for (i = 0; i < h->meta_contexts.len; ++i)
+    if (strcmp (h->meta_contexts.ptr[i].name, name) == 0)
       return 1;
   return 0;
 }
