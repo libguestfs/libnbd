@@ -108,6 +108,20 @@ and link =
 | ExternalLink of string * int
 | URLLink of string
 
+let blocking_connect_call_description = "\n
+This call returns when the connection has been made.  By default,
+this proceeds all the way to transmission phase, but
+L<nbd_set_opt_mode(3)> can be used for manual control over
+option negotiation performed before transmission phase."
+
+let async_connect_call_description = "\n
+You can check if the connection attempt is still underway by
+calling L<nbd_aio_is_connecting(3)>.  If L<nbd_set_opt_mode(3)>
+is enabled, the connection is ready for manual option negotiation
+once L<nbd_aio_is_negotiating(3)> returns true; otherwise, the
+connection attempt will include the NBD handshake, and is ready
+for use once L<nbd_aio_is_ready(3)> returns true."
+
 let strict_call_description = "\n
 By default, libnbd will reject attempts to use this function with
 parameters that are likely to result in server failure, such as
@@ -970,7 +984,8 @@ to end the connection without finishing negotiation.";
     example = Some "examples/list-exports.c";
     see_also = [Link "get_opt_mode"; Link "aio_is_negotiating";
                 Link "opt_abort"; Link "opt_go"; Link "opt_list";
-                Link "opt_info"; Link "opt_list_meta_context"];
+                Link "opt_info"; Link "opt_list_meta_context";
+                Link "aio_connect"];
   };
 
   "get_opt_mode", {
@@ -1317,8 +1332,7 @@ the NBD URI.  This call parses the URI and calls
 L<nbd_set_export_name(3)> and L<nbd_set_tls(3)> and other
 calls as needed, followed by L<nbd_connect_tcp(3)> or
 L<nbd_connect_unix(3)>.
-
-This call returns when the connection has been made.
+" ^ blocking_connect_call_description ^ "
 
 =head2 Example URIs supported
 
@@ -1490,10 +1504,10 @@ See L<nbd_get_uri(3)>.";
     shortdesc = "connect to NBD server over a Unix domain socket";
     longdesc = "\
 Connect (synchronously) over the named Unix domain socket (C<unixsocket>)
-to an NBD server running on the same machine.  This call returns
-when the connection has been made.";
+to an NBD server running on the same machine.
+" ^ blocking_connect_call_description;
     example = Some "examples/fetch-first-sector.c";
-    see_also = [Link "aio_connect_unix"];
+    see_also = [Link "aio_connect_unix"; Link "set_opt_mode"];
   };
 
   "connect_vsock", {
@@ -1507,8 +1521,9 @@ virtual machine to an NBD server, usually running on the host.  The
 C<cid> and C<port> parameters specify the server address.  Usually
 C<cid> should be C<2> (to connect to the host), and C<port> might be
 C<10809> or another port number assigned to you by the host
-administrator.  This call returns when the connection has been made.";
-    see_also = [Link "aio_connect_vsock"];
+administrator.
+" ^ blocking_connect_call_description;
+    see_also = [Link "aio_connect_vsock"; Link "set_opt_mode"];
   };
 
   "connect_tcp", {
@@ -1520,9 +1535,9 @@ administrator.  This call returns when the connection has been made.";
 Connect (synchronously) to the NBD server listening on
 C<hostname:port>.  The C<port> may be a port name such
 as C<\"nbd\">, or it may be a port number as a string
-such as C<\"10809\">.  This call returns when the connection
-has been made.";
-    see_also = [Link "aio_connect_tcp"];
+such as C<\"10809\">.
+" ^ blocking_connect_call_description;
+    see_also = [Link "aio_connect_tcp"; Link "set_opt_mode"];
   };
 
   "connect_socket", {
@@ -1539,9 +1554,10 @@ socket by some method, before passing it to libnbd.
 
 If this call returns without error then socket ownership
 is passed to libnbd.  Libnbd will close the socket when the
-handle is closed.  The caller must not use the socket in any way.";
+handle is closed.  The caller must not use the socket in any way.
+" ^ blocking_connect_call_description;
     see_also = [Link "aio_connect_socket";
-                Link "connect_command";
+                Link "connect_command"; Link "set_opt_mode";
                 ExternalLink ("socket", 7)];
   };
 
@@ -1572,10 +1588,11 @@ to it using file descriptors 0 and 1 (stdin/stdout):
  └─────────┴─────────┘    └────────────────┘
 
 When the NBD handle is closed the server subprocess
-is killed.";
+is killed.
+" ^ blocking_connect_call_description;
     see_also = [Link "aio_connect_command";
                 Link "connect_systemd_socket_activation";
-                Link "kill_subprocess"];
+                Link "kill_subprocess"; Link "set_opt_mode"];
     example = Some "examples/connect-command.c";
   };
 
@@ -1612,9 +1629,11 @@ protocol).
  └─────────┴─────────┘    └───────────────┘
 
 When the NBD handle is closed the server subprocess
-is killed.";
+is killed.
+" ^ blocking_connect_call_description;
     see_also = [Link "aio_connect_systemd_socket_activation";
                 Link "connect_command"; Link "kill_subprocess";
+                Link "set_opt_mode";
                 ExternalLink ("qemu-nbd", 1);
                 URLLink "http://0pointer.de/blog/projects/socket-activation.html"];
     example = Some "examples/open-qcow2.c";
@@ -2303,11 +2322,8 @@ intended as something you would use.";
     longdesc = "\
 Begin connecting to the NBD server.  The C<addr> and C<addrlen>
 parameters specify the address of the socket to connect to.
-
-You can check if the connection is still connecting by calling
-L<nbd_aio_is_connecting(3)>, or if it has connected to the server
-and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
-on the connection.";
+" ^ async_connect_call_description;
+    see_also = [ Link "set_opt_mode"; ];
   };
 
   "aio_connect_uri", {
@@ -2318,12 +2334,8 @@ on the connection.";
     longdesc = "\
 Begin connecting to the NBD URI C<uri>.  Parameters behave as
 documented in L<nbd_connect_uri(3)>.
-
-You can check if the connection is still connecting by calling
-L<nbd_aio_is_connecting(3)>, or if it has connected to the server
-and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
-on the connection.";
-    see_also = [ Link "connect_uri";
+" ^ async_connect_call_description;
+    see_also = [ Link "connect_uri"; Link "set_opt_mode";
                  URLLink "https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md"]
   };
 
@@ -2336,13 +2348,9 @@ on the connection.";
 Begin connecting to the NBD server over Unix domain socket
 (C<unixsocket>).  Parameters behave as documented in
 L<nbd_connect_unix(3)>.
-
-You can check if the connection is still connecting by calling
-L<nbd_aio_is_connecting(3)>, or if it has connected to the server
-and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
-on the connection.";
+" ^ async_connect_call_description;
     example = Some "examples/aio-connect-read.c";
-    see_also = [ Link "connect_unix" ];
+    see_also = [ Link "connect_unix"; Link "set_opt_mode" ];
   };
 
   "aio_connect_vsock", {
@@ -2354,12 +2362,8 @@ on the connection.";
 Begin connecting to the NBD server over the C<AF_VSOCK>
 protocol to the server C<cid:port>.  Parameters behave as documented in
 L<nbd_connect_vsock(3)>.
-
-You can check if the connection is still connecting by calling
-L<nbd_aio_is_connecting(3)>, or if it has connected to the server
-and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
-on the connection.";
-    see_also = [ Link "connect_vsock" ];
+" ^ async_connect_call_description;
+    see_also = [ Link "connect_vsock"; Link "set_opt_mode" ];
   };
 
   "aio_connect_tcp", {
@@ -2370,12 +2374,8 @@ on the connection.";
     longdesc = "\
 Begin connecting to the NBD server listening on C<hostname:port>.
 Parameters behave as documented in L<nbd_connect_tcp(3)>.
-
-You can check if the connection is still connecting by calling
-L<nbd_aio_is_connecting(3)>, or if it has connected to the server
-and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
-on the connection.";
-    see_also = [ Link "connect_tcp" ];
+" ^ async_connect_call_description;
+    see_also = [ Link "connect_tcp"; Link "set_opt_mode" ];
   };
 
   "aio_connect_socket", {
@@ -2386,12 +2386,8 @@ on the connection.";
     longdesc = "\
 Begin connecting to the connected socket C<fd>.
 Parameters behave as documented in L<nbd_connect_socket(3)>.
-
-You can check if the connection is still connecting by calling
-L<nbd_aio_is_connecting(3)>, or if it has connected to the server
-and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
-on the connection.";
-    see_also = [ Link "connect_socket" ];
+" ^ async_connect_call_description;
+    see_also = [ Link "connect_socket"; Link "set_opt_mode" ];
   };
 
   "aio_connect_command", {
@@ -2403,12 +2399,8 @@ on the connection.";
 Run the command as a subprocess and begin connecting to it over
 stdin/stdout.  Parameters behave as documented in
 L<nbd_connect_command(3)>.
-
-You can check if the connection is still connecting by calling
-L<nbd_aio_is_connecting(3)>, or if it has connected to the server
-and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
-on the connection.";
-    see_also = [ Link "connect_command" ];
+" ^ async_connect_call_description;
+    see_also = [ Link "connect_command"; Link "set_opt_mode" ];
   };
 
   "aio_connect_systemd_socket_activation", {
@@ -2420,12 +2412,9 @@ on the connection.";
 Run the command as a subprocess and begin connecting to it using
 systemd socket activation.  Parameters behave as documented in
 L<nbd_connect_systemd_socket_activation(3)>.
-
-You can check if the connection is still connecting by calling
-L<nbd_aio_is_connecting(3)>, or if it has connected to the server
-and completed the NBD handshake by calling L<nbd_aio_is_ready(3)>,
-on the connection.";
-    see_also = [ Link "connect_systemd_socket_activation" ];
+" ^ async_connect_call_description;
+    see_also = [ Link "connect_systemd_socket_activation";
+                 Link "set_opt_mode" ];
   };
 
   "aio_opt_go", {
