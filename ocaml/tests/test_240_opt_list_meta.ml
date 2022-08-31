@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* libnbd OCaml test case
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -49,7 +49,7 @@ let () =
   let r = NBD.opt_list_meta_context nbd (f 42) in
   assert (r = 0);
   assert (r = !count);
-  assert (!seen = false);
+  assert (not !seen);
 
   (* Third pass: specific query should have one match. *)
   count := 0;

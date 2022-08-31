@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* libnbd OCaml test case
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,14 +29,14 @@ let script =
 let fail_unary f nbd =
   try
     let _ = f nbd in
-    assert (false)
+    assert false
   with
     NBD.Error (errstr, errno) -> ()
 
 let fail_binary f nbd arg =
   try
     let _ = f nbd arg in
-    assert (false)
+    assert false
   with
     NBD.Error (errstr, errno) -> ()
 
@@ -58,9 +58,9 @@ let () =
   let size = NBD.get_size nbd in
   assert (size = 0L);
   let ro = NBD.is_read_only nbd in
-  assert (ro = true);
+  assert ro;
   let meta = NBD.can_meta_context nbd NBD.context_base_allocation in
-  assert (meta = true);
+  assert meta;
 
   (* info on something not present fails, wipes out prior info *)
   NBD.set_export_name nbd "a";
@@ -75,9 +75,9 @@ let () =
   let size = NBD.get_size nbd in
   assert (size = 1L);
   let ro = NBD.is_read_only nbd in
-  assert (ro = false);
+  assert (not ro);
   let meta = NBD.can_meta_context nbd NBD.context_base_allocation in
-  assert (meta = true);
+  assert meta;
 
   (* go on something not present *)
   NBD.set_export_name nbd "a";
@@ -92,9 +92,9 @@ let () =
   let size = NBD.get_size nbd in
   assert (size = 4L);
   let ro = NBD.is_read_only nbd in
-  assert (ro = true);
+  assert ro;
   let meta = NBD.can_meta_context nbd NBD.context_base_allocation in
-  assert (meta = true);
+  assert meta;
 
   (* now info is no longer valid, but does not wipe data *)
   fail_binary NBD.set_export_name nbd "a";

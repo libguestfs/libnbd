@@ -25,10 +25,10 @@ let () =
       assert (name = "name");
       NBD.set_full_info nbd true;
       let info = NBD.get_full_info nbd in
-      assert (info = true);
+      assert info;
       (try
          NBD.set_tls nbd (NBD.TLS.UNKNOWN 3);
-         assert (false)
+         assert false
        with
          NBD.Error _ -> ()
       );
@@ -41,13 +41,13 @@ let () =
       );
       NBD.set_request_structured_replies nbd false;
       let sr = NBD.get_request_structured_replies nbd in
-      assert (sr = false);
+      assert (not sr);
       NBD.set_request_block_size nbd false;
       let bs = NBD.get_request_block_size nbd in
-      assert (bs = false);
+      assert (not bs);
       NBD.set_pread_initialize nbd false;
       let init = NBD.get_pread_initialize nbd in
-      assert (init = false);
+      assert (not init);
       (try
          NBD.set_handshake_flags nbd [ NBD.HANDSHAKE_FLAG.UNKNOWN 2 ];
          assert false
@@ -61,7 +61,7 @@ let () =
       assert (flags = []);
       NBD.set_opt_mode nbd true;
       let opt = NBD.get_opt_mode nbd in
-      assert (opt = true)
+      assert opt
   )
 
 let () = Gc.compact ()
