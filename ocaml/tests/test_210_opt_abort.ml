@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* libnbd OCaml test case
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,13 +25,13 @@ let () =
   let proto = NBD.get_protocol nbd in
     assert (proto = "newstyle-fixed");
   let sr = NBD.get_structured_replies_negotiated nbd in
-    assert (sr);
+    assert sr;
   NBD.opt_abort nbd;
   let closed = NBD.aio_is_closed nbd in
-    assert (closed);
+    assert closed;
   try
     let _ = NBD.get_size nbd in
-      assert (false)
+      assert false
   with
     NBD.Error (errstr, errno) ->
       ()

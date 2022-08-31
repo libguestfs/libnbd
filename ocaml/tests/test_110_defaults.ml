@@ -23,19 +23,19 @@ let () =
       let name = NBD.get_export_name nbd in
       assert (name = "");
       let info = NBD.get_full_info nbd in
-      assert (info = false);
+      assert (not info);
       let tls = NBD.get_tls nbd in
       assert (tls = NBD.TLS.DISABLE);
       let sr = NBD.get_request_structured_replies nbd in
-      assert (sr = true);
+      assert sr;
       let bs = NBD.get_request_block_size nbd in
-      assert (bs = true);
+      assert bs;
       let init = NBD.get_pread_initialize nbd in
-      assert (init = true);
+      assert init;
       let flags = NBD.get_handshake_flags nbd in
       assert (flags = NBD.HANDSHAKE_FLAG.mask);
       let opt = NBD.get_opt_mode nbd in
-      assert (opt = false)
+      assert (not opt)
   )
 
 let () = Gc.compact ()
