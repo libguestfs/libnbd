@@ -28,6 +28,12 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#ifdef HAVE_LINUX_VM_SOCKETS_H
+#include <linux/vm_sockets.h>
+#elif HAVE_SYS_VSOCK_H
+#include <sys/vsock.h>
+#endif
+
 #include "internal.h"
 
 static void
@@ -477,6 +483,17 @@ int
 nbd_unlocked_supports_tls (struct nbd_handle *h)
 {
 #ifdef HAVE_GNUTLS
+  return 1;
+#else
+  return 0;
+#endif
+}
+
+/* NB: is_locked = false, may_set_error = false. */
+int
+nbd_unlocked_supports_vsock (struct nbd_handle *h)
+{
+#ifdef AF_VSOCK
   return 1;
 #else
   return 0;

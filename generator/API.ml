@@ -1330,8 +1330,8 @@ parameter in NBD URIs is allowed.";
 Connect (synchronously) to an NBD server and export by specifying
 the NBD URI.  This call parses the URI and calls
 L<nbd_set_export_name(3)> and L<nbd_set_tls(3)> and other
-calls as needed, followed by L<nbd_connect_tcp(3)> or
-L<nbd_connect_unix(3)>.
+calls as needed, followed by L<nbd_connect_tcp(3)>,
+L<nbd_connect_unix(3)> or L<nbd_connect_vsock(3)>.
 " ^ blocking_connect_call_description ^ "
 
 =head2 Example URIs supported
@@ -1393,7 +1393,8 @@ respectively.  The C<socket> parameter is required.
 =item C<nbds+vsock:>
 
 Connect over the C<AF_VSOCK> transport, without or with
-TLS respectively.
+TLS respectively. You can use L<nbd_supports_vsock(3)> to
+see if this build of libnbd supports C<AF_VSOCK>.
 
 =back
 
@@ -1494,7 +1495,8 @@ See L<nbd_get_uri(3)>.";
     see_also = [URLLink "https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md";
                 Link "aio_connect_uri";
                 Link "set_export_name"; Link "set_tls";
-                Link "set_opt_mode"; Link "get_uri"];
+                Link "set_opt_mode"; Link "get_uri";
+                Link "supports_vsock"; Link "supports_uri"];
   };
 
   "connect_unix", {
@@ -1522,8 +1524,12 @@ C<cid> and C<port> parameters specify the server address.  Usually
 C<cid> should be C<2> (to connect to the host), and C<port> might be
 C<10809> or another port number assigned to you by the host
 administrator.
+
+Not all systems support C<AF_VSOCK>; to determine if libnbd was
+built on a system with vsock support, see L<nbd_supports_vsock(3)>.
 " ^ blocking_connect_call_description;
-    see_also = [Link "aio_connect_vsock"; Link "set_opt_mode"];
+    see_also = [Link "aio_connect_vsock"; Link "set_opt_mode";
+                Link "supports_vsock"];
   };
 
   "connect_tcp", {
@@ -3061,6 +3067,22 @@ to support TLS encryption, or false if not.";
     see_also = [Link "set_tls"];
   };
 
+  "supports_vsock", {
+    default_call with
+    args = []; ret = RBool; is_locked = false; may_set_error = false;
+    shortdesc = "true if libnbd was compiled with support for AF_VSOCK";
+    longdesc = "\
+Returns true if libnbd was compiled with support for the C<AF_VSOCK>
+family of sockets, or false if not.
+
+Note that on the Linux operating system, this returns true if
+there is compile-time support, but you may still need runtime
+support for some aspects of AF_VSOCK usage; for example, use of
+C<VMADDR_CID_LOCAL> as the server name requires that the
+I<vsock_loopback> kernel module is loaded.";
+    see_also = [Link "connect_vsock"; Link "connect_uri"];
+  };
+
   "supports_uri", {
     default_call with
     args = []; ret = RBool; is_locked = false; may_set_error = false;
@@ -3232,6 +3254,9 @@ let first_version = [
   "get_pread_initialize", (1, 12);
   "set_request_block_size", (1, 12);
   "get_request_block_size", (1, 12);
+
+  (* Added in 1.15.x development cycle, will be stable and supported in 1.16. *)
+  "supports_vsock", (1, 16);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.
