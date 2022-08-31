@@ -599,7 +599,15 @@ NBD server.  The possible settings are:
 =item C<LIBNBD_TLS_DISABLE>
 
 Disable TLS.  (The default setting, unless using L<nbd_connect_uri(3)> with
-a URI that requires TLS)
+a URI that requires TLS).
+
+This setting is also necessary if you use L<nbd_set_opt_mode(3)>
+and want to interact in plaintext with a server that implements
+the NBD protocol's C<SELECTIVETLS> mode, prior to enabling TLS
+with L<nbd_opt_starttls(3)>.  Most NBD servers with TLS support
+prefer the NBD protocol's C<FORCEDTLS> mode, so this sort of
+manual interaction tends to be useful mainly during integration
+testing.
 
 =item C<LIBNBD_TLS_ALLOW>
 
@@ -632,7 +640,8 @@ zero will fail if libnbd was not compiled against gnutls; you can
 test whether this is the case with L<nbd_supports_tls(3)>.";
     example = Some "examples/encryption.c";
     see_also = [SectionLink "ENCRYPTION AND AUTHENTICATION";
-                Link "get_tls"; Link "get_tls_negotiated"];
+                Link "get_tls"; Link "get_tls_negotiated";
+                Link "opt_starttls"];
   };
 
   "get_tls", {
@@ -657,16 +666,19 @@ on a particular connection use L<nbd_get_tls_negotiated(3)> instead.";
 After connecting you may call this to find out if the
 connection is using TLS.
 
-This is only really useful if you set the TLS request mode
+This is normally useful only if you set the TLS request mode
 to C<LIBNBD_TLS_ALLOW> (see L<nbd_set_tls(3)>), because in this
 mode we try to use TLS but fall back to unencrypted if it was
 not available.  This function will tell you if TLS was
 negotiated or not.
 
 In C<LIBNBD_TLS_REQUIRE> mode (the most secure) the connection
-would have failed if TLS could not be negotiated, and in
-C<LIBNBD_TLS_DISABLE> mode TLS is not tried.";
-    see_also = [Link "set_tls"; Link "get_tls"];
+would have failed if TLS could not be negotiated.  With
+C<LIBNBD_TLS_DISABLE> mode, TLS is not tried automatically;
+but if the NBD server uses the less-common C<SELECTIVETLS>
+mode, this function reports whether a manual L<nbd_opt_starttls(3)>
+enabled TLS or if the connection is still plaintext.";
+    see_also = [Link "set_tls"; Link "get_tls"; Link "opt_starttls"];
   };
 
   "set_tls_certificates", {
@@ -1092,11 +1104,12 @@ proceeding all the way to the ready state, when communicating with a
 newstyle server.  This setting has no effect when connecting to an
 oldstyle server.
 
-Note that libnbd defaults to attempting
+Note that libnbd defaults to attempting C<NBD_OPT_STARTTLS> and
 C<NBD_OPT_STRUCTURED_REPLY> before letting you control remaining
-negotiation steps; if you need control over this step as well,
-first set L<nbd_set_request_structured_replies(3)> to false before
-starting the connection attempt.
+negotiation steps; if you need control over these steps as well,
+first set L<nbd_set_tls(3)> to C<LIBNBD_TLS_DISABLE> and
+L<nbd_set_request_structured_replies(3)> to false before starting
+the connection attempt.
 
 When option mode is enabled, you have fine-grained control over which
 options are negotiated, compared to the default of the server
@@ -1110,9 +1123,9 @@ to end the connection without finishing negotiation.";
     see_also = [Link "get_opt_mode"; Link "aio_is_negotiating";
                 Link "opt_abort"; Link "opt_go"; Link "opt_list";
                 Link "opt_info"; Link "opt_list_meta_context";
-                Link "opt_set_meta_context";
+                Link "opt_set_meta_context"; Link "opt_starttls";
                 Link "opt_structured_reply";
-                Link "set_request_structured_replies";
+                Link "set_tls"; Link "set_request_structured_replies";
                 Link "aio_connect"];
   };
 
@@ -1164,6 +1177,44 @@ close the connection.  This can only be used if L<nbd_set_opt_mode(3)>
 enabled option mode.";
     example = Some "examples/list-exports.c";
     see_also = [Link "set_opt_mode"; Link "aio_opt_abort"; Link "opt_go"];
+  };
+
+  "opt_starttls", {
+    default_call with
+    args = []; ret = RBool;
+    permitted_states = [ Negotiating ];
+    shortdesc = "request the server to initiate TLS";
+    longdesc = "\
+Request that the server initiate a secure TLS connection, by
+sending C<NBD_OPT_STARTTLS>.  This can only be used if
+L<nbd_set_opt_mode(3)> enabled option mode; furthermore, if you
+use L<nbd_set_tls(3)> to request anything other than the default
+of C<LIBNBD_TLS_DISABLE>, then libnbd will have already attempted
+a TLS connection prior to allowing you control over option
+negotiation.  This command is disabled if L<nbd_supports_tls(3)>
+reports false.
+
+This function is mainly useful for integration testing of corner
+cases in server handling; in particular, misuse of this function
+when coupled with a server that is not careful about resetting
+stateful commands such as L<nbd_opt_structured_reply(3)> could
+result in a security hole (see CVE-2021-3716 against nbdkit, for
+example).  Thus, when security is a concern, you should instead
+prefer to use L<nbd_set_tls(3)> with C<LIBNBD_TLS_REQUIRE> and
+let libnbd negotiate TLS automatically.
+
+This function returns true if the server replies with success,
+false if the server replies with an error, and fails only if
+the server does not reply (such as for a loss of connection,
+which can include when the server rejects credentials supplied
+during the TLS handshake).  Note that the NBD protocol documents
+that requesting TLS after it is already enabled is a client
+error; most servers will gracefully fail a second request, but
+that does not downgrade a TLS session that has already been
+established, as reported by L<nbd_get_tls_negotiated(3)>.";
+    see_also = [Link "set_opt_mode"; Link "aio_opt_starttls";
+                Link "set_tls"; Link "get_tls_negotiated";
+                Link "supports_tls"]
   };
 
   "opt_structured_reply", {
@@ -2815,6 +2866,30 @@ L<nbd_aio_is_connecting(3)> to return false.";
     see_also = [Link "set_opt_mode"; Link "opt_abort"];
   };
 
+  "aio_opt_starttls", {
+    default_call with
+    args = [];
+    optargs = [ OClosure completion_closure ];
+    ret = RErr;
+    permitted_states = [ Negotiating ];
+    shortdesc = "request the server to initiate TLS";
+    longdesc = "\
+Request that the server initiate a secure TLS connection, by
+sending C<NBD_OPT_STARTTLS>.  This behaves like the synchronous
+counterpart L<nbd_opt_starttls(3)>, except that it does
+not wait for the server's response.
+
+To determine when the request completes, wait for
+L<nbd_aio_is_connecting(3)> to return false.  Or supply the optional
+C<completion_callback> which will be invoked as described in
+L<libnbd(3)/Completion callbacks>, except that it is automatically
+retired regardless of return value.  Note that detecting whether the
+server returns an error (as is done by the return value of the
+synchronous counterpart) is only possible with a completion
+callback.";
+    see_also = [Link "set_opt_mode"; Link "opt_starttls"];
+  };
+
   "aio_opt_structured_reply", {
     default_call with
     args = [];
@@ -3744,6 +3819,8 @@ let first_version = [
   "aio_opt_set_meta_context_queries", (1, 16);
   "opt_structured_reply", (1, 16);
   "aio_opt_structured_reply", (1, 16);
+  "opt_starttls", (1, 16);
+  "aio_opt_starttls", (1, 16);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

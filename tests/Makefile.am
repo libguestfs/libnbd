@@ -658,12 +658,14 @@ if HAVE_PSKTOOL
 
 check_PROGRAMS += \
 	connect-tls-psk \
+	opt-starttls \
 	aio-parallel-tls \
 	aio-parallel-load-tls \
 	synch-parallel-tls \
 	$(NULL)
 TESTS += \
 	connect-tls-psk \
+	opt-starttls \
 	aio-parallel-tls.sh \
 	aio-parallel-load-tls.sh \
 	synch-parallel-tls.sh \
@@ -676,6 +678,9 @@ connect_tls_psk_CPPFLAGS = \
 	-DPSK=1 \
 	$(NULL)
 connect_tls_psk_LDADD = $(top_builddir)/lib/libnbd.la
+
+opt_starttls_SOURCES = opt-starttls.c requires.c requires.h
+opt_starttls_LDADD = $(top_builddir)/lib/libnbd.la
 
 aio_parallel_tls_SOURCES = aio-parallel.c
 aio_parallel_tls_CPPFLAGS = \

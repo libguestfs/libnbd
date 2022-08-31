@@ -146,6 +146,9 @@ STATE_MACHINE {
     case NBD_OPT_STRUCTURED_REPLY:
       SET_NEXT_STATE (%OPT_STRUCTURED_REPLY.START);
       return 0;
+    case NBD_OPT_STARTTLS:
+      SET_NEXT_STATE (%OPT_STARTTLS.START);
+      return 0;
     case 0:
       break;
     default:

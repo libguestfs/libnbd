@@ -236,6 +236,7 @@ Makefile.in
 /tests/opt-list-meta-queries
 /tests/opt-set-meta
 /tests/opt-set-meta-queries
+/tests/opt-starttls
 /tests/opt-structured-twice
 /tests/pki/
 /tests/pread-initialize

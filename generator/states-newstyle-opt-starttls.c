@@ -21,10 +21,15 @@
 STATE_MACHINE {
  NEWSTYLE.OPT_STARTTLS.START:
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
-  /* If TLS was not requested we skip this option and go to the next one. */
-  if (h->tls == LIBNBD_TLS_DISABLE) {
-    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
-    return 0;
+  if (h->opt_current == NBD_OPT_STARTTLS)
+    assert (h->opt_mode);
+  else {
+    /* If TLS was not requested we skip this option and go to the next one. */
+    if (h->tls == LIBNBD_TLS_DISABLE) {
+      SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
+      return 0;
+    }
+    assert (CALLBACK_IS_NULL (h->opt_cb.completion));
   }
 
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
@@ -68,12 +73,14 @@ STATE_MACHINE {
  NEWSTYLE.OPT_STARTTLS.CHECK_REPLY:
   uint32_t reply;
   struct socket *new_sock;
+  int err = ENOTSUP;
 
   reply = be32toh (h->sbuf.or.option_reply.reply);
   switch (reply) {
   case NBD_REP_ACK:
     nbd_internal_reset_size_and_flags (h);
     h->structured_replies = false;
+    h->meta_valid = false;
     new_sock = nbd_internal_crypto_create_session (h, h->sock);
     if (new_sock == NULL) {
       SET_NEXT_STATE (%.DEAD);
@@ -86,6 +93,9 @@ STATE_MACHINE {
       SET_NEXT_STATE (%TLS_HANDSHAKE_WRITE);
     return 0;
 
+  case NBD_REP_ERR_INVALID:
+    err = EINVAL;
+    /* fallthrough */
   default:
     if (handle_reply_error (h) == -1) {
       SET_NEXT_STATE (%.DEAD);
@@ -102,10 +112,17 @@ STATE_MACHINE {
       return 0;
     }
 
-    debug (h,
-           "server refused TLS (%s), continuing with unencrypted connection",
-           reply == NBD_REP_ERR_POLICY ? "policy" : "not supported");
-    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
+    debug (h, "server refused TLS (%s)",
+           reply == NBD_REP_ERR_POLICY ? "policy" :
+           reply == NBD_REP_ERR_INVALID ? "invalid request" : "not supported");
+    CALL_CALLBACK (h->opt_cb.completion, &err);
+    nbd_internal_free_option (h);
+    if (h->opt_current == NBD_OPT_STARTTLS)
+      SET_NEXT_STATE (%.NEGOTIATING);
+    else {
+      debug (h, "continuing with unencrypted connection");
+      SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
+    }
     return 0;
   }
   return 0;
@@ -149,12 +166,19 @@ STATE_MACHINE {
   return 0;
 
  NEWSTYLE.OPT_STARTTLS.TLS_HANDSHAKE_DONE:
+  int err = 0;
+
   /* Finished handshake. */
   h->tls_negotiated = true;
   nbd_internal_crypto_debug_tls_enabled (h);
+  CALL_CALLBACK (h->opt_cb.completion, &err);
+  nbd_internal_free_option (h);
 
   /* Continue with option negotiation. */
-  SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
+  if (h->opt_current == NBD_OPT_STARTTLS)
+    SET_NEXT_STATE (%.NEGOTIATING);
+  else
+    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
   return 0;
 
 } /* END STATE MACHINE */
