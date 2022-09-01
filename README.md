@@ -152,12 +152,13 @@ make check
 make check-valgrind
 ```
 
-Use the following one-time setup for nicer diffs of OCaml files:
+Use the following one-time setup for nicer diffs of various files:
 
 ```
 git config diff.ml.xfuncname '^(type|and|val|let) .*='
 git config diff.ml-api.xfuncname '^(let .*=|  "[^"]*", \{$)'
 git config diff.mli.xfuncname '^(type|and|val|module) '
+git config diff.states.xfuncname '^([a-zA-Z_].*| [A-Z._0-9]*:$)'
 ```
 
 For development ideas, see the [TODO](TODO) file.

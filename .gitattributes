@@ -1,7 +1,16 @@
-# Use the following one-time config to get nicer diffs of OCaml files:
+# Use various builtin diff parsers
+*.py diff=python
+*.c diff=cpp
+*.h diff=cpp
+*.go diff=golang
+*.md diff=markdown
+
+# Use the following one-time config to get nicer diffs of various files:
 #    git config diff.ml.xfuncname '^(type|and|val|let) .*='
 #    git config diff.ml-api.xfuncname '^(let .*=|  "[^"]*", \{$)'
 #    git config diff.mli.xfuncname '^(type|and|val|module) '
+#    git config diff.states.xfuncname '^([a-zA-Z_].*| [A-Z._0-9]*:$)'
 *.ml diff=ml
 *.mli diff=mli
 API.ml diff=ml-api
+generator/states-*.c diff=states
