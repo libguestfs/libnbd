@@ -270,6 +270,7 @@ STATE_MACHINE {
                  reply);
     }
     nbd_internal_reset_size_and_flags (h);
+    h->meta_valid = false;
     err = nbd_get_errno () ? : ENOTSUP;
     break;
   case NBD_REP_ACK:

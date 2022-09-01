@@ -830,6 +830,46 @@ using structured replies.";
                 Link "get_protocol"];
   };
 
+  "set_request_meta_context", {
+    default_call with
+    args = [Bool "request"]; ret = RErr;
+    permitted_states = [ Created; Negotiating ];
+    shortdesc = "control whether connect automatically requests meta contexts";
+    longdesc = "\
+This function controls whether the act of connecting to an export
+(all C<nbd_connect_*> calls when L<nbd_set_opt_mode(3)> is false,
+or L<nbd_opt_go(3)> and L<nbd_opt_info(3)> when option mode is
+enabled) will also try to issue NBD_OPT_SET_META_CONTEXT when
+the server supports structured replies and any contexts were
+registered by L<nbd_add_meta_context(3)>.  The default setting
+is true; however the extra step of negotiating meta contexts is
+not always desirable: performing both info and go on the same
+export works without needing to re-negotiate contexts on the
+second call; and even when using just L<nbd_opt_info(3)>, it
+can be faster to collect the server's results by relying on the
+callback function passed to L<nbd_opt_list_meta_context(3)> than
+a series of post-process calls to L<nbd_can_meta_context(3)>.
+
+Note that this control has no effect if the server does not
+negotiate structured replies, or if the client did not request
+any contexts via L<nbd_add_meta_context(3)>.  Setting this
+control to false may cause L<nbd_block_status(3)> to fail.";
+    see_also = [Link "set_opt_mode"; Link "opt_go"; Link "opt_info";
+                Link "opt_list_meta_context";
+                Link "get_structured_replies_negotiated";
+                Link "get_request_meta_context"; Link "can_meta_context"];
+  };
+
+  "get_request_meta_context", {
+    default_call with
+    args = []; ret = RBool;
+    permitted_states = [];
+    shortdesc = "see if connect automatically requests meta contexts";
+    longdesc = "\
+Return the state of the automatic meta context request flag on this handle.";
+    see_also = [Link "set_request_meta_context"];
+  };
+
   "set_handshake_flags", {
     default_call with
     args = [ Flags ("flags", handshake_flags) ]; ret = RErr;
@@ -1079,12 +1119,17 @@ export previously specified by the most recent L<nbd_set_export_name(3)>
 or L<nbd_connect_uri(3)>.  This can only be used if
 L<nbd_set_opt_mode(3)> enabled option mode.
 
+By default, libnbd will automatically request all meta contexts
+registered by L<nbd_add_meta_context(3)> as part of this call; but
+this can be suppressed with L<nbd_set_request_meta_context(3)>.
+
 If this fails, the server may still be in negotiation, where it is
 possible to attempt another option such as a different export name;
 although older servers will instead have killed the connection.";
     example = Some "examples/list-exports.c";
     see_also = [Link "set_opt_mode"; Link "aio_opt_go"; Link "opt_abort";
-                Link "set_export_name"; Link "connect_uri"; Link "opt_info"];
+                Link "set_export_name"; Link "connect_uri"; Link "opt_info";
+                Link "add_meta_context"; Link "set_request_meta_context"];
   };
 
   "opt_abort", {
@@ -1153,16 +1198,23 @@ or L<nbd_connect_uri(3)>.  This can only be used if
 L<nbd_set_opt_mode(3)> enabled option mode.
 
 If successful, functions like L<nbd_is_read_only(3)> and
-L<nbd_get_size(3)> will report details about that export.  In
-general, if L<nbd_opt_go(3)> is called next, that call will
-likely succeed with the details remaining the same, although this
-is not guaranteed by all servers.
+L<nbd_get_size(3)> will report details about that export.  If
+L<nbd_set_request_meta_context(3)> is set (the default) and
+structured replies were negotiated, it is also valid to use
+L<nbd_can_meta_context(3)> after this call.  However, it may be
+more efficient to clear that setting and manually utilize
+L<nbd_opt_list_meta_context(3)> with its callback approach, for
+learning which contexts an export supports.  In general, if
+L<nbd_opt_go(3)> is called next, that call will likely succeed
+with the details remaining the same, although this is not
+guaranteed by all servers.
 
 Not all servers understand this request, and even when it is
 understood, the server might fail the request even when a
 corresponding L<nbd_opt_go(3)> would succeed.";
     see_also = [Link "set_opt_mode"; Link "aio_opt_info"; Link "opt_go";
-                Link "set_export_name"];
+                Link "set_export_name"; Link "set_request_meta_context";
+                Link "opt_list_meta_context"];
   };
 
   "opt_list_meta_context", {
@@ -1946,7 +1998,8 @@ are free to pass in other contexts."
 ^ non_blocking_test_call_description;
     see_also = [SectionLink "Flag calls"; Link "opt_info";
                 Link "add_meta_context";
-                Link "block_status"; Link "aio_block_status"];
+                Link "block_status"; Link "aio_block_status";
+                Link "set_request_meta_context"];
   };
 
   "get_protocol", {
@@ -3434,6 +3487,8 @@ let first_version = [
   "stats_chunks_received", (1, 16);
   "opt_list_meta_context_queries", (1, 16);
   "aio_opt_list_meta_context_queries", (1, 16);
+  "set_request_meta_context", (1, 16);
+  "get_request_meta_context", (1, 16);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

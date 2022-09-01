@@ -111,6 +111,7 @@ struct nbd_handle {
 
   /* Desired metadata contexts. */
   bool request_sr;
+  bool request_meta;
   string_vector request_meta_contexts;
 
   /* Allowed in URIs, see lib/uri.c. */

@@ -35,7 +35,6 @@ nbd_internal_reset_size_and_flags (struct nbd_handle *h)
 {
   h->exportsize = 0;
   h->eflags = 0;
-  h->meta_valid = false;
   h->block_minimum = 0;
   h->block_preferred = 0;
   h->block_maximum = 0;
@@ -71,7 +70,8 @@ nbd_internal_set_size_and_flags (struct nbd_handle *h,
     eflags &= ~NBD_FLAG_SEND_FAST_ZERO;
   }
 
-  if (!h->structured_replies || h->request_meta_contexts.len == 0) {
+  if (h->request_meta &&
+      (!h->structured_replies || h->request_meta_contexts.len == 0)) {
     assert (h->meta_contexts.len == 0);
     h->meta_valid = true;
   }

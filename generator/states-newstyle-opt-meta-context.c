@@ -35,20 +35,16 @@ STATE_MACHINE {
    *   nbd_opt_list_meta_context()
    *     -> unconditionally use LIST, next state NEGOTIATING
    *
-   * For now, we start by unconditionally clearing h->exportsize and friends,
-   * as well as h->meta_contexts and h->meta_valid.
-   * If SET is conditional, we skip it if structured replies were
-   * not negotiated, or if there were no contexts to request.
+   * For now, we start by unconditionally clearing h->exportsize and friends.
+   * If SET is conditional, we skip it if h->request_meta is false, if
+   * structured replies were not negotiated, or if no contexts to request.
    * SET then manipulates h->meta_contexts, and sets h->meta_valid on success.
    * If OPT_GO is later successful, it populates h->exportsize and friends,
-   * and also sets h->meta_valid if we skipped SET here.
+   * and also sets h->meta_valid if h->request_meta but we skipped SET here.
    * There is a callback if and only if the command is LIST.
    */
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
   nbd_internal_reset_size_and_flags (h);
-  for (i = 0; i < h->meta_contexts.len; ++i)
-    free (h->meta_contexts.ptr[i].name);
-  meta_vector_reset (&h->meta_contexts);
   if (h->opt_current == NBD_OPT_LIST_META_CONTEXT) {
     assert (h->opt_mode);
     assert (CALLBACK_IS_NOT_NULL (h->opt_cb.fn.context));
@@ -57,7 +53,16 @@ STATE_MACHINE {
   else {
     assert (CALLBACK_IS_NULL (h->opt_cb.fn.context));
     opt = NBD_OPT_SET_META_CONTEXT;
-    if (!h->structured_replies || h->request_meta_contexts.len == 0) {
+    if (h->request_meta) {
+      for (i = 0; i < h->meta_contexts.len; ++i)
+        free (h->meta_contexts.ptr[i].name);
+      meta_vector_reset (&h->meta_contexts);
+      h->meta_valid = false;
+    }
+  }
+  if (opt != h->opt_current) {
+    if (!h->request_meta || !h->structured_replies ||
+        h->request_meta_contexts.len == 0) {
       SET_NEXT_STATE (%^OPT_GO.START);
       return 0;
     }
@@ -66,8 +71,6 @@ STATE_MACHINE {
       return 0;
     }
   }
-
-  assert (!h->meta_valid);
 
   /* Calculate the length of the option request data. */
   len = 4 /* exportname len */ + strlen (h->export_name) + 4 /* nr queries */;

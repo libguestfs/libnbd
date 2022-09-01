@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -102,8 +102,12 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* info for a different export */
+  /* info for a different export, with automatic meta_context disabled */
   if (nbd_set_export_name (nbd, "b") == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_set_request_meta_context (nbd, 0) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
@@ -119,8 +123,12 @@ main (int argc, char *argv[])
     fprintf (stderr, "expecting read-write export, got %" PRId64 "\n", r);
     exit (EXIT_FAILURE);
   }
-  if ((r = nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION)) != 1) {
-    fprintf (stderr, "expecting can_meta_context true, got %" PRId64 "\n", r);
+  if (nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION) != -1) {
+    fprintf (stderr, "expecting error for can_meta_context\n");
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_set_request_meta_context (nbd, 1) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
@@ -189,8 +197,60 @@ main (int argc, char *argv[])
     fprintf (stderr, "expecting size of 4, got %" PRId64 "\n", r);
     exit (EXIT_FAILURE);
   }
+  if ((r = nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION)) != 1) {
+    fprintf (stderr, "expecting can_meta_context true, got %" PRId64 "\n", r);
+    exit (EXIT_FAILURE);
+  }
 
   nbd_shutdown (nbd, 0);
   nbd_close (nbd);
+
+  /* Another connection. This time, check that SET_META triggered by opt_info
+   * persists through nbd_opt_go with set_request_meta_context disabled.
+   */
+  nbd = nbd_create ();
+  if (nbd == NULL ||
+      nbd_set_opt_mode (nbd, true) == -1 ||
+      nbd_connect_command (nbd, args) == -1 ||
+      nbd_add_meta_context (nbd, "x-unexpected:bogus") == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+
+  if (nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION) != -1) {
+    fprintf (stderr, "expecting error for can_meta_context\n");
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_opt_info (nbd) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if ((r = nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION)) != 0) {
+    fprintf (stderr, "expecting can_meta_context false, got %" PRId64 "\n", r);
+
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_set_request_meta_context (nbd, 0) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  /* Adding to the request list now won't matter */
+  if (nbd_add_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION) != 0) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_opt_go (nbd) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if ((r = nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION)) != 0) {
+    fprintf (stderr, "expecting can_meta_context false, got %" PRId64 "\n", r);
+
+    exit (EXIT_FAILURE);
+  }
+
+  nbd_shutdown (nbd, 0);
+  nbd_close (nbd);
+
   exit (EXIT_SUCCESS);
 }
