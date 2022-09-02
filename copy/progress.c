@@ -1,5 +1,5 @@
 /* NBD client library in userspace.
- * Copyright (C) 2020 Red Hat Inc.
+ * Copyright (C) 2020-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,8 +37,6 @@
 static void
 do_progress_bar (off_t pos, int64_t size)
 {
-  static int tty = -1;
-
   /* Note the spinner is covered with the cursor which usually makes
    * it appear inverse video.
    */
@@ -49,12 +47,6 @@ do_progress_bar (off_t pos, int64_t size)
   double frac = (double) pos / size;
   char msg[80];
   size_t n, i;
-
-  if (tty == -1) {
-    tty = open ("/dev/tty", O_WRONLY);
-    if (tty == -1)
-      return;
-  }
 
   if (frac < 0) frac = 0; else if (frac > 1) frac = 1;
 
@@ -75,7 +67,7 @@ do_progress_bar (off_t pos, int64_t size)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-result"
-  write (tty, msg, strlen (msg));
+  write (fileno (stderr), msg, strlen (msg));
 #pragma GCC diagnostic pop
 }
 
