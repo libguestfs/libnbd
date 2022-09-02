@@ -42,6 +42,7 @@ ML_TESTS = \
 	test_590_aio_copy.ml \
 	test_600_debug_callback.ml \
 	test_610_exception.ml \
+	test_620_stats.ml \
 	$(NULL)
 
 EXTRA_DIST = $(ML_TESTS)

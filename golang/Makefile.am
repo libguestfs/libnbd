@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2020 Red Hat Inc.
+# Copyright (C) 2013-2022 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -45,6 +45,7 @@ source_files = \
 	libnbd_590_aio_copy_test.go \
 	libnbd_600_debug_callback_test.go \
 	libnbd_610_error_test.go \
+	libnbd_620_stats.go \
 	$(NULL)
 
 generator_built = \
