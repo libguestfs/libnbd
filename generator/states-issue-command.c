@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -47,6 +47,7 @@ STATE_MACHINE {
   h->request.handle = htobe64 (cmd->cookie);
   h->request.offset = htobe64 (cmd->offset);
   h->request.count = htobe32 ((uint32_t) cmd->count);
+  h->chunks_sent++;
   h->wbuf = &h->request;
   h->wlen = sizeof (h->request);
   if (cmd->type == NBD_CMD_WRITE || cmd->next)

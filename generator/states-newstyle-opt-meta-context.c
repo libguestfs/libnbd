@@ -75,6 +75,7 @@ STATE_MACHINE {
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (opt);
   h->sbuf.option.optlen = htobe32 (len);
+  h->chunks_sent++;
   h->wbuf = &h->sbuf;
   h->wlen = sizeof (h->sbuf.option);
   h->wflags = MSG_MORE;

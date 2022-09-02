@@ -40,6 +40,7 @@ STATE_MACHINE {
   h->sbuf.option.optlen =
     htobe32 (/* exportnamelen */ 4 + strlen (h->export_name)
              + sizeof nrinfos + 2 * nrinfos);
+  h->chunks_sent++;
   h->wbuf = &h->sbuf;
   h->wlen = sizeof h->sbuf.option;
   h->wflags = MSG_MORE;

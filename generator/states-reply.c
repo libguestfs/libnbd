@@ -96,6 +96,7 @@ STATE_MACHINE {
   nbd_internal_hexdump (h->rbuf, r, stderr);
 #endif
 
+  h->bytes_received += r;
   h->rbuf += r;
   h->rlen -= r;
   SET_NEXT_STATE (%RECV_REPLY);
@@ -130,6 +131,7 @@ STATE_MACHINE {
   /* NB: This works for both simple and structured replies because the
    * handle (our cookie) is stored at the same offset.
    */
+  h->chunks_received++;
   cookie = be64toh (h->sbuf.simple_reply.handle);
   /* Find the command amongst the commands in flight. If the server sends
    * a reply for an unknown cookie, FINISH will diagnose that later.

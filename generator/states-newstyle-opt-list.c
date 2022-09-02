@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,6 +29,7 @@ STATE_MACHINE {
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (NBD_OPT_LIST);
   h->sbuf.option.optlen = 0;
+  h->chunks_sent++;
   h->wbuf = &h->sbuf;
   h->wlen = sizeof (h->sbuf.option);
   SET_NEXT_STATE (%SEND);

@@ -158,6 +158,12 @@ struct nbd_handle {
 
   int64_t unique;               /* Used for generating cookie numbers. */
 
+  /* Traffic statistics. */
+  uint64_t bytes_sent;
+  uint64_t chunks_sent;
+  uint64_t bytes_received;
+  uint64_t chunks_received;
+
   /* For debugging. */
   bool debug;
   nbd_debug_callback debug_callback;

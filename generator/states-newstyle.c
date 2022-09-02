@@ -207,6 +207,7 @@ STATE_MACHINE {
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (NBD_OPT_ABORT);
   h->sbuf.option.optlen = htobe32 (0);
+  h->chunks_sent++;
   h->wbuf = &h->sbuf;
   h->wlen = sizeof h->sbuf.option;
   SET_NEXT_STATE (%SEND_OPT_ABORT);
