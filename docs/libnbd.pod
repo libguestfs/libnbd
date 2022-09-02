@@ -940,6 +940,21 @@ should return C<1> on all control paths, even when handling errors
 (note that with automatic retirement, assigning into C<error> is
 pointless as there is no later API to see that value).
 
+=head1 STATISTICS COUNTERS
+
+Libnbd tracks several statistics counters, useful for tracking how
+much traffic was sent over the connection.  The counters track the
+number of plaintext bytes sent and received by the NBD protocol (not
+necessarily the number of bytes sent over the socket, particularly
+when TLS is enabled), as well as the number of protocol chunks (a
+group of bytes delineated by a magic number, and not the same as the
+number of TCP packets).
+
+ printf ("bytes: sent=%" PRIu64 " received=%" PRIu64,
+          nbd_stats_bytes_sent (nbd), nbd_stats_bytes_received (nbd));
+ printf ("chunks: sent=%" PRIu64 " received=%" PRIu64,
+          nbd_stats_chunks_sent (nbd), nbd_stats_chunks_received (nbd));
+
 =head1 SIGNALS
 
 Libnbd does not install signal handlers.  It attempts to disable

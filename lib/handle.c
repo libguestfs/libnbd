@@ -548,3 +548,31 @@ nbd_unlocked_set_uri_allow_local_file (struct nbd_handle *h, bool allow)
   h->uri_allow_local_file = allow;
   return 0;
 }
+
+/* NB: may_set_error = false. */
+uint64_t
+nbd_unlocked_stats_bytes_sent (struct nbd_handle *h)
+{
+  return h->bytes_sent;
+}
+
+/* NB: may_set_error = false. */
+uint64_t
+nbd_unlocked_stats_chunks_sent (struct nbd_handle *h)
+{
+  return h->chunks_sent;
+}
+
+/* NB: may_set_error = false. */
+uint64_t
+nbd_unlocked_stats_bytes_received (struct nbd_handle *h)
+{
+  return h->bytes_received;
+}
+
+/* NB: may_set_error = false. */
+uint64_t
+nbd_unlocked_stats_chunks_received (struct nbd_handle *h)
+{
+  return h->chunks_received;
+}

@@ -261,8 +261,11 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  nbd_close (nbd);
-
+  printf ("traffic:\n");
+  printf (" bytes sent:      %10" PRIu64 "\n", nbd_stats_bytes_sent (nbd));
+  printf (" bytes received:  %10" PRIu64 "\n", nbd_stats_bytes_received (nbd));
+  printf (" chunks sent:     %10" PRIu64 "\n", nbd_stats_chunks_sent (nbd));
+  printf (" chunks received: %10" PRIu64 "\n", nbd_stats_chunks_received (nbd));
   printf ("totals:\n");
   printf (" data chunks: %10d\n", total_data_chunks);
   printf (" data bytes:  %10" PRId64 "\n", total_data_bytes);
@@ -273,6 +276,8 @@ main (int argc, char *argv[])
   printf (" reads:       %10d\n", total_reads);
   printf (" bytes read:  %10" PRId64 "\n", total_bytes);
   printf (" compliant:   %10d\n", total_success);
+
+  nbd_close (nbd);
 
   exit (EXIT_SUCCESS);
 }

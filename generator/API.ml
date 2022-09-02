@@ -307,6 +307,74 @@ with the handle (with L<nbd_set_debug_callback(3)>).  If no
 callback was associated this does nothing.";
 };
 
+  "stats_bytes_sent", {
+    default_call with
+    args = []; ret = RUInt64;
+    may_set_error = false;
+    shortdesc = "statistics of bytes sent over connection so far";
+    longdesc = "\
+Return the number of bytes that the client has sent to the server.
+
+This tracks the plaintext bytes utilized by the NBD protocol; it
+may differ from the number of bytes actually sent over the
+connection, particularly when TLS is in use.";
+    see_also = [Link "stats_chunks_sent";
+                Link "stats_bytes_received"; Link "stats_chunks_received"];
+  };
+
+  "stats_chunks_sent", {
+    default_call with
+    args = []; ret = RUInt64;
+    may_set_error = false;
+    shortdesc = "statistics of chunks sent over connection so far";
+    longdesc = "\
+Return the number of chunks that the client has sent to the
+server, where a chunk is a group of bytes delineated by a magic
+number that cannot be further subdivided without breaking the
+protocol.
+
+This number does not necessarily relate to the number of API
+calls made, nor to the number of TCP packets sent over the
+connection.";
+    see_also = [Link "stats_bytes_sent";
+                Link "stats_bytes_received"; Link "stats_chunks_received";
+                Link "set_strict_mode"];
+  };
+
+  "stats_bytes_received", {
+    default_call with
+    args = []; ret = RUInt64;
+    may_set_error = false;
+    shortdesc = "statistics of bytes received over connection so far";
+    longdesc = "\
+Return the number of bytes that the client has received from the server.
+
+This tracks the plaintext bytes utilized by the NBD protocol; it
+may differ from the number of bytes actually received over the
+connection, particularly when TLS is in use.";
+    see_also = [Link "stats_chunks_received";
+                Link "stats_bytes_sent"; Link "stats_chunks_sent"];
+  };
+
+  "stats_chunks_received", {
+    default_call with
+    args = []; ret = RUInt64;
+    may_set_error = false;
+    shortdesc = "statistics of chunks received over connection so far";
+    longdesc = "\
+Return the number of chunks that the client has received from the
+server, where a chunk is a group of bytes delineated by a magic
+number that cannot be further subdivided without breaking the
+protocol.
+
+This number does not necessarily relate to the number of API
+calls made, nor to the number of TCP packets received over the
+connection.";
+    see_also = [Link "stats_bytes_received";
+                Link "stats_bytes_sent"; Link "stats_chunks_sent";
+                Link "get_structured_replies_negotiated"];
+  };
+
   "set_handle_name", {
     default_call with
     args = [ String "handle_name" ]; ret = RErr;
@@ -946,7 +1014,8 @@ such, when attempting to relax only one specific bit while keeping
 remaining checks at the client side, it is wiser to first call
 L<nbd_get_strict_mode(3)> and modify that value, rather than
 blindly setting a constant value.";
-    see_also = [Link "get_strict_mode"; Link "set_handshake_flags"];
+    see_also = [Link "get_strict_mode"; Link "set_handshake_flags";
+                Link "stats_bytes_sent"; Link "stats_bytes_received"];
   };
 
   "get_strict_mode", {
@@ -3274,6 +3343,10 @@ let first_version = [
   (* Added in 1.15.x development cycle, will be stable and supported in 1.16. *)
   "poll2", (1, 16);
   "supports_vsock", (1, 16);
+  "stats_bytes_sent", (1, 16);
+  "stats_chunks_sent", (1, 16);
+  "stats_bytes_received", (1, 16);
+  "stats_chunks_received", (1, 16);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.
