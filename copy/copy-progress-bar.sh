@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2020 Red Hat Inc.
+# Copyright (C) 2020-2022 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,7 @@ cleanup_fn rm -f $file $file2 $file3
 dd if=/dev/urandom of=$file bs=512 count=1
 
 # Check that a regular progress bar works.
-# This writes to /dev/tty :-)
+# This writes to stderr
 $VG nbdcopy --progress $file $file2
 
 # Check that a machine-readable progress bar works.
