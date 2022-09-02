@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2013-2020 Red Hat Inc.
+# Copyright (C) 2013-2022 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -19,7 +19,7 @@ include $(top_srcdir)/subdir-rules.mk
 
 CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so *.bc *.opt
 
-EXTRA_DIST = \
+ML_TESTS = \
 	test_010_import.ml \
 	test_100_handle.ml \
 	test_105_with_handle.ml \
@@ -44,58 +44,13 @@ EXTRA_DIST = \
 	test_610_exception.ml \
 	$(NULL)
 
+EXTRA_DIST = $(ML_TESTS)
+
 if HAVE_OCAML
 if HAVE_NBDKIT
 
-tests_bc = \
-	test_010_import.bc \
-	test_100_handle.bc \
-	test_105_with_handle.bc \
-	test_110_defaults.bc \
-	test_120_set_non_defaults.bc \
-	test_130_private_data.bc \
-	test_200_connect_command.bc \
-	test_210_opt_abort.bc \
-	test_220_opt_list.bc \
-	test_230_opt_info.bc \
-	test_240_opt_list_meta.bc \
-	test_300_get_size.bc \
-	test_400_pread.bc \
-	test_405_pread_structured.bc \
-	test_410_pwrite.bc \
-	test_460_block_status.bc \
-	test_500_aio_pread.bc \
-	test_505_aio_pread_structured_callback.bc \
-	test_510_aio_pwrite.bc \
-	test_590_aio_copy.bc \
-	test_600_debug_callback.bc \
-	test_610_exception.bc \
-	$(NULL)
-
-tests_opt = \
-	test_010_import.opt \
-	test_100_handle.opt \
-	test_105_with_handle.opt \
-	test_110_defaults.opt \
-	test_120_set_non_defaults.opt \
-	test_130_private_data.opt \
-	test_200_connect_command.opt \
-	test_210_opt_abort.opt \
-	test_220_opt_list.opt \
-	test_230_opt_info.opt \
-	test_240_opt_list_meta.opt \
-	test_300_get_size.opt \
-	test_400_pread.opt \
-	test_405_pread_structured.opt \
-	test_410_pwrite.opt \
-	test_460_block_status.opt \
-	test_500_aio_pread.opt \
-	test_505_aio_pread_structured_callback.opt \
-	test_510_aio_pwrite.opt \
-	test_590_aio_copy.opt \
-	test_600_debug_callback.opt \
-	test_610_exception.opt \
-	$(NULL)
+tests_bc = $(ML_TESTS:.ml=.bc)
+tests_opt = $(ML_TESTS:.ml=.opt)
 
 OCAMLFLAGS = $(OCAML_FLAGS) $(OCAML_WARN_ERROR) -ccopt '$(CFLAGS)'
 OCAMLPACKAGES = \
