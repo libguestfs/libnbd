@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* nbd client library in userspace: generator
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -69,6 +69,7 @@ and ocaml_ret_to_string = function
   | RSizeT -> "int"
   | RString -> "string"
   | RUInt | RUIntPtr -> "int"
+  | RUInt64 -> "int64"
   | REnum { enum_prefix } -> enum_prefix ^ ".t"
   | RFlags { flag_prefix } -> flag_prefix ^ ".t list"
 
@@ -752,7 +753,7 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
    | RFd | RInt | RSizeT | RUInt | RUIntPtr -> pr "  rv = Val_int (r);\n"
    | REnum { enum_prefix } -> pr "  rv = Val_%s (r);\n" enum_prefix
    | RFlags { flag_prefix } -> pr "  rv = Val_%s (r);\n" flag_prefix
-   | RInt64 | RCookie -> pr "  rv = caml_copy_int64 (r);\n"
+   | RInt64 | RCookie | RUInt64 -> pr "  rv = caml_copy_int64 (r);\n"
    | RStaticString -> pr "  rv = caml_copy_string (r);\n"
    | RString ->
       pr "  rv = caml_copy_string (r);\n";

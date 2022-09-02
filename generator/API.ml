@@ -70,6 +70,7 @@ and ret =
 | RString
 | RUInt
 | RUIntPtr
+| RUInt64
 | REnum of enum
 | RFlags of flags
 and closure = {
@@ -3368,10 +3369,12 @@ let () =
        failwithf "%s: if may_set_error is false, permitted_states must be empty (any permitted state)"
                  name
 
-    (* may_set_error = true is incompatible with RUInt, REnum, and RFlags
+    (* may_set_error = true is incompatible with RUInt*, REnum, and RFlags
      * because these calls cannot return an error indication.
      *)
     | name, { ret = RUInt; may_set_error = true }
+    | name, { ret = RUIntPtr; may_set_error = true }
+    | name, { ret = RUInt64; may_set_error = true }
     | name, { ret = REnum _; may_set_error = true }
     | name, { ret = RFlags _; may_set_error = true } ->
        failwithf "%s: if ret is RUInt/REnum/RFlags, may_set_error must be false" name

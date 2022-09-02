@@ -100,11 +100,12 @@ let go_ret_type = function
   | RCookie -> Some "uint64"
   | RSizeT -> Some "uint"
   | RString -> Some "*string"
-  (* RUInt | RUIntPtr returns (type, error) for consistency, but the
+  (* RUInt | RUIntPtr | RUInt64 returns (type, error) for consistency, but the
    * error is always nil unless h is closed
    *)
   | RUInt -> Some "uint"
   | RUIntPtr -> Some "uint"
+  | RUInt64 -> Some "uint64"
   | REnum { enum_prefix } -> Some (camel_case enum_prefix)
   | RFlags { flag_prefix } -> Some (camel_case flag_prefix)
 
@@ -112,7 +113,7 @@ let go_ret_error = function
   | RErr -> None
   | RBool -> Some "false"
   | RStaticString | RString -> Some "nil"
-  | RFd | RInt | RInt64 | RCookie | RSizeT | RUInt | RUIntPtr
+  | RFd | RInt | RInt64 | RCookie | RSizeT | RUInt | RUIntPtr | RUInt64
   | REnum _ | RFlags _ -> Some "0"
 
 let go_ret_c_errcode = function
@@ -120,7 +121,7 @@ let go_ret_c_errcode = function
   | RStaticString -> Some "nil"
   | RErr | RFd | RInt | RInt64 | RCookie | RSizeT -> Some "-1"
   | RString -> Some "nil"
-  | RUInt | RUIntPtr | REnum _ | RFlags _ -> None
+  | RUInt | RUIntPtr | RUInt64 | REnum _ | RFlags _ -> None
 
 (* We need a wrapper around every function (except Close) to
  * handle errors because cgo calls are sequence points and
@@ -400,6 +401,8 @@ let print_binding (name, { args; optargs; ret; shortdesc }) =
       pr "    return uint (ret), nil\n"
    | RUIntPtr ->
       pr "    return uint (ret), nil\n"
+   | RUInt64 ->
+      pr "    return uint64 (ret), nil\n"
    | REnum { enum_prefix } ->
       pr "    return %s (ret), nil\n" (camel_case enum_prefix)
    | RFlags { flag_prefix } ->

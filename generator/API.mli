@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* nbd client library in userspace: the API
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -83,6 +83,7 @@ and ret =
                                caller frees, NULL for error *)
 | RUInt                    (** return a bitmask, no error possible *)
 | RUIntPtr                 (** uintptr_t in C, same as RUInt in non-C *)
+| RUInt64                  (** 64 bit int, no error possible *)
 | REnum of enum            (** return an enum, no error possible *)
 | RFlags of flags          (** return bitmask of flags, no error possible *)
 and closure = {

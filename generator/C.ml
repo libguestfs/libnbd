@@ -68,7 +68,8 @@ let errcode_of_ret =
   function
   | RBool | RErr | RFd | RInt | RInt64 | RCookie | RSizeT -> Some "-1"
   | RStaticString | RString -> Some "NULL"
-  | RUInt | RUIntPtr | REnum _ | RFlags _ -> None (* errors not possible *)
+  | RUInt | RUIntPtr | RUInt64 | REnum _
+  | RFlags _ -> None (* errors not possible *)
 
 let type_of_ret =
   function
@@ -79,6 +80,7 @@ let type_of_ret =
   | RString -> "char *"
   | RUInt -> "unsigned"
   | RUIntPtr -> "uintptr_t"
+  | RUInt64 -> "uint64_t"
   | RFlags _ -> "uint32_t"
 
 let rec name_of_arg = function
@@ -736,12 +738,13 @@ let generate_lib_api_c () =
     );
     (match ret with
      | RBool | RErr | RFd | RInt | REnum _ -> pr "\"%%d\", ret"
-     | RInt64 | RCookie -> pr "\"%%\" PRIi64 \"\", ret"
+     | RInt64 | RCookie -> pr "\"%%\" PRIi64, ret"
      | RSizeT -> pr "\"%%zd\", ret"
      | RString -> pr "\"%%s\", ret_printable ? ret_printable : \"\""
      | RStaticString -> pr "\"%%s\", ret"
      | RUInt | RFlags _ -> pr "\"%%u\", ret"
      | RUIntPtr -> pr "\"%%\" PRIuPTR, ret"
+     | RUInt64 -> pr "\"%%\" PRIu64, ret"
     );
     pr ");\n";
     if may_set_error then (
@@ -905,6 +908,8 @@ let generate_docs_nbd_pod name { args; optargs; ret;
       pr "This call returns a bitmask.\n";
    | RUIntPtr ->
       pr "This call returns a C<uintptr_t>.\n";
+   | RUInt64 ->
+      pr "This call returns a counter.\n";
    | REnum { enum_prefix } ->
       pr "This call returns one of the LIBNBD_%s_* values.\n" enum_prefix;
    | RFlags { flag_prefix } ->
