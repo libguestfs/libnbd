@@ -429,7 +429,6 @@ STATE_MACHINE {
   uint32_t length;
   size_t i;
   uint32_t context_id;
-  struct meta_context *meta_context;
 
   switch (recv_into_rbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;

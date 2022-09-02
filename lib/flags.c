@@ -33,8 +33,6 @@
 void
 nbd_internal_reset_size_and_flags (struct nbd_handle *h)
 {
-  size_t i;
-
   h->exportsize = 0;
   h->eflags = 0;
   h->meta_valid = false;
