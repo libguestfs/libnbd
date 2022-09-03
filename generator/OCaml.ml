@@ -243,7 +243,12 @@ val with_handle : (t -> 'a) -> 'a
     fun (name, { args; optargs; ret; shortdesc; longdesc }) ->
       pr "val %s : %s\n" name (ocaml_fundecl_to_string args optargs ret);
 
-      pr "(** %s\n" shortdesc;
+      pr "(** [NBD.%s t" name;
+      List.iter (fun arg -> arg |> ocaml_name_of_optarg |> pr " ?%s") optargs;
+      List.iter (fun arg -> arg |> ocaml_name_of_arg |> pr " %s") args;
+      pr "]\n";
+      pr "\n";
+      pr "    %s\n" shortdesc;
       pr "\n";
       pr "%s" (String.concat "\n" (pod2text longdesc));
       pr "*)\n";
