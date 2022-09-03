@@ -45,7 +45,7 @@ source_files = \
 	libnbd_590_aio_copy_test.go \
 	libnbd_600_debug_callback_test.go \
 	libnbd_610_error_test.go \
-	libnbd_620_stats.go \
+	libnbd_620_stats_test.go \
 	$(NULL)
 
 generator_built = \
