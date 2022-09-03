@@ -715,39 +715,33 @@ let generate_lib_api_c () =
   (* Print the trace when we leave a call with debugging enabled. *)
   and print_trace_leave ret =
     pr "  if_debug (h) {\n";
-    let errcode = errcode_of_ret ret in
-    (match errcode with
+    (match errcode_of_ret ret with
      | Some r ->
         pr "    if (ret == %s)\n" r;
-     | None ->
-        pr "    if (0)\n";
+     | None -> assert false
     );
     pr "      debug (h, \"leave: error=\\\"%%s\\\"\", nbd_get_error ());\n";
     pr "    else {\n";
     (match ret with
-     | RStaticString | RString ->
+     | RString ->
         pr "      char *ret_printable =\n";
         pr "          nbd_internal_printable_string (ret);\n"
-     | RBool | RErr | RFd | RInt
-     | RInt64 | RCookie | RSizeT
-     | RUInt | RUIntPtr | REnum _ | RFlags _ -> ()
+     | _ -> ()
     );
     pr "      debug (h, \"leave: ret=\" ";
     (match ret with
      | RBool | RErr | RFd | RInt | REnum _ -> pr "\"%%d\", ret"
      | RInt64 | RCookie -> pr "\"%%\" PRIi64 \"\", ret"
      | RSizeT -> pr "\"%%zd\", ret"
-     | RStaticString | RString ->
-        pr "\"%%s\", ret_printable ? ret_printable : \"\""
+     | RString -> pr "\"%%s\", ret_printable ? ret_printable : \"\""
+     | RStaticString -> pr "\"%%s\", ret"
      | RUInt | RFlags _ -> pr "\"%%u\", ret"
      | RUIntPtr -> pr "\"%%\" PRIuPTR, ret"
     );
     pr ");\n";
     (match ret with
-     | RStaticString | RString -> pr "      free (ret_printable);\n"
-     | RBool | RErr | RFd | RInt
-     | RInt64 | RCookie | RSizeT
-     | RUInt | REnum _ | RFlags _ | RUIntPtr -> ()
+     | RString -> pr "      free (ret_printable);\n"
+     | _ -> ()
     );
     pr "    }\n";
     pr "  }\n"
