@@ -82,9 +82,8 @@ let () =
      done;
      assert false
    with
-     NBD.Error (_, errno) ->
-       printf "errno = %d\n%!" errno;
-       assert (errno = 101)
+   | NBD.Error (_, Some ENETUNREACH) -> ()
+   | NBD.Error (_, _) -> assert false
   );
 
   (* Third try: fail during both *)
@@ -97,9 +96,8 @@ let () =
      done;
      assert false
    with
-     NBD.Error (_, errno) ->
-       printf "errno = %d\n%!" errno;
-       assert (errno = 101)
+   | NBD.Error (_, Some ENETUNREACH) -> ()
+   | NBD.Error (_, _) -> assert false
   );
 
   (* Fourth try: fail only during chunk *)
@@ -112,9 +110,8 @@ let () =
      done;
      assert false
    with
-     NBD.Error (_, errno) ->
-       printf "errno = %d\n%!" errno;
-       assert (errno = 100)
+   | NBD.Error (_, Some ENETDOWN) -> ()
+   | NBD.Error (_, _) -> assert false
   )
 
 let () = Gc.compact ()

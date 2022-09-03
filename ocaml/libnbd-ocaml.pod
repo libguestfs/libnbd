@@ -53,11 +53,13 @@ timely manner.  See the example in the L</SYNOPSIS> above.
 
 =head1 ERRORS
 
-Libnbd errors are turned automatically into S<C<NBD.Error (str, errno)>>
-exceptions.  This exception has two parameters.  The first is a string
-which is the printable error message.  The second is the raw C<errno>,
-if available (see L<nbd_get_errno(3)>).  The raw C<errno> is not
-compatible with errors in the OCaml C<Unix> module unfortunately.
+Libnbd errors are turned automatically into exceptions of type:
+
+ NBD.Error (str, Unix.error option)
+
+The first exception parameter is a string which is the printable error
+message.  The second is the OCaml C<Unix.error> code, if available
+(see L<nbd_get_errno(3)>).
 
 =head1 EXAMPLES
 
