@@ -387,11 +387,17 @@ extern int nbd_internal_crypto_handshake (struct nbd_handle *);
 extern void nbd_internal_crypto_debug_tls_enabled (struct nbd_handle *);
 
 /* debug.c */
-extern void nbd_internal_debug (struct nbd_handle *h, const char *fs, ...);
-#define debug(h, fs, ...)                               \
-  do {                                                  \
-    if_debug ((h))                                      \
-      nbd_internal_debug ((h), (fs), ##__VA_ARGS__);    \
+extern void nbd_internal_debug (struct nbd_handle *h, const char *context,
+                                const char *fs, ...);
+#define debug(h, fs, ...)                                   \
+  do {                                                      \
+    if_debug ((h))                                          \
+      nbd_internal_debug ((h), NULL, (fs), ##__VA_ARGS__);  \
+  } while (0)
+#define debug_direct(h, c, fs, ...)                       \
+  do {                                                    \
+    if_debug ((h))                                        \
+      nbd_internal_debug ((h), (c), (fs), ##__VA_ARGS__); \
   } while (0)
 
 /* errors.c */
