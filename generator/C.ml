@@ -486,10 +486,8 @@ let generate_lib_api_c () =
     (* Lock the handle. *)
     if is_locked then
       pr "  pthread_mutex_lock (&h->lock);\n";
-    if may_set_error then (
-      print_trace_enter args optargs;
-      pr "\n"
-    );
+    print_trace_enter name args optargs may_set_error;
+    pr "\n";
 
     (* Sanitize read buffers before any error is possible. *)
     List.iter (
@@ -597,10 +595,8 @@ let generate_lib_api_c () =
     pr "\n";
     if !need_out_label then
       pr " out:\n";
-    if may_set_error then (
-      print_trace_leave ret;
-      pr "\n"
-    );
+    print_trace_leave name ret may_set_error;
+    pr "\n";
     (* Finish any closures not transferred to state machine. *)
     List.iter (
       function
@@ -624,7 +620,7 @@ let generate_lib_api_c () =
     pr "\n"
 
   (* Print the trace when we enter a call with debugging enabled. *)
-  and print_trace_enter args optargs =
+  and print_trace_enter name args optargs may_set_error =
     pr "  if_debug (h) {\n";
     List.iter (
       function
@@ -644,7 +640,11 @@ let generate_lib_api_c () =
       | Int64 _ | SizeT _
       | SockAddrAndLen _ | UInt _ | UInt32 _ | UInt64 _ | UIntPtr _ -> ()
     ) args;
-    pr "    debug (h, \"enter:";
+    if may_set_error then
+      pr "    debug (h, \"enter:"
+    else (
+      pr "    debug_direct (h, \"nbd_%s\", \"enter:" name
+    );
     List.iter (
       function
       | Bool n -> pr " %s=%%s" n
@@ -713,22 +713,27 @@ let generate_lib_api_c () =
     ) args;
     pr "  }\n"
   (* Print the trace when we leave a call with debugging enabled. *)
-  and print_trace_leave ret =
+  and print_trace_leave name ret may_set_error =
     pr "  if_debug (h) {\n";
-    (match errcode_of_ret ret with
-     | Some r ->
-        pr "    if (ret == %s)\n" r;
-     | None -> assert false
+    if may_set_error then (
+      (match errcode_of_ret ret with
+       | Some r ->
+          pr "    if (ret == %s)\n" r;
+       | None -> assert false
+      );
+      pr "      debug (h, \"leave: error=\\\"%%s\\\"\", nbd_get_error ());\n";
+      pr "    else {\n";
+      (match ret with
+       | RString ->
+          pr "      char *ret_printable =\n";
+          pr "          nbd_internal_printable_string (ret);\n"
+       | _ -> ()
+      );
+      pr "      debug (h, \"leave: ret=\" "
+    )
+    else (
+      pr "    debug_direct (h, \"nbd_%s\", \"leave: ret=\" " name
     );
-    pr "      debug (h, \"leave: error=\\\"%%s\\\"\", nbd_get_error ());\n";
-    pr "    else {\n";
-    (match ret with
-     | RString ->
-        pr "      char *ret_printable =\n";
-        pr "          nbd_internal_printable_string (ret);\n"
-     | _ -> ()
-    );
-    pr "      debug (h, \"leave: ret=\" ";
     (match ret with
      | RBool | RErr | RFd | RInt | REnum _ -> pr "\"%%d\", ret"
      | RInt64 | RCookie -> pr "\"%%\" PRIi64 \"\", ret"
@@ -739,11 +744,13 @@ let generate_lib_api_c () =
      | RUIntPtr -> pr "\"%%\" PRIuPTR, ret"
     );
     pr ");\n";
-    (match ret with
-     | RString -> pr "      free (ret_printable);\n"
-     | _ -> ()
+    if may_set_error then (
+      (match ret with
+       | RString -> pr "      free (ret_printable);\n"
+       | _ -> ()
+      );
+      pr "    }\n";
     );
-    pr "    }\n";
     pr "  }\n"
   in
 

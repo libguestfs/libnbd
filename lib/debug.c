@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -62,12 +62,12 @@ nbd_unlocked_set_debug_callback (struct nbd_handle *h,
  * all situations.
  */
 void
-nbd_internal_debug (struct nbd_handle *h, const char *fs, ...)
+nbd_internal_debug (struct nbd_handle *h, const char *context,
+                    const char *fs, ...)
 {
   int err, r;
   va_list args;
   char *msg = NULL;
-  const char *context;
 
   /* The debug() wrapper checks this, but check it again in case
    * something calls nbd_internal_debug directly.
@@ -76,7 +76,8 @@ nbd_internal_debug (struct nbd_handle *h, const char *fs, ...)
 
   err = errno;
 
-  context = nbd_internal_get_error_context ();
+  if (context == NULL)
+    context = nbd_internal_get_error_context ();
 
   va_start (args, fs);
   r = vasprintf (&msg, fs, args);
