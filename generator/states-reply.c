@@ -93,8 +93,7 @@ STATE_MACHINE {
     return 0;
   }
 #ifdef DUMP_PACKETS
-  if (h->rbuf != NULL)
-    nbd_internal_hexdump (h->rbuf, r, stderr);
+  nbd_internal_hexdump (h->rbuf, r, stderr);
 #endif
 
   h->rbuf += r;
