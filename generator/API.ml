@@ -2325,7 +2325,7 @@ intended as something you would use.";
 
   "poll2", {
     default_call with
-    args = [Int "fd"; Int "timeout" ]; ret = RInt;
+    args = [Fd "fd"; Int "timeout" ]; ret = RInt;
     shortdesc = "poll the handle once, with fd";
     longdesc = "\
 This is the same as L<nbd_poll(3)>, but an additional
