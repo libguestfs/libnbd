@@ -134,10 +134,10 @@ let generate_ocaml_nbd_mli () =
     [ocaml/examples] subdirectory.
 *)
 
-exception Error of string * int
+exception Error of string * Unix.error option
 (** Exception thrown when an API call fails.
 
-    The string is the error message, and the int is the raw errno
+    The string is the error message, and the int is the {!Unix.error}
     (if available).
 *)
 
@@ -260,13 +260,13 @@ let generate_ocaml_nbd_ml () =
   generate_header OCamlStyle;
 
   pr "\
-exception Error of string * int
+exception Error of string * Unix.error option
 exception Closed of string
 type cookie = int64
 
 (* Give the exceptions names so that they can be raised from the C code. *)
 let () =
-  Callback.register_exception \"nbd_internal_ocaml_error\" (Error (\"\", 0));
+  Callback.register_exception \"nbd_internal_ocaml_error\" (Error (\"\", None));
   Callback.register_exception \"nbd_internal_ocaml_closed\" (Closed \"\")
 
 ";

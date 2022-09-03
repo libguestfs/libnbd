@@ -30,7 +30,8 @@ let () =
   with
     NBD.Error (errstr, errno) ->
       printf "string = %s\n" errstr;
-      printf "errno = %d\n" errno;
+      printf "errno = %s\n"
+        (match errno with None -> "None" | Some err -> Unix.error_message err);
       Gc.compact ();
       exit 0 ;;
 

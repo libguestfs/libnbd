@@ -63,8 +63,7 @@ let () =
     NBD.pread_structured nbd buf 0_L (f 43) ~flags;
     assert false
   with
-    NBD.Error (_, errno) ->
-      printf "errno = %d\n%!" errno;
-      assert (errno = 100)
+   | NBD.Error (_, Some ENETDOWN) -> ()
+   | NBD.Error (_, _) -> assert false
 
 let () = Gc.compact ()

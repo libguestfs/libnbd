@@ -30,6 +30,7 @@
 #include <caml/memory.h>
 #include <caml/mlvalues.h>
 #include <caml/printexc.h>
+#include <caml/unixsupport.h>
 
 #include <libnbd.h>
 
@@ -39,7 +40,7 @@ void
 nbd_internal_ocaml_raise_error (void)
 {
   CAMLparam0 ();
-  CAMLlocal1 (sv);
+  CAMLlocal3 (sv, errv, ev);
   value v[2];
   const char *msg;
   int err;
@@ -52,8 +53,18 @@ nbd_internal_ocaml_raise_error (void)
   else
     sv = caml_copy_string ("no error message available");
 
+  /* Convert raw C errno to OCaml Unix.error, if available. */
+  if (err == 0) {
+    errv = Val_int (0); /* None */
+  }
+  else {
+    ev = unix_error_of_code (err);
+    errv = caml_alloc (1, 0);   /* Some ev */
+    Field (errv, 0) = ev;
+  }
+
   v[0] = sv;
-  v[1] = Val_int (err);
+  v[1] = errv;
   caml_raise_with_args (*caml_named_value ("nbd_internal_ocaml_error"),
                         2, v);
   CAMLnoreturn;
