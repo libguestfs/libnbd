@@ -17,10 +17,14 @@
 
 include $(top_srcdir)/subdir-rules.mk
 
-EXTRA_DIST = \
-	LICENSE-FOR-EXAMPLES \
+ml_examples = \
 	asynch_copy.ml \
 	extents.ml \
+	$(NULL)
+
+EXTRA_DIST = \
+	LICENSE-FOR-EXAMPLES \
+	$(ml_examples) \
 	$(NULL)
 
 CLEANFILES += *.annot *.cmi *.cmo *.cmx *.o *.a *.so *.bc *.opt
@@ -32,9 +36,9 @@ OCAMLPACKAGES = \
 	-package unix \
 	-I $(srcdir)/.. -I $(builddir)/.. -I $(srcdir) -I $(builddir)
 
-noinst_SCRIPTS = asynch_copy.bc extents.bc
+noinst_SCRIPTS = $(ml_examples:.ml=.bc)
 if HAVE_OCAMLOPT
-noinst_SCRIPTS += asynch_copy.opt extents.opt
+noinst_SCRIPTS += $(ml_examples:.ml=.opt)
 endif
 
 %.bc: %.cmo ../mlnbd.cma
