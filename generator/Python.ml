@@ -628,7 +628,7 @@ let generate_python_methods_c () =
   ) handle_calls
 
 let py_fn_rex = Str.regexp "L<nbd_\\([a-z0-9_]+\\)(3)>"
-let py_const_rex = Str.regexp "C<LIBNBD_"
+let py_const_rex = Str.regexp "C<LIBNBD_\\([A-Z0-9_]+\\)>"
 
 let generate_python_nbd_py () =
   generate_header HashStyle;
@@ -864,7 +864,7 @@ class NBD(object):
           ) args);
       pr "):\n";
       let longdesc = Str.global_replace py_fn_rex "C<nbd.\\1>" longdesc in
-      let longdesc = Str.global_replace py_const_rex "C<" longdesc in
+      let longdesc = Str.global_replace py_const_rex "C<\\1>" longdesc in
       let longdesc = pod2text longdesc in
       pr "        u'''▶ %s\n\n%s'''\n" shortdesc (String.concat "\n" longdesc);
       pr "        return libnbdmod.%s(" name;
