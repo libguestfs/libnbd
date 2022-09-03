@@ -22,6 +22,7 @@ ml_examples = \
 	extents.ml \
 	get_size.ml \
 	open_qcow2.ml \
+	server_flags.ml \
 	$(NULL)
 
 EXTRA_DIST = \
