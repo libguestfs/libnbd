@@ -17,6 +17,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *)
 
+open Printf
+
 let count = ref 0
 let seen = ref false
 let f user_data name =
@@ -27,6 +29,7 @@ let f user_data name =
   0
 
 let () =
+  (* Get into negotiating state. *)
   let nbd = NBD.create () in
   NBD.set_opt_mode nbd true;
   NBD.connect_command nbd
@@ -74,6 +77,33 @@ let () =
   assert (r <= max);
   assert (r = !count);
   assert !seen;
+
+  NBD.opt_abort nbd;
+
+  (* Repeat but this time without structured replies. Deal gracefully
+   * with older servers that don't allow the attempt.
+   *)
+  let nbd = NBD.create () in
+  NBD.set_opt_mode nbd true;
+  NBD.set_request_structured_replies nbd false;
+  NBD.connect_command nbd
+                      ["nbdkit"; "-s"; "--exit-with-parent"; "-v";
+                       "memory"; "size=1M"];
+  let bytes = NBD.stats_bytes_sent nbd in
+  (try
+     count := 0;
+     seen := false;
+     let r = NBD.opt_list_meta_context nbd (f 42) in
+     assert (r = !count);
+     assert (r >= 1);
+     assert !seen
+   with
+     NBD.Error (errstr, errno) ->
+       assert (NBD.stats_bytes_sent nbd > bytes);
+       printf "ignoring failure from old server %s\n" errstr
+  );
+
+  (* FIXME: Once nbd_opt_structured_reply exists, use it here and retry. *)
 
   NBD.opt_abort nbd
 

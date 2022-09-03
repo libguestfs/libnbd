@@ -17,6 +17,7 @@
  */
 
 /* Test behavior of nbd_opt_list_meta_context. */
+/* See also unit test 240 in the various language ports. */
 
 #include <config.h>
 
@@ -56,6 +57,7 @@ main (int argc, char *argv[])
                    "memory", "size=1M", NULL };
   int max;
   char *tmp;
+  uint64_t bytes;
 
   /* Get into negotiating state. */
   nbd = nbd_create ();
@@ -164,7 +166,9 @@ main (int argc, char *argv[])
   nbd_opt_abort (nbd);
   nbd_close (nbd);
 
-  /* Repeat but this time without structured replies. */
+  /* Repeat but this time without structured replies. Deal gracefully
+   * with older servers that don't allow the attempt.
+   */
   nbd = nbd_create ();
   if (nbd == NULL ||
       nbd_set_opt_mode (nbd, true) == -1 ||
@@ -173,16 +177,36 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+  bytes = nbd_stats_bytes_sent (nbd);
 
-  /* FIXME: For now, we reject this client-side, but it is overly strict. */
   p = (struct progress) { .count = 0 };
   r = nbd_opt_list_meta_context (nbd,
                                  (nbd_context_callback) { .callback = check,
                                                           .user_data = &p});
-  if (r != -1) {
-    fprintf (stderr, "not expecting command to succeed\n");
-    exit (EXIT_FAILURE);
+  if (r == -1) {
+    if (nbd_stats_bytes_sent (nbd) == bytes) {
+      fprintf (stderr, "bug: client failed to send request\n");
+      exit (EXIT_FAILURE);
+    }
+    fprintf (stdout, "ignoring failure from old server: %s\n",
+             nbd_get_error ());
   }
+  else {
+    if (r != p.count) {
+      fprintf (stderr, "inconsistent return value %d, expected %d\n",
+               r, p.count);
+      exit (EXIT_FAILURE);
+    }
+    if (r < 1 || !p.seen) {
+      fprintf (stderr, "server did not reply with base:allocation\n");
+      exit (EXIT_FAILURE);
+    }
+  }
+
+  /* FIXME: Once nbd_opt_structured_reply() exists, use it here and retry. */
+
+  nbd_opt_abort (nbd);
+  nbd_close (nbd);
 
   exit (EXIT_SUCCESS);
 }

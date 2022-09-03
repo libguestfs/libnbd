@@ -1,5 +1,5 @@
 /* libnbd golang tests
- * Copyright (C) 2013-2021 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,6 +19,7 @@
 package libnbd
 
 import (
+	"fmt";
 	"testing"
 )
 
@@ -37,6 +38,7 @@ func listmetaf(user_data int, name string) int {
 }
 
 func Test240OptListMeta(t *testing.T) {
+	/* Get into negotiating state. */
 	h, err := Create()
 	if err != nil {
 		t.Fatalf("could not create handle: %s", err)
@@ -138,6 +140,63 @@ func Test240OptListMeta(t *testing.T) {
 	if r < 1 || r > max || r != count || !seen {
 		t.Fatalf("unexpected count after opt_list_meta_context")
 	}
+
+	err = h.OptAbort()
+	if err != nil {
+		t.Fatalf("could not request opt_abort: %s", err)
+	}
+
+	/* Repeat but this time without structured replies. Deal gracefully
+	 * with older servers that don't allow the attempt.
+	 */
+	h, err = Create()
+	if err != nil {
+		t.Fatalf("could not create handle: %s", err)
+	}
+	defer h.Close()
+
+	err = h.SetOptMode(true)
+	if err != nil {
+		t.Fatalf("could not set opt mode: %s", err)
+	}
+
+	err = h.SetRequestStructuredReplies(false)
+	if err != nil {
+		t.Fatalf("could not set request structured replies: %s", err)
+	}
+
+	err = h.ConnectCommand([]string{
+		"nbdkit", "-s", "--exit-with-parent", "-v",
+		"memory", "size=1M",
+	})
+	if err != nil {
+		t.Fatalf("could not connect: %s", err)
+	}
+
+	bytes, err := h.StatsBytesSent()
+	if err != nil {
+		t.Fatalf("could not collect stats: %s", err)
+	}
+
+	count = 0
+	seen = false
+	r, err = h.OptListMetaContext(func(name string) int {
+	        return listmetaf(42, name)
+	})
+	if err != nil {
+		bytes2, err2 := h.StatsBytesSent()
+		if err2 != nil {
+			t.Fatalf("could not collect stats: %s", err2)
+		}
+		if bytes2 <= bytes {
+			t.Fatalf("unexpected bytes sent after opt_list_meta_context")
+		}
+		fmt.Printf("ignoring failure from old server: %s", err)
+	} else if r < 1 || r != count || !seen {
+		t.Fatalf("unexpected count after opt_list_meta_context")
+	}
+
+	/* FIXME: Once nbd_opt_structured_reply exists, use it here and retry. */
 
 	err = h.OptAbort()
 	if err != nil {

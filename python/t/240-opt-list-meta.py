@@ -31,6 +31,7 @@ def f(user_data, name):
         seen = True
 
 
+# Get into negotiating state.
 h = nbd.NBD()
 h.set_opt_mode(True)
 h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v",
@@ -75,5 +76,29 @@ assert r >= 1
 assert r <= max
 assert r == count
 assert seen is True
+
+h.opt_abort()
+
+# Repeat but this time without structured replies. Deal gracefully
+# with older servers that don't allow the attempt.
+h = nbd.NBD()
+h.set_opt_mode(True)
+h.set_request_structured_replies(False)
+h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v",
+                   "memory", "size=1M"])
+bytes = h.stats_bytes_sent()
+
+try:
+    count = 0
+    seen = False
+    r = h.opt_list_meta_context(lambda *args: f(42, *args))
+    assert r == count
+    assert r >= 1
+    assert seen is True
+except nbd.Error as ex:
+    assert h.stats_bytes_sent() > bytes
+    print("ignoring failure from old server: %s" % ex.string)
+
+# FIXME: Once nbd_opt_structured_reply exists, use it here and retry.
 
 h.opt_abort()
