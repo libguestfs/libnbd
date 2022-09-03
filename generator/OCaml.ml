@@ -211,6 +211,10 @@ module Buffer : sig
 end
 (** Persistent buffer used in AIO calls. *)
 
+val errno_of_unix_error : Unix.error -> int
+(** Return the raw C errno corresponding to a {!Unix.error}.  This
+    can be used in callbacks to update the [int ref] parameter. *)
+
 type t
 (** The handle. *)
 
@@ -326,6 +330,9 @@ module Buffer = struct
   external of_bytes : bytes -> t = \"nbd_internal_ocaml_buffer_of_bytes\"
   external size : t -> int = \"nbd_internal_ocaml_buffer_size\"
 end
+
+external errno_of_unix_error : Unix.error -> int =
+    \"nbd_internal_code_of_unix_error\" [@@noalloc]
 
 type t
 

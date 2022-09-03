@@ -36,6 +36,13 @@
 
 #include "nbd-c.h"
 
+/* NB: @@noalloc function */
+value
+nbd_internal_code_of_unix_error (value error)
+{
+  return Val_int (code_of_unix_error (error));
+}
+
 void
 nbd_internal_ocaml_raise_error (void)
 {

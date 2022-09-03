@@ -19,6 +19,10 @@
 
 open Printf
 
+(* These can be any two unique errors.  They are just used as a sentinel. *)
+let test_error1 = Unix.ENETDOWN
+let test_error2 = Unix.ENETUNREACH
+
 (* NB: OCaml 4.08 has endian functions in the Bytes module which
  * would make this loop much simpler.
  *)
@@ -38,7 +42,7 @@ let expected =
 
 let chunk user_data buf2 offset s err =
   assert (!err = 0);
-  err := 100;
+  err := NBD.errno_of_unix_error test_error1;
   if user_data <> 42 then invalid_arg "this should be turned into NBD.Error";
   assert (buf2 = expected);
   assert (offset = 0_L);
@@ -49,8 +53,8 @@ let callback user_data err =
   if fst user_data = 42 then
     assert (!err = 0)
   else
-    assert (!err = 100);
-  err := 101;
+    assert (!err = NBD.errno_of_unix_error test_error1);
+  err := NBD.errno_of_unix_error test_error2;
   if snd user_data <> 42 then
     invalid_arg "this should be turned into NBD.Error";
   0
@@ -82,7 +86,7 @@ let () =
      done;
      assert false
    with
-   | NBD.Error (_, Some ENETUNREACH) -> ()
+   | NBD.Error (_, Some errno) when errno = test_error2 -> ()
    | NBD.Error (_, _) -> assert false
   );
 
@@ -96,7 +100,7 @@ let () =
      done;
      assert false
    with
-   | NBD.Error (_, Some ENETUNREACH) -> ()
+   | NBD.Error (_, Some errno) when errno = test_error2 -> ()
    | NBD.Error (_, _) -> assert false
   );
 
@@ -110,7 +114,7 @@ let () =
      done;
      assert false
    with
-   | NBD.Error (_, Some ENETDOWN) -> ()
+   | NBD.Error (_, Some errno) when errno = test_error1 -> ()
    | NBD.Error (_, _) -> assert false
   )
 
