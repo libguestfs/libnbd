@@ -20,6 +20,8 @@ include $(top_srcdir)/subdir-rules.mk
 ml_examples = \
 	asynch_copy.ml \
 	extents.ml \
+	get_size.ml \
+	open_qcow2.ml \
 	$(NULL)
 
 EXTRA_DIST = \
