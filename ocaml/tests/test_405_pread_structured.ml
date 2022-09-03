@@ -36,9 +36,12 @@ let expected =
   done;
   b
 
+(* This can be any error, it's just used as a sentinel. *)
+let test_error = Unix.ENETDOWN
+
 let f user_data buf2 offset s err =
   assert (!err = 0);
-  err := 100;
+  err := NBD.errno_of_unix_error test_error;
   if user_data <> 42 then invalid_arg "this should be turned into NBD.Error";
   assert (buf2 = expected);
   assert (offset = 0_L);
@@ -63,7 +66,7 @@ let () =
     NBD.pread_structured nbd buf 0_L (f 43) ~flags;
     assert false
   with
-   | NBD.Error (_, Some ENETDOWN) -> ()
+   | NBD.Error (_, Some errno) when errno = test_error -> ()
    | NBD.Error (_, _) -> assert false
 
 let () = Gc.compact ()

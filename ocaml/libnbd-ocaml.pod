@@ -61,6 +61,17 @@ The first exception parameter is a string which is the printable error
 message.  The second is the OCaml C<Unix.error> code, if available
 (see L<nbd_get_errno(3)>).
 
+=head2 Callbacks with "int ref" error parameter
+
+Some callbacks take an error parameter of type C<int ref>,
+corresponding to the C<int *error> passed to those callbacks in C.
+See also: L<libnbd(3)/Callbacks with "int *error" parameter>
+
+If an error occurs during the callback you can update the C<int> in
+the reference, setting it to a I<C-compatible errno>.  To convert an
+OCaml C<Unix.error> into a C-compatible errno call
+C<NBD.errno_of_unix_error>.
+
 =head1 EXAMPLES
 
 This directory contains examples written in OCaml:
