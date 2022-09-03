@@ -4,6 +4,10 @@
  * qemu-nbd -f $format -k $sock -r image
  * ./strict-structured-reads $sock
  *
+ * Example usage with nbdkit (but less useful while nbdkit can't send holes):
+ *
+ * nbdkit -U- sparse-random 1G --run './strict-structured-reads "$unixsocket"'
+ *
  * This will perform read randomly over the image and check that all
  * structured replies comply with the NBD spec (chunks may be out of
  * order or interleaved, but no read succeeds unless chunks cover the
