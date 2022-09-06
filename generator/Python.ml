@@ -525,9 +525,9 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
     | RErr ->
        pr "  py_ret = Py_None;\n";
        pr "  Py_INCREF (py_ret);\n"
-    | RFd | RInt | REnum _ | RFlags _ | RSizeT | RUInt | RUIntPtr | RUInt64 ->
+    | RFd | RInt | REnum _ | RFlags _ | RSizeT | RUInt | RUIntPtr ->
        pr "  py_ret = PyLong_FromLong (ret);\n"
-    | RInt64 | RCookie ->
+    | RInt64 | RUInt64 | RCookie ->
        pr "  py_ret = PyLong_FromLongLong (ret);\n"
     | RString ->
        pr "  py_ret = PyUnicode_FromString (ret);\n";
