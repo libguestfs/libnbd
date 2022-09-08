@@ -731,20 +731,20 @@ let generate_lib_api_c () =
           pr "          nbd_internal_printable_string (ret);\n"
        | _ -> ()
       );
-      pr "      debug (h, \"leave: ret=\" "
+      pr "      debug (h, \"leave: ret="
     )
     else (
-      pr "    debug_direct (h, \"nbd_%s\", \"leave: ret=\" " name
+      pr "    debug_direct (h, \"nbd_%s\", \"leave: ret=" name
     );
     (match ret with
-     | RBool | RErr | RFd | RInt | REnum _ -> pr "\"%%d\", ret"
-     | RInt64 | RCookie -> pr "\"%%\" PRIi64, ret"
-     | RSizeT -> pr "\"%%zd\", ret"
-     | RString -> pr "\"%%s\", ret_printable ? ret_printable : \"\""
-     | RStaticString -> pr "\"%%s\", ret"
-     | RUInt | RFlags _ -> pr "\"%%u\", ret"
-     | RUIntPtr -> pr "\"%%\" PRIuPTR, ret"
-     | RUInt64 -> pr "\"%%\" PRIu64, ret"
+     | RBool | RErr | RFd | RInt | REnum _ -> pr "%%d\", ret"
+     | RInt64 | RCookie -> pr "%%\" PRIi64, ret"
+     | RSizeT -> pr "%%zd\", ret"
+     | RString -> pr "%%s\", ret_printable ? ret_printable : \"\""
+     | RStaticString -> pr "%%s\", ret"
+     | RUInt | RFlags _ -> pr "%%u\", ret"
+     | RUIntPtr -> pr "%%\" PRIuPTR, ret"
+     | RUInt64 -> pr "%%\" PRIu64, ret"
     );
     pr ");\n";
     if may_set_error then (
