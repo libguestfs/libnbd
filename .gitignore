@@ -233,6 +233,7 @@ Makefile.in
 /tests/opt-info
 /tests/opt-list
 /tests/opt-list-meta
+/tests/opt-list-meta-queries
 /tests/pki/
 /tests/pread-initialize
 /tests/private-data

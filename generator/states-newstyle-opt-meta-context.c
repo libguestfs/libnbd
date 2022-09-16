@@ -61,14 +61,14 @@ STATE_MACHINE {
       SET_NEXT_STATE (%^OPT_GO.START);
       return 0;
     }
+    if (nbd_internal_set_querylist (h, NULL) == -1) {
+      SET_NEXT_STATE (%.DEAD);
+      return 0;
+    }
   }
 
   assert (!h->meta_valid);
 
-  if (nbd_internal_set_querylist (h, NULL) == -1) {
-    SET_NEXT_STATE (%.DEAD);
-    return 0;
-  }
   /* Calculate the length of the option request data. */
   len = 4 /* exportname len */ + strlen (h->export_name) + 4 /* nr queries */;
   for (i = 0; i < h->querylist.len; ++i)
