@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -251,10 +251,8 @@ nbd_unlocked_aio_connect_socket (struct nbd_handle *h, int sock)
 int
 nbd_unlocked_aio_connect_command (struct nbd_handle *h, char **argv)
 {
-  if (nbd_internal_set_argv (&h->argv, argv) == -1) {
-    set_error (errno, "realloc");
+  if (nbd_internal_set_argv (h, argv) == -1)
     return -1;
-  }
 
   return nbd_internal_run (h, cmd_connect_command);
 }
@@ -263,10 +261,8 @@ int
 nbd_unlocked_aio_connect_systemd_socket_activation (struct nbd_handle *h,
                                                     char **argv)
 {
-  if (nbd_internal_set_argv (&h->argv, argv) == -1) {
-    set_error (errno, "realloc");
+  if (nbd_internal_set_argv (h, argv) == -1)
     return -1;
-  }
 
   return nbd_internal_run (h, cmd_connect_sa);
 }
