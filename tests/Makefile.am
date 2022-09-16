@@ -168,6 +168,7 @@ check_PROGRAMS += \
 	errors-not-connected \
 	errors-name-too-long \
 	errors-poll-no-fd \
+	errors-connect-null \
 	errors-connect-twice \
 	errors-not-negotiating \
 	errors-notify-not-blocked \
@@ -233,6 +234,7 @@ TESTS += \
 	errors-not-connected \
 	errors-name-too-long \
 	errors-poll-no-fd \
+	errors-connect-null \
 	errors-connect-twice \
 	errors-not-negotiating \
 	errors-notify-not-blocked \
@@ -308,6 +310,9 @@ errors_name_too_long_LDADD = $(top_builddir)/lib/libnbd.la
 
 errors_poll_no_fd_SOURCES = errors-poll-no-fd.c
 errors_poll_no_fd_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_connect_null_SOURCES = errors-connect-null.c
+errors_connect_null_LDADD = $(top_builddir)/lib/libnbd.la
 
 errors_connect_twice_SOURCES = errors-connect-twice.c
 errors_connect_twice_LDADD = $(top_builddir)/lib/libnbd.la

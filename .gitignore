@@ -202,6 +202,7 @@ Makefile.in
 /tests/errors-client-unaligned
 /tests/errors-client-unknown-flags
 /tests/errors-client-zerosize
+/tests/errors-connect-null
 /tests/errors-connect-twice
 /tests/errors-enum
 /tests/errors-multiple-disconnects
