@@ -285,6 +285,7 @@ struct nbd_handle {
   int connect_errno;
 
   /* When sending metadata contexts, this is used. */
+  string_vector querylist;
   size_t querynum;
 
   /* When receiving block status, this is used. */
@@ -478,6 +479,7 @@ extern int nbd_internal_aio_get_direction (enum state state);
 extern void nbd_internal_hexdump (const void *data, size_t len, FILE *fp);
 extern int nbd_internal_copy_string_list (string_vector *v, char **in);
 extern int nbd_internal_set_argv (struct nbd_handle *h, char **argv);
+extern int nbd_internal_set_querylist (struct nbd_handle *h, char **queries);
 extern const char *nbd_internal_fork_safe_itoa (long v, char *buf, size_t len);
 extern void nbd_internal_fork_safe_perror (const char *s);
 extern char *nbd_internal_printable_buffer (const void *buf, size_t count);

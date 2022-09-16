@@ -65,10 +65,14 @@ STATE_MACHINE {
 
   assert (!h->meta_valid);
 
+  if (nbd_internal_set_querylist (h, NULL) == -1) {
+    SET_NEXT_STATE (%.DEAD);
+    return 0;
+  }
   /* Calculate the length of the option request data. */
   len = 4 /* exportname len */ + strlen (h->export_name) + 4 /* nr queries */;
-  for (i = 0; i < h->request_meta_contexts.len; ++i)
-    len += 4 /* length of query */ + strlen (h->request_meta_contexts.ptr[i]);
+  for (i = 0; i < h->querylist.len; ++i)
+    len += 4 /* length of query */ + strlen (h->querylist.ptr[i]);
 
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
   h->sbuf.option.option = htobe32 (opt);
@@ -107,7 +111,7 @@ STATE_MACHINE {
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;
   case 0:
-    h->sbuf.nrqueries = htobe32 (h->request_meta_contexts.len);
+    h->sbuf.nrqueries = htobe32 (h->querylist.len);
     h->wbuf = &h->sbuf;
     h->wlen = sizeof h->sbuf.nrqueries;
     h->wflags = MSG_MORE;
@@ -125,12 +129,12 @@ STATE_MACHINE {
   return 0;
 
  NEWSTYLE.OPT_META_CONTEXT.PREPARE_NEXT_QUERY:
-  if (h->querynum >= h->request_meta_contexts.len) {
+  if (h->querynum >= h->querylist.len) {
     /* end of list of requested meta contexts */
     SET_NEXT_STATE (%PREPARE_FOR_REPLY);
     return 0;
   }
-  const char *query = h->request_meta_contexts.ptr[h->querynum];
+  const char *query = h->querylist.ptr[h->querynum];
 
   h->sbuf.len = htobe32 (strlen (query));
   h->wbuf = &h->sbuf.len;
@@ -140,7 +144,7 @@ STATE_MACHINE {
   return 0;
 
  NEWSTYLE.OPT_META_CONTEXT.SEND_QUERYLEN:
-  const char *query = h->request_meta_contexts.ptr[h->querynum];
+  const char *query = h->querylist.ptr[h->querynum];
 
   switch (send_from_wbuf (h)) {
   case -1: SET_NEXT_STATE (%.DEAD); return 0;

@@ -92,6 +92,42 @@ nbd_internal_set_argv (struct nbd_handle *h, char **argv)
   return 0;
 }
 
+/* Copy queries (defaulting to h->request_meta_contexts) into h->querylist.
+ * Set an error on failure.
+ */
+int
+nbd_internal_set_querylist (struct nbd_handle *h, char **queries)
+{
+  size_t i;
+
+  if (queries) {
+    if (nbd_internal_copy_string_list (&h->querylist, queries) == -1) {
+      set_error (errno, "realloc");
+      return -1;
+    }
+    /* Drop trailing NULL */
+    assert (h->querylist.len > 0);
+    string_vector_remove (&h->querylist, h->querylist.len - 1);
+  }
+  else {
+    string_vector_reset (&h->querylist);
+    for (i = 0; i < h->request_meta_contexts.len; ++i) {
+      char *copy = strdup (h->request_meta_contexts.ptr[i]);
+      if (copy == NULL) {
+        set_error (errno, "strdup");
+        return -1;
+      }
+      if (string_vector_append (&h->querylist, copy) == -1) {
+        set_error (errno, "realloc");
+        free (copy);
+        return -1;
+      }
+    }
+  }
+
+  return 0;
+}
+
 /* Like sprintf ("%ld", v), but safe to use between fork and exec.  Do
  * not use this function in any other context.
  *
