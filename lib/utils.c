@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -53,16 +53,17 @@ nbd_internal_hexdump (const void *data, size_t len, FILE *fp)
   }
 }
 
-/* Replace the string_vector with a deep copy of argv (including final NULL). */
+/* Replace a string_vector with a deep copy of in (including final NULL). */
 int
-nbd_internal_set_argv (string_vector *v, char **argv)
+nbd_internal_copy_string_list (string_vector *v, char **in)
 {
   size_t i;
 
+  assert (in);
   string_vector_reset (v);
 
-  for (i = 0; argv[i] != NULL; ++i) {
-    char *copy = strdup (argv[i]);
+  for (i = 0; in[i] != NULL; ++i) {
+    char *copy = strdup (in[i]);
     if (copy == NULL)
       return -1;
     if (string_vector_append (v, copy) == -1) {
@@ -72,6 +73,23 @@ nbd_internal_set_argv (string_vector *v, char **argv)
   }
 
   return string_vector_append (v, NULL);
+}
+
+/* Store argv into h, or diagnose an error on failure. */
+int
+nbd_internal_set_argv (struct nbd_handle *h, char **argv)
+{
+  /* FIXME: Do we want to assert(argv)? */
+  if (argv == NULL || argv[0] == NULL) {
+    set_error (EINVAL, "missing command name in argv list");
+    return -1;
+  }
+  if (nbd_internal_copy_string_list (&h->argv, argv) == -1) {
+    set_error (errno, "realloc");
+    return -1;
+  }
+
+  return 0;
 }
 
 /* Like sprintf ("%ld", v), but safe to use between fork and exec.  Do
@@ -247,13 +265,17 @@ nbd_internal_printable_string_list (char **list)
   if (fp == NULL)
     return NULL;
 
-  fprintf (fp, "[");
-  for (i = 0; list[i] != NULL; ++i) {
-    if (i > 0)
-      fprintf (fp, ", ");
-    printable_string (list[i], fp);
+  if (list == NULL)
+    fprintf (fp, "NULL");
+  else {
+    fprintf (fp, "[");
+    for (i = 0; list[i] != NULL; ++i) {
+      if (i > 0)
+        fprintf (fp, ", ");
+      printable_string (list[i], fp);
+    }
+    fprintf (fp, "]");
   }
-  fprintf (fp, "]");
   fclose (fp);
 
   return s;
