@@ -17,6 +17,7 @@
  */
 
 /* Test behavior of nbd_opt_list_meta_context_queries. */
+/* See also unit test 245 in the various language ports. */
 
 #include <config.h>
 
@@ -67,7 +68,8 @@ main (int argc, char *argv[])
   }
 
   /* FIXME: We should either document that a NULL list is unspecified,
-   * or pin down specific behavior and test it here.
+   * or pin down specific behavior and test it here.  C-only test,
+   * unless we change the Python bindings to allow None in place of [].
    */
 
   /* First pass: empty query should give at least "base:allocation".

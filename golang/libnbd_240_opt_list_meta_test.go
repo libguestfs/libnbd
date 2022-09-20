@@ -23,16 +23,16 @@ import (
 	"testing"
 )
 
-var count uint
-var seen bool
+var list_count uint
+var list_seen bool
 
 func listmetaf(user_data int, name string) int {
 	if user_data != 42 {
 		panic("expected user_data == 42")
 	}
-	count++
+	list_count++
 	if (name == context_base_allocation) {
-		seen = true
+		list_seen = true
 	}
 	return 0
 }
@@ -59,22 +59,22 @@ func Test240OptListMeta(t *testing.T) {
 	}
 
 	/* First pass: empty query should give at least "base:allocation". */
-	count = 0
-	seen = false
+	list_count = 0
+	list_seen = false
 	r, err := h.OptListMetaContext(func(name string) int {
 	        return listmetaf(42, name)
 	})
 	if err != nil {
 		t.Fatalf("could not request opt_list_meta_context: %s", err)
 	}
-	if r != count || r < 1 || !seen {
+	if r != list_count || r < 1 || !list_seen {
 		t.Fatalf("unexpected count after opt_list_meta_context")
 	}
-	max := count
+	max := list_count
 
 	/* Second pass: bogus query has no response. */
-	count = 0
-	seen = false
+	list_count = 0
+	list_seen = false
 	err = h.AddMetaContext("x-nosuch:")
 	if err != nil {
 		t.Fatalf("could not request add_meta_context: %s", err)
@@ -85,13 +85,13 @@ func Test240OptListMeta(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not request opt_list_meta_context: %s", err)
 	}
-	if r != 0 || r != count || seen {
+	if r != 0 || r != list_count || list_seen {
 		t.Fatalf("unexpected count after opt_list_meta_context")
 	}
 
 	/* Third pass: specific query should have one match. */
-	count = 0
-	seen = false
+	list_count = 0
+	list_seen = false
 	err = h.AddMetaContext(context_base_allocation)
 	if err != nil {
 		t.Fatalf("could not request add_meta_context: %s", err)
@@ -116,13 +116,13 @@ func Test240OptListMeta(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not request opt_list_meta_context: %s", err)
 	}
-	if r != 1 || r != count || !seen {
+	if r != 1 || r != list_count || !list_seen {
 		t.Fatalf("unexpected count after opt_list_meta_context")
 	}
 
 	/* Final pass: "base:" query should get at least "base:allocation" */
-	count = 0
-	seen = false
+	list_count = 0
+	list_seen = false
 	err = h.ClearMetaContexts()
 	if err != nil {
 		t.Fatalf("could not request clear_meta_contexts: %s", err)
@@ -137,7 +137,7 @@ func Test240OptListMeta(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not request opt_list_meta_context: %s", err)
 	}
-	if r < 1 || r > max || r != count || !seen {
+	if r < 1 || r > max || r != list_count || !list_seen {
 		t.Fatalf("unexpected count after opt_list_meta_context")
 	}
 
@@ -178,8 +178,8 @@ func Test240OptListMeta(t *testing.T) {
 		t.Fatalf("could not collect stats: %s", err)
 	}
 
-	count = 0
-	seen = false
+	list_count = 0
+	list_seen = false
 	r, err = h.OptListMetaContext(func(name string) int {
 	        return listmetaf(42, name)
 	})
@@ -192,7 +192,7 @@ func Test240OptListMeta(t *testing.T) {
 			t.Fatalf("unexpected bytes sent after opt_list_meta_context")
 		}
 		fmt.Printf("ignoring failure from old server: %s", err)
-	} else if r < 1 || r != count || !seen {
+	} else if r < 1 || r != list_count || !list_seen {
 		t.Fatalf("unexpected count after opt_list_meta_context")
 	}
 
