@@ -215,6 +215,8 @@ check_PROGRAMS += \
 	opt-info \
 	opt-list-meta \
 	opt-list-meta-queries \
+	opt-set-meta \
+	opt-set-meta-queries \
 	connect-systemd-socket-activation \
 	connect-unix \
 	connect-tcp \
@@ -282,6 +284,8 @@ TESTS += \
 	opt-info \
 	opt-list-meta \
 	opt-list-meta-queries \
+	opt-set-meta \
+	opt-set-meta-queries \
 	connect-systemd-socket-activation \
 	connect-unix \
 	connect-tcp \
@@ -542,6 +546,16 @@ opt_list_meta_LDADD = $(top_builddir)/lib/libnbd.la
 
 opt_list_meta_queries_SOURCES = opt-list-meta-queries.c
 opt_list_meta_queries_LDADD = $(top_builddir)/lib/libnbd.la
+
+opt_set_meta_SOURCES = opt-set-meta.c
+opt_set_meta_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(top_srcdir)/common/include \
+	$(NULL)
+opt_set_meta_LDADD = $(top_builddir)/lib/libnbd.la
+
+opt_set_meta_queries_SOURCES = opt-set-meta-queries.c
+opt_set_meta_queries_LDADD = $(top_builddir)/lib/libnbd.la
 
 connect_systemd_socket_activation_SOURCES = \
 	connect-systemd-socket-activation.c \

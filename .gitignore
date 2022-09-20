@@ -234,6 +234,8 @@ Makefile.in
 /tests/opt-list
 /tests/opt-list-meta
 /tests/opt-list-meta-queries
+/tests/opt-set-meta
+/tests/opt-set-meta-queries
 /tests/pki/
 /tests/pread-initialize
 /tests/private-data

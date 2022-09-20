@@ -140,6 +140,7 @@ STATE_MACHINE {
       SET_NEXT_STATE (%PREPARE_OPT_ABORT);
       return 0;
     case NBD_OPT_LIST_META_CONTEXT:
+    case NBD_OPT_SET_META_CONTEXT:
       SET_NEXT_STATE (%OPT_META_CONTEXT.START);
       return 0;
     case 0:

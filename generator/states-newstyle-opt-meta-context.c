@@ -34,6 +34,8 @@ STATE_MACHINE {
    *     -> conditionally use SET, next state OPT_GO for NBD_OPT_GO
    *   nbd_opt_list_meta_context()
    *     -> unconditionally use LIST, next state NEGOTIATING
+   *   nbd_opt_set_meta_context()
+   *     -> unconditionally use SET, next state NEGOTIATING
    *
    * If SET is conditional, we skip it if h->request_meta is false, if
    * structured replies were not negotiated, or if no contexts to request.
@@ -41,7 +43,7 @@ STATE_MACHINE {
    * success, while LIST is stateless.
    * If OPT_GO is later successful, it populates h->exportsize and friends,
    * and also sets h->meta_valid if h->request_meta but we skipped SET here.
-   * There is a callback if and only if the command is LIST.
+   * There is a callback if and only if the command is unconditional.
    */
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
   if (h->opt_current == NBD_OPT_LIST_META_CONTEXT) {
@@ -50,9 +52,12 @@ STATE_MACHINE {
     opt = h->opt_current;
   }
   else {
-    assert (CALLBACK_IS_NULL (h->opt_cb.fn.context));
+    if (h->opt_current == NBD_OPT_SET_META_CONTEXT)
+      assert (CALLBACK_IS_NOT_NULL (h->opt_cb.fn.context));
+    else
+      assert (CALLBACK_IS_NULL (h->opt_cb.fn.context));
     opt = NBD_OPT_SET_META_CONTEXT;
-    if (h->request_meta) {
+    if (h->request_meta || h->opt_current == opt) {
       for (i = 0; i < h->meta_contexts.len; ++i)
         free (h->meta_contexts.ptr[i].name);
       meta_vector_reset (&h->meta_contexts);
@@ -215,15 +220,15 @@ STATE_MACHINE {
   len = be32toh (h->sbuf.or.option_reply.replylen);
   switch (reply) {
   case NBD_REP_ACK:           /* End of list of replies. */
-    if (opt == NBD_OPT_LIST_META_CONTEXT) {
+    if (opt == NBD_OPT_SET_META_CONTEXT)
+      h->meta_valid = true;
+    if (opt == h->opt_current) {
       SET_NEXT_STATE (%.NEGOTIATING);
       CALL_CALLBACK (h->opt_cb.completion, &err);
       nbd_internal_free_option (h);
     }
-    else {
+    else
       SET_NEXT_STATE (%^OPT_GO.START);
-      h->meta_valid = true;
-    }
     break;
   case NBD_REP_META_CONTEXT:  /* A context. */
     if (len > maxpayload)
@@ -242,10 +247,10 @@ STATE_MACHINE {
       }
       debug (h, "negotiated %s with context ID %" PRIu32,
              meta_context.name, meta_context.context_id);
-      if (opt == NBD_OPT_LIST_META_CONTEXT) {
+      if (CALLBACK_IS_NOT_NULL (h->opt_cb.fn.context))
         CALL_CALLBACK (h->opt_cb.fn.context, meta_context.name);
+      if (opt == NBD_OPT_LIST_META_CONTEXT)
         free (meta_context.name);
-      }
       else if (meta_vector_append (&h->meta_contexts, meta_context) == -1) {
         set_error (errno, "realloc");
         free (meta_context.name);
@@ -256,25 +261,27 @@ STATE_MACHINE {
     SET_NEXT_STATE (%PREPARE_FOR_REPLY);
     break;
   default:
-    /* Anything else is an error, ignore it for SET, report it for LIST */
+    /* Anything else is an error, report it for explicit LIST/SET, ignore it
+     * for automatic progress (nbd_connect_*, nbd_opt_info, nbd_opt_go).
+     */
     if (handle_reply_error (h) == -1) {
       SET_NEXT_STATE (%.DEAD);
       return 0;
     }
 
-    if (opt == NBD_OPT_LIST_META_CONTEXT) {
+    if (opt == h->opt_current) {
       /* XXX Should we decode specific expected errors, like
        * REP_ERR_UNKNOWN to ENOENT or REP_ERR_TOO_BIG to ERANGE?
        */
       err = ENOTSUP;
       set_error (err, "unexpected response, possibly the server does not "
-                 "support listing contexts");
+                 "support meta contexts");
       CALL_CALLBACK (h->opt_cb.completion, &err);
       nbd_internal_free_option (h);
       SET_NEXT_STATE (%.NEGOTIATING);
     }
     else {
-      debug (h, "handshake: unexpected error from "
+      debug (h, "handshake: ignoring unexpected error from "
              "NBD_OPT_SET_META_CONTEXT (%" PRIu32 ")", reply);
       SET_NEXT_STATE (%^OPT_GO.START);
     }

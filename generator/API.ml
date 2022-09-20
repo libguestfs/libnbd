@@ -845,17 +845,20 @@ registered by L<nbd_add_meta_context(3)>.  The default setting
 is true; however the extra step of negotiating meta contexts is
 not always desirable: performing both info and go on the same
 export works without needing to re-negotiate contexts on the
-second call; and even when using just L<nbd_opt_info(3)>, it
-can be faster to collect the server's results by relying on the
-callback function passed to L<nbd_opt_list_meta_context(3)> than
-a series of post-process calls to L<nbd_can_meta_context(3)>.
+second call; integration testing of other servers may benefit
+from manual invocation of L<nbd_opt_set_meta_context(3)> at
+other times in the negotiation sequence; and even when using just
+L<nbd_opt_info(3)>, it can be faster to collect the server's
+results by relying on the callback function passed to
+L<nbd_opt_list_meta_context(3)> than a series of post-process
+calls to L<nbd_can_meta_context(3)>.
 
 Note that this control has no effect if the server does not
 negotiate structured replies, or if the client did not request
 any contexts via L<nbd_add_meta_context(3)>.  Setting this
 control to false may cause L<nbd_block_status(3)> to fail.";
     see_also = [Link "set_opt_mode"; Link "opt_go"; Link "opt_info";
-                Link "opt_list_meta_context";
+                Link "opt_list_meta_context"; Link "opt_set_meta_context";
                 Link "get_structured_replies_negotiated";
                 Link "get_request_meta_context"; Link "can_meta_context"];
   };
@@ -1095,6 +1098,7 @@ to end the connection without finishing negotiation.";
     see_also = [Link "get_opt_mode"; Link "aio_is_negotiating";
                 Link "opt_abort"; Link "opt_go"; Link "opt_list";
                 Link "opt_info"; Link "opt_list_meta_context";
+                Link "opt_set_meta_context";
                 Link "aio_connect"];
   };
 
@@ -1121,7 +1125,9 @@ L<nbd_set_opt_mode(3)> enabled option mode.
 
 By default, libnbd will automatically request all meta contexts
 registered by L<nbd_add_meta_context(3)> as part of this call; but
-this can be suppressed with L<nbd_set_request_meta_context(3)>.
+this can be suppressed with L<nbd_set_request_meta_context(3)>,
+particularly if L<nbd_opt_set_meta_context(3)> was used earlier
+in the negotiation sequence.
 
 If this fails, the server may still be in negotiation, where it is
 possible to attempt another option such as a different export name;
@@ -1129,7 +1135,8 @@ although older servers will instead have killed the connection.";
     example = Some "examples/list-exports.c";
     see_also = [Link "set_opt_mode"; Link "aio_opt_go"; Link "opt_abort";
                 Link "set_export_name"; Link "connect_uri"; Link "opt_info";
-                Link "add_meta_context"; Link "set_request_meta_context"];
+                Link "add_meta_context"; Link "set_request_meta_context";
+                Link "opt_set_meta_context"];
   };
 
   "opt_abort", {
@@ -1268,7 +1275,8 @@ a server may send a lengthy list.";
     see_also = [Link "set_opt_mode"; Link "aio_opt_list_meta_context";
                 Link "opt_list_meta_context_queries";
                 Link "add_meta_context"; Link "clear_meta_contexts";
-                Link "opt_go"; Link "set_export_name"];
+                Link "opt_go"; Link "set_export_name";
+                Link "opt_set_meta_context"];
   };
 
   "opt_list_meta_context_queries", {
@@ -1319,6 +1327,118 @@ a server may send a lengthy list.";
     see_also = [Link "set_opt_mode"; Link "aio_opt_list_meta_context_queries";
                 Link "opt_list_meta_context";
                 Link "opt_go"; Link "set_export_name"];
+  };
+
+  "opt_set_meta_context", {
+    default_call with
+    args = [ Closure context_closure ]; ret = RInt;
+    permitted_states = [ Negotiating ];
+    shortdesc = "select specific meta contexts, using implicit query list";
+    longdesc = "\
+Request that the server supply all recognized meta contexts
+registered through prior calls to L<nbd_add_meta_context(3)>, in
+conjunction with the export previously specified by the most
+recent L<nbd_set_export_name(3)> or L<nbd_connect_uri(3)>.
+This can only be used if L<nbd_set_opt_mode(3)> enabled option
+mode.  Normally, this function is redundant, as L<nbd_opt_go(3)>
+automatically does the same task if structured replies have
+already been negotiated.  But manual control over meta context
+requests can be useful for fine-grained testing of how a server
+handles unusual negotiation sequences.  Often, use of this
+function is coupled with L<nbd_set_request_meta_context(3)> to
+bypass the automatic context request normally performed by
+L<nbd_opt_go(3)>.
+
+The NBD protocol allows a client to decide how many queries to ask
+the server.  Rather than taking that list of queries as a parameter
+to this function, libnbd reuses the current list of requested meta
+contexts as set by L<nbd_add_meta_context(3)>; you can use
+L<nbd_clear_meta_contexts(3)> to set up a different list of queries
+(see L<nbd_opt_set_meta_context_queries(3)> to pass an explicit
+list of contexts instead).  Since this function is primarily
+designed for testing servers, libnbd does not prevent the use
+of this function on an empty list or when
+L<nbd_set_request_structured_replies(3)> has disabled structured
+replies, in order to see how a server behaves.
+
+The C<context> function is called once per server reply, with any
+C<user_data> passed to this function, and with C<name> supplied by
+the server.  Additionally, each server name will remain visible through
+L<nbd_can_meta_context(3)> until the next attempt at
+L<nbd_set_export_name(3)> or L<nbd_opt_set_meta_context(3)>, as
+well as L<nbd_opt_go(3)> or L<nbd_opt_info(3)> that trigger an
+automatic meta context request.  Remember that it is not safe to
+call any C<nbd_*> APIs from within the context of the callback
+function.  At present, the return value of the callback is
+ignored, although a return of -1 should be avoided.
+
+For convenience, when this function succeeds, it returns the number
+of replies returned by the server.
+
+Not all servers understand this request, and even when it is understood,
+the server might intentionally send an empty list because it does not
+support the requested context, or may encounter a failure after
+delivering partial results.  Thus, this function may succeed even when
+no contexts are reported, or may fail but have a non-empty list.";
+    see_also = [Link "set_opt_mode"; Link "aio_opt_set_meta_context";
+                Link "add_meta_context"; Link "clear_meta_contexts";
+                Link "opt_set_meta_context_queries";
+                Link "opt_go"; Link "set_export_name";
+                Link "opt_list_meta_context"; Link "set_request_meta_context";
+                Link "can_meta_context"];
+  };
+
+  "opt_set_meta_context_queries", {
+    default_call with
+    args = [ StringList "queries"; Closure context_closure ]; ret = RInt;
+    permitted_states = [ Negotiating ];
+    shortdesc = "select specific meta contexts, using explicit query list";
+    longdesc = "\
+Request that the server supply all recognized meta contexts
+passed in through C<queries>, in conjunction with the export
+previously specified by the most recent L<nbd_set_export_name(3)>
+or L<nbd_connect_uri(3)>.  This can only be used if
+L<nbd_set_opt_mode(3)> enabled option mode.  Normally, this
+function is redundant, as L<nbd_opt_go(3)> automatically does
+the same task if structured replies have already been
+negotiated.  But manual control over meta context requests can
+be useful for fine-grained testing of how a server handles
+unusual negotiation sequences.  Often, use of this function is
+coupled with L<nbd_set_request_meta_context(3)> to bypass the
+automatic context request normally performed by L<nbd_opt_go(3)>.
+
+The NBD protocol allows a client to decide how many queries to ask
+the server.  This function takes an explicit list of queries; to
+instead reuse an implicit list, see L<nbd_opt_set_meta_context(3)>.
+Since this function is primarily designed for testing servers,
+libnbd does not prevent the use of this function on an empty
+list or when L<nbd_set_request_structured_replies(3)> has
+disabled structured replies, in order to see how a server behaves.
+
+The C<context> function is called once per server reply, with any
+C<user_data> passed to this function, and with C<name> supplied by
+the server.  Additionally, each server name will remain visible through
+L<nbd_can_meta_context(3)> until the next attempt at
+L<nbd_set_export_name(3)> or L<nbd_opt_set_meta_context(3)>, as
+well as L<nbd_opt_go(3)> or L<nbd_opt_info(3)> that trigger an
+automatic meta context request.  Remember that it is not safe to
+call any C<nbd_*> APIs from within the context of the callback
+function.  At present, the return value of the callback is
+ignored, although a return of -1 should be avoided.
+
+For convenience, when this function succeeds, it returns the number
+of replies returned by the server.
+
+Not all servers understand this request, and even when it is understood,
+the server might intentionally send an empty list because it does not
+support the requested context, or may encounter a failure after
+delivering partial results.  Thus, this function may succeed even when
+no contexts are reported, or may fail but have a non-empty list.";
+    see_also = [Link "set_opt_mode"; Link "aio_opt_set_meta_context_queries";
+                Link "opt_set_meta_context";
+                Link "opt_go"; Link "set_export_name";
+                Link "opt_list_meta_context_queries";
+                Link "set_request_meta_context"; Link "can_meta_context"];
   };
 
   "add_meta_context", {
@@ -1999,7 +2119,7 @@ are free to pass in other contexts."
     see_also = [SectionLink "Flag calls"; Link "opt_info";
                 Link "add_meta_context";
                 Link "block_status"; Link "aio_block_status";
-                Link "set_request_meta_context"];
+                Link "set_request_meta_context"; Link "opt_set_meta_context"];
   };
 
   "get_protocol", {
@@ -2755,6 +2875,71 @@ callback.";
                 Link "aio_opt_list_meta_context"];
   };
 
+  "aio_opt_set_meta_context", {
+    default_call with
+    args = [ Closure context_closure ]; ret = RInt;
+    optargs = [ OClosure completion_closure ];
+    permitted_states = [ Negotiating ];
+    shortdesc = "select specific meta contexts, with implicit query list";
+    longdesc = "\
+Request that the server supply all recognized meta contexts
+registered through prior calls to L<nbd_add_meta_context(3)>, in
+conjunction with the export previously specified by the most
+recent L<nbd_set_export_name(3)> or L<nbd_connect_uri(3)>.
+This can only be used if L<nbd_set_opt_mode(3)> enabled option
+mode.  Normally, this function is redundant, as L<nbd_opt_go(3)>
+automatically does the same task if structured replies have
+already been negotiated.  But manual control over meta context
+requests can be useful for fine-grained testing of how a server
+handles unusual negotiation sequences.  Often, use of this
+function is coupled with L<nbd_set_request_meta_context(3)> to
+bypass the automatic context request normally performed by
+L<nbd_opt_go(3)>.
+
+To determine when the request completes, wait for
+L<nbd_aio_is_connecting(3)> to return false.  Or supply the optional
+C<completion_callback> which will be invoked as described in
+L<libnbd(3)/Completion callbacks>, except that it is automatically
+retired regardless of return value.  Note that detecting whether the
+server returns an error (as is done by the return value of the
+synchronous counterpart) is only possible with a completion
+callback.";
+    see_also = [Link "set_opt_mode"; Link "opt_set_meta_context";
+                Link "aio_opt_set_meta_context_queries"];
+  };
+
+  "aio_opt_set_meta_context_queries", {
+    default_call with
+    args = [ StringList "queries"; Closure context_closure ]; ret = RInt;
+    optargs = [ OClosure completion_closure ];
+    permitted_states = [ Negotiating ];
+    shortdesc = "select specific meta contexts, with explicit query list";
+    longdesc = "\
+Request that the server supply all recognized meta contexts
+passed in through C<queries>, in conjunction with the export
+previously specified by the most recent L<nbd_set_export_name(3)>
+or L<nbd_connect_uri(3)>.  This can only be used
+if L<nbd_set_opt_mode(3)> enabled option mode.  Normally, this
+function is redundant, as L<nbd_opt_go(3)> automatically does
+the same task if structured replies have already been
+negotiated.  But manual control over meta context requests can
+be useful for fine-grained testing of how a server handles
+unusual negotiation sequences.  Often, use of this function is
+coupled with L<nbd_set_request_meta_context(3)> to bypass the
+automatic context request normally performed by L<nbd_opt_go(3)>.
+
+To determine when the request completes, wait for
+L<nbd_aio_is_connecting(3)> to return false.  Or supply the optional
+C<completion_callback> which will be invoked as described in
+L<libnbd(3)/Completion callbacks>, except that it is automatically
+retired regardless of return value.  Note that detecting whether the
+server returns an error (as is done by the return value of the
+synchronous counterpart) is only possible with a completion
+callback.";
+    see_also = [Link "set_opt_mode"; Link "opt_set_meta_context_queries";
+                Link "aio_opt_set_meta_context"];
+  };
+
   "aio_pread", {
     default_call with
     args = [ BytesPersistOut ("buf", "count"); UInt64 "offset" ];
@@ -3489,6 +3674,10 @@ let first_version = [
   "aio_opt_list_meta_context_queries", (1, 16);
   "set_request_meta_context", (1, 16);
   "get_request_meta_context", (1, 16);
+  "opt_set_meta_context", (1, 16);
+  "opt_set_meta_context_queries", (1, 16);
+  "aio_opt_set_meta_context", (1, 16);
+  "aio_opt_set_meta_context_queries", (1, 16);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.
