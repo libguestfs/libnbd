@@ -34,7 +34,7 @@ h.set_opt_mode(True)
 h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v", "sh", script])
 h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
 
-# No size, flags, or meta-contexts yet */
+# No size, flags, or meta-contexts yet
 must_fail(h.get_size)
 must_fail(h.is_read_only)
 must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
