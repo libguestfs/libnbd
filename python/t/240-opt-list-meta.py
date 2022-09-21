@@ -31,6 +31,14 @@ def f(user_data, name):
         seen = True
 
 
+def must_fail(f, *args, **kwds):
+    try:
+        f(*args, **kwds)
+        assert False
+    except nbd.Error:
+        pass
+
+
 # Get into negotiating state.
 h = nbd.NBD()
 h.set_opt_mode(True)
@@ -66,10 +74,27 @@ assert r == 1
 assert count == 1
 assert seen is True
 
+# Fourth pass: opt_list_meta_context is stateless, so it should
+# not wipe status learned during opt_info
+count = 0
+seen = False
+must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
+must_fail(h.get_size)
+h.opt_info()
+assert h.get_size() == 1024*1024
+assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) is True
+h.clear_meta_contexts()
+h.add_meta_context("x-nosuch:")
+r = h.opt_list_meta_context(lambda *args: f(42, *args))
+assert r == 0
+assert count == 0
+assert seen is False
+assert h.get_size() == 1048576
+assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) is True
+
 # Final pass: "base:" query should get at least "base:allocation"
 count = 0
 seen = False
-h.clear_meta_contexts()
 h.add_meta_context("base:")
 r = h.opt_list_meta_context(lambda *args: f(42, *args))
 assert r >= 1

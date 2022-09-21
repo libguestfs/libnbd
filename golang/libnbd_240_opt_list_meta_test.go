@@ -120,13 +120,73 @@ func Test240OptListMeta(t *testing.T) {
 		t.Fatalf("unexpected count after opt_list_meta_context")
 	}
 
-	/* Final pass: "base:" query should get at least "base:allocation" */
+	/* Fourth pass: opt_list_meta_context is stateless, so it should
+     * not wipe status learned during opt_info
+	 */
 	list_count = 0
 	list_seen = false
+	_, err = h.GetSize()
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	_, err = h.CanMetaContext(context_base_allocation)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	err = h.OptInfo()
+	if err != nil {
+		t.Fatalf("opt_info failed unexpectedly: %s", err)
+	}
+        size, err := h.GetSize()
+	if err != nil {
+		t.Fatalf("get_size failed unexpectedly: %s", err)
+	}
+        if size != 1048576 {
+		t.Fatalf("get_size gave wrong size")
+        }
+	meta, err := h.CanMetaContext(context_base_allocation)
+	if err != nil {
+		t.Fatalf("can_meta_context failed unexpectedly: %s", err)
+	}
+	if !meta {
+		t.Fatalf("unexpected count after can_meta_context")
+	}
 	err = h.ClearMetaContexts()
 	if err != nil {
 		t.Fatalf("could not request clear_meta_contexts: %s", err)
 	}
+	err = h.AddMetaContext("x-nosuch:")
+	if err != nil {
+		t.Fatalf("could not request add_meta_context: %s", err)
+	}
+	r, err = h.OptListMetaContext(func(name string) int {
+	        return listmetaf(42, name)
+	})
+	if err != nil {
+		t.Fatalf("could not request opt_list_meta_context: %s", err)
+	}
+	if r != 0 || r != list_count || list_seen {
+		t.Fatalf("unexpected count after opt_list_meta_context")
+	}
+        size, err = h.GetSize()
+	if err != nil {
+		t.Fatalf("get_size failed unexpectedly: %s", err)
+	}
+        if size != 1048576 {
+		t.Fatalf("get_size gave wrong size")
+        }
+	meta, err = h.CanMetaContext(context_base_allocation)
+	if err != nil {
+		t.Fatalf("can_meta_context failed unexpectedly: %s", err)
+	}
+	if !meta {
+		t.Fatalf("unexpected count after can_meta_context")
+	}
+	err = h.ClearMetaContexts()
+
+	/* Final pass: "base:" query should get at least "base:allocation" */
+	list_count = 0
+	list_seen = false
 	err = h.AddMetaContext("base:")
 	if err != nil {
 		t.Fatalf("could not request add_meta_context: %s", err)

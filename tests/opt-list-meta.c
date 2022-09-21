@@ -139,13 +139,79 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* Final pass: "base:" query should get at least "base:allocation" */
-  p = (struct progress) { .count = 0 };
-  r = nbd_clear_meta_contexts (nbd);
+  /* Fourth pass: nbd_opt_list_meta_context is stateless, so it should
+   * not wipe status learned during nbd_opt_info().
+   */
+  r = nbd_get_size (nbd);
+  if (r != -1) {
+    fprintf (stderr, "expecting get_size to fail, got %d\n", r);
+    exit (EXIT_FAILURE);
+  }
+  r = nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION);
+  if (r != -1) {
+    fprintf (stderr, "expecting can_meta_context to fail, got %d\n", r);
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_opt_info (nbd) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  r = nbd_get_size (nbd);
   if (r == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
+  if (r != 1024*1024) {
+    fprintf (stderr, "expecting get_size of 1M, got %d\n", r);
+    exit (EXIT_FAILURE);
+  }
+  r = nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION);
+  if (r == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (r != 1) {
+    fprintf (stderr, "expecting can_meta_context to succeed, got %d\n", r);
+    exit (EXIT_FAILURE);
+  }
+  if (nbd_clear_meta_contexts (nbd) == -1 ||
+      nbd_add_meta_context (nbd, "x-nosuch:") == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  p = (struct progress) { .count = 0 };
+  r = nbd_opt_list_meta_context (nbd,
+                                 (nbd_context_callback) { .callback = check,
+                                                          .user_data = &p});
+  if (r == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (r != 0 || p.count != 0 || p.seen) {
+    fprintf (stderr, "expecting no contexts, got %d\n", r);
+    exit (EXIT_FAILURE);
+  }
+  r = nbd_get_size (nbd);
+  if (r == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (r != 1048576) {
+    fprintf (stderr, "expecting get_size of 1M, got %d\n", r);
+    exit (EXIT_FAILURE);
+  }
+  r = nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION);
+  if (r == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (r != 1) {
+    fprintf (stderr, "expecting can_meta_context to succeed, got %d\n", r);
+    exit (EXIT_FAILURE);
+  }
+
+  /* Final pass: "base:" query should get at least "base:allocation" */
+  p = (struct progress) { .count = 0 };
   r = nbd_add_meta_context (nbd, "base:");
   if (r == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());

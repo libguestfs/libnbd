@@ -67,10 +67,42 @@ let () =
   assert (r = !count);
   assert !seen;
 
+  (* Fourth pass: opt_list_meta_context is stateless, so it should
+   * not wipe status learned during opt_info
+   *)
+  count := 0;
+  seen := false;
+  (try
+     let _ = NBD.can_meta_context nbd NBD.context_base_allocation in
+     assert false
+   with
+     NBD.Error (errstr, errno) -> ()
+  );
+  (try
+     let _ = NBD.get_size nbd in
+     assert false
+   with
+     NBD.Error (errstr, errno) -> ()
+  );
+  NBD.opt_info nbd;
+  let s = NBD.get_size nbd in
+  assert (s = 1048576_L);
+  let m = NBD.can_meta_context nbd NBD.context_base_allocation in
+  assert m;
+  NBD.clear_meta_contexts nbd;
+  NBD.add_meta_context nbd "x-nosuch:";
+  let r = NBD.opt_list_meta_context nbd (f 42) in
+  assert (r = 0);
+  assert (r = !count);
+  assert (not !seen);
+  let s = NBD.get_size nbd in
+  assert (s = 1048576_L);
+  let m = NBD.can_meta_context nbd NBD.context_base_allocation in
+  assert m;
+
   (* Final pass: "base:" query should get at least "base:allocation" *)
   count := 0;
   seen := false;
-  NBD.clear_meta_contexts nbd;
   NBD.add_meta_context nbd "base:";
   let r = NBD.opt_list_meta_context nbd (f 42) in
   assert (r >= 1);
