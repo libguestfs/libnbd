@@ -36,6 +36,8 @@ source_files = \
 	libnbd_230_opt_info_test.go \
 	libnbd_240_opt_list_meta_test.go \
 	libnbd_245_opt_list_meta_queries_test.go \
+	libnbd_250_opt_set_meta_test.go \
+	libnbd_255_opt_set_meta_queries_test.go \
 	libnbd_300_get_size_test.go \
 	libnbd_400_pread_test.go \
 	libnbd_405_pread_structured_test.go \

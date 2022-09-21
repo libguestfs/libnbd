@@ -32,6 +32,8 @@ ML_TESTS = \
 	test_230_opt_info.ml \
 	test_240_opt_list_meta.ml \
 	test_245_opt_list_meta_queries.ml \
+	test_250_opt_set_meta.ml \
+	test_255_opt_set_meta_queries.ml \
 	test_300_get_size.ml \
 	test_400_pread.ml \
 	test_405_pread_structured.ml \
