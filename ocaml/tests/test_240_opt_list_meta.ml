@@ -135,7 +135,16 @@ let () =
        printf "ignoring failure from old server %s\n" errstr
   );
 
-  (* FIXME: Once nbd_opt_structured_reply exists, use it here and retry. *)
+  (* Now enable structured replies, and a retry should pass. *)
+  let sr = NBD.opt_structured_reply nbd in
+  assert sr;
+
+  count := 0;
+  seen := false;
+  let r = NBD.opt_list_meta_context nbd (f 42) in
+  assert (r = !count);
+  assert (r >= 1);
+  assert !seen;
 
   NBD.opt_abort nbd
 

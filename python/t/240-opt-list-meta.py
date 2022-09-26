@@ -124,6 +124,15 @@ except nbd.Error as ex:
     assert h.stats_bytes_sent() > bytes
     print("ignoring failure from old server: %s" % ex.string)
 
-# FIXME: Once nbd_opt_structured_reply exists, use it here and retry.
+# Now enable structured replies, and a retry should pass.
+r = h.opt_structured_reply()
+assert r is True
+
+count = 0
+seen = False
+r = h.opt_list_meta_context(lambda *args: f(42, *args))
+assert r == count
+assert r >= 1
+assert seen is True
 
 h.opt_abort()

@@ -27,16 +27,17 @@ let f user_data name =
   0
 
 let () =
-  (* First process, with structured replies. Get into negotiating state. *)
+  (* First process, delay structured replies. Get into negotiating state. *)
   let nbd = NBD.create () in
   NBD.set_opt_mode nbd true;
+  NBD.set_request_structured_replies nbd false;
   NBD.connect_command nbd
                       ["nbdkit"; "-s"; "--exit-with-parent"; "-v";
                        "memory"; "size=1M"];
 
   (* No contexts negotiated yet; can_meta should be error if any requested *)
   let sr = NBD.get_structured_replies_negotiated nbd in
-  assert sr;
+  assert (not sr);
   let m = NBD.can_meta_context nbd NBD.context_base_allocation in
   assert (not m);
   NBD.add_meta_context nbd NBD.context_base_allocation;
@@ -47,9 +48,27 @@ let () =
      NBD.Error (errstr, errno) -> ()
   );
 
-  (* FIXME: Once nbd_opt_structured_reply exists, check that set before
-   * SR fails server-side, then enable SR for rest of process.
-   *)
+  (* SET cannot succeed until SR is negotiated. *)
+  count := 0;
+  seen := false;
+  (try
+     let _ = NBD.can_meta_context nbd NBD.context_base_allocation in
+     assert false
+   with
+     NBD.Error (errstr, errno) -> ()
+  );
+  assert (!count = 0);
+  assert (not !seen);
+  let sr = NBD.opt_structured_reply nbd in
+  assert sr;
+  let sr = NBD.get_structured_replies_negotiated nbd in
+  assert sr;
+  (try
+     let _ = NBD.can_meta_context nbd NBD.context_base_allocation in
+     assert false
+   with
+     NBD.Error (errstr, errno) -> ()
+  );
 
   (* nbdkit does not match wildcard for SET, even though it does for LIST *)
   count := 0;

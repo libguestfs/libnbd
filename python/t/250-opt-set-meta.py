@@ -39,20 +39,28 @@ def must_fail(f, *args, **kwds):
         pass
 
 
-# First process, with structured replies. Get into negotiating state.
+# First process, delay structured replies. Get into negotiating state.
 h = nbd.NBD()
 h.set_opt_mode(True)
+h.set_request_structured_replies(False)
 h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v",
                    "memory", "size=1M"])
 
 # No contexts negotiated yet; can_meta should be error if any requested
-assert h.get_structured_replies_negotiated() is True
+assert h.get_structured_replies_negotiated() is False
 assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) is False
 h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
 must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
 
-# FIXME: Once nbd_opt_structured_reply exists, check that set before
-# SR fails server-side, then enable SR for rest of process.
+# SET cannot succeed until SR is negotiated.
+count = 0
+seen = False
+must_fail(h.opt_set_meta_context, lambda *args: f(42, *args))
+assert count == 0
+assert seen is False
+assert h.opt_structured_reply() is True
+assert h.get_structured_replies_negotiated() is True
+must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
 
 # nbdkit does not match wildcard for SET, even though it does for LIST
 count = 0

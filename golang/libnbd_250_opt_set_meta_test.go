@@ -35,7 +35,7 @@ func setmetaf(user_data int, name string) int {
 }
 
 func Test250OptSetMeta(t *testing.T) {
-	/* First process, with structured replies. Get into negotiating state. */
+	/* First process, delay structured replies. Get into negotiating state. */
 	h, err := Create()
 	if err != nil {
 		t.Fatalf("could not create handle: %s", err)
@@ -43,6 +43,10 @@ func Test250OptSetMeta(t *testing.T) {
 	defer h.Close()
 
 	err = h.SetOptMode(true)
+	if err != nil {
+		t.Fatalf("could not set opt mode: %s", err)
+	}
+	err = h.SetRequestStructuredReplies(false)
 	if err != nil {
 		t.Fatalf("could not set opt mode: %s", err)
 	}
@@ -60,7 +64,7 @@ func Test250OptSetMeta(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not check structured replies negotiated: %s", err)
 	}
-	if !sr {
+	if sr {
 		t.Fatalf("unexpected structured replies state")
 	}
 	meta, err := h.CanMetaContext(context_base_allocation)
@@ -79,9 +83,36 @@ func Test250OptSetMeta(t *testing.T) {
 		t.Fatalf("expected error")
 	}
 
-	/* FIXME: Once OptStructuredReply exists, check that set before
-	 * SR fails server-side, then enable SR for rest of process.
-	 */
+	/* SET cannot succeed until SR is negotiated. */
+	set_count = 0
+	set_seen = false
+	_, err = h.OptSetMetaContext(func(name string) int {
+		return setmetaf(42, name)
+	})
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if set_count != 0 || set_seen {
+		t.Fatalf("unexpected set_count after opt_set_meta_context")
+	}
+	sr, err = h.OptStructuredReply()
+	if err != nil {
+		t.Fatalf("could not trigger opt_structured_reply: %s", err)
+	}
+	if !sr {
+		t.Fatalf("unexpected structured replies state")
+	}
+	sr, err = h.GetStructuredRepliesNegotiated()
+	if err != nil {
+		t.Fatalf("could not check structured replies negotiated: %s", err)
+	}
+	if !sr {
+		t.Fatalf("unexpected structured replies state")
+	}
+	_, err = h.CanMetaContext(context_base_allocation)
+	if err == nil {
+		t.Fatalf("expected error")
+	}
 
 	/* nbdkit does not match wildcard for SET, even though it does for LIST */
 	set_count = 0

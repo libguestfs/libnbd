@@ -256,7 +256,26 @@ func Test240OptListMeta(t *testing.T) {
 		t.Fatalf("unexpected count after opt_list_meta_context")
 	}
 
-	/* FIXME: Once nbd_opt_structured_reply exists, use it here and retry. */
+	/* Now enable structured replies, and a retry should pass. */
+	sr, err := h.OptStructuredReply()
+	if err != nil {
+		t.Fatalf("could not request opt_structured_reply: %s", err)
+	}
+	if !sr {
+		t.Fatalf("structured replies not enabled: %s", err)
+	}
+
+	list_count = 0
+	list_seen = false
+	r, err = h.OptListMetaContext(func(name string) int {
+	        return listmetaf(42, name)
+	})
+	if err != nil {
+		t.Fatalf("could not request opt_list_meta_context: %s", err)
+	}
+	if r < 1 || r != list_count || !list_seen {
+		t.Fatalf("unexpected count after opt_list_meta_context")
+	}
 
 	err = h.OptAbort()
 	if err != nil {
