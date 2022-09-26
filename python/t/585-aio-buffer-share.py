@@ -26,22 +26,22 @@ buf = nbd.Buffer.from_bytearray(ba)
 ba.append(1)
 assert len(ba) == 513
 assert len(buf) == 512
-assert buf.is_zero()
+assert buf.is_zero() is True
 assert buf.to_bytearray() is not ba
 
 # Use of to/from_buffer shares the same buffer
 buf = nbd.Buffer.from_buffer(ba)
-assert not buf.is_zero()
+assert buf.is_zero() is False
 assert len(buf) == 513
 ba.pop()
-assert buf.is_zero()
+assert buf.is_zero() is True
 assert len(buf) == 512
 assert buf.to_buffer() is ba
 
 # Even though nbd.Buffer(n) start uninitialized, we sanitize before exporting.
 # This test cheats and examines the private member ._init
 buf = nbd.Buffer(512)
-assert buf.is_zero()
-assert not hasattr(buf, '_init')
+assert buf.is_zero() is True
+assert hasattr(buf, '_init') is False
 assert buf.to_buffer() == bytearray(512)
-assert hasattr(buf, '_init')
+assert hasattr(buf, '_init') is True

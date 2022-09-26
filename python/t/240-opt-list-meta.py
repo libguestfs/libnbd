@@ -1,5 +1,5 @@
 # libnbd Python bindings
-# Copyright (C) 2010-2020 Red Hat Inc.
+# Copyright (C) 2010-2022 Red Hat Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ seen = False
 r = h.opt_list_meta_context(lambda *args: f(42, *args))
 assert r == count
 assert r >= 1
-assert seen
+assert seen is True
 max = count
 
 # Second pass: bogus query has no response.
@@ -52,7 +52,7 @@ h.add_meta_context("x-nosuch:")
 r = h.opt_list_meta_context(lambda *args: f(42, *args))
 assert r == 0
 assert r == count
-assert not seen
+assert seen is False
 
 # Third pass: specific query should have one match.
 count = 0
@@ -63,7 +63,7 @@ assert h.get_meta_context(1) == nbd.CONTEXT_BASE_ALLOCATION
 r = h.opt_list_meta_context(lambda *args: f(42, *args))
 assert r == 1
 assert count == 1
-assert seen
+assert seen is True
 
 # Final pass: "base:" query should get at least "base:allocation"
 count = 0
@@ -74,6 +74,6 @@ r = h.opt_list_meta_context(lambda *args: f(42, *args))
 assert r >= 1
 assert r <= max
 assert r == count
-assert seen
+assert seen is True
 
 h.opt_abort()
