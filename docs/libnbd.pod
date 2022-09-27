@@ -387,7 +387,25 @@ The library ran out of memory while performing some operation.
 A request is too large, for example if you try to read too many bytes
 in a single L<nbd_pread(3)> call.
 
+=item C<EFAULT>
+
+A pointer parameter was C<NULL> when it should be non-NULL.
+See the section below.
+
 =back
+
+=head2 Non-NULL parameters
+
+Almost all libnbd functions when called from C take one or more
+pointer parameters that must not be C<NULL>.  For example, the handle
+parameter, strings and buffers should usually not be C<NULL>.
+
+If a C<NULL> is passed as one of these parameters, libnbd attempts to
+return an error with L<nbd_get_errno(3)> returning C<EFAULT>.
+
+However it may cause other compiler-related warnings and even
+undefined behaviour, so you should try to avoid this programming
+mistake.
 
 =head1 DEBUGGING MESSAGES
 

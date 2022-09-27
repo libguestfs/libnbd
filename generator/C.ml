@@ -105,6 +105,11 @@ let name_of_arg =
   | UInt64 n -> [n]
   | UIntPtr n -> [n]
 
+let name_of_optarg =
+  function
+  | OClosure { cbname } -> cbname
+  | OFlags (n, _, _) -> n
+
 (* Map function arguments to __attribute__((nonnull)) annotations.
  * Because a single arg may map to multiple C parameters this
  * returns a list.  Note: true => add attribute nonnull.
@@ -975,6 +980,7 @@ let generate_docs_nbd_pod name { args; optargs; ret;
 
   pr "=head1 ERRORS\n";
   pr "\n";
+
   if may_set_error then (
     let value = match errcode with
       | Some value -> value
@@ -986,6 +992,21 @@ let generate_docs_nbd_pod name { args; optargs; ret;
   )
   else
     pr "This function does not fail.\n";
+  pr "\n";
+
+  pr "The following parameters must not be NULL: C<h>";
+  List.iter (
+    fun arg ->
+      let nns = arg_attr_nonnull arg in
+      if List.mem true nns then pr ", C<%s>" (List.hd (name_of_arg arg))
+  ) args;
+  List.iter (
+    fun arg ->
+      let nns = optarg_attr_nonnull arg in
+      if List.mem true nns then pr ", C<%s>" (name_of_optarg arg)
+  ) optargs;
+  pr ".\n";
+  pr "For more information see L<libnbd(3)/Non-NULL parameters>.\n";
   pr "\n";
 
   if permitted_states <> [] then (
