@@ -269,7 +269,34 @@ main (int argc, char *argv[])
     }
   }
 
-  /* FIXME: Once nbd_opt_structured_reply() exists, use it here and retry. */
+  /* Now enable structured replies, and a retry should pass. */
+  r = nbd_opt_structured_reply (nbd);
+  if (r == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (r != 1) {
+    fprintf (stderr, "expecting structured replies to be supported\n");
+    exit (EXIT_FAILURE);
+  }
+
+  p = (struct progress) { .count = 0 };
+  r = nbd_opt_list_meta_context (nbd,
+                                 (nbd_context_callback) { .callback = check,
+                                                          .user_data = &p});
+  if (r == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (r != p.count) {
+    fprintf (stderr, "inconsistent return value %d, expected %d\n",
+             r, p.count);
+    exit (EXIT_FAILURE);
+  }
+  if (r < 1 || !p.seen) {
+    fprintf (stderr, "server did not reply with base:allocation\n");
+    exit (EXIT_FAILURE);
+  }
 
   nbd_opt_abort (nbd);
   nbd_close (nbd);

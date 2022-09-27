@@ -73,6 +73,7 @@ STATE_MACHINE {
   switch (reply) {
   case NBD_REP_ACK:
     nbd_internal_reset_size_and_flags (h);
+    h->structured_replies = false;
     new_sock = nbd_internal_crypto_create_session (h, h->sock);
     if (new_sock == NULL) {
       SET_NEXT_STATE (%.DEAD);

@@ -59,18 +59,19 @@ main (int argc, char *argv[])
   char *args[] = { "nbdkit", "-s", "--exit-with-parent", "-v",
                    "memory", "size=1M", NULL, NULL };
 
-  /* First process, with structured replies. Get into negotiating state. */
+  /* First process, delay structured replies. Get into negotiating state. */
   nbd = nbd_create ();
   if (nbd == NULL ||
       nbd_set_opt_mode (nbd, true) == -1 ||
+      nbd_set_request_structured_replies (nbd, false) == -1 ||
       nbd_connect_command (nbd, args) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
 
   /* No contexts negotiated yet; can_meta should be error if any requested */
-  if ((r = nbd_get_structured_replies_negotiated (nbd)) != 1) {
-    fprintf (stderr, "structured replies got %d, expected 1\n", r);
+  if ((r = nbd_get_structured_replies_negotiated (nbd)) != 0) {
+    fprintf (stderr, "structured replies got %d, expected 0\n", r);
     exit (EXIT_FAILURE);
   }
   if ((r = nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION)) != 0) {
@@ -86,9 +87,32 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* FIXME: Once nbd_opt_structured_reply exists, check that set before
-   * SR fails server-side, then enable SR for rest of process.
-   */
+  /* SET cannot succeed until SR is negotiated. */
+  p = (struct progress) { .count = 0 };
+  r = nbd_opt_set_meta_context (nbd,
+                                (nbd_context_callback) { .callback = check,
+                                                         .user_data = &p});
+  if (r != -1 || p.count || p.seen) {
+    fprintf (stderr, "expecting failure of set without SR\n");
+    exit (EXIT_FAILURE);
+  }
+  r = nbd_opt_structured_reply (nbd);
+  if (r == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
+    exit (EXIT_FAILURE);
+  }
+  if (r != 1) {
+    fprintf (stderr, "expecting server support for SR\n");
+    exit (EXIT_FAILURE);
+  }
+  if ((r = nbd_get_structured_replies_negotiated (nbd)) != 1) {
+    fprintf (stderr, "structured replies got %d, expected 1\n", r);
+    exit (EXIT_FAILURE);
+  }
+  if ((r = nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION)) != -1) {
+    fprintf (stderr, "can_meta_context got %d, expected -1\n", r);
+    exit (EXIT_FAILURE);
+  }
 
   /* nbdkit does not match wildcard for SET, even though it does for LIST */
   if (nbd_clear_meta_contexts (nbd) == -1 ||

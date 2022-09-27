@@ -217,6 +217,7 @@ check_PROGRAMS += \
 	opt-list-meta-queries \
 	opt-set-meta \
 	opt-set-meta-queries \
+	opt-structured-twice \
 	connect-systemd-socket-activation \
 	connect-unix \
 	connect-tcp \
@@ -286,6 +287,7 @@ TESTS += \
 	opt-list-meta-queries \
 	opt-set-meta \
 	opt-set-meta-queries \
+	opt-structured-twice \
 	connect-systemd-socket-activation \
 	connect-unix \
 	connect-tcp \
@@ -556,6 +558,9 @@ opt_set_meta_LDADD = $(top_builddir)/lib/libnbd.la
 
 opt_set_meta_queries_SOURCES = opt-set-meta-queries.c
 opt_set_meta_queries_LDADD = $(top_builddir)/lib/libnbd.la
+
+opt_structured_twice_SOURCES = opt-structured-twice.c
+opt_structured_twice_LDADD = $(top_builddir)/lib/libnbd.la
 
 connect_systemd_socket_activation_SOURCES = \
 	connect-systemd-socket-activation.c \

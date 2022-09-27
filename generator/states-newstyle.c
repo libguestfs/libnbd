@@ -143,6 +143,9 @@ STATE_MACHINE {
     case NBD_OPT_SET_META_CONTEXT:
       SET_NEXT_STATE (%OPT_META_CONTEXT.START);
       return 0;
+    case NBD_OPT_STRUCTURED_REPLY:
+      SET_NEXT_STATE (%OPT_STRUCTURED_REPLY.START);
+      return 0;
     case 0:
       break;
     default:

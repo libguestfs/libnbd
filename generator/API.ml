@@ -794,9 +794,12 @@ server, as this protocol extension must be in use before
 L<nbd_can_meta_context(3)> or L<nbd_can_df(3)> can return true.  However,
 for integration testing, it can be useful to clear this flag
 rather than find a way to alter the server to fail the negotiation
-request.";
+request.  It is also useful to set this to false prior to using
+L<nbd_set_opt_mode(3)> if it is desired to control when to send
+L<nbd_opt_structured_reply(3)> during negotiation.";
     see_also = [Link "get_request_structured_replies";
                 Link "set_handshake_flags"; Link "set_strict_mode";
+                Link "opt_structured_reply";
                 Link "get_structured_replies_negotiated";
                 Link "can_meta_context"; Link "can_df"];
   };
@@ -824,9 +827,12 @@ L<nbd_get_structured_replies_negotiated(3)> instead.";
     shortdesc = "see if structured replies are in use";
     longdesc = "\
 After connecting you may call this to find out if the connection is
-using structured replies.";
+using structured replies.  Note that this setting is sticky; this
+can return true even after a second L<nbd_opt_structured_reply(3)>
+returns false because the server detected a duplicate request.";
     see_also = [Link "set_request_structured_replies";
                 Link "get_request_structured_replies";
+                Link "opt_structured_reply";
                 Link "get_protocol"];
   };
 
@@ -1086,6 +1092,12 @@ proceeding all the way to the ready state, when communicating with a
 newstyle server.  This setting has no effect when connecting to an
 oldstyle server.
 
+Note that libnbd defaults to attempting
+C<NBD_OPT_STRUCTURED_REPLY> before letting you control remaining
+negotiation steps; if you need control over this step as well,
+first set L<nbd_set_request_structured_replies(3)> to false before
+starting the connection attempt.
+
 When option mode is enabled, you have fine-grained control over which
 options are negotiated, compared to the default of the server
 negotiating everything on your behalf using settings made before
@@ -1099,6 +1111,8 @@ to end the connection without finishing negotiation.";
                 Link "opt_abort"; Link "opt_go"; Link "opt_list";
                 Link "opt_info"; Link "opt_list_meta_context";
                 Link "opt_set_meta_context";
+                Link "opt_structured_reply";
+                Link "set_request_structured_replies";
                 Link "aio_connect"];
   };
 
@@ -1150,6 +1164,32 @@ close the connection.  This can only be used if L<nbd_set_opt_mode(3)>
 enabled option mode.";
     example = Some "examples/list-exports.c";
     see_also = [Link "set_opt_mode"; Link "aio_opt_abort"; Link "opt_go"];
+  };
+
+  "opt_structured_reply", {
+    default_call with
+    args = []; ret = RBool;
+    permitted_states = [ Negotiating ];
+    shortdesc = "request the server to enable structured replies";
+    longdesc = "\
+Request that the server use structured replies, by sending
+C<NBD_OPT_STRUCTURED_REPLY>.  This can only be used if
+L<nbd_set_opt_mode(3)> enabled option mode; furthermore, libnbd
+defaults to automatically requesting this unless you use
+L<nbd_set_request_structured_replies(3)> prior to connecting.
+This function is mainly useful for integration testing of corner
+cases in server handling.
+
+This function returns true if the server replies with success,
+false if the server replies with an error, and fails only if
+the server does not reply (such as for a loss of connection).
+Note that some servers fail a second request as redundant;
+libnbd assumes that once one request has succeeded, then
+structured replies are supported (as visible by
+L<nbd_get_structured_replies_negotiated(3)>) regardless if
+later calls to this function return false.";
+    see_also = [Link "set_opt_mode"; Link "aio_opt_structured_reply";
+                Link "opt_go"; Link "set_request_structured_replies"]
   };
 
   "opt_list", {
@@ -2775,6 +2815,30 @@ L<nbd_aio_is_connecting(3)> to return false.";
     see_also = [Link "set_opt_mode"; Link "opt_abort"];
   };
 
+  "aio_opt_structured_reply", {
+    default_call with
+    args = [];
+    optargs = [ OClosure completion_closure ];
+    ret = RErr;
+    permitted_states = [ Negotiating ];
+    shortdesc = "request the server to enable structured replies";
+    longdesc = "\
+Request that the server use structured replies, by sending
+C<NBD_OPT_STRUCTURED_REPLY>.  This behaves like the synchronous
+counterpart L<nbd_opt_structured_reply(3)>, except that it does
+not wait for the server's response.
+
+To determine when the request completes, wait for
+L<nbd_aio_is_connecting(3)> to return false.  Or supply the optional
+C<completion_callback> which will be invoked as described in
+L<libnbd(3)/Completion callbacks>, except that it is automatically
+retired regardless of return value.  Note that detecting whether the
+server returns an error (as is done by the return value of the
+synchronous counterpart) is only possible with a completion
+callback.";
+    see_also = [Link "set_opt_mode"; Link "opt_structured_reply"];
+  };
+
   "aio_opt_list", {
     default_call with
     args = [ Closure list_closure ];
@@ -3678,6 +3742,8 @@ let first_version = [
   "opt_set_meta_context_queries", (1, 16);
   "aio_opt_set_meta_context", (1, 16);
   "aio_opt_set_meta_context_queries", (1, 16);
+  "opt_structured_reply", (1, 16);
+  "aio_opt_structured_reply", (1, 16);
 
   (* These calls are proposed for a future version of libnbd, but
    * have not been added to any released version so far.

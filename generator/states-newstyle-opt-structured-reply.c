@@ -21,12 +21,17 @@
 STATE_MACHINE {
  NEWSTYLE.OPT_STRUCTURED_REPLY.START:
   assert (h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE);
-  if (!h->request_sr) {
-    if (h->opt_mode)
-      SET_NEXT_STATE (%.NEGOTIATING);
-    else
-      SET_NEXT_STATE (%^OPT_META_CONTEXT.START);
-    return 0;
+  if (h->opt_current == NBD_OPT_STRUCTURED_REPLY)
+    assert (h->opt_mode);
+  else {
+    assert (CALLBACK_IS_NULL(h->opt_cb.completion));
+    if (!h->request_sr) {
+      if (h->opt_mode)
+        SET_NEXT_STATE (%.NEGOTIATING);
+      else
+        SET_NEXT_STATE (%^OPT_META_CONTEXT.START);
+      return 0;
+    }
   }
 
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);
@@ -69,12 +74,14 @@ STATE_MACHINE {
 
  NEWSTYLE.OPT_STRUCTURED_REPLY.CHECK_REPLY:
   uint32_t reply;
+  int err = ENOTSUP;
 
   reply = be32toh (h->sbuf.or.option_reply.reply);
   switch (reply) {
   case NBD_REP_ACK:
     debug (h, "negotiated structured replies on this connection");
     h->structured_replies = true;
+    err = 0;
     break;
   default:
     if (handle_reply_error (h) == -1) {
@@ -83,7 +90,6 @@ STATE_MACHINE {
     }
 
     debug (h, "structured replies are not supported by this server");
-    h->structured_replies = false;
     break;
   }
 
@@ -92,6 +98,8 @@ STATE_MACHINE {
     SET_NEXT_STATE (%.NEGOTIATING);
   else
     SET_NEXT_STATE (%^OPT_META_CONTEXT.START);
+  CALL_CALLBACK (h->opt_cb.completion, &err);
+  nbd_internal_free_option (h);
   return 0;
 
 } /* END STATE MACHINE */
