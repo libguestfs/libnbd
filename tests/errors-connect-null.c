@@ -77,8 +77,7 @@ main (int argc, char *argv[])
              argv[0]);
     exit (EXIT_FAILURE);
   }
-  /* FIXME: If we add nonnull attributes, this might change to EFAULT */
-  check (EINVAL, "nbd_connect_command: ");
+  check (EFAULT, "nbd_connect_command: ");
 
   if (nbd_connect_command (nbd, (char **) cmd) != -1) {
     fprintf (stderr, "%s: test failed: "
