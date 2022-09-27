@@ -3851,13 +3851,16 @@ let () =
 
     (* !may_set_error is incompatible with certain parameters because
      * we have to do a NULL-check on those which may return an error.
+     * Refer to generator/C.ml:generator_lib_api_c.
      *)
     | name, { args; may_set_error = false }
          when List.exists
                 (function
-                 | Closure _ | Enum _ | Flags _ | String _ -> true
+                 | Closure _ | Enum _ | Flags _
+                 | BytesIn _ | BytesOut _ | BytesPersistIn _ | BytesPersistOut _
+                 | SockAddrAndLen _ | Path _ | String _ | StringList _-> true
                  | _ -> false) args ->
-       failwithf "%s: if args contains Closure/Enum/Flags/String parameter, may_set_error must be false" name
+       failwithf "%s: if args contains any non-null pointer parameter, may_set_error must be false" name
 
     (* !may_set_error is incompatible with certain optargs too.
      *)

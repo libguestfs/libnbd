@@ -620,7 +620,12 @@ let generate_lib_api_c () =
          need_out_label := true
       | Flags (n, flags) ->
          print_flags_check n flags None
-      | String n ->
+      | BytesIn (n, _) | BytesOut (n, _)
+      | BytesPersistIn (n, _) | BytesPersistOut (n, _)
+      | SockAddrAndLen (n, _)
+      | Path n
+      | String n
+      | StringList n ->
          let value = match errcode with
            | Some value -> value
            | None -> assert false in
