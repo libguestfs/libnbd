@@ -27,6 +27,10 @@
 #include <string.h>
 #include <errno.h>
 
+/* GCC will warn that we are passing NULL (or worse), so to do this
+ * test we must remove the header file attribute.
+ */
+#define LIBNBD_ATTRIBUTE_NONNULL(s)
 #include <libnbd.h>
 
 static char *progname;

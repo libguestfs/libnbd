@@ -107,6 +107,28 @@ let name_of_arg =
   | UInt64 n -> [n]
   | UIntPtr n -> [n]
 
+(* Map function arguments to __attribute__((nonnull)) annotations.
+ * Because a single arg may map to multiple C parameters this
+ * returns a list.  Note: true => add attribute nonnull.
+ *)
+let arg_attr_nonnull =
+  function
+  (* BytesIn/Out are passed using a non-null pointer, and size_t *)
+  | BytesIn _ | BytesOut _
+  | BytesPersistIn _ | BytesPersistOut _ -> [ true; false ]
+  (* sockaddr is also non-null pointer, and length *)
+  | SockAddrAndLen (n, len) -> [ true; false ]
+  (* strings should be marked as non-null *)
+  | Path _ | String _ -> [ true ]
+  (* list of strings should be marked as non-null *)
+  | StringList n -> [ true ]
+  (* numeric and other non-pointer types are not able to be null *)
+  | Bool _ | Closure _ | Enum _ | Fd _ | Flags _
+  | Int _ | Int64 _ | SizeT _
+  | UInt _ | UInt32 _ | UInt64 _ | UIntPtr _ -> [ false ]
+
+let optarg_attr_nonnull (OClosure _ | OFlags _) = [ false ]
+
 let rec print_arg_list ?(wrap = false) ?maxcol ?handle ?types ?(parens = true)
           ?closure_style args optargs =
   if parens then pr "(";
@@ -216,7 +238,21 @@ let print_call ?wrap ?maxcol ?closure_style name args optargs ret =
 let print_fndecl ?wrap ?closure_style name args optargs ret =
   pr "extern ";
   print_call ?wrap ?closure_style name args optargs ret;
-  pr ";\n"
+
+  (* Output __attribute__((nonnull)) for the function parameters:
+   * eg. struct nbd_handle *, int, char *
+   *     => [ true, false, true ]
+   *     => LIBNBD_ATTRIBUTE_NONNULL((1,3))
+   *     => __attribute__((nonnull(1,3)))
+   *)
+  let nns : bool list =
+    [ true ] (* struct nbd_handle * *)
+    @ List.flatten (List.map arg_attr_nonnull args)
+    @ List.flatten (List.map optarg_attr_nonnull optargs) in
+  let nns = List.mapi (fun i b -> (i+1, b)) nns in
+  let nns = filter_map (fun (i, b) -> if b then Some i else None) nns in
+  let nns : string list = List.map string_of_int nns in
+  pr "\n    LIBNBD_ATTRIBUTE_NONNULL((%s));\n" (String.concat "," nns)
 
 let rec print_cbarg_list ?(wrap = false) ?maxcol ?types ?(parens = true)
           cbargs =
@@ -349,6 +385,19 @@ let generate_include_libnbd_h () =
   pr "extern \"C\" {\n";
   pr "#endif\n";
   pr "\n";
+  pr "#if defined(__GNUC__)\n";
+  pr "#define LIBNBD_GCC_VERSION \\\n";
+  pr "    (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)\n";
+  pr "#endif\n";
+  pr "\n";
+  pr "#ifndef LIBNBD_ATTRIBUTE_NONNULL\n";
+  pr "#if defined(__GNUC__) && LIBNBD_GCC_VERSION >= 120000 /* gcc >= 12.0 */\n";
+  pr "#define LIBNBD_ATTRIBUTE_NONNULL(s) __attribute__((__nonnull__ s))\n";
+  pr "#else\n";
+  pr "#define LIBNBD_ATTRIBUTE_NONNULL(s)\n";
+  pr "#endif\n";
+  pr "#endif /* ! defined LIBNBD_ATTRIBUTE_NONNULL */\n";
+  pr "\n";
   pr "struct nbd_handle;\n";
   pr "\n";
   List.iter (
@@ -382,7 +431,7 @@ let generate_include_libnbd_h () =
   pr "extern struct nbd_handle *nbd_create (void);\n";
   pr "#define LIBNBD_HAVE_NBD_CREATE 1\n";
   pr "\n";
-  pr "extern void nbd_close (struct nbd_handle *h);\n";
+  pr "extern void nbd_close (struct nbd_handle *h); /* h can be NULL */\n";
   pr "#define LIBNBD_HAVE_NBD_CLOSE 1\n";
   pr "\n";
   pr "extern const char *nbd_get_error (void);\n";
@@ -769,6 +818,12 @@ let generate_lib_api_c () =
   pr "#include <errno.h>\n";
   pr "\n";
   pr "#include <pthread.h>\n";
+  pr "\n";
+  pr "/* GCC will remove NULL checks from this file for any parameter\n";
+  pr " * annotated with attribute((nonnull)).  See RHBZ#1041336.  To\n";
+  pr " * avoid this, disable the attribute when including libnbd.h.\n";
+  pr " */\n";
+  pr "#define LIBNBD_ATTRIBUTE_NONNULL(s)\n";
   pr "\n";
   pr "#include \"libnbd.h\"\n";
   pr "#include \"internal.h\"\n";
