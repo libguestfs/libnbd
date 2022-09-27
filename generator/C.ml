@@ -81,7 +81,7 @@ let type_of_ret =
   | RUIntPtr -> "uintptr_t"
   | RFlags _ -> "uint32_t"
 
-let rec name_of_arg =
+let name_of_arg =
   function
   | Bool n -> [n]
   | BytesIn (n, len) -> [n; len]
