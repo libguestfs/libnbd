@@ -81,28 +81,29 @@ let type_of_ret =
   | RUIntPtr -> "uintptr_t"
   | RFlags _ -> "uint32_t"
 
-let rec name_of_arg = function
-| Bool n -> [n]
-| BytesIn (n, len) -> [n; len]
-| BytesOut (n, len) -> [n; len]
-| BytesPersistIn (n, len) -> [n; len]
-| BytesPersistOut (n, len) -> [n; len]
-| Closure { cbname } ->
-   [ sprintf "%s_callback" cbname; sprintf "%s_user_data" cbname ]
-| Enum (n, _) -> [n]
-| Fd n -> [n]
-| Flags (n, _) -> [n]
-| Int n -> [n]
-| Int64 n -> [n]
-| Path n -> [n]
-| SizeT n -> [n]
-| SockAddrAndLen (n, len) -> [n; len]
-| String n -> [n]
-| StringList n -> [n]
-| UInt n -> [n]
-| UInt32 n -> [n]
-| UInt64 n -> [n]
-| UIntPtr n -> [n]
+let rec name_of_arg =
+  function
+  | Bool n -> [n]
+  | BytesIn (n, len) -> [n; len]
+  | BytesOut (n, len) -> [n; len]
+  | BytesPersistIn (n, len) -> [n; len]
+  | BytesPersistOut (n, len) -> [n; len]
+  | Closure { cbname } ->
+     [ sprintf "%s_callback" cbname; sprintf "%s_user_data" cbname ]
+  | Enum (n, _) -> [n]
+  | Fd n -> [n]
+  | Flags (n, _) -> [n]
+  | Int n -> [n]
+  | Int64 n -> [n]
+  | Path n -> [n]
+  | SizeT n -> [n]
+  | SockAddrAndLen (n, len) -> [n; len]
+  | String n -> [n]
+  | StringList n -> [n]
+  | UInt n -> [n]
+  | UInt32 n -> [n]
+  | UInt64 n -> [n]
+  | UIntPtr n -> [n]
 
 let rec print_arg_list ?(wrap = false) ?maxcol ?handle ?types ?(parens = true)
           ?closure_style args optargs =
