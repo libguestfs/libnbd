@@ -211,7 +211,7 @@ let print_call ?wrap ?maxcol ?closure_style name args optargs ret =
   pr "%s nbd_%s " (type_of_ret ret) name;
   print_arg_list ~handle:true ?wrap ?maxcol ?closure_style args optargs
 
-let print_extern ?wrap ?closure_style name args optargs ret =
+let print_fndecl ?wrap ?closure_style name args optargs ret =
   pr "extern ";
   print_call ?wrap ?closure_style name args optargs ret;
   pr ";\n"
@@ -301,9 +301,9 @@ let print_closure_structs () =
   ) oclosures;
   pr "\n"
 
-let print_extern_and_define ?wrap name args optargs ret =
+let print_fndecl_and_define ?wrap name args optargs ret =
   let name_upper = String.uppercase_ascii name in
-  print_extern ?wrap name args optargs ret;
+  print_fndecl ?wrap name args optargs ret;
   pr "#define LIBNBD_HAVE_NBD_%s 1\n" name_upper;
   pr "\n"
 
@@ -392,7 +392,7 @@ let generate_include_libnbd_h () =
   print_closure_structs ();
   List.iter (
     fun (name, { args; optargs; ret }) ->
-      print_extern_and_define ~wrap:true name args optargs ret
+      print_fndecl_and_define ~wrap:true name args optargs ret
   ) handle_calls;
   List.iter (
     fun (ns, ctxts) -> print_ns ns ctxts
@@ -411,7 +411,7 @@ let generate_lib_unlocked_h () =
   pr "\n";
   List.iter (
     fun (name, { args; optargs; ret }) ->
-    print_extern ~wrap:true ~closure_style:Pointer ("unlocked_" ^ name)
+    print_fndecl ~wrap:true ~closure_style:Pointer ("unlocked_" ^ name)
       args optargs ret
   ) handle_calls;
   pr "\n";
