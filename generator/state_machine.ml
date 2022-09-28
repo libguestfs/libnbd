@@ -392,6 +392,13 @@ and newstyle_opt_starttls_state_machine = [
     comment = "TLS handshake (writing)";
     external_events = [ NotifyWrite, "" ];
   };
+
+  State {
+    default_state with
+    name = "TLS_HANDSHAKE_DONE";
+    comment = "TLS handshake complete";
+    external_events = [];
+  };
 ]
 
 (* Fixed newstyle NBD_OPT_LIST option.

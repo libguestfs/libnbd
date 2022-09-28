@@ -119,12 +119,7 @@ STATE_MACHINE {
     return 0;
   }
   if (r == 0) {
-    /* Finished handshake. */
-    h->tls_negotiated = true;
-    nbd_internal_crypto_debug_tls_enabled (h);
-
-    /* Continue with option negotiation. */
-    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
+    SET_NEXT_STATE (%TLS_HANDSHAKE_DONE);
     return 0;
   }
   /* Continue handshake. */
@@ -143,11 +138,7 @@ STATE_MACHINE {
     return 0;
   }
   if (r == 0) {
-    /* Finished handshake. */
-    debug (h, "connection is using TLS");
-
-    /* Continue with option negotiation. */
-    SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
+    SET_NEXT_STATE (%TLS_HANDSHAKE_DONE);
     return 0;
   }
   /* Continue handshake. */
@@ -155,6 +146,15 @@ STATE_MACHINE {
     SET_NEXT_STATE (%TLS_HANDSHAKE_READ);
   else
     SET_NEXT_STATE (%TLS_HANDSHAKE_WRITE);
+  return 0;
+
+ NEWSTYLE.OPT_STARTTLS.TLS_HANDSHAKE_DONE:
+  /* Finished handshake. */
+  h->tls_negotiated = true;
+  nbd_internal_crypto_debug_tls_enabled (h);
+
+  /* Continue with option negotiation. */
+  SET_NEXT_STATE (%^OPT_STRUCTURED_REPLY.START);
   return 0;
 
 } /* END STATE MACHINE */
