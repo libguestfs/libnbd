@@ -79,11 +79,20 @@ nbd_internal_copy_string_list (string_vector *v, char **in)
 int
 nbd_internal_set_argv (struct nbd_handle *h, char **argv)
 {
-  /* FIXME: Do we want to assert(argv)? */
-  if (argv == NULL || argv[0] == NULL) {
+  /* This should never be NULL.  The generator adds code to each
+   * StringList call in lib/api.c to check this and return an error.
+   */
+  assert (argv);
+
+  /* Because this function is only called from functions that take
+   * argv-style lists of strings (such as nbd_connect_command) we can
+   * check here that the command name is present.
+   */
+  if (argv[0] == NULL) {
     set_error (EINVAL, "missing command name in argv list");
     return -1;
   }
+
   if (nbd_internal_copy_string_list (&h->argv, argv) == -1) {
     set_error (errno, "realloc");
     return -1;
