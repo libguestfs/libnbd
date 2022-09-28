@@ -39,7 +39,7 @@ main (int argc, char *argv[])
   requires ("nbdkit --version");
   requires ("nbdkit memory --version");
 
-  printf("Connecting via systemd socket activation...\n");
+  printf ("Connecting via systemd socket activation...\n");
 
   nbd = nbd_create ();
   if (nbd == NULL)

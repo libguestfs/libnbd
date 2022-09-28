@@ -24,7 +24,7 @@ STATE_MACHINE {
   if (h->opt_current == NBD_OPT_STRUCTURED_REPLY)
     assert (h->opt_mode);
   else {
-    assert (CALLBACK_IS_NULL(h->opt_cb.completion));
+    assert (CALLBACK_IS_NULL (h->opt_cb.completion));
     if (!h->request_sr) {
       if (h->opt_mode)
         SET_NEXT_STATE (%.NEGOTIATING);

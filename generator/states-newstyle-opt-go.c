@@ -33,7 +33,7 @@ STATE_MACHINE {
     assert (h->opt_mode);
   else if (!h->opt_current) {
     assert (!h->opt_mode);
-    assert(CALLBACK_IS_NULL(h->opt_cb.completion));
+    assert (CALLBACK_IS_NULL (h->opt_cb.completion));
     h->opt_current = NBD_OPT_GO;
   }
   h->sbuf.option.version = htobe64 (NBD_NEW_VERSION);

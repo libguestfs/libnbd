@@ -347,7 +347,7 @@ int nbd_internal_socket(int domain,
     return -1;
 
   if (fcntl (fd, F_SETFD, FD_CLOEXEC) == -1) {
-    close(fd);
+    close (fd);
     return -1;
   }
 
@@ -355,7 +355,7 @@ int nbd_internal_socket(int domain,
     flags = fcntl (fd, F_GETFL, 0);
     if (flags == -1 ||
         fcntl (fd, F_SETFL, flags|O_NONBLOCK) == -1) {
-      close(fd);
+      close (fd);
       return -1;
     }
   }
@@ -386,8 +386,8 @@ nbd_internal_socketpair (int domain, int type, int protocol, int *fds)
   if (ret == 0) {
     for (i = 0; i < 2; i++) {
       if (fcntl (fds[i], F_SETFD, FD_CLOEXEC) == -1) {
-        close(fds[0]);
-        close(fds[1]);
+        close (fds[0]);
+        close (fds[1]);
         return -1;
       }
     }
