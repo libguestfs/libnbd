@@ -331,7 +331,7 @@ STATE_MACHINE {
     if (cmd->error == 0)
       cmd->error = error;
 
-    SET_NEXT_STATE(%FINISH);
+    SET_NEXT_STATE (%FINISH);
   }
   return 0;
 
@@ -450,7 +450,7 @@ STATE_MACHINE {
           cmd->error = error ? error : EPROTO;
     }
 
-    SET_NEXT_STATE(%FINISH);
+    SET_NEXT_STATE (%FINISH);
   }
   return 0;
 
@@ -503,7 +503,7 @@ STATE_MACHINE {
       debug (h, "server sent unexpected meta context ID %" PRIu32,
              context_id);
 
-    SET_NEXT_STATE(%FINISH);
+    SET_NEXT_STATE (%FINISH);
   }
   return 0;
 

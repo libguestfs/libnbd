@@ -35,7 +35,7 @@ fi
 output=$(nbdkit -U - null --run 'nbdsh -c "
 try:
     h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
-    assert(False)
+    assert False
 except nbd.Error:
     print(\"okay\")
 " -u "nbd+unix://?socket=$unixsocket"')
@@ -81,7 +81,7 @@ output=$(nbdkit -U - null --run 'nbdsh \
     -c "
 try:
     h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
-    assert(False)
+    assert False
 except nbd.Error:
     pass
 " \
