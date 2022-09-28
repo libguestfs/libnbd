@@ -35,7 +35,7 @@ struct last_error {
 /* Thread-local storage of the last error. */
 static pthread_key_t errors_key;
 
-static void free_errors_key (void *vp);
+static void free_errors_key (void *vp) LIBNBD_ATTRIBUTE_NONNULL((1));
 
 /* Constructor/destructor to create the thread-local key when the
  * library is loaded and unloaded.
