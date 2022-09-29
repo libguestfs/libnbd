@@ -244,6 +244,16 @@ let print_fndecl ?wrap ?closure_style name args optargs ret =
   pr "extern ";
   print_call ?wrap ?closure_style name args optargs ret;
 
+  (* For RString, note that the caller must free() the argument.
+   * Since this is used in a public header, we must use gcc's spelling
+   * of __builtin_free in case bare free is defined as a macro.
+   *)
+  (match ret with
+   | RString ->
+      pr "\n    LIBNBD_ATTRIBUTE_ALLOC_DEALLOC(__builtin_free)";
+   | _ -> ()
+  );
+
   (* Output __attribute__((nonnull)) for the function parameters:
    * eg. struct nbd_handle *, int, char *
    *     => [ true, false, true ]
@@ -403,6 +413,13 @@ let generate_include_libnbd_h () =
   pr "#endif\n";
   pr "#endif /* ! defined LIBNBD_ATTRIBUTE_NONNULL */\n";
   pr "\n";
+  pr "#if defined(__GNUC__) && LIBNBD_GCC_VERSION >= 120000 /* gcc >= 12.0 */\n";
+  pr "#define LIBNBD_ATTRIBUTE_ALLOC_DEALLOC(fn) \\\n";
+  pr "  __attribute__((__malloc__, __malloc__(fn, 1)))\n";
+  pr "#else\n";
+  pr "#define LIBNBD_ATTRIBUTE_ALLOC_DEALLOC(fn)\n";
+  pr "#endif\n";
+  pr "\n";
   pr "struct nbd_handle;\n";
   pr "\n";
   List.iter (
@@ -433,11 +450,12 @@ let generate_include_libnbd_h () =
       pr "#define %-40s %d\n" n i
   ) constants;
   pr "\n";
-  pr "extern struct nbd_handle *nbd_create (void);\n";
-  pr "#define LIBNBD_HAVE_NBD_CREATE 1\n";
-  pr "\n";
   pr "extern void nbd_close (struct nbd_handle *h); /* h can be NULL */\n";
   pr "#define LIBNBD_HAVE_NBD_CLOSE 1\n";
+  pr "\n";
+  pr "extern struct nbd_handle *nbd_create (void)\n";
+  pr "    LIBNBD_ATTRIBUTE_ALLOC_DEALLOC(nbd_close);\n";
+  pr "#define LIBNBD_HAVE_NBD_CREATE 1\n";
   pr "\n";
   pr "extern const char *nbd_get_error (void);\n";
   pr "#define LIBNBD_HAVE_NBD_GET_ERROR 1\n";
