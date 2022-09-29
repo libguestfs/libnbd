@@ -247,7 +247,7 @@ let print_fndecl ?wrap ?closure_style name args optargs ret =
   (* Output __attribute__((nonnull)) for the function parameters:
    * eg. struct nbd_handle *, int, char *
    *     => [ true, false, true ]
-   *     => LIBNBD_ATTRIBUTE_NONNULL((1,3))
+   *     => LIBNBD_ATTRIBUTE_NONNULL(1,3)
    *     => __attribute__((nonnull(1,3)))
    *)
   let nns : bool list =
@@ -257,7 +257,7 @@ let print_fndecl ?wrap ?closure_style name args optargs ret =
   let nns = List.mapi (fun i b -> (i+1, b)) nns in
   let nns = filter_map (fun (i, b) -> if b then Some i else None) nns in
   let nns : string list = List.map string_of_int nns in
-  pr "\n    LIBNBD_ATTRIBUTE_NONNULL((%s));\n" (String.concat "," nns)
+  pr "\n    LIBNBD_ATTRIBUTE_NONNULL(%s);\n" (String.concat "," nns)
 
 let rec print_cbarg_list ?(wrap = false) ?maxcol ?types ?(parens = true)
           cbargs =
@@ -397,9 +397,9 @@ let generate_include_libnbd_h () =
   pr "\n";
   pr "#ifndef LIBNBD_ATTRIBUTE_NONNULL\n";
   pr "#if defined(__GNUC__) && LIBNBD_GCC_VERSION >= 120000 /* gcc >= 12.0 */\n";
-  pr "#define LIBNBD_ATTRIBUTE_NONNULL(s) __attribute__((__nonnull__ s))\n";
+  pr "#define LIBNBD_ATTRIBUTE_NONNULL(...) __attribute__((__nonnull__(__VA_ARGS__)))\n";
   pr "#else\n";
-  pr "#define LIBNBD_ATTRIBUTE_NONNULL(s)\n";
+  pr "#define LIBNBD_ATTRIBUTE_NONNULL(...)\n";
   pr "#endif\n";
   pr "#endif /* ! defined LIBNBD_ATTRIBUTE_NONNULL */\n";
   pr "\n";
@@ -833,7 +833,7 @@ let generate_lib_api_c () =
   pr " * annotated with attribute((nonnull)).  See RHBZ#1041336.  To\n";
   pr " * avoid this, disable the attribute when including libnbd.h.\n";
   pr " */\n";
-  pr "#define LIBNBD_ATTRIBUTE_NONNULL(s)\n";
+  pr "#define LIBNBD_ATTRIBUTE_NONNULL(...)\n";
   pr "\n";
   pr "#include \"libnbd.h\"\n";
   pr "#include \"internal.h\"\n";

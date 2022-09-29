@@ -30,7 +30,7 @@
 /* GCC will warn that we are passing NULL (or worse), so to do this
  * test we must remove the header file attribute.
  */
-#define LIBNBD_ATTRIBUTE_NONNULL(s)
+#define LIBNBD_ATTRIBUTE_NONNULL(...)
 #include <libnbd.h>
 
 static char *progname;

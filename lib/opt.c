@@ -29,21 +29,21 @@
 static int opt_set_meta_context_queries (struct nbd_handle *h,
                                          char **queries,
                                          nbd_context_callback *context)
-  LIBNBD_ATTRIBUTE_NONNULL((1,3));
+  LIBNBD_ATTRIBUTE_NONNULL(1,3);
 static int opt_list_meta_context_queries (struct nbd_handle *h,
                                           char **queries,
                                           nbd_context_callback *context)
-  LIBNBD_ATTRIBUTE_NONNULL((1,3));
+  LIBNBD_ATTRIBUTE_NONNULL(1,3);
 static int aio_opt_set_meta_context_queries (struct nbd_handle *h,
                                              char **queries,
                                              nbd_context_callback *context,
                                              nbd_completion_callback *complete)
-  LIBNBD_ATTRIBUTE_NONNULL((1,3,4));
+  LIBNBD_ATTRIBUTE_NONNULL(1,3,4);
 static int aio_opt_list_meta_context_queries (struct nbd_handle *h,
                                               char **queries,
                                               nbd_context_callback *context,
                                               nbd_completion_callback *complete)
-  LIBNBD_ATTRIBUTE_NONNULL((1,3,4));
+  LIBNBD_ATTRIBUTE_NONNULL(1,3,4);
 
 /* Internal function which frees an option with callback. */
 void
