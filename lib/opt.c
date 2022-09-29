@@ -26,24 +26,17 @@
 
 #include "internal.h"
 
-static int opt_set_meta_context_queries (struct nbd_handle *h,
+static int opt_meta_context_queries (struct nbd_handle *h,
+                                     uint32_t opt,
+                                     char **queries,
+                                     nbd_context_callback *context)
+  LIBNBD_ATTRIBUTE_NONNULL(1,4);
+static int aio_opt_meta_context_queries (struct nbd_handle *h,
+                                         uint32_t opt,
                                          char **queries,
-                                         nbd_context_callback *context)
-  LIBNBD_ATTRIBUTE_NONNULL(1,3);
-static int opt_list_meta_context_queries (struct nbd_handle *h,
-                                          char **queries,
-                                          nbd_context_callback *context)
-  LIBNBD_ATTRIBUTE_NONNULL(1,3);
-static int aio_opt_set_meta_context_queries (struct nbd_handle *h,
-                                             char **queries,
-                                             nbd_context_callback *context,
-                                             nbd_completion_callback *complete)
-  LIBNBD_ATTRIBUTE_NONNULL(1,3,4);
-static int aio_opt_list_meta_context_queries (struct nbd_handle *h,
-                                              char **queries,
-                                              nbd_context_callback *context,
-                                              nbd_completion_callback *complete)
-  LIBNBD_ATTRIBUTE_NONNULL(1,3,4);
+                                         nbd_context_callback *context,
+                                         nbd_completion_callback *complete)
+  LIBNBD_ATTRIBUTE_NONNULL(1,4,5);
 
 /* Internal function which frees an option with callback. */
 void
@@ -238,12 +231,36 @@ context_complete (void *opaque, int *err)
   return 0;
 }
 
+static int
+opt_meta_context_queries (struct nbd_handle *h,
+                          uint32_t opt,
+                          char **queries,
+                          nbd_context_callback *context)
+{
+  struct context_helper s = { .context = *context };
+  nbd_context_callback l = { .callback = context_visitor, .user_data = &s };
+  nbd_completion_callback c = { .callback = context_complete, .user_data = &s };
+
+  if (aio_opt_meta_context_queries (h, opt, queries, &l, &c) == -1)
+    return -1;
+
+  SET_CALLBACK_TO_NULL (*context);
+  if (wait_for_option (h) == -1)
+    return -1;
+  if (s.err) {
+    set_error (s.err, "server replied with error to meta context request");
+    return -1;
+  }
+  return s.count;
+}
+
 /* Issue NBD_OPT_LIST_META_CONTEXT and wait for the reply. */
 int
 nbd_unlocked_opt_list_meta_context (struct nbd_handle *h,
                                     nbd_context_callback *context)
 {
-  return opt_list_meta_context_queries (h, NULL, context);
+  return opt_meta_context_queries (h, NBD_OPT_LIST_META_CONTEXT,
+                                   NULL, context);
 }
 
 /* Issue NBD_OPT_LIST_META_CONTEXT and wait for the reply. */
@@ -252,29 +269,8 @@ nbd_unlocked_opt_list_meta_context_queries (struct nbd_handle *h,
                                             char **queries,
                                             nbd_context_callback *context)
 {
-  return opt_list_meta_context_queries (h, queries, context);
-}
-
-static int
-opt_list_meta_context_queries (struct nbd_handle *h,
-                               char **queries,
-                               nbd_context_callback *context)
-{
-  struct context_helper s = { .context = *context };
-  nbd_context_callback l = { .callback = context_visitor, .user_data = &s };
-  nbd_completion_callback c = { .callback = context_complete, .user_data = &s };
-
-  if (nbd_unlocked_aio_opt_list_meta_context_queries (h, queries, &l, &c) == -1)
-    return -1;
-
-  SET_CALLBACK_TO_NULL (*context);
-  if (wait_for_option (h) == -1)
-    return -1;
-  if (s.err) {
-    set_error (s.err, "server replied with error to list meta context request");
-    return -1;
-  }
-  return s.count;
+  return opt_meta_context_queries (h, NBD_OPT_LIST_META_CONTEXT,
+                                   queries, context);
 }
 
 /* Issue NBD_OPT_SET_META_CONTEXT and wait for the reply. */
@@ -282,7 +278,8 @@ int
 nbd_unlocked_opt_set_meta_context (struct nbd_handle *h,
                                    nbd_context_callback *context)
 {
-  return opt_set_meta_context_queries (h, NULL, context);
+  return opt_meta_context_queries (h, NBD_OPT_SET_META_CONTEXT,
+                                   NULL, context);
 }
 
 /* Issue NBD_OPT_SET_META_CONTEXT and wait for the reply. */
@@ -291,29 +288,8 @@ nbd_unlocked_opt_set_meta_context_queries (struct nbd_handle *h,
                                            char **queries,
                                            nbd_context_callback *context)
 {
-  return opt_set_meta_context_queries (h, queries, context);
-}
-
-static int
-opt_set_meta_context_queries (struct nbd_handle *h,
-                              char **queries,
-                              nbd_context_callback *context)
-{
-  struct context_helper s = { .context = *context };
-  nbd_context_callback l = { .callback = context_visitor, .user_data = &s };
-  nbd_completion_callback c = { .callback = context_complete, .user_data = &s };
-
-  if (aio_opt_set_meta_context_queries (h, queries, &l, &c) == -1)
-    return -1;
-
-  SET_CALLBACK_TO_NULL (*context);
-  if (wait_for_option (h) == -1)
-    return -1;
-  if (s.err) {
-    set_error (s.err, "server replied with error to set meta context request");
-    return -1;
-  }
-  return s.count;
+  return opt_meta_context_queries (h, NBD_OPT_SET_META_CONTEXT,
+                                   queries, context);
 }
 
 /* Issue NBD_OPT_GO (or NBD_OPT_EXPORT_NAME) without waiting. */
@@ -400,13 +376,40 @@ nbd_unlocked_aio_opt_list (struct nbd_handle *h, nbd_list_callback *list,
   return 0;
 }
 
+static int
+aio_opt_meta_context_queries (struct nbd_handle *h,
+                              uint32_t opt,
+                              char **queries,
+                              nbd_context_callback *context,
+                              nbd_completion_callback *complete)
+{
+  if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0) {
+    set_error (ENOTSUP, "server is not using fixed newstyle protocol");
+    return -1;
+  }
+
+  if (nbd_internal_set_querylist (h, queries) == -1)
+    return -1;
+
+  assert (CALLBACK_IS_NULL (h->opt_cb.fn.context));
+  h->opt_cb.fn.context = *context;
+  SET_CALLBACK_TO_NULL (*context);
+  h->opt_cb.completion = *complete;
+  SET_CALLBACK_TO_NULL (*complete);
+  h->opt_current = opt;
+  if (nbd_internal_run (h, cmd_issue) == -1)
+    debug (h, "option queued, ignoring state machine failure");
+  return 0;
+}
+
 /* Issue NBD_OPT_LIST_META_CONTEXT without waiting. */
 int
 nbd_unlocked_aio_opt_list_meta_context (struct nbd_handle *h,
                                         nbd_context_callback *context,
                                         nbd_completion_callback *complete)
 {
-  return aio_opt_list_meta_context_queries (h, NULL, context, complete);
+  return aio_opt_meta_context_queries (h, NBD_OPT_LIST_META_CONTEXT,
+                                       NULL, context, complete);
 }
 
 /* Issue NBD_OPT_LIST_META_CONTEXT without waiting. */
@@ -416,32 +419,8 @@ nbd_unlocked_aio_opt_list_meta_context_queries (struct nbd_handle *h,
                                                 nbd_context_callback *context,
                                                 nbd_completion_callback *complete)
 {
-  return aio_opt_list_meta_context_queries (h, queries, context, complete);
-}
-
-static int
-aio_opt_list_meta_context_queries (struct nbd_handle *h,
-                                   char **queries,
-                                   nbd_context_callback *context,
-                                   nbd_completion_callback *complete)
-{
-  if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0) {
-    set_error (ENOTSUP, "server is not using fixed newstyle protocol");
-    return -1;
-  }
-
-  if (nbd_internal_set_querylist (h, queries) == -1)
-    return -1;
-
-  assert (CALLBACK_IS_NULL (h->opt_cb.fn.context));
-  h->opt_cb.fn.context = *context;
-  SET_CALLBACK_TO_NULL (*context);
-  h->opt_cb.completion = *complete;
-  SET_CALLBACK_TO_NULL (*complete);
-  h->opt_current = NBD_OPT_LIST_META_CONTEXT;
-  if (nbd_internal_run (h, cmd_issue) == -1)
-    debug (h, "option queued, ignoring state machine failure");
-  return 0;
+  return aio_opt_meta_context_queries (h, NBD_OPT_LIST_META_CONTEXT,
+                                       queries, context, complete);
 }
 
 /* Issue NBD_OPT_SET_META_CONTEXT without waiting. */
@@ -450,7 +429,8 @@ nbd_unlocked_aio_opt_set_meta_context (struct nbd_handle *h,
                                        nbd_context_callback *context,
                                        nbd_completion_callback *complete)
 {
-  return aio_opt_set_meta_context_queries (h, NULL, context, complete);
+  return aio_opt_meta_context_queries (h, NBD_OPT_SET_META_CONTEXT,
+                                       NULL, context, complete);
 }
 
 /* Issue NBD_OPT_SET_META_CONTEXT without waiting. */
@@ -460,30 +440,6 @@ nbd_unlocked_aio_opt_set_meta_context_queries (struct nbd_handle *h,
                                                nbd_context_callback *context,
                                                nbd_completion_callback *complete)
 {
-  return aio_opt_set_meta_context_queries (h, queries, context, complete);
-}
-
-static int
-aio_opt_set_meta_context_queries (struct nbd_handle *h,
-                                  char **queries,
-                                  nbd_context_callback *context,
-                                  nbd_completion_callback *complete)
-{
-  if ((h->gflags & LIBNBD_HANDSHAKE_FLAG_FIXED_NEWSTYLE) == 0) {
-    set_error (ENOTSUP, "server is not using fixed newstyle protocol");
-    return -1;
-  }
-
-  if (nbd_internal_set_querylist (h, queries) == -1)
-    return -1;
-
-  assert (CALLBACK_IS_NULL (h->opt_cb.fn.context));
-  h->opt_cb.fn.context = *context;
-  SET_CALLBACK_TO_NULL (*context);
-  h->opt_cb.completion = *complete;
-  SET_CALLBACK_TO_NULL (*complete);
-  h->opt_current = NBD_OPT_SET_META_CONTEXT;
-  if (nbd_internal_run (h, cmd_issue) == -1)
-    debug (h, "option queued, ignoring state machine failure");
-  return 0;
+  return aio_opt_meta_context_queries (h, NBD_OPT_SET_META_CONTEXT,
+                                       queries, context, complete);
 }
