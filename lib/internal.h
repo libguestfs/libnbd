@@ -497,8 +497,10 @@ extern void nbd_internal_fork_safe_perror (const char *s)
 extern char *nbd_internal_printable_buffer (const void *buf, size_t count)
   LIBNBD_ATTRIBUTE_NONNULL(1);
 extern char *nbd_internal_printable_string (const char *str)
+  LIBNBD_ATTRIBUTE_ALLOC_DEALLOC(free)
   LIBNBD_ATTRIBUTE_NONNULL(1);
-extern char *nbd_internal_printable_string_list (char **list);
+extern char *nbd_internal_printable_string_list (char **list)
+  LIBNBD_ATTRIBUTE_ALLOC_DEALLOC(free);
 
 /* These are wrappers around socket(2) and socketpair(2).  They
  * always set SOCK_CLOEXEC.  nbd_internal_socket can set SOCK_NONBLOCK
