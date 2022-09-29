@@ -29,6 +29,10 @@
 #include <string.h>
 #include <errno.h>
 
+/* GCC will warn that we are passing NULL (or worse), so to do this
+ * test we must remove the header file attribute.
+ */
+#define LIBNBD_ATTRIBUTE_NONNULL(...)
 #include <libnbd.h>
 
 struct progress {
@@ -67,10 +71,20 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* FIXME: We should either document that a NULL list is unspecified,
-   * or pin down specific behavior and test it here.  C-only test,
-   * unless we change the Python bindings to allow None in place of [].
+  /* C-only test: We document that a NULL list is undefined behavior, but
+   * that we try to make it fail with EFAULT.  By disabling attributes
+   * above, we are able to check that the generated EFAULT code works.
    */
+  p = (struct progress) { .count = 0 };
+  r = nbd_opt_list_meta_context_queries (nbd, NULL, ctx);
+  if (r != -1 || nbd_get_errno () != EFAULT) {
+    fprintf (stderr, "expected EFAULT for NULL query list\n");
+    exit (EXIT_FAILURE);
+  }
+  if (p.count != 0 || p.seen) {
+    fprintf (stderr, "unexpected use of callback on failure\n");
+    exit (EXIT_FAILURE);
+  }
 
   /* First pass: empty query should give at least "base:allocation".
    * The explicit query overrides a non-empty nbd_add_meta_context.
