@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -91,6 +91,8 @@ prepare_socket_activation_environment (string_vector *env)
 
  err:
   set_error (errno, "malloc");
+  string_vector_iter (env, (void *) free);
+  free (env->ptr);
   return -1;
 }
 
