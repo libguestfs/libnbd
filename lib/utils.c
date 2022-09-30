@@ -60,7 +60,7 @@ nbd_internal_copy_string_list (string_vector *v, char **in)
   size_t i;
 
   assert (in);
-  string_vector_reset (v);
+  assert (v->ptr == NULL);
 
   for (i = 0; in[i] != NULL; ++i) {
     char *copy = strdup (in[i]);
@@ -92,6 +92,9 @@ nbd_internal_set_argv (struct nbd_handle *h, char **argv)
     set_error (EINVAL, "missing command name in argv list");
     return -1;
   }
+
+  string_vector_iter (&h->argv, (void *) free);
+  string_vector_reset (&h->argv);
 
   if (nbd_internal_copy_string_list (&h->argv, argv) == -1) {
     set_error (errno, "realloc");
