@@ -189,7 +189,10 @@ client (int sock)
   nbd_add_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION);
 
   /* This tests the handshake phase. */
+  nbd_set_opt_mode (nbd, true);
   nbd_connect_socket (nbd, sock);
+  nbd_opt_info (nbd);
+  nbd_opt_go (nbd);
 
   length = nbd_get_size (nbd);
 
