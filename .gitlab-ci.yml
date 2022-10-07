@@ -5,6 +5,7 @@ variables:
 stages:
   - containers
   - builds
+  - sanity_checks
 
 .script_variables: &script_variables |
   export MAKEFLAGS="-j $(getconf _NPROCESSORS_ONLN)"
@@ -16,14 +17,12 @@ stages:
 include: '/ci/gitlab.yml'
 
 .base_build_job:
-  stage: builds
   cache:
     paths:
       - ccache/
     key: "$CI_JOB_NAME"
-  before_script:
-    - *script_variables
   script:
+    - *script_variables
     - ci/build.sh
   artifacts:
     paths:
@@ -33,12 +32,22 @@ include: '/ci/gitlab.yml'
     when: always
     expire_in: 1 week
 
-.native_build_job:
+.native_build_job_prebuilt_env:
   extends:
     - .base_build_job
-    - .gitlab_native_build_job
+    - .gitlab_native_build_job_prebuilt_env
 
-.cross_build_job:
+.native_build_job_local_env:
   extends:
     - .base_build_job
-    - .gitlab_cross_build_job
+    - .gitlab_native_build_job_local_env
+
+.cross_build_job_prebuilt_env:
+  extends:
+    - .base_build_job
+    - .gitlab_cross_build_job_prebuilt_env
+
+.cross_build_job_local_env:
+  extends:
+    - .base_build_job
+    - .gitlab_cross_build_job_local_env

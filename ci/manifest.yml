@@ -8,7 +8,7 @@ gitlab:
     check-dco: false
 
 targets:
-  alpine-314: x86_64
+  alpine-315: x86_64
 
   almalinux-8:
     jobs:
