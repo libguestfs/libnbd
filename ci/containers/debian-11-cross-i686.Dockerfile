@@ -11,45 +11,45 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get install -y eatmydata && \
     eatmydata apt-get dist-upgrade -y && \
     eatmydata apt-get install --no-install-recommends -y \
-            autoconf \
-            automake \
-            bash-completion \
-            bsdextrautils \
-            ca-certificates \
-            ccache \
-            diffutils \
-            flake8 \
-            fuse3 \
-            git \
-            gnutls-bin \
-            golang \
-            iproute2 \
-            jq \
-            libtool-bin \
-            locales \
-            make \
-            nbd-client \
-            nbd-server \
-            nbdkit \
-            ocaml \
-            ocaml-findlib \
-            ocaml-nox \
-            perl \
-            perl-base \
-            pkgconf \
-            python3-dev \
-            qemu-system \
-            qemu-utils \
-            sed \
-            valgrind && \
+                      autoconf \
+                      automake \
+                      bash-completion \
+                      bsdextrautils \
+                      ca-certificates \
+                      ccache \
+                      diffutils \
+                      flake8 \
+                      fuse3 \
+                      git \
+                      gnutls-bin \
+                      golang \
+                      iproute2 \
+                      jq \
+                      libtool-bin \
+                      locales \
+                      make \
+                      nbd-client \
+                      nbd-server \
+                      nbdkit \
+                      ocaml \
+                      ocaml-findlib \
+                      ocaml-nox \
+                      perl \
+                      perl-base \
+                      pkgconf \
+                      python3-dev \
+                      qemu-system \
+                      qemu-utils \
+                      sed \
+                      valgrind && \
     eatmydata apt-get autoremove -y && \
     eatmydata apt-get autoclean -y && \
     sed -Ei 's,^# (en_US\.UTF-8 .*)$,\1,' /etc/locale.gen && \
     dpkg-reconfigure locales
 
+ENV CCACHE_WRAPPERSDIR "/usr/libexec/ccache-wrappers"
 ENV LANG "en_US.UTF-8"
 ENV MAKE "/usr/bin/make"
-ENV CCACHE_WRAPPERSDIR "/usr/libexec/ccache-wrappers"
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
     dpkg --add-architecture i386 && \
@@ -57,14 +57,14 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     eatmydata apt-get dist-upgrade -y && \
     eatmydata apt-get install --no-install-recommends -y dpkg-dev && \
     eatmydata apt-get install --no-install-recommends -y \
-            g++-i686-linux-gnu \
-            gcc-i686-linux-gnu \
-            libc6-dev:i386 \
-            libev-dev:i386 \
-            libfuse3-dev:i386 \
-            libglib2.0-dev:i386 \
-            libgnutls28-dev:i386 \
-            libxml2-dev:i386 && \
+                      g++-i686-linux-gnu \
+                      gcc-i686-linux-gnu \
+                      libc6-dev:i386 \
+                      libev-dev:i386 \
+                      libfuse3-dev:i386 \
+                      libglib2.0-dev:i386 \
+                      libgnutls28-dev:i386 \
+                      libxml2-dev:i386 && \
     eatmydata apt-get autoremove -y && \
     eatmydata apt-get autoclean -y && \
     mkdir -p /usr/local/share/meson/cross && \
@@ -87,4 +87,4 @@ endian = 'little'" > /usr/local/share/meson/cross/i686-linux-gnu && \
     ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/i686-linux-gnu-gcc
 
 ENV ABI "i686-linux-gnu"
-ENV CONFIGURE_OPTS "--host=i686-linux-gnu"
+ENV CONFIGURE_OPTS "--hosti686-linux-gnu"
