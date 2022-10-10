@@ -83,13 +83,19 @@ STATE_MACHINE {
     h->structured_replies = true;
     err = 0;
     break;
+  case NBD_REP_ERR_INVALID:
+    err = EINVAL;
+    /* fallthrough */
   default:
     if (handle_reply_error (h) == -1) {
       SET_NEXT_STATE (%.DEAD);
       return 0;
     }
 
-    debug (h, "structured replies are not supported by this server");
+    if (h->structured_replies)
+      debug (h, "structured replies already negotiated");
+    else
+      debug (h, "structured replies are not supported by this server");
     break;
   }
 
