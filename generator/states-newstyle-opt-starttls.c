@@ -78,6 +78,12 @@ STATE_MACHINE {
   reply = be32toh (h->sbuf.or.option_reply.reply);
   switch (reply) {
   case NBD_REP_ACK:
+    if (h->tls_negotiated) {
+      set_error (EPROTO,
+                 "handshake: unable to support server accepting TLS twice");
+      SET_NEXT_STATE (%.DEAD);
+      return 0;
+    }
     nbd_internal_reset_size_and_flags (h);
     h->structured_replies = false;
     h->meta_valid = false;
