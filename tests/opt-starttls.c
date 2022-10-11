@@ -81,11 +81,6 @@ do_test (const char *server_tls, struct expected exp)
     exit (EXIT_FAILURE);
   }
 
-  if (nbd_supports_tls (nbd) != 1) {
-    fprintf (stderr, "SKIP: missing TLS support in libnbd\n");
-    exit (77);
-  }
-
   if (nbd_set_opt_mode (nbd, true) == -1 ||
       nbd_set_request_structured_replies (nbd, false) == -1 ||
       nbd_set_request_meta_context (nbd, false) == -1 ||
@@ -143,10 +138,36 @@ main (int argc, char *argv[])
   /* Check for nbdkit tls-fallback filter. */
   requires ("nbdkit --filter=tls-fallback null --dump-plugin");
 
-  /* Reject older nbdkit that chokes on NBD_OPT_INFO to --tls=require */
-  requires ("test 0 = \"$(nbdkit --tls=require --tls-psk=keys.psk -U - null "
-            "--run 'nbdinfo \"nbd+unix://?socket=$unixsocket\"' 2>&1 |"
-            "grep -c 'nbdkit.*unknown option version')\"");
+  /* Reject nbdkit 1.33.1 and older where --tls=require chokes on
+   * early NBD_OPT_INFO. nbdkit does not have a nice witness for this,
+   * so just try to provoke the bug manually (a working server will
+   * gracefully fail both nbd_opt; a buggy one will lose sync and move
+   * us to DEAD during our handling of the second one).
+   */
+  {
+    const char *args[] = { "nbdkit", "-sv", "--exit-with-parent",
+                           "--tls=require", "--tls-psk=keys.psk",
+                           "null", "size=1M", NULL };
+    struct nbd_handle *nbd = nbd_create ();
+
+    if (nbd == NULL) {
+      fprintf (stderr, "%s\n", nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+    if (nbd_supports_tls (nbd) != 1) {
+      fprintf (stderr, "SKIP: missing TLS support in libnbd\n");
+      exit (77);
+    }
+    if (nbd_set_opt_mode (nbd, true) == -1 ||
+        nbd_connect_command (nbd, (char **) args) == -1 ||
+        nbd_opt_info (nbd) != -1 ||
+        nbd_opt_info (nbd) != -1 ||
+        nbd_aio_is_dead (nbd) == 1) {
+      fprintf (stderr, "SKIP: nbdkit botches OPT_INFO before STARTTLS\n");
+      exit (77);
+    }
+    nbd_close (nbd);
+  }
 
   /* Behavior of a server with no TLS support */
   do_test ("--tls=no", (struct expected) {
