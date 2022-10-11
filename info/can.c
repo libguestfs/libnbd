@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2020-2021 Red Hat Inc.
+ * Copyright (C) 2020-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,6 +36,19 @@ do_can (void)
   if (strcasecmp (can, "connect") == 0 ||
       strcasecmp (can, "read") == 0)
     feature = 1;
+
+  else if (strcasecmp (can, "tls") == 0)
+    feature = nbd_get_tls_negotiated (nbd);
+
+  else if (strcasecmp (can, "sr") == 0 ||
+           strcasecmp (can, "structured") == 0 ||
+           strcasecmp (can, "structured reply") == 0 ||
+           strcasecmp (can, "structured-reply") == 0 ||
+           strcasecmp (can, "structured_reply") == 0 ||
+           strcasecmp (can, "structured replies") == 0 ||
+           strcasecmp (can, "structured-replies") == 0 ||
+           strcasecmp (can, "structured_replies") == 0)
+    feature = nbd_get_structured_replies_negotiated (nbd);
 
   else if (strcasecmp (can, "readonly") == 0 ||
            strcasecmp (can, "read-only") == 0 ||

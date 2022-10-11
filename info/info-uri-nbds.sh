@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2020-2021 Red Hat Inc.
+# Copyright (C) 2020-2022 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -47,7 +47,8 @@ cleanup_fn rm -rf $d
 export pki
 nbdkit -U - --tls=require --tls-verify-peer --tls-certificates=$pki \
        null size=1M \
-       --run '$VG nbdinfo --json "nbds+unix:///?socket=$unixsocket&tls-certificates=$pki"' > $out
+       --run '$VG nbdinfo --json "nbds+unix:///?socket=$unixsocket&tls-certificates=$pki" &&
+              $VG nbdinfo --is tls "nbds+unix:///?socket=$unixsocket&tls-certificates=$pki"' > $out
 cat $out
 jq . < $out
 

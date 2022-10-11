@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2020-2021 Red Hat Inc.
+# Copyright (C) 2020-2022 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -26,6 +26,8 @@ requires bash -c "nbdkit sh --dump-plugin | grep has_can_cache=1"
 
 # --is read-only and --can write are tested in info-is-read-only.sh
 
+# --is tls is tested in info-uri-nbds.sh and info-can-connect.sh
+
 # --can connect is tested in info-can-connect.sh
 
 # --can read is tested in info-can-read.sh
@@ -35,6 +37,29 @@ requires bash -c "nbdkit sh --dump-plugin | grep has_can_cache=1"
 # --can df is hard to test.  nbdkit newstyle probably always sets this
 # and oldstyle never, but that feels like depending a bit too much on
 # the implementation.
+
+# --can structured-reply is not a per-export setting, but rather
+# something set on the server as a whole.
+
+nbdkit -v -U - sh - \
+       --run '$VG nbdinfo --can structured-reply "nbd+unix:///?socket=$unixsocket"' <<'EOF'
+case "$1" in
+  get_size) echo 1024 ;;
+  pread) ;;
+  *) exit 2 ;;
+esac
+EOF
+
+st=0
+nbdkit -v -U - --no-sr sh - \
+       --run '$VG nbdinfo --can structured-reply "nbd+unix:///?socket=$unixsocket"' <<'EOF' || st=$?
+case "$1" in
+  get_size) echo 1024 ;;
+  pread) ;;
+  *) exit 2 ;;
+esac
+EOF
+test $st = 2
 
 # --can cache and --can fua require special handling because in
 # nbdkit-sh-plugin we must print "native" or "none".  Also the can_fua
@@ -53,8 +78,9 @@ case "$1" in
 esac
 EOF
 
+    st=0
     nbdkit -v -U - sh - \
-           --run '! $VG nbdinfo --can $flag "nbd+unix:///?socket=$unixsocket"' <<'EOF'
+           --run '$VG nbdinfo --can $flag "nbd+unix:///?socket=$unixsocket"' <<'EOF' || st=$?
 case "$1" in
   get_size) echo 1024 ;;
   pread) ;;
@@ -63,6 +89,7 @@ case "$1" in
   *) exit 2 ;;
 esac
 EOF
+    test $st = 2
 done
 
 # These ones are normal booleans.
@@ -80,8 +107,9 @@ case "$1" in
 esac
 EOF
 
+    st=0
     nbdkit -v -U - sh - \
-           --run '! $VG nbdinfo --can $flag "nbd+unix:///?socket=$unixsocket"' <<'EOF'
+           --run '$VG nbdinfo --can $flag "nbd+unix:///?socket=$unixsocket"' <<'EOF' || st=$?
 case "$1" in
   get_size) echo 1024 ;;
   pread) ;;
@@ -90,4 +118,5 @@ case "$1" in
   *) exit 2 ;;
 esac
 EOF
+    test $st = 2
 done
