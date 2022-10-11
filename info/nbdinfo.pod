@@ -47,7 +47,7 @@ The single required parameter can be the NBD URI of the server (see
 L<https://github.com/NetworkBlockDevice/nbd/blob/master/doc/uri.md>):
 
  $ nbdinfo nbd://localhost
- protocol: newstyle-fixed without TLS
+ protocol: newstyle-fixed without TLS, using structured packets
  export="":
          export-size: 1048576 (1M)
          content: data
@@ -85,6 +85,7 @@ the I<--json> parameter:
  {
    "protocol": "newstyle-fixed",
    "TLS": false,
+   "structured": true,
    "exports": [
      {
        "export-name": "",

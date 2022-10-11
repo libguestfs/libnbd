@@ -1,5 +1,5 @@
 # nbd client library in userspace
-# Copyright (C) 2020 Red Hat Inc.
+# Copyright (C) 2020-2022 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -33,6 +33,7 @@ info_sh_files = \
 	info-list-uris.sh \
 	info-json.sh \
 	info-oldstyle.sh \
+	info-packets.sh \
 	info-null.sh \
 	info-size.sh \
 	info-text.sh \
