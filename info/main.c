@@ -302,10 +302,12 @@ main (int argc, char *argv[])
   else {                        /* not --size or --map */
     const char *protocol;
     int tls_negotiated;
+    int sr_negotiated;
 
     /* Print per-connection fields. */
     protocol = nbd_get_protocol (nbd);
     tls_negotiated = nbd_get_tls_negotiated (nbd);
+    sr_negotiated = nbd_get_structured_replies_negotiated (nbd);
 
     if (!json_output) {
       if (protocol) {
@@ -313,6 +315,9 @@ main (int argc, char *argv[])
         fprintf (fp, "protocol: %s", protocol);
         if (tls_negotiated >= 0)
           fprintf (fp, " %s TLS", tls_negotiated ? "with" : "without");
+        if (sr_negotiated >= 0)
+          fprintf (fp, ", using %s packets",
+                   sr_negotiated ? "structured" : "simple");
         fprintf (fp, "\n");
         ansi_restore (fp);
       }
@@ -327,6 +332,8 @@ main (int argc, char *argv[])
 
       if (tls_negotiated >= 0)
         fprintf (fp, "\"TLS\": %s,\n", tls_negotiated ? "true" : "false");
+      if (sr_negotiated >= 0)
+        fprintf (fp, "\"structured\": %s,\n", sr_negotiated ? "true" : "false");
     }
 
     if (!list_all)
