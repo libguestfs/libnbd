@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # nbd client library in userspace
-# Copyright (C) 2020-2021 Red Hat Inc.
+# Copyright (C) 2020-2022 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -27,3 +27,10 @@ requires nbdkit null --version
 
 nbdkit -v -U - null \
        --run '$VG nbdinfo --can connect "nbd+unix:///?socket=$unixsocket"'
+
+# --is tls is false for unencrypted connections.
+
+st=0
+nbdkit -v -U - null \
+       --run '$VG nbdinfo --is tls "nbd+unix:///?socket=$unixsocket"' || st=$?
+test $st = 2

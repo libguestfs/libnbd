@@ -156,6 +156,15 @@ All NBD servers must support read, so this always exits with success
 
 Test if we can connect to the NBD URI.
 
+=item nbdinfo --is tls URI
+
+Test if the NBD URI connection is using TLS.
+
+=item nbdinfo --can structured-reply URI
+
+Test if server can respond with structured replies (a prerequisite
+for supporting block status commands).
+
 =item nbdinfo --is rotational URI
 
 Test if the server export is backed by something which behaves like a
@@ -313,23 +322,26 @@ Display brief command line help and exit.
 
 =item B<--can read>
 
+=item B<--can structured-reply>
+
 =item B<--can trim>
 
 =item B<--can write>
 
 =item B<--can zero>
 
-Test properties of the NBD server export.  The command does not print
-anything.  Instead it exits with success (S<exit code 0>) if true, or
-failure (S<exit code 2>) if false.  (Other exit codes indicate an
-error querying the flag).
+Test properties of the NBD server export or the connection itself.
+The command does not print anything.  Instead it exits with success
+(S<exit code 0>) if true, or failure (S<exit code 2>) if false.
+(Other exit codes indicate an error querying the flag).
 
 For further information see the L<NBD
 protocol|https://github.com/NetworkBlockDevice/nbd/blob/master/doc/proto.md>
 and the following libnbd functions: L<nbd_can_cache(3)>,
 L<nbd_can_df(3)>, L<nbd_can_fast_zero(3)>, L<nbd_can_flush(3)>,
 L<nbd_can_fua(3)>, L<nbd_can_multi_conn(3)>, L<nbd_can_trim(3)>,
-L<nbd_can_zero(3)>, L<nbd_is_read_only(3)>.
+L<nbd_can_zero(3)>, L<nbd_is_read_only(3)>,
+L<nbd_get_structured_replies_negotiated(3)>.
 
 =item B<--color>
 
@@ -362,15 +374,18 @@ use I<--list --content>.
 
 =item B<--is rotational>
 
-Test if the NBD server export is read-only and rotational.  The
-command does not print anything.  Instead it exits with success
-(S<exit code 0>) if true, or failure (S<exit code 2>) if false.
-(Other exit codes indicate an error querying the flag).
+=item B<--is tls>
+
+Test if the NBD server export is read-only and rotational, or whether
+the connection itself is using TLS.  The command does not print
+anything.  Instead it exits with success (S<exit code 0>) if true, or
+failure (S<exit code 2>) if false.  (Other exit codes indicate an
+error querying the flag).
 
 For further information see the L<NBD
 protocol|https://github.com/NetworkBlockDevice/nbd/blob/master/doc/proto.md>
 and the following libnbd functions: L<nbd_is_read_only(3)>,
-L<nbd_is_rotational(3)>.
+L<nbd_is_rotational(3)>, L<nbd_get_tls_negotiated(3)>.
 
 =item B<--json>
 
