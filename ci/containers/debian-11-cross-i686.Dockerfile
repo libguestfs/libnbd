@@ -87,4 +87,4 @@ endian = 'little'" > /usr/local/share/meson/cross/i686-linux-gnu && \
     ln -s /usr/bin/ccache /usr/libexec/ccache-wrappers/i686-linux-gnu-gcc
 
 ENV ABI "i686-linux-gnu"
-ENV CONFIGURE_OPTS "--hosti686-linux-gnu"
+ENV CONFIGURE_OPTS "--host=i686-linux-gnu"
