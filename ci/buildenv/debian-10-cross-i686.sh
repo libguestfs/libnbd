@@ -81,4 +81,4 @@ export LANG="en_US.UTF-8"
 export MAKE="/usr/bin/make"
 
 export ABI="i686-linux-gnu"
-export CONFIGURE_OPTS="--hosti686-linux-gnu"
+export CONFIGURE_OPTS="--host=i686-linux-gnu"
