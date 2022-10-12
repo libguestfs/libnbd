@@ -27,7 +27,7 @@ let f user_data name =
   0
 
 let () =
-  (* First process, delay structured replies. Get into negotiating state. *)
+  (* Get into negotiating state without structured replies. *)
   let nbd = NBD.create () in
   NBD.set_opt_mode nbd true;
   NBD.set_request_structured_replies nbd false;
@@ -128,42 +128,6 @@ let () =
   assert (s = 1048576_L);
   let m = NBD.can_meta_context nbd NBD.context_base_allocation in
   assert m;
-
-  NBD.shutdown nbd;
-
-  (* Second process, this time without structured replies server-side. *)
-  let nbd = NBD.create () in
-  NBD.set_opt_mode nbd true;
-  NBD.add_meta_context nbd NBD.context_base_allocation;
-  NBD.connect_command nbd
-                      ["nbdkit"; "-s"; "--exit-with-parent"; "-v";
-                       "memory"; "size=1M"; "--no-sr"];
-  let sr = NBD.get_structured_replies_negotiated nbd in
-  assert (not sr);
-
-  (* Expect server-side failure here *)
-  count := 0;
-  seen := false;
-  NBD.add_meta_context nbd "base:";
-  (try
-     let _ = NBD.opt_set_meta_context nbd (f 42) in
-     assert false
-   with
-     NBD.Error (errstr, errno) -> ()
-  );
-  assert (0 = !count);
-  assert (not !seen);
-  (try
-     let _ = NBD.can_meta_context nbd NBD.context_base_allocation in
-     assert false
-   with
-     NBD.Error (errstr, errno) -> ()
-  );
-
-  (* Even though can_meta fails after failed SET, it returns 0 after go *)
-  NBD.opt_go nbd;
-  let m = NBD.can_meta_context nbd NBD.context_base_allocation in
-  assert (not m);
 
   NBD.shutdown nbd
 

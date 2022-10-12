@@ -549,7 +549,7 @@ opt_list_meta_LDADD = $(top_builddir)/lib/libnbd.la
 opt_list_meta_queries_SOURCES = opt-list-meta-queries.c
 opt_list_meta_queries_LDADD = $(top_builddir)/lib/libnbd.la
 
-opt_set_meta_SOURCES = opt-set-meta.c
+opt_set_meta_SOURCES = opt-set-meta.c requires.c requires.h
 opt_set_meta_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/common/include \

@@ -39,7 +39,7 @@ def must_fail(f, *args, **kwds):
         pass
 
 
-# First process, delay structured replies. Get into negotiating state.
+# Get into negotiating state without structured replies.
 h = nbd.NBD()
 h.set_opt_mode(True)
 h.set_request_structured_replies(False)
@@ -108,27 +108,5 @@ must_fail(h.opt_set_meta_context, lambda *args: f(42, *args))
 assert count == 0
 assert seen is False
 assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) is True
-
-h.shutdown()
-
-# Second process, this time without structured replies server-side.
-h = nbd.NBD()
-h.set_opt_mode(True)
-h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
-h.connect_command(["nbdkit", "-s", "--exit-with-parent", "-v",
-                   "memory", "size=1M", "--no-sr"])
-assert h.get_structured_replies_negotiated() is False
-
-# Expect server-side failure here
-count = 0
-seen = False
-must_fail(h.opt_set_meta_context, lambda *args: f(42, *args))
-assert count == 0
-assert seen is False
-must_fail(h.can_meta_context, nbd.CONTEXT_BASE_ALLOCATION)
-
-# Even though can_meta fails after failed SET, it returns 0 after go
-h.opt_go()
-assert h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION) is False
 
 h.shutdown()

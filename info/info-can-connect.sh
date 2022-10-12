@@ -23,7 +23,7 @@ set -x
 
 # --can connect always returns true.
 
-requires nbdkit null --version
+requires --no-sr nbdkit null --version
 
 nbdkit -v -U - null \
        --run '$VG nbdinfo --can connect "nbd+unix:///?socket=$unixsocket"'

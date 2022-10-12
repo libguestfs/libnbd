@@ -35,7 +35,7 @@ func setmetaf(user_data int, name string) int {
 }
 
 func Test250OptSetMeta(t *testing.T) {
-	/* First process, delay structured replies. Get into negotiating state. */
+	/* Get into negotiating state without structured replies. */
 	h, err := Create()
 	if err != nil {
 		t.Fatalf("could not create handle: %s", err)
@@ -229,74 +229,6 @@ func Test250OptSetMeta(t *testing.T) {
 		t.Fatalf("could not check can meta context: %s", err)
 	}
 	if !meta {
-		t.Fatalf("unexpected can meta context state")
-	}
-
-	err = h.Shutdown(nil)
-	if err != nil {
-		t.Fatalf("could not request shutdown: %s", err)
-	}
-
-	/* Second process, this time without structured replies server-side. */
-	h, err = Create()
-	if err != nil {
-		t.Fatalf("could not create handle: %s", err)
-	}
-	defer h.Close()
-
-	err = h.SetOptMode(true)
-	if err != nil {
-		t.Fatalf("could not set opt mode: %s", err)
-	}
-
-	err = h.AddMetaContext(context_base_allocation)
-	if err != nil {
-		t.Fatalf("could not request add_meta_context: %s", err)
-	}
-
-	err = h.ConnectCommand([]string{
-		"nbdkit", "-s", "--exit-with-parent", "-v",
-		"memory", "size=1M", "--no-sr",
-	})
-	if err != nil {
-		t.Fatalf("could not connect: %s", err)
-	}
-
-	sr, err = h.GetStructuredRepliesNegotiated()
-	if err != nil {
-		t.Fatalf("could not check structured replies negotiated: %s", err)
-	}
-	if sr {
-		t.Fatalf("unexpected structured replies state")
-	}
-
-	/* Expect server-side failure here */
-	set_count = 0
-	set_seen = false
-	_, err = h.OptSetMetaContext(func(name string) int {
-		return setmetaf(42, name)
-	})
-	if err == nil {
-		t.Fatalf("expected error")
-	}
-	if set_count != 0 || set_seen {
-		t.Fatalf("unexpected set_count after opt_set_meta_context")
-	}
-	_, err = h.CanMetaContext(context_base_allocation)
-	if err == nil {
-		t.Fatalf("expected error")
-	}
-
-	/* Even though CanMeta fails after failed SET, it returns 0 after go */
-	err = h.OptGo()
-	if err != nil {
-		t.Fatalf("could not request opt_go: %s", err)
-	}
-	meta, err = h.CanMetaContext(context_base_allocation)
-	if err != nil {
-		t.Fatalf("could not check can meta context: %s", err)
-	}
-	if meta {
 		t.Fatalf("unexpected can meta context state")
 	}
 

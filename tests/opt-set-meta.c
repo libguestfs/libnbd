@@ -32,6 +32,7 @@
 #include <libnbd.h>
 
 #include "array-size.h"
+#include "requires.h"
 
 struct progress {
   int count;
@@ -213,7 +214,11 @@ main (int argc, char *argv[])
   nbd_shutdown (nbd, 0);
   nbd_close (nbd);
 
-  /* Second process, this time without structured replies server-side. */
+  /* Second process, this time without structured replies server-side.
+   * This part of the test is C-only, because it depends on nbdkit 1.14
+   * or newer with its --no-sr kill switch.
+   */
+  requires ("nbdkit --no-sr --help");
   args[ARRAY_SIZE (args) - 2] = (char *) "--no-sr";
   nbd = nbd_create ();
   if (nbd == NULL ||
