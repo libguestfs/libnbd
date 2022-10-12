@@ -22,7 +22,7 @@ set -e
 set -x
 
 requires nbdkit --version
-requires nbdkit memory --version
+requires nbdkit --no-sr memory --version
 
 out=info-packets.out
 cleanup_fn rm -f $out
