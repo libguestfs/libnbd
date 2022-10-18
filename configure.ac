@@ -528,16 +528,16 @@ AS_IF([test "x$enable_python" != "xno"],[
             PYTHON_INSTALLDIR=
             AC_MSG_CHECKING([for Python site-packages path])
             if test -z "$PYTHON_INSTALLDIR"; then
-                PYTHON_INSTALLDIR=`$PYTHON -c "import distutils.sysconfig; \
-                                               print (distutils.sysconfig.get_python_lib(1,0));"`
+                PYTHON_INSTALLDIR=`$PYTHON -c "import sysconfig; \
+                                               print (sysconfig.get_path('platlib'));"`
             fi
             AC_MSG_RESULT([$PYTHON_INSTALLDIR])
         fi
 
         AC_MSG_CHECKING([for Python extension suffix (PEP-3149)])
         if test -z "$PYTHON_EXT_SUFFIX"; then
-            python_ext_suffix=`$PYTHON -c "import distutils.sysconfig; \
-                                         print (distutils.sysconfig.get_config_var('EXT_SUFFIX') or distutils.sysconfig.get_config_var('SO'))"`
+            python_ext_suffix=`$PYTHON -c "import sysconfig; \
+                                         print (sysconfig.get_config_var('EXT_SUFFIX') or sysconfig.get_config_var('SO'))"`
             PYTHON_EXT_SUFFIX=$python_ext_suffix
         fi
         AC_MSG_RESULT([$PYTHON_EXT_SUFFIX])
