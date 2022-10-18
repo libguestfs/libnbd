@@ -55,7 +55,15 @@ targets:
 
   freebsd-current: x86_64
 
-  opensuse-leap-153: x86_64
+  opensuse-leap-153:
+    jobs:
+      - arch: x86_64
+        # nbdkit TLS support is broken on 15.3
+        # https://listman.redhat.com/archives/libguestfs/2022-October/030165.html
+        variables:
+          GNUTLS: skip
+
+  opensuse-leap-154: x86_64
 
   opensuse-tumbleweed: x86_64
 
