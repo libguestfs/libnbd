@@ -4,7 +4,7 @@ set -xe
 
 skip_tests() {
     # Add a way to run all the tests, even the skipped ones, with an environment
-    # variable, so that it can be set fora branch or fork in GitLab.
+    # variable, so that it can be set for a branch or fork in GitLab.
     if test "$SKIPPED_TESTS" != "force"
     then
         # Skip tests from ci/skipped_tests if this is the right OS version
@@ -33,7 +33,7 @@ skip_tests() {
                 test_case_bckup="${test_case}_skipped_test"
                 if ! git ls-files "$test_case" | grep -q "$test_case"
                 then
-                    make -C "$(dirname "$test_case")" "$(basename "$test_case")" 2>/dev/null || :
+                    $MAKE -C "$(dirname "$test_case")" "$(basename "$test_case")" 2>/dev/null || :
                 fi
                 echo Backing up "$test_case" to "${test_case_bckup}"
                 cp "$test_case" "${test_case_bckup}"
@@ -72,9 +72,15 @@ main() {
 
     CONFIG_ARGS="\
 --enable-gcc-warnings \
---with-gnutls \
 --with-libxml2 \
 "
+
+    if test skip = "$GNUTLS"
+    then
+        CONFIG_ARGS="$CONFIG_ARGS --without-gnutls"
+    else
+        CONFIG_ARGS="$CONFIG_ARGS --with-gnutls"
+    fi
 
     if test -n "$CROSS"
     then
@@ -96,7 +102,7 @@ main() {
         fi
     fi
 
-    ./configure $CONFIGURE_OPTS $CONFIG_ARGS
+    ./configure $CONFIG_ARGS $CONFIGURE_OPTS
 
     $MAKE
 
