@@ -24,6 +24,7 @@ set -x
 requires nbdkit --version
 requires nbdkit pattern --dump-plugin
 requires nbdkit -U - null --run 'test "$uri" != ""'
+requires nbdsh -c 'exit(not h.supports_uri())'
 
 output=dump-pattern.out
 rm -f $output

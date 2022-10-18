@@ -227,6 +227,26 @@ x86_64-fedora-rawhide-clang-local-env:
     NAME: fedora-rawhide
 
 
+x86_64-fedora-rawhide-no-libxml2-prebuilt-env:
+  extends: .native_build_job_prebuilt_env
+  needs:
+    - job: x86_64-fedora-rawhide-container
+      optional: true
+  allow_failure: false
+  variables:
+    LIBXML2: skip
+    NAME: fedora-rawhide
+
+x86_64-fedora-rawhide-no-libxml2-local-env:
+  extends: .native_build_job_local_env
+  needs: []
+  allow_failure: false
+  variables:
+    IMAGE: registry.fedoraproject.org/fedora:rawhide
+    LIBXML2: skip
+    NAME: fedora-rawhide
+
+
 x86_64-opensuse-leap-153-prebuilt-env:
   extends: .native_build_job_prebuilt_env
   needs:

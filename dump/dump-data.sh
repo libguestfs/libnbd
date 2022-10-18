@@ -24,6 +24,7 @@ set -x
 requires nbdkit --version
 requires nbdkit data --dump-plugin
 requires nbdkit -U - null --run 'test "$uri" != ""'
+requires nbdsh -c 'exit(not h.supports_uri())'
 
 # This test requires nbdkit >= 1.22.
 minor=$( nbdkit --dump-config | grep ^version_minor | cut -d= -f2 )
