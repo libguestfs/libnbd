@@ -49,6 +49,11 @@ targets:
         variables:
           CC: clang
 
+      - arch: x86_64
+        suffix: -no-libxml2
+        variables:
+          LIBXML2: skip
+
   freebsd-12: x86_64
 
   freebsd-13: x86_64

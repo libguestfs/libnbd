@@ -72,7 +72,6 @@ main() {
 
     CONFIG_ARGS="\
 --enable-gcc-warnings \
---with-libxml2 \
 "
 
     if test skip = "$GNUTLS"
@@ -80,6 +79,13 @@ main() {
         CONFIG_ARGS="$CONFIG_ARGS --without-gnutls"
     else
         CONFIG_ARGS="$CONFIG_ARGS --with-gnutls"
+    fi
+
+    if test skip = "$LIBXML2"
+    then
+        CONFIG_ARGS="$CONFIG_ARGS --without-libxml2"
+    else
+        CONFIG_ARGS="$CONFIG_ARGS --with-libxml2"
     fi
 
     if test -n "$CROSS"
