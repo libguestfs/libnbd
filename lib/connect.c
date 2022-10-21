@@ -172,7 +172,7 @@ int
 nbd_unlocked_aio_connect_vsock (struct nbd_handle *h,
                                 uint32_t cid, uint32_t port)
 {
-#ifdef AF_VSOCK
+#if HAVE_STRUCT_SOCKADDR_VM
   struct sockaddr_vm svm = {
     .svm_family = AF_VSOCK,
     .svm_cid = cid,

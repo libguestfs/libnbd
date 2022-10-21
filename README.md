@@ -122,6 +122,7 @@ Optional, only needed to run the test suite:
 * nbd-client and Linux nbd.ko for testing nbdcopy to/from devices.
 * flake8 to keep Python code formatted uniformly.
 * ss (from iproute) for TCP-based tests.
+* "sudo modprobe vsock_loopback" to run tests of AF_VSOCK (Linux-only).
 
 Optional, only needed to run some examples:
 

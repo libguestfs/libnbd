@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -493,7 +493,7 @@ nbd_unlocked_get_uri (struct nbd_handle *h)
       break;
     }
 
-#ifdef AF_VSOCK
+#if HAVE_STRUCT_SOCKADDR_VM
     case AF_VSOCK: {
       struct sockaddr_vm *svm = (struct sockaddr_vm *) &h->connaddr;
 

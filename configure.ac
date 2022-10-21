@@ -107,7 +107,20 @@ AC_CHECK_HEADERS([\
     stdatomic.h \
     sys/endian.h])
 
-AC_CHECK_HEADERS([linux/vm_sockets.h sys/vsock.h], [], [], [#include <sys/socket.h>])
+AC_CHECK_HEADERS([linux/vm_sockets.h sys/vsock.h], [], [], [[
+  #include <sys/socket.h>
+]])
+AC_CHECK_TYPES([struct sockaddr_vm], [], [], [[
+  #include <sys/socket.h>
+  #ifdef HAVE_LINUX_VM_SOCKETS_H
+  #include <linux/vm_sockets.h>
+  #elif HAVE_SYS_VSOCK_H
+  #include <sys/vsock.h>
+  #endif
+  #ifndef AF_VSOCK
+  #error "no vsock support"
+  #endif
+]])
 
 dnl Check for various libc functions, all optional.
 dnl
@@ -636,6 +649,7 @@ echo "Optional library features:"
 echo
 feature "TLS support"           test "x$HAVE_GNUTLS_TRUE" = "x"
 feature "NBD URI support"       test "x$HAVE_LIBXML2_TRUE" = "x"
+feature "AF_VSOCK support"      test "x$ac_cv_type_struct_sockaddr_vm" = "xyes"
 feature "FUSE support"          test "x$HAVE_FUSE_TRUE" = "x"
 feature "Manual pages"          test "x$HAVE_POD_TRUE" = "x"
 feature "Bash tab completion"   test "x$HAVE_BASH_COMPLETION_TRUE" = "x"
