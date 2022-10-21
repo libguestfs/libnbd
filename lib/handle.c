@@ -28,12 +28,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#ifdef HAVE_LINUX_VM_SOCKETS_H
-#include <linux/vm_sockets.h>
-#elif HAVE_SYS_VSOCK_H
-#include <sys/vsock.h>
-#endif
-
 #include "internal.h"
 
 static void
@@ -521,7 +515,7 @@ nbd_unlocked_supports_tls (struct nbd_handle *h)
 int
 nbd_unlocked_supports_vsock (struct nbd_handle *h)
 {
-#ifdef AF_VSOCK
+#if HAVE_STRUCT_SOCKADDR_VM
   return 1;
 #else
   return 0;
