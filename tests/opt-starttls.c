@@ -65,7 +65,7 @@ do_check (const char *act, int64_t got, int64_t exp)
     fprintf (stderr, "%s\n", nbd_get_error ());
   else
     fprintf (stderr, "succeeded, result %" PRId64 "\n", got);
-  if (got != exp) {
+  if (exp == -2 ? got < 0 : got != exp) {
     fprintf (stderr, "got %" PRId64 ", but expected %" PRId64 "\n", got, exp);
     exit (EXIT_FAILURE);
   }
@@ -112,6 +112,10 @@ do_test (const char *server_tls, struct expected exp)
          exp.first_can_meta);
   check (nbd_opt_starttls (nbd), exp.first_opt_tls);
   check (nbd_get_structured_replies_negotiated (nbd), exp.first_get_sr);
+  /* When SR is already active, nbdkit 1.30.10 returns true, while
+   * 1.33.2 returns false because the second SR request is redundant.
+   * check() special-cases the value of -2 to cope with this.
+   */
   check (nbd_opt_structured_reply (nbd), exp.second_opt_sr);
   check (nbd_can_meta_context (nbd, LIBNBD_CONTEXT_BASE_ALLOCATION),
          exp.second_can_meta);
@@ -177,7 +181,7 @@ main (int argc, char *argv[])
       .first_can_meta = 1,      /* Context is negotiated */
       .first_opt_tls = 0,       /* Server lacks TLS, but connection stays up */
       .first_get_sr = 1,        /* Structured reply still good */
-      .second_opt_sr = 0,       /* Server rejects second SR as redundant */
+      .second_opt_sr = -2,      /* Second SR is redundant, version-dependent */
       .second_can_meta = 1,     /* Context still negotiated */
       .second_opt_meta = 1,     /* Second meta request works */
       .second_opt_tls = 0,      /* Server still lacks TLS */
