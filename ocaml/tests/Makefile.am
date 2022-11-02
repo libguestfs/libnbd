@@ -42,6 +42,7 @@ ML_TESTS = \
 	test_500_aio_pread.ml \
 	test_505_aio_pread_structured_callback.ml \
 	test_510_aio_pwrite.ml \
+	test_580_aio_connect.ml \
 	test_590_aio_copy.ml \
 	test_600_debug_callback.ml \
 	test_610_exception.ml \

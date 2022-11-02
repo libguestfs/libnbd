@@ -49,7 +49,7 @@ and ocaml_arg_to_string = function
   | Int _ -> "int"
   | Int64 _ -> "int64"
   | Path _ -> "string"
-  | SockAddrAndLen _ -> "string" (* XXX not impl *)
+  | SockAddrAndLen _ -> "Unix.sockaddr"
   | SizeT _ -> "int" (* OCaml int type is always sufficient for counting *)
   | String _ -> "string"
   | StringList _ -> "string list"
@@ -702,9 +702,11 @@ let print_ocaml_binding (name, { args; optargs; ret }) =
     | SizeT n ->
        pr "  size_t %s = Int_val (%sv);\n" n n
     | SockAddrAndLen (n, len) ->
-       pr "  const struct sockaddr *%s;\n" n;
+       pr "  struct sockaddr_storage %s_storage;\n" n;
+       pr "  struct sockaddr *%s = (struct sockaddr *) &%s_storage;\n" n n;
        pr "  socklen_t %s;\n" len;
-       pr "  abort ();\n" (* XXX *)
+       pr "  nbd_internal_unix_sockaddr_to_sa (%sv, &%s_storage, &%s);\n"
+         n n len
     | StringList n ->
        pr "  char **%s = (char **) nbd_internal_ocaml_string_list (%sv);\n" n n
     | UInt n | UIntPtr n ->

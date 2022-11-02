@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <assert.h>
 
 #include <caml/alloc.h>
 #include <caml/callback.h>
@@ -30,6 +32,7 @@
 #include <caml/memory.h>
 #include <caml/mlvalues.h>
 #include <caml/printexc.h>
+#include <caml/socketaddr.h>
 #include <caml/unixsupport.h>
 
 #include <libnbd.h>
@@ -128,6 +131,26 @@ nbd_internal_ocaml_alloc_int64_from_uint32_array (uint32_t *a, size_t len)
   }
 
   CAMLreturn (rv);
+}
+
+/* Convert a Unix.sockaddr to a C struct sockaddr. */
+void
+nbd_internal_unix_sockaddr_to_sa (value sockaddrv,
+                                  struct sockaddr_storage *ss,
+                                  socklen_t *len)
+{
+  CAMLparam1 (sockaddrv);
+  union sock_addr_union sa_u;
+  socklen_param_type sl; /* this is really an int or socklen_t */
+
+  memset (ss, 0, sizeof *ss);
+
+  get_sockaddr (sockaddrv, &sa_u, &sl);
+  assert (sl <= sizeof *ss);
+  memcpy (ss, &sa_u, sl);
+  *len = sl;
+
+  CAMLreturn0;
 }
 
 /* Common code when an exception is raised in an OCaml callback.
