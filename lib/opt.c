@@ -87,7 +87,7 @@ go_complete (void *opaque, int *err)
 int
 nbd_unlocked_opt_go (struct nbd_handle *h)
 {
-  int err;
+  int err = 0;
   nbd_completion_callback c = { .callback = go_complete, .user_data = &err };
   int r = nbd_unlocked_aio_opt_go (h, &c);
 
@@ -110,7 +110,7 @@ nbd_unlocked_opt_go (struct nbd_handle *h)
 int
 nbd_unlocked_opt_info (struct nbd_handle *h)
 {
-  int err;
+  int err = 0;
   nbd_completion_callback c = { .callback = go_complete, .user_data = &err };
   int r = nbd_unlocked_aio_opt_info (h, &c);
 
@@ -143,7 +143,7 @@ nbd_unlocked_opt_abort (struct nbd_handle *h)
 int
 nbd_unlocked_opt_starttls (struct nbd_handle *h)
 {
-  int err;
+  int err = 0;
   nbd_completion_callback c = { .callback = go_complete, .user_data = &err };
   int r = nbd_unlocked_aio_opt_starttls (h, &c);
 
@@ -168,7 +168,7 @@ nbd_unlocked_opt_starttls (struct nbd_handle *h)
 int
 nbd_unlocked_opt_structured_reply (struct nbd_handle *h)
 {
-  int err;
+  int err = 0;
   nbd_completion_callback c = { .callback = go_complete, .user_data = &err };
   int r = nbd_unlocked_aio_opt_structured_reply (h, &c);
 

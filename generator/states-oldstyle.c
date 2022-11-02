@@ -1,5 +1,5 @@
 /* nbd client library in userspace: state machine
- * Copyright (C) 2013-2019 Red Hat Inc.
+ * Copyright (C) 2013-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,7 +25,7 @@ STATE_MACHINE {
    */
   h->rbuf = &h->sbuf.old_handshake;
   h->rlen = sizeof h->sbuf.old_handshake;
-  h->rbuf += 16;
+  h->rbuf = (char *) h->rbuf + 16;
   h->rlen -= 16;
   SET_NEXT_STATE (%RECV_REMAINING);
   return 0;

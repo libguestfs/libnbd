@@ -131,7 +131,6 @@ main (int argc, char *argv[])
     { "version",            no_argument,       NULL, 'V' },
     { NULL }
   };
-  int c;
   size_t i;
   char *output = NULL;
   size_t output_len = 0;
@@ -142,7 +141,7 @@ main (int argc, char *argv[])
   colour = isatty (STDOUT_FILENO);
 
   for (;;) {
-    c = getopt_long (argc, argv, short_options, long_options, NULL);
+    int c = getopt_long (argc, argv, short_options, long_options, NULL);
     if (c == -1)
       break;
 

@@ -142,10 +142,6 @@ STATE_MACHINE {
   uint32_t reply;
   uint32_t len;
   const size_t maxpayload = sizeof h->sbuf.or.payload;
-  uint16_t info;
-  uint64_t exportsize;
-  uint16_t eflags;
-  uint32_t min, pref, max;
   int err;
 
   reply = be32toh (h->sbuf.or.option_reply.reply);
@@ -156,6 +152,11 @@ STATE_MACHINE {
     if (len > maxpayload /* see RECV_NEWSTYLE_OPT_GO_REPLY */)
       debug (h, "skipping large NBD_REP_INFO");
     else {
+      uint16_t info;
+      uint64_t exportsize;
+      uint16_t eflags;
+      uint32_t min, pref, max;
+
       assert (len >= sizeof h->sbuf.or.payload.export.info);
       info = be16toh (h->sbuf.or.payload.export.info);
       switch (info) {

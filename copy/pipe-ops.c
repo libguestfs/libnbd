@@ -1,5 +1,5 @@
 /* NBD client library in userspace.
- * Copyright (C) 2020 Red Hat Inc.
+ * Copyright (C) 2020-2022 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -112,15 +112,14 @@ pipe_synch_write (struct rw *rw,
                   const void *data, size_t len, uint64_t offset)
 {
   struct rw_pipe *rwp = (struct rw_pipe *) rw;
-  ssize_t r;
 
   while (len > 0) {
-    r = write (rwp->fd, data, len);
+    ssize_t r = write (rwp->fd, data, len);
     if (r == -1) {
       perror (rw->name);
       exit (EXIT_FAILURE);
     }
-    data += r;
+    data = (char *) data + r;
     len -= r;
   }
 }

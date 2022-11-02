@@ -177,7 +177,6 @@ main (int argc, char *argv[])
   size_t i;
   int64_t exportsize;
   int64_t maxsize = MAX_BUF;
-  uint64_t offset;
 
   srand (time (NULL));
 
@@ -222,6 +221,7 @@ main (int argc, char *argv[])
     uint32_t flags = 0;
     struct data *d = malloc (sizeof *d);
     struct range *r = malloc (sizeof *r);
+    uint64_t offset;
 
     assert (d && r);
     offset = rand () % (exportsize - maxsize);

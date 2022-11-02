@@ -102,7 +102,6 @@ STATE_MACHINE {
   struct sockaddr_un addr;
   string_vector env = empty_vector;
   pid_t pid;
-  int flags;
 
   assert (!h->sock);
   assert (h->argv.ptr);
@@ -181,7 +180,7 @@ STATE_MACHINE {
        * implicitly because CLOEXEC is set on the fd, not on the
        * socket).
        */
-      flags = fcntl (s, F_GETFD, 0);
+      int flags = fcntl (s, F_GETFD, 0);
       if (flags == -1) {
         nbd_internal_fork_safe_perror ("fcntl: F_GETFD");
         _exit (126);

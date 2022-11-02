@@ -420,7 +420,7 @@ file_synch_read (struct rw *rw,
     if (r == 0)
       return n;
 
-    data += r;
+    data = (char *) data + r;
     offset += r;
     len -= r;
     n += r;
@@ -450,7 +450,7 @@ file_synch_write (struct rw *rw,
       perror (rw->name);
       exit (EXIT_FAILURE);
     }
-    data += r;
+    data = (char *) data + r;
     offset += r;
     len -= r;
   }

@@ -134,7 +134,7 @@ static int request_completed(void *user_data, int *error);
  * https://rusty.ozlabs.org/?p=560
  */
 static bool
-is_zero (const unsigned char *data, size_t len)
+is_buf_zero (const unsigned char *data, size_t len)
 {
   const unsigned char *p = data;
   size_t i;
@@ -459,7 +459,7 @@ read_completed (void *user_data, int *error)
     DEBUG ("r%zu: read completed offset=%" PRIi64 " len=%zu",
            r->index, r->offset, r->length);
 
-    if (dst.can_zero && is_zero (r->data, r->length))
+    if (dst.can_zero && is_buf_zero (r->data, r->length))
         start_zero (r);
     else
         start_write (r);

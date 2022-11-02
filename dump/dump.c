@@ -337,12 +337,12 @@ do_dump (void)
   const char *dot = colour ? "·" : ".";
   uint64_t offset = 0;
   uint64_t count = size > limit ? limit : size;
-  size_t i, j, n;
+  size_t i, j;
   char last[16];
   bool printed_splat = false, same;
 
   while (count) {
-    n = MIN (count, sizeof buffer);
+    size_t n = MIN (count, sizeof buffer);
 
     if (! test_all_zeroes (offset, n)) {
       if (nbd_pread (nbd, buffer, n, offset, 0) == -1) {

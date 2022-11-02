@@ -97,7 +97,7 @@ STATE_MACHINE {
 #endif
 
   h->bytes_received += r;
-  h->rbuf += r;
+  h->rbuf = (char *) h->rbuf + r;
   h->rlen -= r;
   SET_NEXT_STATE (%RECV_REPLY);
   return 0;

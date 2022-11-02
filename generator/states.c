@@ -91,7 +91,7 @@ recv_into_rbuf (struct nbd_handle *h)
 #endif
   h->bytes_received += r;
   if (h->rbuf)
-    h->rbuf += r;
+    h->rbuf = (char *) h->rbuf + r;
   h->rlen -= r;
   if (h->rlen == 0)
     return 0;                   /* move to next state */
@@ -114,7 +114,7 @@ send_from_wbuf (struct nbd_handle *h)
     return -1;
   }
   h->bytes_sent += r;
-  h->wbuf += r;
+  h->wbuf = (char *) h->wbuf + r;
   h->wlen -= r;
   if (h->wlen == 0)
     goto next_state;

@@ -463,11 +463,9 @@ nbd_ops_get_extents (struct rw *rw, size_t index,
 
     /* Copy the extents returned into the final list (ret). */
     for (i = 0; i < exts.len; ++i) {
-      uint64_t d;
-
       assert (exts.ptr[i].offset == offset);
       if (exts.ptr[i].offset + exts.ptr[i].length > offset + count) {
-        d = exts.ptr[i].offset + exts.ptr[i].length - offset - count;
+        uint64_t d = exts.ptr[i].offset + exts.ptr[i].length - offset - count;
         exts.ptr[i].length -= d;
         assert (exts.ptr[i].offset + exts.ptr[i].length == offset + count);
       }

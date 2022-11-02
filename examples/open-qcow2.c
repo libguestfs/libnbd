@@ -9,7 +9,7 @@
 #include <libnbd.h>
 
 int
-main (int argc, char *argv[])
+main (int argc, const char *argv[])
 {
   const char *filename;
   struct nbd_handle *nbd;

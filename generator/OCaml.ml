@@ -448,7 +448,7 @@ let print_ocaml_flag_val { flag_prefix; flags } =
   pr "      if (bit > 31)\n";
   pr "        caml_invalid_argument (\"bitmask value out of range\");\n";
   pr "      else\n";
-  pr "        r |= 1 << bit;\n";
+  pr "        r |= 1u << bit;\n";
   pr "    }\n";
   pr "  }\n";
   pr "\n";

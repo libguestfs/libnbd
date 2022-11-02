@@ -477,7 +477,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
        pr "  if (nbd_internal_py_init_aio_buffer (%s) < 0) goto out;\n" n
     | _ -> ()
   ) args;
-  pr "  Py_BEGIN_ALLOW_THREADS\n";
+  pr "  Py_BEGIN_ALLOW_THREADS;\n";
   pr "  ret = nbd_%s (" name;
   pr_wrap ',' (fun () ->
       pr "h";
@@ -486,7 +486,7 @@ let print_python_binding name { args; optargs; ret; may_set_error } =
         | _, _, n -> pr ", %s" n
         ) params);
   pr ");\n";
-  pr "  Py_END_ALLOW_THREADS\n";
+  pr "  Py_END_ALLOW_THREADS;\n";
   List.iter (
     function
     | Closure { cbname } -> pr "  %s_user_data = NULL;\n" cbname

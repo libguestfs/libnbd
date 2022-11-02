@@ -110,8 +110,6 @@ nbd_internal_set_argv (struct nbd_handle *h, char **argv)
 int
 nbd_internal_set_querylist (struct nbd_handle *h, char **queries)
 {
-  size_t i;
-
   string_vector_iter (&h->querylist, (void *) free);
   string_vector_reset (&h->querylist);
 
@@ -125,6 +123,8 @@ nbd_internal_set_querylist (struct nbd_handle *h, char **queries)
     string_vector_remove (&h->querylist, h->querylist.len - 1);
   }
   else {
+    size_t i;
+
     for (i = 0; i < h->request_meta_contexts.len; ++i) {
       char *copy = strdup (h->request_meta_contexts.ptr[i]);
       if (copy == NULL) {
@@ -308,7 +308,7 @@ char *
 nbd_internal_printable_string_list (char **list)
 {
   char *s = NULL;
-  size_t len = 0, i;
+  size_t len = 0;
   FILE *fp;
 
   fp = open_memstream (&s, &len);
@@ -318,6 +318,8 @@ nbd_internal_printable_string_list (char **list)
   if (list == NULL)
     fprintf (fp, "NULL");
   else {
+    size_t i;
+
     fprintf (fp, "[");
     for (i = 0; list[i] != NULL; ++i) {
       if (i > 0)

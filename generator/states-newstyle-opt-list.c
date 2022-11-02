@@ -68,9 +68,6 @@ STATE_MACHINE {
   const size_t maxpayload = sizeof h->sbuf.or.payload.server;
   uint32_t reply;
   uint32_t len;
-  uint32_t elen;
-  const char *name;
-  const char *desc;
   char *tmp;
   int err;
 
@@ -82,6 +79,10 @@ STATE_MACHINE {
     if (len >= maxpayload)
       debug (h, "skipping too large export name reply");
     else {
+      uint32_t elen;
+      const char *name;
+      const char *desc;
+
       /* server.str is oversized for trailing NUL byte convenience */
       h->sbuf.or.payload.server.str[len - 4] = '\0';
       elen = be32toh (h->sbuf.or.payload.server.server.export_name_len);
