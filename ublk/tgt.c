@@ -232,7 +232,7 @@ io_uring_thread (void *vpinfo)
                                  q_id, gettid ());
   pthread_mutex_unlock (&jbuf_lock);
 
-  q = ublksrv_queue_init (dev, q_id, 0, NULL);
+  q = ublksrv_queue_init (dev, q_id, NULL);
   if (!q) {
     perror ("ublksrv_queue_init");
     return NULL;
