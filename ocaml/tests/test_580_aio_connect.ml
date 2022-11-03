@@ -58,7 +58,7 @@ let () =
   (* Kill the nbdkit subprocess. *)
   let chan = open_in pidfile in
   let pid = int_of_string (input_line chan) in
-  kill pid Sys.sigint;
+  kill pid Sys.sigterm;
 
   (* Clean up files. *)
   unlink sock;
