@@ -145,7 +145,12 @@ nbd_internal_unix_sockaddr_to_sa (value sockaddrv,
 
   memset (ss, 0, sizeof *ss);
 
+#ifdef HAVE_CAML_UNIX_GET_SOCKADDR
+  caml_unix_get_sockaddr (sockaddrv, &sa_u, &sl);
+#else
+  /* OCaml <= 4.14 exports this unnamespaced symbol. */
   get_sockaddr (sockaddrv, &sa_u, &sl);
+#endif
   assert (sl <= sizeof *ss);
   memcpy (ss, &sa_u, sl);
   *len = sl;

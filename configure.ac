@@ -457,6 +457,24 @@ EOF
     rm -f conftest.c conftest.o
 ])
 
+dnl Check if OCaml has caml_unix_get_sockaddr (added 2022).
+AS_IF([test "x$OCAMLC" != "xno" && test "x$OCAMLFIND" != "xno" && \
+       test "x$enable_ocaml" = "xyes"],[
+    AC_MSG_CHECKING([for caml_unix_get_sockaddr])
+    cat >conftest.c <<'EOF'
+#include <caml/socketaddr.h>
+int main () { char *p = (void *) caml_unix_get_sockaddr; return 0; }
+EOF
+    AS_IF([$OCAMLC conftest.c >&AS_MESSAGE_LOG_FD 2>&1],[
+        AC_MSG_RESULT([yes])
+        AC_DEFINE([HAVE_CAML_UNIX_GET_SOCKADDR],[1],
+                  [caml_unix_get_sockaddr found at compile time.])
+    ],[
+        AC_MSG_RESULT([no])
+    ])
+    rm -f conftest.c conftest.o
+])
+
 dnl Python, optional for the Python bindings and shell.
 PYTHON_PREFIX=
 PYTHON_VERSION=
