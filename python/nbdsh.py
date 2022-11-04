@@ -34,15 +34,37 @@ def shell():
     parser = argparse.ArgumentParser(prog='nbdsh', description=description,
                                      epilog=epilog)
 
-    parser.set_defaults(command=[])
+    # Allow intermixing of various options for replay in command-line order:
+    # each option registered with this Action subclass will append a tuple
+    # to a single list of snippets
+    class SnippetAction(argparse.Action):
+        def __init__(self, option_strings, dest, nargs=None,
+                     default=argparse.SUPPRESS, **kwargs):
+            if nargs not in [0, None]:
+                raise ValueError("nargs must be 0 or None")
+            super().__init__(option_strings, dest, nargs=nargs,
+                             default=default, **kwargs)
+
+        def __call__(self, parser, namespace, values, option_string=None):
+            dest = self.dest
+            if dest != 'command':
+                setattr(namespace, 'need_handle',
+                        getattr(namespace, 'need_handle') + 1)
+            elif values == '-':
+                dest = 'stdin'
+            snippets = getattr(namespace, 'snippets')[:]
+            snippets.append((dest, values))
+            setattr(namespace, 'snippets', snippets)
+
+    parser.set_defaults(need_handle=0, snippets=[])
     short_options = []
     long_options = []
 
-    parser.add_argument('--base-allocation', action='store_true',
+    parser.add_argument('--base-allocation', action=SnippetAction, nargs=0,
                         help='request the "base:allocation" meta context')
     long_options.append("--base-allocation")
 
-    parser.add_argument('-c', '--command', action='append',
+    parser.add_argument('-c', '--command', action=SnippetAction,
                         help="run a Python statement "
                         "(may be used multiple times)")
     short_options.append("-c")
@@ -52,15 +74,17 @@ def shell():
                         help="do not create the implicit handle 'h'")
     short_options.append("-n")
 
-    parser.add_argument('--opt-mode', action='store_true',
+    parser.add_argument('--opt-mode', action=SnippetAction, nargs=0,
                         help='request opt mode during connection')
     long_options.append("--opt-mode")
 
-    parser.add_argument('-u', '--uri', help="connect to NBD URI")
+    parser.add_argument('-u', '--uri', action=SnippetAction,
+                        help="connect to NBD URI")
     short_options.append("-u")
     long_options.append("--uri")
     # For back-compat, provide --connect as an undocumented synonym to --uri
-    parser.add_argument('--connect', dest='uri', help=argparse.SUPPRESS)
+    parser.add_argument('--connect', dest='uri', action=SnippetAction,
+                        help=argparse.SUPPRESS)
 
     parser.add_argument('-v', '--verbose', action='store_true')
     short_options.append("-v")
@@ -79,9 +103,7 @@ def shell():
     args = parser.parse_args()
 
     # It's an error if -n is passed with certain other options.
-    if args.n and (args.base_allocation or
-                   args.opt_mode or
-                   args.uri is not None):
+    if args.n and args.need_handle:
         print("error: -n option cannot be used with " +
               "--base-allocation, --opt-mode or --uri",
               file=sys.stderr)
@@ -109,30 +131,20 @@ def shell():
         h = nbd.NBD()
         h.set_handle_name("nbdsh")
 
-        # Set other attributes in the handle.
-        if args.base_allocation:
-            h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
-        if args.opt_mode:
-            h.set_opt_mode(True)
-
-        # Parse the URI.
-        if args.uri is not None:
-            try:
-                h.connect_uri(args.uri)
-            except nbd.Error as ex:
-                print("nbdsh: unable to connect to uri '%s': %s" %
-                      (args.uri, ex.string), file=sys.stderr)
-                sys.exit(1)
-
-    # Run all -c snippets
+    # Run all snippets
     # https://stackoverflow.com/a/11754346
     d = dict(locals(), **globals())
+    do_snippet = {
+        "command": lambda arg: exec(arg, d, d),
+        "stdin": lambda arg: exec(sys.stdin.read(), d, d),
+        "base_allocation": lambda arg: h.add_meta_context(
+            nbd.CONTEXT_BASE_ALLOCATION),
+        "opt_mode": lambda arg: h.set_opt_mode(True),
+        "uri": lambda arg: h.connect_uri(arg),
+    }
     try:
-        for c in args.command:
-            if c != '-':
-                exec(c, d, d)
-            else:
-                exec(sys.stdin.read(), d, d)
+        for (act, arg) in args.snippets:
+            do_snippet[act](arg)
     except nbd.Error as ex:
         if nbd.NBD().get_debug():
             traceback.print_exc()
@@ -142,7 +154,7 @@ def shell():
         sys.exit(1)
 
     # If there are no explicit -c or --command parameters, go interactive.
-    if len(args.command) == 0:
+    if len(args.snippets) - args.need_handle == 0:
         sys.ps1 = "nbd> "
         code.interact(banner=make_banner(args), local=locals(), exitmsg='')
 
@@ -165,9 +177,6 @@ def make_banner(args):
         line("The ‘nbd’ module has already been imported.")
         blank()
         example("h = nbd.NBD()", "Create a new handle.")
-    if args.uri is None:
-        example('h.connect_tcp("remote", "10809")',
-                "Connect to a remote server.")
     example("h.get_size()", "Get size of the remote disk.")
     example("buf = h.pread(512, 0)", "Read the first sector.")
     example("exit() or Ctrl-D", "Quit the shell")

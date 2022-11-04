@@ -31,15 +31,13 @@ if test "x$output" != xFalse; then
     fail=1
 fi
 
-# Use of -c to request context is too late with -u
-output=$(nbdkit -U - null --run 'nbdsh -c "
-try:
-    h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
-    assert False
-except nbd.Error:
-    print(\"okay\")
-" -u "nbd+unix://?socket=$unixsocket"')
-if test "x$output" != xokay; then
+# Can also use manual -c to request context before -u
+output=$(nbdkit -U - null --run 'nbdsh \
+-c "h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)" \
+-u "nbd+unix://?socket=$unixsocket" \
+-c "print(h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION))"
+')
+if test "x$output" != xTrue; then
     echo "$0: unexpected output: $output"
     fail=1
 fi
@@ -53,9 +51,9 @@ if test "x$output" != xTrue; then
     fail=1
 fi
 
-# Again, but with --b after -u, and with abbreviated option names
+# Again, but with abbreviated option names
 output=$(nbdkit -U - null --run 'nbdsh \
-    -u "nbd+unix://?socket=$unixsocket" --b \
+    --b -u "nbd+unix://?socket=$unixsocket" \
     -c "print(h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION))"')
 if test "x$output" != xTrue; then
     echo "$0: unexpected output: $output"
@@ -65,7 +63,7 @@ fi
 if [[ $(nbdkit --help) =~ --no-sr ]]; then
     # meta context depends on server cooperation
     output=$(nbdkit -U - --no-sr null --run 'nbdsh \
-      -u "nbd+unix://?socket=$unixsocket" --base-allocation \
+      --base-allocation -u "nbd+unix://?socket=$unixsocket" \
       -c "print(h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION))"')
     if test "x$output" != xFalse; then
         echo "$0: unexpected output: $output"
@@ -77,7 +75,7 @@ fi
 
 # Test interaction with opt mode
 output=$(nbdkit -U - null --run 'nbdsh \
-    -u "nbd+unix://?socket=$unixsocket" --opt-mode --base-allocation \
+    --opt-mode --base-allocation -u "nbd+unix://?socket=$unixsocket" \
     -c "
 try:
     h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION)
@@ -94,7 +92,7 @@ fi
 
 # And with --opt-mode, we can get away without --base-allocation
 output=$(nbdkit -U - null --run 'nbdsh \
-    -u "nbd+unix://?socket=$unixsocket" --opt-mode \
+    --opt-mode -u "nbd+unix://?socket=$unixsocket" \
     -c "h.add_meta_context(nbd.CONTEXT_BASE_ALLOCATION)" \
     -c "h.opt_go()" \
     -c "print(h.can_meta_context(nbd.CONTEXT_BASE_ALLOCATION))"')
