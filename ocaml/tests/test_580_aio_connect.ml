@@ -17,51 +17,44 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *)
 
+(* This test is unusual because we want to run it under nbdkit
+ * rather than having the test run nbdkit as a subprocess.
+ *
+ * Therefore we detect if a $unixsocket parameter is passed
+ * in Sys.argv.  If not then we exec nbdkit:
+ *   nbdkit -U - ... --run '$argv0 \$unixsocket'
+ * If the $unixsocket parameter is present then we run the test.
+ *)
+
 open Unix
 open Printf
 
 let () =
-  let nbd = NBD.create () in
+  let argv0 = Sys.argv.(0) in
 
-  (* Unlike other tests, we're going to run nbdkit as a subprocess
-   * by hand and have it listening on a randomly named socket
-   * that we create.
-   *)
-  let sock = Filename.temp_file "580-" ".sock" in
-  unlink sock;
-  let pidfile = Filename.temp_file "580-" ".pid" in
-  unlink pidfile;
-  let cmd =
-    sprintf "nbdkit -U %s -P %s --exit-with-parent memory size=512 &"
-      (Filename.quote sock) (Filename.quote pidfile) in
-  if Sys.command cmd <> 0 then
-    failwith "nbdkit command failed";
-  let rec loop i =
-    if i > 60 then
-      failwith "nbdkit subcommand did not start up";
-    if not (Sys.file_exists pidfile) then (
-      sleep 1;
-      loop (i+1)
-    )
-  in
-  loop 0;
+  match Array.length Sys.argv with
+  | 1 ->                        (* exec nbdkit *)
+     let runcmd = sprintf "%s $unixsocket" (Filename.quote argv0) in
+     execvp "nbdkit" [| "nbdkit"; "-U"; "-"; "--exit-with-parent"; "-v";
+                        "memory"; "size=512";
+                        "--run"; runcmd |]
 
-  (* Connect to the subprocess using a Unix.sockaddr. *)
-  let sa = ADDR_UNIX sock in
-  NBD.aio_connect nbd sa;
-  while NBD.aio_is_connecting nbd do
-    ignore (NBD.poll nbd 1)
-  done;
-  assert (NBD.aio_is_ready nbd);
-  NBD.close nbd;
+  | 2 ->                        (* run the test *)
+     let unixsocket = Sys.argv.(1) in
 
-  (* Kill the nbdkit subprocess. *)
-  let chan = open_in pidfile in
-  let pid = int_of_string (input_line chan) in
-  kill pid Sys.sigterm;
+     (* Connect to the subprocess using a Unix.sockaddr. *)
+     NBD.with_handle (
+       fun nbd ->
+         let sa = ADDR_UNIX unixsocket in
+         NBD.aio_connect nbd sa;
+         while NBD.aio_is_connecting nbd do
+           ignore (NBD.poll nbd 1)
+         done;
+         assert (NBD.aio_is_ready nbd);
+         assert (NBD.get_size nbd = 512_L)
+     )
 
-  (* Clean up files. *)
-  unlink sock;
-  unlink pidfile
+  | _ ->
+     failwith (sprintf "%s: unexpected test parameters" argv0)
 
 let () = Gc.compact ()
