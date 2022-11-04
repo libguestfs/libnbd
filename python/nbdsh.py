@@ -1,5 +1,5 @@
 # NBD client library in userspace
-# Copyright (C) 2013-2021 Red Hat Inc.
+# Copyright (C) 2013-2022 Red Hat Inc.
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -33,6 +33,8 @@ def shell():
     epilog = '''Please read the nbdsh(1) manual page for full usage.'''
     parser = argparse.ArgumentParser(prog='nbdsh', description=description,
                                      epilog=epilog)
+
+    parser.set_defaults(command=[])
     short_options = []
     long_options = []
 
@@ -98,10 +100,6 @@ def shell():
         print("\n".join(long_options))
         exit(0)
 
-    # Create the banner and prompt.
-    banner = make_banner(args)
-    sys.ps1 = "nbd> "
-
     # If verbose, set LIBNBD_DEBUG=1
     if args.verbose:
         os.environ["LIBNBD_DEBUG"] = "1"
@@ -126,26 +124,27 @@ def shell():
                       (args.uri, ex.string), file=sys.stderr)
                 sys.exit(1)
 
-    # If there are no -c or --command parameters, go interactive,
-    # otherwise we run the commands and exit.
-    if not args.command:
-        code.interact(banner=banner, local=locals(), exitmsg='')
-    else:
-        # https://stackoverflow.com/a/11754346
-        d = dict(locals(), **globals())
-        try:
-            for c in args.command:
-                if c != '-':
-                    exec(c, d, d)
-                else:
-                    exec(sys.stdin.read(), d, d)
-        except nbd.Error as ex:
-            if nbd.NBD().get_debug():
-                traceback.print_exc()
+    # Run all -c snippets
+    # https://stackoverflow.com/a/11754346
+    d = dict(locals(), **globals())
+    try:
+        for c in args.command:
+            if c != '-':
+                exec(c, d, d)
             else:
-                print("nbdsh: command line script failed: %s" % ex.string,
-                      file=sys.stderr)
-            sys.exit(1)
+                exec(sys.stdin.read(), d, d)
+    except nbd.Error as ex:
+        if nbd.NBD().get_debug():
+            traceback.print_exc()
+        else:
+            print("nbdsh: command line script failed: %s" % ex.string,
+                  file=sys.stderr)
+        sys.exit(1)
+
+    # If there are no explicit -c or --command parameters, go interactive.
+    if len(args.command) == 0:
+        sys.ps1 = "nbd> "
+        code.interact(banner=make_banner(args), local=locals(), exitmsg='')
 
 
 def make_banner(args):
