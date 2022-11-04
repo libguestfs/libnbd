@@ -36,7 +36,7 @@ EXTRA_DIST = \
 	$(generator_built) \
 	nbdsh.py \
 	pycodestyle.sh \
-	python-aio-connect-unix.sh \
+	test-aio-connect-unix.sh \
 	$(srcdir)/t/*.py \
 	$(NULL)
 
@@ -85,8 +85,8 @@ TESTS_ENVIRONMENT = \
 	$(NULL)
 LOG_COMPILER = $(top_builddir)/run
 TESTS += \
-	python-aio-connect-unix.sh \
 	run-python-tests \
+	test-aio-connect-unix.sh \
 	$(NULL)
 
 endif HAVE_NBDKIT
