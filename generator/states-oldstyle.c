@@ -68,6 +68,7 @@ STATE_MACHINE {
     SET_NEXT_STATE (%.DEAD);
     return 0;
   }
+  nbd_internal_set_payload (h);
 
   h->protocol = "oldstyle";
 

@@ -276,6 +276,7 @@ STATE_MACHINE {
     err = nbd_get_errno () ? : ENOTSUP;
     break;
   case NBD_REP_ACK:
+    nbd_internal_set_payload (h);
     err = 0;
     break;
   }

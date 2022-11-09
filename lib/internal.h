@@ -146,6 +146,8 @@ struct nbd_handle {
   uint32_t block_minimum;
   uint32_t block_preferred;
   uint32_t block_maximum;
+  /* Payload cap, always non-zero, based on block_maximum when feasible */
+  uint32_t payload_maximum;
 
   /* Server canonical name and description, or NULL if not advertised. */
   char *canonical_name;
@@ -447,6 +449,8 @@ extern int nbd_internal_set_size_and_flags (struct nbd_handle *h,
   LIBNBD_ATTRIBUTE_NONNULL(1);
 extern int nbd_internal_set_block_size (struct nbd_handle *h, uint32_t min,
                                         uint32_t pref, uint32_t max)
+  LIBNBD_ATTRIBUTE_NONNULL(1);
+extern void nbd_internal_set_payload (struct nbd_handle *h)
   LIBNBD_ATTRIBUTE_NONNULL(1);
 
 /* is-state.c */

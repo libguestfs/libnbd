@@ -26,6 +26,7 @@
 #include <errno.h>
 
 #include "internal.h"
+#include "minmax.h"
 
 /* Reset connection data.  Called after swapping export name, after
  * failed OPT_GO/OPT_INFO, or after successful OPT_STARTTLS.
@@ -38,6 +39,7 @@ nbd_internal_reset_size_and_flags (struct nbd_handle *h)
   h->block_minimum = 0;
   h->block_preferred = 0;
   h->block_maximum = 0;
+  h->payload_maximum = 0;
   free (h->canonical_name);
   h->canonical_name = NULL;
   free (h->description);
@@ -116,6 +118,27 @@ nbd_internal_set_block_size (struct nbd_handle *h, uint32_t min,
  ignore:
   debug (h, "ignoring improper server size constraints");
   return 0; /* Use return -1 if we want to reject such servers */
+}
+
+/* Set the payload size constraint on the handle.
+ * This is called from the state machine after all other information
+ * about an export is available, regardless of oldstyle or newstyle.
+ */
+void
+nbd_internal_set_payload (struct nbd_handle *h)
+{
+  /* The NBD protocol says we should not assume the server will allow
+   * more than 32M payload if it did not advertise anything.  If it
+   * advertised more than 64M, we still cap at the maximum buffer size
+   * we are willing to allocate as a client; if it advertised smaller
+   * than 1M (presumably because the export itself was small), the NBD
+   * protocol says we can still send payloads that large.
+   */
+  if (h->block_maximum)
+    h->payload_maximum = MIN (MAX_REQUEST_SIZE,
+                              MAX (1024 * 1024, h->block_maximum));
+  else
+    h->payload_maximum = 32 * 1024 * 1024;
 }
 
 static int
@@ -237,6 +260,8 @@ nbd_unlocked_get_block_size (struct nbd_handle *h, int type)
     return h->block_preferred;
   case LIBNBD_SIZE_MAXIMUM:
     return h->block_maximum;
+  case LIBNBD_SIZE_PAYLOAD:
+    return h->payload_maximum;
   }
   return 0;
 }

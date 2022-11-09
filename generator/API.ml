@@ -184,6 +184,7 @@ let block_size_enum = {
     "MINIMUM",   0;
     "PREFERRED", 1;
     "MAXIMUM",   2;
+    "PAYLOAD",   3;
   ]
 }
 let all_enums = [ tls_enum; block_size_enum ]
@@ -221,6 +222,7 @@ let strict_flags = {
     "BOUNDS",         1 lsl 2;
     "ZERO_SIZE",      1 lsl 3;
     "ALIGN",          1 lsl 4;
+    "PAYLOAD",        1 lsl 5;
   ]
 }
 let allow_transport_flags = {
@@ -1060,10 +1062,21 @@ undefined results.
 =item C<LIBNBD_STRICT_ALIGN> = 0x10
 
 If set, and the server provided minimum block sizes (see
-L<nbd_get_block_size(3)>, this flag rejects client requests that
-do not have length and offset aligned to the server's minimum
-requirements.  If clear, unaligned requests are sent to the server,
-where it is up to the server whether to honor or reject the request.
+C<LIBNBD_SIZE_MINIMUM> for L<nbd_get_block_size(3)>), this
+flag rejects client requests that do not have length and offset
+aligned to the server's minimum requirements.  If clear,
+unaligned requests are sent to the server, where it is up to
+the server whether to honor or reject the request.
+
+=item C<LIBNBD_STRICT_PAYLOAD> = 0x20
+
+If set, the client refuses to send a command to the server
+with more than libnbd's outgoing payload maximum (see
+C<LIBNBD_SIZE_PAYLOAD> for L<nbd_get_block_size(3)>), whether
+or not the server advertised a block size maximum.  If clear,
+oversize requests up to 64MiB may be attempted, although
+requests larger than 32MiB are liable to cause some servers to
+disconnect.
 
 =back
 
@@ -2286,6 +2299,15 @@ Note that this function returns what the server advertised, but libnbd
 itself imposes a maximum of 64M.  If zero, some NBD servers will
 abruptly disconnect if a transaction involves more than 32M.
 
+=item C<LIBNBD_SIZE_PAYLOAD> = 3
+
+This value is not advertised by the server, but rather represents
+the maximum outgoing payload size for a given connection that
+libnbd will enforce unless C<LIBNBD_STRICT_PAYLOAD> is cleared
+in C<nbd_set_strict_mode(3)>.  It is always non-zero: never
+smaller than 1M, never larger than 64M, and matches
+C<LIBNBD_SIZE_MAXIMUM> when possible.
+
 =back
 
 Future NBD extensions may result in additional C<size_type> values.
@@ -2449,10 +2471,11 @@ using this call.  The call returns when the command has been
 acknowledged by the server, or there is an error.  Note this will
 generally return an error if L<nbd_is_read_only(3)> is true.
 
-Note that libnbd currently enforces a maximum write buffer of 64MiB,
-even if the server would permit a larger buffer in a single transaction;
-attempts to exceed this will result in an C<ERANGE> error.  The server
-may enforce a smaller limit, which can be learned with
+Note that libnbd defaults to enforcing a maximum write buffer
+of the lesser of 64MiB or any maximum payload size advertised
+by the server; attempts to exceed this will generally result in
+a client-side C<ERANGE> error, rather than a server-side
+disconnection.  The actual limit can be learned with
 L<nbd_get_block_size(3)>.
 
 The C<flags> parameter may be C<0> for no flags, or may contain

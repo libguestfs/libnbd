@@ -70,6 +70,7 @@ STATE_MACHINE {
     SET_NEXT_STATE (%.DEAD);
     return 0;
   }
+  nbd_internal_set_payload (h);
   SET_NEXT_STATE (%^FINISHED);
   CALL_CALLBACK (h->opt_cb.completion, &err);
   nbd_internal_free_option (h);

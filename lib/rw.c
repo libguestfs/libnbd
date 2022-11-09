@@ -207,8 +207,15 @@ nbd_internal_command_common (struct nbd_handle *h,
 
   switch (type) {
     /* Commands which send or receive data are limited to MAX_REQUEST_SIZE. */
-  case NBD_CMD_READ:
   case NBD_CMD_WRITE:
+    if (h->strict & LIBNBD_STRICT_PAYLOAD && count > h->payload_maximum) {
+      set_error (ERANGE,
+                 "request too large: maximum payload size is %" PRIu32,
+                 h->payload_maximum);
+      goto err;
+    }
+    /* fallthrough */
+  case NBD_CMD_READ:
     if (count > MAX_REQUEST_SIZE) {
       set_error (ERANGE, "request too large: maximum request size is %d",
                  MAX_REQUEST_SIZE);
