@@ -117,12 +117,14 @@ main (int argc, char *argv[])
   /* For debugging purposes, print the block size constraints exported
    * by nbdkit.
    */
-  printf ("server block size minimum: %" PRIi64 "\n",
+  printf ("server block size minimum: %" PRId64 "\n",
           nbd_get_block_size (nbd, LIBNBD_SIZE_MINIMUM));
-  printf ("server block size preferred: %" PRIi64 "\n",
+  printf ("server block size preferred: %" PRId64 "\n",
           nbd_get_block_size (nbd, LIBNBD_SIZE_PREFERRED));
-  printf ("server block size maximum: %" PRIi64 "\n",
+  printf ("server block size maximum: %" PRId64 "\n",
           nbd_get_block_size (nbd, LIBNBD_SIZE_MAXIMUM));
+  printf ("libnbd payload size maximum: %" PRId64 "\n",
+          nbd_get_block_size (nbd, LIBNBD_SIZE_PAYLOAD));
   fflush (stdout);
 
   /* Send an unaligned read, server-side */

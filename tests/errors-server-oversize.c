@@ -27,6 +27,7 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include <sys/stat.h>
 
 #include <libnbd.h>
@@ -58,20 +59,55 @@ check (int experr, const char *prefix)
   }
 }
 
+static void
+check_server_fail (struct nbd_handle *h, int64_t cookie,
+                   const char *cmd, int experr)
+{
+  int r;
+
+  if (cookie == -1) {
+    fprintf (stderr, "%s: test failed: %s not sent to server\n",
+             progname, cmd);
+    exit (EXIT_FAILURE);
+  }
+
+  while ((r = nbd_aio_command_completed (h, cookie)) == 0) {
+    if (nbd_poll (h, -1) == -1) {
+      fprintf (stderr, "%s: test failed: poll failed while awaiting %s: %s\n",
+               progname, cmd, nbd_get_error ());
+      exit (EXIT_FAILURE);
+    }
+  }
+
+  if (r != -1) {
+    fprintf (stderr, "%s: test failed: %s did not fail at server\n",
+             progname, cmd);
+    exit (EXIT_FAILURE);
+  }
+  check (experr, "nbd_aio_command_completed: ");
+}
+
 int
 main (int argc, char *argv[])
 {
   struct nbd_handle *nbd;
   const char *cmd[] = {
-    "nbdkit", "-s", "-v", "--exit-with-parent",
-    "memory", "68157440",
-    "--filter=blocksize-policy", "blocksize-maximum=32M",
-    "blocksize-error-policy=error",
-    NULL
+    "nbdkit", "-s", "-v", "--exit-with-parent", "eval",
+    "get_size=    echo 68157440",
+    "block_size=  echo 1 512 16M",
+    "pread=       echo EIO >&2; exit 1",
+    "pwrite=      if test $3 -gt $((32*1024*1024)); then\n"
+    "               exit 6\n" /* Hard disconnect */
+    "             elif test $3 -gt $((16*1024*1024)); then\n"
+    "               echo EOVERFLOW >&2; exit 1\n"
+    "             fi\n"
+    "             cat >/dev/null",
+    NULL,
   };
+  uint32_t strict;
 
   progname = argv[0];
-  requires ("nbdkit --version --filter=blocksize-policy null");
+  requires ("nbdkit --dump-plugin eval | grep ^max_known_status=");
 
   nbd = nbd_create ();
   if (nbd == NULL) {
@@ -85,32 +121,30 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  /* Check that oversized requests are rejected */
-  if (nbd_pread (nbd, buf, MAXSIZE, 0, 0) != -1) {
-    fprintf (stderr, "%s: test failed: "
-             "nbd_pread did not fail with oversize request\n",
-             argv[0]);
-    exit (EXIT_FAILURE);
-  }
-  check (ERANGE, "nbd_pread: ");
+  /* Check the advertised max sizes. */
+  printf ("server block size maximum: %" PRId64 "\n",
+          nbd_get_block_size (nbd, LIBNBD_SIZE_MAXIMUM));
+  printf ("libnbd payload size maximum: %" PRId64 "\n",
+          nbd_get_block_size (nbd, LIBNBD_SIZE_PAYLOAD));
 
-  if (nbd_aio_pwrite (nbd, buf, MAXSIZE, 0,
-                      NBD_NULL_COMPLETION, 0) != -1) {
-    fprintf (stderr, "%s: test failed: "
-             "nbd_aio_pwrite did not fail with oversize request\n",
-             argv[0]);
+  /* Disable client-side safety check */
+  strict = nbd_get_strict_mode (nbd) & ~LIBNBD_STRICT_PAYLOAD;
+  if (nbd_set_strict_mode (nbd, strict) == -1) {
+    fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }
-  check (ERANGE, "nbd_aio_pwrite: ");
 
-  if (nbd_aio_pwrite (nbd, buf, 33*1024*1024, 0,
-                      NBD_NULL_COMPLETION, 0) != -1) {
-    fprintf (stderr, "%s: test failed: "
-             "nbd_aio_pwrite did not fail with oversize request\n",
-             argv[0]);
-    exit (EXIT_FAILURE);
-  }
-  check (ERANGE, "nbd_aio_pwrite: ");
+  /* Handle graceful server rejection of oversize request */
+  check_server_fail (nbd,
+                     nbd_aio_pwrite (nbd, buf, 17*1024*1024, 0,
+                                     NBD_NULL_COMPLETION, 0),
+                     "17M nbd_aio_pwrite", EINVAL);
+
+  /* Handle abrupt server rejection of oversize request */
+  check_server_fail (nbd,
+                     nbd_aio_pwrite (nbd, buf, 33*1024*1024, 0,
+                                     NBD_NULL_COMPLETION, 0),
+                     "33M nbd_aio_pwrite", ENOTCONN);
 
   nbd_close (nbd);
   exit (EXIT_SUCCESS);

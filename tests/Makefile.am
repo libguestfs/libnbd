@@ -177,6 +177,7 @@ check_PROGRAMS += \
 	errors-multiple-disconnects \
 	errors-server-invalid-offset \
 	errors-client-oversize \
+	errors-server-oversize \
 	errors-client-unadvertised-cmd \
 	errors-server-unadvertised-cmd \
 	errors-client-unaligned \
@@ -247,6 +248,7 @@ TESTS += \
 	errors-multiple-disconnects \
 	errors-server-invalid-offset \
 	errors-client-oversize \
+	errors-server-oversize \
 	errors-client-unadvertised-cmd \
 	errors-server-unadvertised-cmd \
 	errors-client-unaligned \
@@ -343,8 +345,19 @@ errors_multiple_disconnects_LDADD = $(top_builddir)/lib/libnbd.la
 errors_server_invalid_offset_SOURCES = errors-server-invalid-offset.c
 errors_server_invalid_offset_LDADD = $(top_builddir)/lib/libnbd.la
 
-errors_client_oversize_SOURCES = errors-client-oversize.c
+errors_client_oversize_SOURCES = \
+	errors-client-oversize.c \
+	requires.c \
+	requires.h \
+	$(NULL)
 errors_client_oversize_LDADD = $(top_builddir)/lib/libnbd.la
+
+errors_server_oversize_SOURCES = \
+	errors-server-oversize.c \
+	requires.c \
+	requires.h \
+	$(NULL)
+errors_server_oversize_LDADD = $(top_builddir)/lib/libnbd.la
 
 errors_client_unadvertised_cmd_SOURCES = errors-client-unadvertised-cmd.c \
 				  requires.c requires.h

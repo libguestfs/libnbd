@@ -215,6 +215,7 @@ Makefile.in
 /tests/errors-poll-no-fd
 /tests/errors-pread-structured
 /tests/errors-server-invalid-offset
+/tests/errors-server-oversize
 /tests/errors-server-unadvertised-cmd
 /tests/errors-server-unaligned
 /tests/errors-server-unknown-flags
