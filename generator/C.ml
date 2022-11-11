@@ -435,11 +435,11 @@ let generate_include_libnbd_h () =
       List.iter (
         fun (flag, i) ->
           let flag = sprintf "LIBNBD_%s_%s" flag_prefix flag in
-          pr "#define %-40s 0x%02x\n" flag i;
+          pr "#define %-40s 0x%02xU\n" flag i;
           mask := !mask lor i
       ) flags;
       let flag = sprintf "LIBNBD_%s_MASK" flag_prefix in
-      pr "#define %-40s 0x%02x\n" flag !mask;
+      pr "#define %-40s 0x%02xU\n" flag !mask;
       pr "\n"
   ) all_flags;
   List.iter (
