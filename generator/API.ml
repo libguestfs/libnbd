@@ -874,7 +874,7 @@ following strictness flags:
 
 =over 4
 
-=item C<LIBNBD_STRICT_COMMANDS> = 1
+=item C<LIBNBD_STRICT_COMMANDS> = 0x1
 
 If set, this flag rejects client requests that do not comply with the
 set of advertised server flags (for example, attempting a write on
@@ -882,7 +882,7 @@ a read-only server, or attempting to use C<LIBNBD_CMD_FLAG_FUA> when
 L<nbd_can_fua(3)> returned false).  If clear, this flag relies on the
 server to reject unexpected commands.
 
-=item C<LIBNBD_STRICT_FLAGS> = 2
+=item C<LIBNBD_STRICT_FLAGS> = 0x2
 
 If set, this flag rejects client requests that attempt to set a
 command flag not recognized by libnbd (those outside of
@@ -901,19 +901,19 @@ Note that the NBD protocol only supports 16 bits of command flags,
 even though the libnbd API uses C<uint32_t>; bits outside of the
 range permitted by the protocol are always a client-side error.
 
-=item C<LIBNBD_STRICT_BOUNDS> = 3
+=item C<LIBNBD_STRICT_BOUNDS> = 0x4
 
 If set, this flag rejects client requests that would exceed the export
 bounds without sending any traffic to the server.  If clear, this flag
 relies on the server to detect out-of-bounds requests.
 
-=item C<LIBNBD_STRICT_ZERO_SIZE> = 4
+=item C<LIBNBD_STRICT_ZERO_SIZE> = 0x8
 
 If set, this flag rejects client requests with length 0.  If clear,
 this permits zero-length requests to the server, which may produce
 undefined results.
 
-=item C<LIBNBD_STRICT_ALIGN> = 5
+=item C<LIBNBD_STRICT_ALIGN> = 0x10
 
 If set, and the server provided minimum block sizes (see
 L<nbd_get_block_size(3)>, this flag rejects client requests that
@@ -1247,11 +1247,11 @@ ORed together:
 
 =over 4
 
-=item C<LIBNBD_ALLOW_TRANSPORT_TCP>
+=item C<LIBNBD_ALLOW_TRANSPORT_TCP> = 0x1
 
-=item C<LIBNBD_ALLOW_TRANSPORT_UNIX>
+=item C<LIBNBD_ALLOW_TRANSPORT_UNIX> = 0x2
 
-=item C<LIBNBD_ALLOW_TRANSPORT_VSOCK>
+=item C<LIBNBD_ALLOW_TRANSPORT_VSOCK> = 0x4
 
 =back
 
