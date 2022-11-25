@@ -93,7 +93,9 @@ main (int argc, char *argv[])
   }
   if (pid == 0) {
     execlp ("nbdkit",
-            "nbdkit", "-f", "-v", "--exit-with-parent", "-P", PIDFILE,
+            "nbdkit", "-f", "-v", "--exit-with-parent",
+//          "-D", "nbdkit.tls.log=99",
+            "-P", PIDFILE,
             SERVER_PARAMS,
             "null", NULL);
     perror ("nbdkit");
