@@ -166,6 +166,7 @@ main (int argc, char *argv[])
   uint64_t max_block_size;
   const char *s;
   struct ublksrv_dev_data data = { .dev_id = -1 };
+  const struct ublksrv_ctrl_dev_info *dinfo;
   struct sigaction sa = { 0 };
 
   for (;;) {
@@ -420,6 +421,8 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
+  dinfo = ublksrv_ctrl_get_dev_info(dev);
+
   /* Register signal handlers to try to stop the device. */
   sa.sa_handler = signal_handler;
   sigaction (SIGHUP, &sa, NULL);
@@ -432,14 +435,14 @@ main (int argc, char *argv[])
   if (r < 0) {
     errno = -r;
     fprintf (stderr, "%s: ublksrv_ctrl_add_dev: "DEVICE_PREFIX "%d: %m\n",
-             argv[0], dev->dev_info.dev_id);
+             argv[0], dinfo->dev_id);
     ublksrv_ctrl_deinit (dev);
     exit (EXIT_FAILURE);
   }
 
   if (verbose)
     fprintf (stderr, "%s: created %s%d\n",
-             argv[0], DEVICE_PREFIX, dev->dev_info.dev_id);
+             argv[0], DEVICE_PREFIX, dinfo->dev_id);
 
   /* XXX nbdfuse creates a pid file.  However I reason that you can
    * tell if the service is available when the block device is created

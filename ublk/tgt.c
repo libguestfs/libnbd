@@ -33,6 +33,7 @@
 #define _Atomic /**/
 #endif
 
+#include <limits.h>
 #include <ublksrv.h>
 #include <ublksrv_aio.h>
 
@@ -53,7 +54,7 @@
  * The thread_info entry is shared between each pair of threads.
  */
 struct thread_info {
-  struct ublksrv_dev *dev;
+  const struct ublksrv_dev *dev;
   size_t i;                     /* index into nbd.ptr[], also q_id */
   pthread_t io_uring_thread;
   pthread_t nbd_work_thread;
@@ -208,7 +209,7 @@ nbd_work_thread (void *vpinfo)
 
     ublksrv_aio_complete_worker (aio_ctx, &compl);
 
-    if (nbd_poll2 (h, aio_ctx->efd, -1) == -1) {
+    if (nbd_poll2 (h, ublksrv_aio_get_efd(aio_ctx), -1) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
@@ -221,15 +222,17 @@ static void *
 io_uring_thread (void *vpinfo)
 {
   struct thread_info *thread_info = vpinfo;
-  struct ublksrv_dev *dev = thread_info->dev;
-  const unsigned dev_id = dev->ctrl_dev->dev_info.dev_id;
+  const struct ublksrv_dev *dev = thread_info->dev;
+  const struct ublksrv_ctrl_dev *cdev = ublksrv_get_ctrl_dev(dev);
+  const struct ublksrv_ctrl_dev_info *dinfo = ublksrv_ctrl_get_dev_info(cdev);
+  const unsigned dev_id = dinfo->dev_id;
   const size_t q_id = thread_info->i;
-  struct ublksrv_queue *q;
+  const struct ublksrv_queue *q;
   int r;
+  int tid = gettid();
 
   pthread_mutex_lock (&jbuf_lock);
-  ublksrv_json_write_queue_info (dev->ctrl_dev, jbuf, sizeof jbuf,
-                                 q_id, gettid ());
+  ublksrv_json_write_queue_info (cdev, jbuf, sizeof jbuf, q_id, tid);
   pthread_mutex_unlock (&jbuf_lock);
 
   q = ublksrv_queue_init (dev, q_id, NULL);
@@ -240,7 +243,7 @@ io_uring_thread (void *vpinfo)
 
   if (verbose)
     fprintf (stderr, "%s: ublk tid %d dev %d queue %d started\n",
-             "nbdublk", q->tid, dev_id, q->q_id);
+             "nbdublk", tid, dev_id, q->q_id);
 
   for (;;) {
     r = ublksrv_process_io (q);
@@ -255,7 +258,7 @@ io_uring_thread (void *vpinfo)
 
   if (verbose)
     fprintf (stderr, "%s: ublk tid %d dev %d queue %d exited\n",
-             "nbdublk", q->tid, dev_id, q->q_id);
+             "nbdublk", tid, dev_id, q->q_id);
 
   ublksrv_queue_deinit (q);
   return NULL;
@@ -265,7 +268,7 @@ static int
 set_parameters (struct ublksrv_ctrl_dev *ctrl_dev,
                 const struct ublksrv_dev *dev)
 {
-  struct ublksrv_ctrl_dev_info *dinfo = &ctrl_dev->dev_info;
+  const struct ublksrv_ctrl_dev_info *dinfo = ublksrv_ctrl_get_dev_info(ctrl_dev);
   const unsigned attrs =
     (readonly ? UBLK_ATTR_READ_ONLY : 0) |
     (rotational ? UBLK_ATTR_ROTATIONAL : 0) |
@@ -305,8 +308,8 @@ set_parameters (struct ublksrv_ctrl_dev *ctrl_dev,
 int
 start_daemon (struct ublksrv_ctrl_dev *ctrl_dev)
 {
-  const struct ublksrv_ctrl_dev_info *dinfo = &ctrl_dev->dev_info;
-  struct ublksrv_dev *dev;
+  const struct ublksrv_ctrl_dev_info *dinfo = ublksrv_ctrl_get_dev_info(ctrl_dev);
+  const struct ublksrv_dev *dev;
   size_t i;
   int r;
 
@@ -418,7 +421,8 @@ start_daemon (struct ublksrv_ctrl_dev *ctrl_dev)
 static int
 init_tgt (struct ublksrv_dev *dev, int type, int argc, char *argv[])
 {
-  const struct ublksrv_ctrl_dev_info  *info = &dev->ctrl_dev->dev_info;
+  const struct ublksrv_ctrl_dev *cdev = ublksrv_get_ctrl_dev(dev);
+  const struct ublksrv_ctrl_dev_info *info = ublksrv_ctrl_get_dev_info(cdev);
   struct ublksrv_tgt_info *tgt = &dev->tgt;
   struct ublksrv_tgt_base_json tgt_json = {
     .type = type,
@@ -435,14 +439,14 @@ init_tgt (struct ublksrv_dev *dev, int type, int argc, char *argv[])
   tgt->tgt_ring_depth = info->queue_depth;
   tgt->nr_fds = 0;
 
-  ublksrv_json_write_dev_info (dev->ctrl_dev, jbuf, sizeof jbuf);
+  ublksrv_json_write_dev_info (ublksrv_get_ctrl_dev(dev), jbuf, sizeof jbuf);
   ublksrv_json_write_target_base_info (jbuf, sizeof jbuf, &tgt_json);
 
   return 0;
 }
 
 static void
-handle_event (struct ublksrv_queue *q)
+handle_event (const struct ublksrv_queue *q)
 {
   struct ublksrv_aio_ctx *aio_ctx = thread_info.ptr[q->q_id].aio_ctx;
 
@@ -454,16 +458,16 @@ handle_event (struct ublksrv_queue *q)
 }
 
 static int
-handle_io_async (struct ublksrv_queue *q, int tag)
+handle_io_async (const struct ublksrv_queue *q, const struct ublk_io_data *io)
 {
   struct ublksrv_aio_ctx *aio_ctx = thread_info.ptr[q->q_id].aio_ctx;
-  const struct ublksrv_io_desc *iod = ublksrv_get_iod (q, tag);
+  const struct ublksrv_io_desc *iod = io->iod;
   struct ublksrv_aio *req = ublksrv_aio_alloc_req (aio_ctx, 0);
 
   req->io = *iod;
-  req->id = ublksrv_aio_pid_tag (q->q_id, tag);
+  req->id = ublksrv_aio_pid_tag (q->q_id, io->tag);
   if (verbose)
-    fprintf (stderr, "%s: qid %d tag %d\n", "nbdublk", q->q_id, tag);
+    fprintf (stderr, "%s: qid %d tag %d\n", "nbdublk", q->q_id, io->tag);
   ublksrv_aio_submit_req (aio_ctx, q, req);
 
   return 0;
