@@ -130,7 +130,6 @@ def shell():
 
     # Create the handle.
     if not args.n:
-        global h
         h = nbd.NBD()
         h.set_handle_name("nbdsh")
 
@@ -168,35 +167,18 @@ def make_banner(args):
     def blank(): line("")
     def example(ex, desc): line("%-34s # %s" % (ex, desc))
 
-    connect_hint = False
-    go_hint = False
     blank()
     line("Welcome to nbdsh, the shell for interacting with")
     line("Network Block Device (NBD) servers.")
     blank()
-    if args.n:
+    if not args.n:
+        line("The ‘nbd’ module has already been imported and there")
+        line("is an open NBD handle called ‘h’.")
+        blank()
+    else:
         line("The ‘nbd’ module has already been imported.")
         blank()
         example("h = nbd.NBD()", "Create a new handle.")
-        connect_hint = True
-    else:
-        global h
-        state = h.connection_state()
-        state = state[:state.find(':')]
-        line("The ‘nbd’ module has already been imported and there")
-        line("is an open NBD handle called ‘h’ in state '%s'." % state)
-        blank()
-        if h.aio_is_created():
-            connect_hint = True
-            if h.get_opt_mode():
-                go_hint = True
-        elif h.aio_is_negotiating():
-            go_hint = True
-    if connect_hint:
-        example('h.connect_tcp("remote", "10809")',
-                "Connect to a remote server.")
-    if go_hint:
-        example("h.opt_go()", "Finish option negotiation")
     example("h.get_size()", "Get size of the remote disk.")
     example("buf = h.pread(512, 0)", "Read the first sector.")
     example("exit() or Ctrl-D", "Quit the shell")
