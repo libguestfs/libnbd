@@ -250,15 +250,15 @@ let print_fndecl ?wrap ?closure_style name args optargs ret =
    *)
   (match ret with
    | RString ->
-      pr "\n    LIBNBD_ATTRIBUTE_ALLOC_DEALLOC(__builtin_free)";
+      pr "\n    LIBNBD_ATTRIBUTE_ALLOC_DEALLOC (__builtin_free)";
    | _ -> ()
   );
 
   (* Output __attribute__((nonnull)) for the function parameters:
    * eg. struct nbd_handle *, int, char *
    *     => [ true, false, true ]
-   *     => LIBNBD_ATTRIBUTE_NONNULL(1,3)
-   *     => __attribute__((nonnull(1,3)))
+   *     => LIBNBD_ATTRIBUTE_NONNULL (1, 3)
+   *     => __attribute__ ((nonnull (1, 3)))
    *)
   let nns : bool list =
     [ true ] (* struct nbd_handle * *)
@@ -267,7 +267,7 @@ let print_fndecl ?wrap ?closure_style name args optargs ret =
   let nns = List.mapi (fun i b -> (i+1, b)) nns in
   let nns = filter_map (fun (i, b) -> if b then Some i else None) nns in
   let nns : string list = List.map string_of_int nns in
-  pr "\n    LIBNBD_ATTRIBUTE_NONNULL(%s);\n" (String.concat "," nns)
+  pr "\n    LIBNBD_ATTRIBUTE_NONNULL (%s);\n" (String.concat ", " nns)
 
 let rec print_cbarg_list ?(wrap = false) ?maxcol ?types ?(parens = true)
           cbargs =
@@ -400,22 +400,22 @@ let generate_include_libnbd_h () =
   pr "extern \"C\" {\n";
   pr "#endif\n";
   pr "\n";
-  pr "#if defined(__GNUC__)\n";
+  pr "#if defined (__GNUC__)\n";
   pr "#define LIBNBD_GCC_VERSION \\\n";
   pr "    (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)\n";
   pr "#endif\n";
   pr "\n";
   pr "#ifndef LIBNBD_ATTRIBUTE_NONNULL\n";
-  pr "#if defined(__GNUC__) && LIBNBD_GCC_VERSION >= 120000 /* gcc >= 12.0 */\n";
-  pr "#define LIBNBD_ATTRIBUTE_NONNULL(...) __attribute__((__nonnull__(__VA_ARGS__)))\n";
+  pr "#if defined (__GNUC__) && LIBNBD_GCC_VERSION >= 120000 /* gcc >= 12.0 */\n";
+  pr "#define LIBNBD_ATTRIBUTE_NONNULL(...) __attribute__ ((__nonnull__ (__VA_ARGS__)))\n";
   pr "#else\n";
   pr "#define LIBNBD_ATTRIBUTE_NONNULL(...)\n";
   pr "#endif\n";
   pr "#endif /* ! defined LIBNBD_ATTRIBUTE_NONNULL */\n";
   pr "\n";
-  pr "#if defined(__GNUC__) && LIBNBD_GCC_VERSION >= 120000 /* gcc >= 12.0 */\n";
+  pr "#if defined (__GNUC__) && LIBNBD_GCC_VERSION >= 120000 /* gcc >= 12.0 */\n";
   pr "#define LIBNBD_ATTRIBUTE_ALLOC_DEALLOC(fn) \\\n";
-  pr "  __attribute__((__malloc__, __malloc__(fn, 1)))\n";
+  pr "  __attribute__ ((__malloc__, __malloc__ (fn, 1)))\n";
   pr "#else\n";
   pr "#define LIBNBD_ATTRIBUTE_ALLOC_DEALLOC(fn)\n";
   pr "#endif\n";
@@ -454,7 +454,7 @@ let generate_include_libnbd_h () =
   pr "#define LIBNBD_HAVE_NBD_CLOSE 1\n";
   pr "\n";
   pr "extern struct nbd_handle *nbd_create (void)\n";
-  pr "    LIBNBD_ATTRIBUTE_ALLOC_DEALLOC(nbd_close);\n";
+  pr "    LIBNBD_ATTRIBUTE_ALLOC_DEALLOC (nbd_close);\n";
   pr "#define LIBNBD_HAVE_NBD_CREATE 1\n";
   pr "\n";
   pr "extern const char *nbd_get_error (void);\n";
