@@ -278,8 +278,8 @@ struct nbd_handle {
   /* When using systemd socket activation, this directory and socket
    * must be deleted, and the pid above must be killed.
    */
-  char *sa_tmpdir;
-  char *sa_sockpath;
+  char *sact_tmpdir;
+  char *sact_sockpath;
 
   /* When connecting to TCP ports, these fields are used. */
   char *hostname, *port;

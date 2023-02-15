@@ -141,15 +141,15 @@ nbd_close (struct nbd_handle *h)
   free_cmd_list (h->cmds_done);
   string_vector_iter (&h->argv, (void *) free);
   free (h->argv.ptr);
-  if (h->sa_sockpath) {
+  if (h->sact_sockpath) {
     if (h->pid > 0)
       kill (h->pid, SIGTERM);
-    unlink (h->sa_sockpath);
-    free (h->sa_sockpath);
+    unlink (h->sact_sockpath);
+    free (h->sact_sockpath);
   }
-  if (h->sa_tmpdir) {
-    rmdir (h->sa_tmpdir);
-    free (h->sa_tmpdir);
+  if (h->sact_tmpdir) {
+    rmdir (h->sact_tmpdir);
+    free (h->sact_tmpdir);
   }
   free (h->hostname);
   free (h->port);

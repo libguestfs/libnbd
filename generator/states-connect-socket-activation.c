@@ -111,22 +111,22 @@ STATE_MACHINE {
    * short enough to store in the sockaddr_un.  On some platforms this
    * may cause problems so we may need to revisit it.  XXX
    */
-  h->sa_tmpdir = strdup ("/tmp/libnbdXXXXXX");
-  if (h->sa_tmpdir == NULL) {
+  h->sact_tmpdir = strdup ("/tmp/libnbdXXXXXX");
+  if (h->sact_tmpdir == NULL) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "strdup");
     return 0;
   }
-  if (mkdtemp (h->sa_tmpdir) == NULL) {
+  if (mkdtemp (h->sact_tmpdir) == NULL) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "mkdtemp");
     /* Avoid cleanup in nbd_close. */
-    free (h->sa_tmpdir);
-    h->sa_tmpdir = NULL;
+    free (h->sact_tmpdir);
+    h->sact_tmpdir = NULL;
     return 0;
   }
 
-  if (asprintf (&h->sa_sockpath, "%s/sock", h->sa_tmpdir) == -1) {
+  if (asprintf (&h->sact_sockpath, "%s/sock", h->sact_tmpdir) == -1) {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "strdup");
     return 0;
@@ -140,10 +140,10 @@ STATE_MACHINE {
   }
 
   addr.sun_family = AF_UNIX;
-  memcpy (addr.sun_path, h->sa_sockpath, strlen (h->sa_sockpath) + 1);
+  memcpy (addr.sun_path, h->sact_sockpath, strlen (h->sact_sockpath) + 1);
   if (bind (s, (struct sockaddr *) &addr, sizeof addr) == -1) {
     SET_NEXT_STATE (%.DEAD);
-    set_error (errno, "bind: %s", h->sa_sockpath);
+    set_error (errno, "bind: %s", h->sact_sockpath);
     close (s);
     return 0;
   }
