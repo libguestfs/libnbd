@@ -88,7 +88,7 @@ main (int argc, char *argv[])
    * GNUTLS_NO_SIGNAL flag, either because it predates GnuTLS 3.4.2 or
    * because the OS lacks MSG_NOSIGNAL support.
    */
-#if TLS && !defined(HAVE_GNUTLS_NO_SIGNAL)
+#if TLS && !defined (HAVE_GNUTLS_NO_SIGNAL)
   signal (SIGPIPE, SIG_IGN);
 #endif
 

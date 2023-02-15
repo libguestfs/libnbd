@@ -73,13 +73,13 @@ main (int argc, char *argv[])
   test (1048576, "1M", true);
   test (1048577, "1048577", false);
 
-  test (UINT64_C(1073741824), "1G", true);
+  test (UINT64_C (1073741824), "1G", true);
 
-  test (UINT64_C(1099511627776), "1T", true);
-  test (UINT64_C(1099511627777), "1099511627777", false);
-  test (UINT64_C(1099511627776) + 1024, "1073741825K", true);
+  test (UINT64_C (1099511627776), "1T", true);
+  test (UINT64_C (1099511627777), "1099511627777", false);
+  test (UINT64_C (1099511627776) + 1024, "1073741825K", true);
 
-  test (UINT64_C(1125899906842624), "1P", true);
+  test (UINT64_C (1125899906842624), "1P", true);
 
   test ((uint64_t)INT64_MAX+1, "8E", true);
   test (UINT64_MAX-1023, "18014398509481983K", true);

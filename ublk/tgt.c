@@ -62,7 +62,7 @@ struct thread_info {
   struct ublksrv_aio_ctx *aio_ctx;
   struct ublksrv_aio_list compl;
 };
-DEFINE_VECTOR_TYPE(thread_infos, struct thread_info)
+DEFINE_VECTOR_TYPE (thread_infos, struct thread_info)
 static thread_infos thread_info;
 
 static pthread_barrier_t barrier;
@@ -209,7 +209,7 @@ nbd_work_thread (void *vpinfo)
 
     ublksrv_aio_complete_worker (aio_ctx, &compl);
 
-    if (nbd_poll2 (h, ublksrv_aio_get_efd(aio_ctx), -1) == -1) {
+    if (nbd_poll2 (h, ublksrv_aio_get_efd (aio_ctx), -1) == -1) {
       fprintf (stderr, "%s\n", nbd_get_error ());
       exit (EXIT_FAILURE);
     }
@@ -223,13 +223,13 @@ io_uring_thread (void *vpinfo)
 {
   struct thread_info *thread_info = vpinfo;
   const struct ublksrv_dev *dev = thread_info->dev;
-  const struct ublksrv_ctrl_dev *cdev = ublksrv_get_ctrl_dev(dev);
-  const struct ublksrv_ctrl_dev_info *dinfo = ublksrv_ctrl_get_dev_info(cdev);
+  const struct ublksrv_ctrl_dev *cdev = ublksrv_get_ctrl_dev (dev);
+  const struct ublksrv_ctrl_dev_info *dinfo = ublksrv_ctrl_get_dev_info (cdev);
   const unsigned dev_id = dinfo->dev_id;
   const size_t q_id = thread_info->i;
   const struct ublksrv_queue *q;
   int r;
-  int tid = gettid();
+  int tid = gettid ();
 
   pthread_mutex_lock (&jbuf_lock);
   ublksrv_json_write_queue_info (cdev, jbuf, sizeof jbuf, q_id, tid);
@@ -268,7 +268,7 @@ static int
 set_parameters (struct ublksrv_ctrl_dev *ctrl_dev,
                 const struct ublksrv_dev *dev)
 {
-  const struct ublksrv_ctrl_dev_info *dinfo = ublksrv_ctrl_get_dev_info(ctrl_dev);
+  const struct ublksrv_ctrl_dev_info *dinfo = ublksrv_ctrl_get_dev_info (ctrl_dev);
   const unsigned attrs =
     (readonly ? UBLK_ATTR_READ_ONLY : 0) |
     (rotational ? UBLK_ATTR_ROTATIONAL : 0) |
@@ -308,7 +308,7 @@ set_parameters (struct ublksrv_ctrl_dev *ctrl_dev,
 int
 start_daemon (struct ublksrv_ctrl_dev *ctrl_dev)
 {
-  const struct ublksrv_ctrl_dev_info *dinfo = ublksrv_ctrl_get_dev_info(ctrl_dev);
+  const struct ublksrv_ctrl_dev_info *dinfo = ublksrv_ctrl_get_dev_info (ctrl_dev);
   const struct ublksrv_dev *dev;
   size_t i;
   int r;
@@ -421,8 +421,8 @@ start_daemon (struct ublksrv_ctrl_dev *ctrl_dev)
 static int
 init_tgt (struct ublksrv_dev *dev, int type, int argc, char *argv[])
 {
-  const struct ublksrv_ctrl_dev *cdev = ublksrv_get_ctrl_dev(dev);
-  const struct ublksrv_ctrl_dev_info *info = ublksrv_ctrl_get_dev_info(cdev);
+  const struct ublksrv_ctrl_dev *cdev = ublksrv_get_ctrl_dev (dev);
+  const struct ublksrv_ctrl_dev_info *info = ublksrv_ctrl_get_dev_info (cdev);
   struct ublksrv_tgt_info *tgt = &dev->tgt;
   struct ublksrv_tgt_base_json tgt_json = {
     .type = type,
@@ -439,7 +439,7 @@ init_tgt (struct ublksrv_dev *dev, int type, int argc, char *argv[])
   tgt->tgt_ring_depth = info->queue_depth;
   tgt->nr_fds = 0;
 
-  ublksrv_json_write_dev_info (ublksrv_get_ctrl_dev(dev), jbuf, sizeof jbuf);
+  ublksrv_json_write_dev_info (ublksrv_get_ctrl_dev (dev), jbuf, sizeof jbuf);
   ublksrv_json_write_target_base_info (jbuf, sizeof jbuf, &tgt_json);
 
   return 0;

@@ -51,7 +51,7 @@ bool totals = false;            /* --totals option */
 static enum { MODE_URI = 1, MODE_SQUARE_BRACKET } mode;
 static char **args;
 
-static void __attribute__((noreturn))
+static void __attribute__ ((noreturn))
 usage (FILE *fp, int exitcode)
 {
   fprintf (fp,

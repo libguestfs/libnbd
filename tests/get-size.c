@@ -32,7 +32,7 @@
 
 #define SIZE 123456789
 #define XSTR(s) #s
-#define STR(s) XSTR(s)
+#define STR(s) XSTR (s)
 
 int
 main (int argc, char *argv[])
@@ -41,7 +41,7 @@ main (int argc, char *argv[])
   int64_t r;
   /* -n forces newstyle even if someone is still using nbdkit < 1.3 */
   char *args[] = { "nbdkit", "-s", "--exit-with-parent", "-n", "-v",
-                   "null", "size=" STR(SIZE), NULL };
+                   "null", "size=" STR (SIZE), NULL };
   const char *s;
 
   nbd = nbd_create ();

@@ -58,7 +58,7 @@ static void do_connect (void);
 static void do_dump (void);
 static void catch_signal (int);
 
-static void __attribute__((noreturn))
+static void __attribute__ ((noreturn))
 usage (FILE *fp, int exitcode)
 {
   fprintf (fp,

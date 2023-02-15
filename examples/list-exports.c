@@ -50,7 +50,7 @@ list_one (void *opaque, const char *name,
 
   printf ("[%d] %s\n", l->i, name);
   if (*description)
-    printf("  (%s)\n", description);
+    printf ("  (%s)\n", description);
   names = realloc (l->names,
                    (l->i + 1) * sizeof *names);
   if (!names) {

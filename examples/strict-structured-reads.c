@@ -225,7 +225,7 @@ main (int argc, char *argv[])
 
     assert (d && r);
     offset = rand () % (exportsize - maxsize);
-    if (rand() & 1)
+    if (rand () & 1)
       flags = LIBNBD_CMD_FLAG_DF;
     *r = (struct range) { .first = offset, .last = offset + maxsize, };
     *d = (struct data) { .offset = offset, .count = maxsize, .flags = flags,

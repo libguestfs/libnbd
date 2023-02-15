@@ -46,7 +46,7 @@
  * debug and error handling code out of hot paths, making the hot path
  * into common functions use less instruction cache.
  */
-#if defined(__GNUC__)
+#if defined (__GNUC__)
 #define unlikely(x) __builtin_expect (!!(x), 0)
 #define if_debug(h) if (unlikely ((h)->debug))
 #else
@@ -71,7 +71,7 @@ struct meta_context {
   char *name;                   /* Name of meta context. */
   uint32_t context_id;          /* Context ID negotiated with the server. */
 };
-DEFINE_VECTOR_TYPE(meta_vector, struct meta_context);
+DEFINE_VECTOR_TYPE (meta_vector, struct meta_context);
 
 struct export {
   char *name;
@@ -220,20 +220,20 @@ struct nbd_handle {
         struct {
           struct nbd_fixed_new_option_reply_server server;
           char str[NBD_MAX_STRING * 2 + 1]; /* name, description, NUL */
-        } __attribute__((packed)) server;
+        } __attribute__ ((packed)) server;
         struct nbd_fixed_new_option_reply_info_export export;
         struct nbd_fixed_new_option_reply_info_block_size block_size;
         struct {
           struct nbd_fixed_new_option_reply_info_name_or_desc info;
           char str[NBD_MAX_STRING];
-        } __attribute__((packed)) name_desc;
+        } __attribute__ ((packed)) name_desc;
         struct {
           struct nbd_fixed_new_option_reply_meta_context context;
           char str[NBD_MAX_STRING];
-        }  __attribute__((packed)) context;
+        }  __attribute__ ((packed)) context;
         char err_msg[NBD_MAX_STRING];
       } payload;
-    }  __attribute__((packed)) or;
+    }  __attribute__ ((packed)) or;
     struct nbd_export_name_option_reply export_name_reply;
     struct nbd_simple_reply simple_reply;
     struct {
@@ -245,9 +245,9 @@ struct nbd_handle {
           struct nbd_structured_reply_error error;
           char msg[NBD_MAX_STRING]; /* Common to all error types */
           uint64_t offset; /* Only used for NBD_REPLY_TYPE_ERROR_OFFSET */
-        } __attribute__((packed)) error;
+        } __attribute__ ((packed)) error;
       } payload;
-    }  __attribute__((packed)) sr;
+    }  __attribute__ ((packed)) sr;
     uint16_t gflags;
     uint32_t cflags;
     uint32_t len;
@@ -387,26 +387,26 @@ struct command {
 
 /* aio.c */
 extern void nbd_internal_retire_and_free_command (struct command *)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 
 /* connect.c */
 extern int nbd_internal_wait_until_connected (struct nbd_handle *h)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 
 /* crypto.c */
 extern struct socket *nbd_internal_crypto_create_session (struct nbd_handle *, struct socket *oldsock)
-  LIBNBD_ATTRIBUTE_NONNULL(1, 2);
+  LIBNBD_ATTRIBUTE_NONNULL (1, 2);
 extern bool nbd_internal_crypto_is_reading (struct nbd_handle *)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 extern int nbd_internal_crypto_handshake (struct nbd_handle *)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 extern void nbd_internal_crypto_debug_tls_enabled (struct nbd_handle *)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 
 /* debug.c */
 extern void nbd_internal_debug (struct nbd_handle *h, const char *context,
                                 const char *fs, ...)
-  LIBNBD_ATTRIBUTE_NONNULL(1, 3);
+  LIBNBD_ATTRIBUTE_NONNULL (1, 3);
 #define debug(h, fs, ...)                                   \
   do {                                                      \
     if_debug ((h))                                          \
@@ -420,10 +420,10 @@ extern void nbd_internal_debug (struct nbd_handle *h, const char *context,
 
 /* errors.c */
 extern void nbd_internal_set_error_context (const char *context)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 extern const char *nbd_internal_get_error_context (void);
 extern void nbd_internal_set_last_error (int errnum, char *error)
-  LIBNBD_ATTRIBUTE_NONNULL(2);
+  LIBNBD_ATTRIBUTE_NONNULL (2);
 #define set_error(errnum, fs, ...)                                      \
   do {                                                                  \
     int _e = (errnum);                                                  \
@@ -442,16 +442,16 @@ extern void nbd_internal_set_last_error (int errnum, char *error)
 
 /* flags.c */
 extern void nbd_internal_reset_size_and_flags (struct nbd_handle *h)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 extern int nbd_internal_set_size_and_flags (struct nbd_handle *h,
                                             uint64_t exportsize,
                                             uint16_t eflags)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 extern int nbd_internal_set_block_size (struct nbd_handle *h, uint32_t min,
                                         uint32_t pref, uint32_t max)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 extern void nbd_internal_set_payload (struct nbd_handle *h)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 
 /* is-state.c */
 extern bool nbd_internal_is_state_created (enum state state);
@@ -464,7 +464,7 @@ extern bool nbd_internal_is_state_closed (enum state state);
 
 /* opt.c */
 extern void nbd_internal_free_option (struct nbd_handle *h)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 
 /* protocol.c */
 extern int nbd_internal_errno_of_nbd_error (uint32_t error);
@@ -476,7 +476,7 @@ extern int64_t nbd_internal_command_common (struct nbd_handle *h,
                                             uint64_t offset, uint64_t count,
                                             int count_err, void *data,
                                             struct command_cb *cb)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 
 /* socket.c */
 struct socket *nbd_internal_socket_create (int fd);
@@ -484,9 +484,9 @@ struct socket *nbd_internal_socket_create (int fd);
 /* states.c */
 extern void nbd_internal_abort_commands (struct nbd_handle *h,
                                          struct command **list)
-  LIBNBD_ATTRIBUTE_NONNULL(1,2);
+  LIBNBD_ATTRIBUTE_NONNULL (1, 2);
 extern int nbd_internal_run (struct nbd_handle *h, enum external_event ev)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 extern const char *nbd_internal_state_short_string (enum state state);
 extern enum state_group nbd_internal_state_group (enum state state);
 extern enum state_group nbd_internal_state_group_parent (enum state_group group);
@@ -498,24 +498,24 @@ extern int nbd_internal_aio_get_direction (enum state state);
 
 /* utils.c */
 extern void nbd_internal_hexdump (const void *data, size_t len, FILE *fp)
-  LIBNBD_ATTRIBUTE_NONNULL(1,3);
+  LIBNBD_ATTRIBUTE_NONNULL (1, 3);
 extern int nbd_internal_copy_string_list (string_vector *v, char **in)
-  LIBNBD_ATTRIBUTE_NONNULL(1,2);
+  LIBNBD_ATTRIBUTE_NONNULL (1, 2);
 extern int nbd_internal_set_argv (struct nbd_handle *h, char **argv)
-  LIBNBD_ATTRIBUTE_NONNULL(1,2);
+  LIBNBD_ATTRIBUTE_NONNULL (1, 2);
 extern int nbd_internal_set_querylist (struct nbd_handle *h, char **queries)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 extern const char *nbd_internal_fork_safe_itoa (long v, char *buf, size_t len)
-  LIBNBD_ATTRIBUTE_NONNULL(2);
+  LIBNBD_ATTRIBUTE_NONNULL (2);
 extern void nbd_internal_fork_safe_perror (const char *s)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 extern char *nbd_internal_printable_buffer (const void *buf, size_t count)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 extern char *nbd_internal_printable_string (const char *str)
-  LIBNBD_ATTRIBUTE_ALLOC_DEALLOC(free)
-  LIBNBD_ATTRIBUTE_NONNULL(1);
+  LIBNBD_ATTRIBUTE_ALLOC_DEALLOC (free)
+  LIBNBD_ATTRIBUTE_NONNULL (1);
 extern char *nbd_internal_printable_string_list (char **list)
-  LIBNBD_ATTRIBUTE_ALLOC_DEALLOC(free);
+  LIBNBD_ATTRIBUTE_ALLOC_DEALLOC (free);
 
 /* These are wrappers around socket(2) and socketpair(2).  They
  * always set SOCK_CLOEXEC.  nbd_internal_socket can set SOCK_NONBLOCK
@@ -525,6 +525,6 @@ extern int nbd_internal_socket (int domain, int type, int protocol,
                                 bool nonblock);
 extern int nbd_internal_socketpair (int domain, int type, int protocol,
                                     int *fds)
-  LIBNBD_ATTRIBUTE_NONNULL(4);
+  LIBNBD_ATTRIBUTE_NONNULL (4);
 
 #endif /* LIBNBD_INTERNAL_H */

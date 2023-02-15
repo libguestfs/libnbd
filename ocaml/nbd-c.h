@@ -32,7 +32,7 @@
 
 /* Workaround for OCaml < 4.06.0 */
 #ifndef Bytes_val
-#define Bytes_val(x) String_val(x)
+#define Bytes_val(x) String_val (x)
 #endif
 
 /* Wrapper around caml_alloc_custom_mem for pre-2019 versions of OCaml. */
@@ -68,7 +68,7 @@ extern void nbd_internal_unix_sockaddr_to_sa (value, struct sockaddr_storage *,
 extern void nbd_internal_ocaml_exception_in_wrapper (const char *, value);
 
 /* Extract an NBD handle from an OCaml heap value. */
-#define NBD_val(v) (*((struct nbd_handle **)Data_custom_val(v)))
+#define NBD_val(v) (*((struct nbd_handle **)Data_custom_val (v)))
 
 static struct custom_operations libnbd_custom_operations = {
   (char *) "libnbd_custom_operations",
@@ -108,7 +108,7 @@ struct nbd_buffer {
  * whole struct is stored in the custom, not a pointer.  This macro
  * returns a pointer to the struct.
  */
-#define NBD_buffer_val(v) ((struct nbd_buffer *)Data_custom_val(v))
+#define NBD_buffer_val(v) ((struct nbd_buffer *)Data_custom_val (v))
 
 static struct custom_operations nbd_buffer_custom_operations = {
   (char *) "nbd_buffer_custom_operations",

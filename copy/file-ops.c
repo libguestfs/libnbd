@@ -90,7 +90,7 @@ struct rw_file {
 #ifdef PAGE_CACHE_MAPPING
 static long page_size;
 
-static void page_size_init (void) __attribute__((constructor));
+static void page_size_init (void) __attribute__ ((constructor));
 static void
 page_size_init (void)
 {

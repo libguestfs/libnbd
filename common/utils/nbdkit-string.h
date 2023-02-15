@@ -37,6 +37,6 @@
 
 #include "vector.h"
 
-DEFINE_VECTOR_TYPE(string, char);
+DEFINE_VECTOR_TYPE (string, char);
 
 #endif /* NBDKIT_STRING_H */

@@ -37,6 +37,6 @@
 
 #include "vector.h"
 
-DEFINE_VECTOR_TYPE(string_vector, char *);
+DEFINE_VECTOR_TYPE (string_vector, char *);
 
 #endif /* STRING_VECTOR_H */

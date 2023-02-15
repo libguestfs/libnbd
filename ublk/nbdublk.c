@@ -66,7 +66,7 @@ enum mode {
   MODE_VSOCK,                /* --vsock */
 };
 
-static void __attribute__((noreturn))
+static void __attribute__ ((noreturn))
 usage (FILE *fp, int exitcode)
 {
   fprintf (fp,
@@ -421,7 +421,7 @@ main (int argc, char *argv[])
     exit (EXIT_FAILURE);
   }
 
-  dinfo = ublksrv_ctrl_get_dev_info(dev);
+  dinfo = ublksrv_ctrl_get_dev_info (dev);
 
   /* Register signal handlers to try to stop the device. */
   sa.sa_handler = signal_handler;

@@ -30,13 +30,13 @@ static int opt_meta_context_queries (struct nbd_handle *h,
                                      uint32_t opt,
                                      char **queries,
                                      nbd_context_callback *context)
-  LIBNBD_ATTRIBUTE_NONNULL(1,4);
+  LIBNBD_ATTRIBUTE_NONNULL (1, 4);
 static int aio_opt_meta_context_queries (struct nbd_handle *h,
                                          uint32_t opt,
                                          char **queries,
                                          nbd_context_callback *context,
                                          nbd_completion_callback *complete)
-  LIBNBD_ATTRIBUTE_NONNULL(1,4,5);
+  LIBNBD_ATTRIBUTE_NONNULL (1, 4, 5);
 
 /* Internal function which frees an option with callback. */
 void

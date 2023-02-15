@@ -37,10 +37,10 @@
 
 /* https://stackoverflow.com/a/1489985 */
 #define XNBD_FLAG_FUNCTION(f) nbd_ ## f
-#define NBD_FLAG_FUNCTION(f) XNBD_FLAG_FUNCTION(f)
+#define NBD_FLAG_FUNCTION(f) XNBD_FLAG_FUNCTION (f)
 
 #define XSTR(x) #x
-#define STR(x) XSTR(x)
+#define STR(x) XSTR (x)
 
 int
 main (int argc, char *argv[])
@@ -108,7 +108,7 @@ main (int argc, char *argv[])
 #error "unknown value"
 #endif
 
-  if ((r = NBD_FLAG_FUNCTION(flag) (nbd)) == -1) {
+  if ((r = NBD_FLAG_FUNCTION (flag) (nbd)) == -1) {
     fprintf (stderr, "%s\n", nbd_get_error ());
     exit (EXIT_FAILURE);
   }

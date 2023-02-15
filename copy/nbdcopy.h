@@ -116,7 +116,7 @@ struct extent {
   uint64_t length;
   bool zero;
 };
-DEFINE_VECTOR_TYPE(extent_list, struct extent);
+DEFINE_VECTOR_TYPE (extent_list, struct extent);
 
 /* The operations struct hides some of the differences between local
  * file, NBD and pipes from the copying code.

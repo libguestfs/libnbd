@@ -33,7 +33,7 @@
 
 #define SIZE 65536
 #define XSTR(s) #s
-#define STR(s) XSTR(s)
+#define STR(s) XSTR (s)
 
 static char wbuf[512] = { 1, 2, 3, 4 }, rbuf[512];
 static const char *progname;
@@ -105,9 +105,9 @@ main (int argc, char *argv[])
   char *args[] = { "nbdkit", "-s", "--mask-handshake", "0",
                    "--exit-with-parent", "-v", "eval",
                    "list_exports=printf a\\nb\\n",
-                   "get_size=echo " STR(SIZE),
+                   "get_size=echo " STR (SIZE),
                    "open=if [ \"$3\" != a ]; then exit 1; fi\n"
-                   " truncate --size=" STR(SIZE) " $tmpdir/a",
+                   " truncate --size=" STR (SIZE) " $tmpdir/a",
                    "pread=dd bs=1 skip=$4 count=$3 if=$tmpdir/a || exit 1",
                    "pwrite=dd bs=1 conv=notrunc seek=$4 of=$tmpdir/a || exit 1",
                    "can_write=exit 0",

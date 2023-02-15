@@ -178,7 +178,7 @@ nbd_internal_fork_safe_itoa (long v, char *buf, size_t bufsize)
   return &buf[i];
 }
 
-#if defined(__GNUC__)
+#if defined (__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-result"
 #endif
@@ -213,7 +213,7 @@ nbd_internal_fork_safe_perror (const char *s)
   errno = err;
 }
 
-#if defined(__GNUC__)
+#if defined (__GNUC__)
 #pragma GCC diagnostic pop
 #endif
 
@@ -334,10 +334,10 @@ nbd_internal_printable_string_list (char **list)
 
 }
 
-int nbd_internal_socket(int domain,
-                        int type,
-                        int protocol,
-                        bool nonblock)
+int nbd_internal_socket (int domain,
+                         int type,
+                         int protocol,
+                         bool nonblock)
 {
   int fd;
 

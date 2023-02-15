@@ -121,12 +121,12 @@ static ev_timer progress;
 
 static inline void start_request_soon (struct request *r);
 static void start_request_cb (struct ev_loop *loop, ev_timer *w, int revents);
-static void start_request(struct request *r);
-static void start_read(struct request *r);
-static void start_write(struct request *r);
-static void start_zero(struct request *r);
-static int read_completed(void *user_data, int *error);
-static int request_completed(void *user_data, int *error);
+static void start_request (struct request *r);
+static void start_read (struct request *r);
+static void start_write (struct request *r);
+static void start_zero (struct request *r);
+static int read_completed (void *user_data, int *error);
+static int request_completed (void *user_data, int *error);
 
 /* Return true iff data is all zero bytes.
  *
@@ -158,13 +158,13 @@ request_state (struct request *r)
 }
 
 static inline int
-get_fd(struct connection *c)
+get_fd (struct connection *c)
 {
     return nbd_aio_get_fd (c->nbd);
 }
 
 static inline int
-get_events(struct connection *c)
+get_events (struct connection *c)
 {
     unsigned dir = nbd_aio_get_direction (c->nbd);
 
@@ -388,7 +388,7 @@ start_request_cb (struct ev_loop *loop, ev_timer *w, int revents)
 
 /* Start async copy or zero request. */
 static void
-start_request(struct request *r)
+start_request (struct request *r)
 {
     /* Cancel the request if we are done. */
     if (offset == size)
@@ -430,7 +430,7 @@ start_request(struct request *r)
 }
 
 static void
-start_read(struct request *r)
+start_read (struct request *r)
 {
     int64_t cookie;
 
@@ -468,7 +468,7 @@ read_completed (void *user_data, int *error)
 }
 
 static void
-start_write(struct request *r)
+start_write (struct request *r)
 {
     int64_t cookie;
 
@@ -487,7 +487,7 @@ start_write(struct request *r)
 }
 
 static void
-start_zero(struct request *r)
+start_zero (struct request *r)
 {
     int64_t cookie;
 
@@ -535,7 +535,7 @@ request_completed (void *user_data, int *error)
      * iteration, to avoid deadlock if we need to start a zero or write.
      */
     if (offset < size)
-        start_request_soon(r);
+        start_request_soon (r);
 
     return 1;
 }
@@ -590,7 +590,7 @@ finish_progress ()
 static inline void
 update_watcher (struct connection *c)
 {
-    int events = get_events(c);
+    int events = get_events (c);
 
     if (events != c->watcher.events) {
         ev_io_stop (loop, &c->watcher);
@@ -671,7 +671,7 @@ main (int argc, char *argv[])
         if (r->data == NULL)
             FAIL ("Cannot allocate buffer: %s", strerror (errno));
 
-        start_request(r);
+        start_request (r);
     }
 
     /* Start watching events on src and dst handles. */

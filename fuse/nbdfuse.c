@@ -66,7 +66,7 @@ enum mode {
   MODE_VSOCK,                /* --vsock */
 };
 
-static void __attribute__((noreturn))
+static void __attribute__ ((noreturn))
 usage (FILE *fp, int exitcode)
 {
   fprintf (fp,

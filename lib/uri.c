@@ -403,7 +403,7 @@ cleanup:
 
 static int append_query_params (char **query_params,
                                 const char *key, const char *value)
-  LIBNBD_ATTRIBUTE_NONNULL(1,2,3);
+  LIBNBD_ATTRIBUTE_NONNULL (1, 2, 3);
 
 char *
 nbd_unlocked_get_uri (struct nbd_handle *h)

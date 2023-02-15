@@ -66,7 +66,7 @@ static bool is_nbd_uri (const char *s);
 static struct rw *open_local (const char *filename, direction d);
 static void print_rw (struct rw *rw, const char *prefix, FILE *fp);
 
-static void __attribute__((noreturn))
+static void __attribute__ ((noreturn))
 usage (FILE *fp, int exitcode)
 {
   fprintf (fp,

@@ -248,7 +248,7 @@ start_thread (void *arg)
      * Simulate a mix of large and small requests.
      */
     while (i > 0 && in_flight < MAX_IN_FLIGHT) {
-      size = (rand() & 1) ? BUFFER_SIZE : 512;
+      size = (rand () & 1) ? BUFFER_SIZE : 512;
       offset = rand () % (exportsize - size);
       cmd = rand () & 1;
       if (cmd == 0)

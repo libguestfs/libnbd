@@ -31,7 +31,7 @@
 
 #define SIZE 65536
 #define XSTR(s) #s
-#define STR(s) XSTR(s)
+#define STR(s) XSTR (s)
 
 static char wbuf[512] = { 1, 2, 3, 4 }, rbuf[512];
 static const char *progname;
@@ -82,7 +82,7 @@ main (int argc, char *argv[])
   struct nbd_handle *nbd;
   int64_t r;
   char *args[] = { "nbdkit", "-s", "-o", "--exit-with-parent", "-v",
-                   "memory", "size=" STR(SIZE), NULL };
+                   "memory", "size=" STR (SIZE), NULL };
   int calls = 0;
   const char *s;
 
