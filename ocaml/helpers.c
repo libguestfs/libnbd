@@ -140,19 +140,19 @@ nbd_internal_unix_sockaddr_to_sa (value sockaddrv,
                                   socklen_t *len)
 {
   CAMLparam1 (sockaddrv);
-  union sock_addr_union sa_u;
+  union sock_addr_union saddr_u;
   socklen_param_type sl; /* this is really an int or socklen_t */
 
   memset (ss, 0, sizeof *ss);
 
 #ifdef HAVE_CAML_UNIX_GET_SOCKADDR
-  caml_unix_get_sockaddr (sockaddrv, &sa_u, &sl);
+  caml_unix_get_sockaddr (sockaddrv, &saddr_u, &sl);
 #else
   /* OCaml <= 4.14 exports this unnamespaced symbol. */
-  get_sockaddr (sockaddrv, &sa_u, &sl);
+  get_sockaddr (sockaddrv, &saddr_u, &sl);
 #endif
   assert (sl <= sizeof *ss);
-  memcpy (ss, &sa_u, sl);
+  memcpy (ss, &saddr_u, sl);
   *len = sl;
 
   CAMLreturn0;
