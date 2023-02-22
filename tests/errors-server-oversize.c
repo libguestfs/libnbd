@@ -1,5 +1,5 @@
 /* NBD client library in userspace
- * Copyright (C) 2013-2022 Red Hat Inc.
+ * Copyright (C) 2013-2023 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -107,7 +107,8 @@ main (int argc, char *argv[])
   uint32_t strict;
 
   progname = argv[0];
-  requires ("nbdkit --dump-plugin eval | grep ^max_known_status=");
+  requires ("max=$(nbdkit --dump-plugin eval | "
+            "sed -n '/^max_known_status=/ s///p') && test \"$max\" -ge 6");
 
   nbd = nbd_create ();
   if (nbd == NULL) {
