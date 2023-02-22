@@ -94,3 +94,12 @@ testsuite:
    result in a binary that always fails for trying to use a contended
    port. Rewriting these tests to use pick-a-port.c for a dynamic
    choice would be safer.
+
+Coding style:
+ - consider replacing "#if defined (macro)" with "#if defined macro", or
+   even just "#ifdef macro"; for shorter lines
+ - investigate automatic code formatting tools (such a tool could be run
+   in "check mode" in CI)
+
+Code sharing with nbdkit (header files, etc):
+ - investigate a git submodule
