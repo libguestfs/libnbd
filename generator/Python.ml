@@ -645,6 +645,7 @@ buf = h.pread(512, 0)
 Read the libnbd(3) man page to find out how to use the API.
 '''
 
+import contextlib
 import libnbdmod
 
 # Re-export Error exception as nbd.Error, adding some methods.
@@ -693,6 +694,20 @@ class ClosedHandle(ValueError):
     '''This exception is thrown when any method is called on an
     nbd handle after you have called h.close() on the same handle.'''
     pass
+
+
+@contextlib.contextmanager
+def nbd():
+    '''
+    This is a context manager function.  Python will close the handle
+    automatically even if the body throws an exception:
+
+    with nbd.nbd() as h:
+        # use the handle 'h'
+    '''
+    h = NBD()
+    yield h
+    h.close()
 
 
 ";
