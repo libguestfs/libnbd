@@ -26,6 +26,7 @@ ML_TESTS = \
 	test_110_defaults.ml \
 	test_120_set_non_defaults.ml \
 	test_130_private_data.ml \
+	test_140_explicit_close.ml \
 	test_200_connect_command.ml \
 	test_210_opt_abort.ml \
 	test_220_opt_list.ml \
