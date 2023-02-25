@@ -688,6 +688,13 @@ def _str(self):
 
 Error.__str__ = _str
 
+
+class ClosedHandle(ValueError):
+    '''This exception is thrown when any method is called on an
+    nbd handle after you have called h.close() on the same handle.'''
+    pass
+
+
 ";
 
   List.iter (
@@ -817,8 +824,27 @@ class NBD(object):
 
     def __del__(self):
         '''Close the NBD handle and underlying connection.'''
-        if hasattr(self, '_o'):
+        if self._o:
             libnbdmod.close(self._o)
+
+    def _check_not_closed(self):
+        if not self._o:
+            raise ClosedHandle(\"GuestFS: method called on closed handle\")
+
+    def close(self):
+        '''Explicitly close the NBD handle and underlying connection.
+
+        The handle is closed implicitly when its reference count goes
+        to zero (eg. when it goes out of scope or the program ends).
+
+        This call is only needed if you want to force the handle to
+        close now.  After calling this, the program must not call
+        any method on the handle (except the implicit call to
+        __del__ which happens when the final reference is cleaned up).
+        '''
+        self._check_not_closed()
+        libnbdmod.close(self._o)
+        self._o = None
 
 ";
 
@@ -867,6 +893,7 @@ class NBD(object):
       let longdesc = Str.global_replace py_const_rex "C<\\1>" longdesc in
       let longdesc = pod2text longdesc in
       pr "        u'''▶ %s\n\n%s'''\n" shortdesc (String.concat "\n" longdesc);
+      pr "        self._check_not_closed()\n";
       pr "        return libnbdmod.%s(" name;
       pr_wrap ',' (fun () ->
           pr "self._o";
