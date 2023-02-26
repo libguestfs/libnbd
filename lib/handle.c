@@ -128,8 +128,7 @@ nbd_close (struct nbd_handle *h)
   /* Free user callbacks first. */
   nbd_unlocked_clear_debug_callback (h);
 
-  string_vector_iter (&h->querylist, (void *) free);
-  free (h->querylist.ptr);
+  string_vector_empty (&h->querylist);
   free (h->bs_entries);
   nbd_internal_reset_size_and_flags (h);
   for (i = 0; i < h->meta_contexts.len; ++i)
@@ -139,8 +138,7 @@ nbd_close (struct nbd_handle *h)
   free_cmd_list (h->cmds_to_issue);
   free_cmd_list (h->cmds_in_flight);
   free_cmd_list (h->cmds_done);
-  string_vector_iter (&h->argv, (void *) free);
-  free (h->argv.ptr);
+  string_vector_empty (&h->argv);
   if (h->sact_sockpath) {
     if (h->pid > 0)
       kill (h->pid, SIGTERM);
@@ -164,8 +162,7 @@ nbd_close (struct nbd_handle *h)
   free (h->tls_certificates);
   free (h->tls_username);
   free (h->tls_psk_file);
-  string_vector_iter (&h->request_meta_contexts, (void *) free);
-  free (h->request_meta_contexts.ptr);
+  string_vector_empty (&h->request_meta_contexts);
   free (h->hname);
   pthread_mutex_destroy (&h->lock);
   free (h);
@@ -379,8 +376,7 @@ nbd_unlocked_get_meta_context (struct nbd_handle *h, size_t i)
 int
 nbd_unlocked_clear_meta_contexts (struct nbd_handle *h)
 {
-  string_vector_iter (&h->request_meta_contexts, (void *) free);
-  string_vector_reset (&h->request_meta_contexts);
+  string_vector_empty (&h->request_meta_contexts);
   return 0;
 }
 

@@ -93,8 +93,7 @@ nbd_internal_set_argv (struct nbd_handle *h, char **argv)
     return -1;
   }
 
-  string_vector_iter (&h->argv, (void *) free);
-  string_vector_reset (&h->argv);
+  string_vector_empty (&h->argv);
 
   if (nbd_internal_copy_string_list (&h->argv, argv) == -1) {
     set_error (errno, "realloc");
@@ -110,8 +109,7 @@ nbd_internal_set_argv (struct nbd_handle *h, char **argv)
 int
 nbd_internal_set_querylist (struct nbd_handle *h, char **queries)
 {
-  string_vector_iter (&h->querylist, (void *) free);
-  string_vector_reset (&h->querylist);
+  string_vector_empty (&h->querylist);
 
   if (queries) {
     if (nbd_internal_copy_string_list (&h->querylist, queries) == -1) {

@@ -151,8 +151,7 @@ test_string_vector (void)
     printf ("%s\n", v.ptr[i]);
   assert (i == 10);
 
-  string_vector_iter (&v, (void*)free);
-  string_vector_reset (&v);
+  string_vector_empty (&v);
 }
 
 static void

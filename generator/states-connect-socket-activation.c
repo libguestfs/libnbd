@@ -91,8 +91,7 @@ prepare_socket_activation_environment (string_vector *env)
 
  err:
   set_error (errno, "malloc");
-  string_vector_iter (env, (void *) free);
-  free (env->ptr);
+  string_vector_empty (env);
   return -1;
 }
 
@@ -166,8 +165,7 @@ STATE_MACHINE {
     SET_NEXT_STATE (%.DEAD);
     set_error (errno, "fork");
     close (s);
-    string_vector_iter (&env, (void *) free);
-    free (env.ptr);
+    string_vector_empty (&env);
     return 0;
   }
   if (pid == 0) {         /* child - run command */
@@ -210,8 +208,7 @@ STATE_MACHINE {
 
   /* Parent. */
   close (s);
-  string_vector_iter (&env, (void *) free);
-  free (env.ptr);
+  string_vector_empty (&env);
   h->pid = pid;
 
   h->connaddrlen = sizeof addr;

@@ -275,8 +275,7 @@ show_one_export (struct nbd_handle *nbd, const char *desc,
       fprintf (fp, "\t},\n");
   }
 
-  string_vector_iter (&contexts, (void *) free);
-  free (contexts.ptr);
+  string_vector_empty (&contexts);
   free (content);
   free (export_name);
   free (export_desc);
