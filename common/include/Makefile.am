@@ -28,6 +28,7 @@ EXTRA_DIST = \
 	iszero.h \
 	minmax.h \
 	rounding.h \
+	static-assert.h \
 	unique-name.h \
 	$(NULL)
 
