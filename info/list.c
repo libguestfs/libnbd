@@ -35,7 +35,7 @@ struct export {
   char *name;
   char *desc;
 };
-DEFINE_VECTOR_TYPE (exports, struct export)
+DEFINE_VECTOR_TYPE (exports, struct export);
 static exports export_list = empty_vector;
 
 static int

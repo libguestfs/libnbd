@@ -64,7 +64,7 @@
 #endif
 
 #ifdef PAGE_CACHE_MAPPING
-DEFINE_VECTOR_TYPE (byte_vector, uint8_t)
+DEFINE_VECTOR_TYPE (byte_vector, uint8_t);
 #endif
 
 static struct rw_ops file_ops;

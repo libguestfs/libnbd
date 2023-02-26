@@ -33,7 +33,7 @@
 
 static struct rw_ops nbd_ops;
 
-DEFINE_VECTOR_TYPE (handles, struct nbd_handle *)
+DEFINE_VECTOR_TYPE (handles, struct nbd_handle *);
 
 struct rw_nbd {
   struct rw rw;

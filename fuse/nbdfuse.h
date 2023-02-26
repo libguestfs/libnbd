@@ -30,7 +30,7 @@
 
 #include "vector.h"
 
-DEFINE_VECTOR_TYPE (handles, struct nbd_handle *)
+DEFINE_VECTOR_TYPE (handles, struct nbd_handle *);
 
 extern handles nbd;
 extern unsigned connections;

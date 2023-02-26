@@ -58,7 +58,7 @@ struct uri_query {
   char *value;
 };
 
-DEFINE_VECTOR_TYPE (uri_query_list, struct uri_query)
+DEFINE_VECTOR_TYPE (uri_query_list, struct uri_query);
 
 /* Parse the query_raw substring of a URI into a list of decoded queries.
  * Return 0 on success or -1 on error.

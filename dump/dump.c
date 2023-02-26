@@ -38,7 +38,7 @@
 #include "version.h"
 #include "vector.h"
 
-DEFINE_VECTOR_TYPE (uint32_vector, uint32_t)
+DEFINE_VECTOR_TYPE (uint32_vector, uint32_t);
 
 static const char *progname;
 static struct nbd_handle *nbd;

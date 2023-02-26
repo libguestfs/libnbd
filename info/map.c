@@ -36,7 +36,7 @@
 
 #include "nbdinfo.h"
 
-DEFINE_VECTOR_TYPE (uint32_vector, uint32_t)
+DEFINE_VECTOR_TYPE (uint32_vector, uint32_t);
 
 static void print_extents (uint32_vector *entries);
 static void print_totals (uint32_vector *entries, int64_t size);

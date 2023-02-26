@@ -62,7 +62,7 @@ struct thread_info {
   struct ublksrv_aio_ctx *aio_ctx;
   struct ublksrv_aio_list compl;
 };
-DEFINE_VECTOR_TYPE (thread_infos, struct thread_info)
+DEFINE_VECTOR_TYPE (thread_infos, struct thread_info);
 static thread_infos thread_info;
 
 static pthread_barrier_t barrier;

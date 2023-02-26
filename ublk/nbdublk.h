@@ -25,7 +25,7 @@
 
 #include "vector.h"
 
-DEFINE_VECTOR_TYPE (handles, struct nbd_handle *)
+DEFINE_VECTOR_TYPE (handles, struct nbd_handle *);
 
 #define UBLKSRV_TGT_TYPE_NBD 0
 
