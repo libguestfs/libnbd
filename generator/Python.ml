@@ -1,6 +1,6 @@
 (* hey emacs, this is OCaml code: -*- tuareg -*- *)
 (* nbd client library in userspace: Python bindings
- * Copyright (C) 2013-2022 Red Hat Inc.
+ * Copyright (C) 2013-2023 Red Hat Inc.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -841,10 +841,11 @@ class NBD(object):
         '''Close the NBD handle and underlying connection.'''
         if self._o:
             libnbdmod.close(self._o)
+            self._o = None
 
     def _check_not_closed(self):
         if not self._o:
-            raise ClosedHandle(\"GuestFS: method called on closed handle\")
+            raise ClosedHandle(\"libnbd: method called on closed handle\")
 
     def close(self):
         '''Explicitly close the NBD handle and underlying connection.
