@@ -181,6 +181,23 @@
                     (void *) compare);                                  \
   }                                                                     \
                                                                         \
+  /* Make a new vector with the same elements. */                       \
+  static inline int __attribute__ ((__unused__))                        \
+  name##_duplicate (name *v, name *copy)                                \
+  {                                                                     \
+    /* Note it's allowed for v and copy to be the same pointer. */      \
+    type *vptr = v->ptr;                                                \
+    type *newptr;                                                       \
+    size_t len = v->len * sizeof (type);                                \
+                                                                        \
+    newptr = malloc (len);                                              \
+    if (newptr == NULL) return -1;                                      \
+    memcpy (newptr, vptr, len);                                         \
+    copy->ptr = newptr;                                                 \
+    copy->len = copy->cap = v->len;                                     \
+    return 0;                                                           \
+  }                                                                     \
+                                                                        \
   /* End with duplicate declaration, so callers must supply ';'. */     \
   struct name
 
