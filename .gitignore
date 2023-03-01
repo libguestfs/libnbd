@@ -39,6 +39,7 @@ Makefile.in
 /common/include/test-isaligned
 /common/include/test-ispowerof2
 /common/include/test-iszero
+/common/include/test-minmax
 /common/utils/test-human-size
 /common/utils/test-vector
 /compile

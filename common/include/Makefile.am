@@ -41,6 +41,7 @@ TESTS = \
 	test-isaligned \
 	test-ispowerof2 \
 	test-iszero \
+	test-minmax \
 	$(NULL)
 check_PROGRAMS = $(TESTS)
 
@@ -67,3 +68,7 @@ test_ispowerof2_CFLAGS = $(WARNINGS_CFLAGS)
 test_iszero_SOURCES = test-iszero.c iszero.h
 test_iszero_CPPFLAGS = -I$(srcdir)
 test_iszero_CFLAGS = $(WARNINGS_CFLAGS)
+
+test_minmax_SOURCES = test-minmax.c minmax.h
+test_minmax_CPPFLAGS = -I$(srcdir)
+test_minmax_CFLAGS = $(WARNINGS_CFLAGS)
