@@ -36,8 +36,11 @@ EXTRA_DIST = \
 
 TESTS = \
 	test-array-size \
+	test-byte-swapping \
 	test-checked-overflow \
+	test-isaligned \
 	test-ispowerof2 \
+	test-iszero \
 	$(NULL)
 check_PROGRAMS = $(TESTS)
 
@@ -45,10 +48,22 @@ test_array_size_SOURCES = test-array-size.c array-size.h
 test_array_size_CPPFLAGS = -I$(srcdir)
 test_array_size_CFLAGS = $(WARNINGS_CFLAGS)
 
+test_byte_swapping_SOURCES = test-byte-swapping.c byte-swapping.h
+test_byte_swapping_CPPFLAGS = -I$(srcdir)
+test_byte_swapping_CFLAGS = $(WARNINGS_CFLAGS)
+
 test_checked_overflow_SOURCES = test-checked-overflow.c checked-overflow.h
 test_checked_overflow_CPPFLAGS = -I$(srcdir)
 test_checked_overflow_CFLAGS = $(WARNINGS_CFLAGS)
 
+test_isaligned_SOURCES = test-isaligned.c isaligned.h
+test_isaligned_CPPFLAGS = -I$(srcdir)
+test_isaligned_CFLAGS = $(WARNINGS_CFLAGS)
+
 test_ispowerof2_SOURCES = test-ispowerof2.c ispowerof2.h
 test_ispowerof2_CPPFLAGS = -I$(srcdir)
 test_ispowerof2_CFLAGS = $(WARNINGS_CFLAGS)
+
+test_iszero_SOURCES = test-iszero.c iszero.h
+test_iszero_CPPFLAGS = -I$(srcdir)
+test_iszero_CFLAGS = $(WARNINGS_CFLAGS)

@@ -34,8 +34,11 @@ Makefile.in
 /bash-completion/nbdinfo
 /bash-completion/nbdublk
 /common/include/test-array-size
+/common/include/test-byte-swapping
 /common/include/test-checked-overflow
+/common/include/test-isaligned
 /common/include/test-ispowerof2
+/common/include/test-iszero
 /common/utils/test-human-size
 /common/utils/test-vector
 /compile
