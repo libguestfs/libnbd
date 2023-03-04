@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # libnbd 'run' programs locally script
-# Copyright (C) 2011-2020 Red Hat Inc.
+# Copyright Red Hat
 #
 # @configure_input@
 #

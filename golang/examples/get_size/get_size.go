@@ -1,5 +1,5 @@
 /* libnbd example
- * Copyright (C) 2013-2020 Red Hat Inc.
+ * Copyright Red Hat
  * Examples are under a permissive BSD-like license.  See also
  * golang/examples/LICENSE-For-EXAMPLES
  *

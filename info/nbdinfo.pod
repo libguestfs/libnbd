@@ -451,4 +451,4 @@ Eric Blake
 
 =head1 COPYRIGHT
 
-Copyright (C) 2020-2021 Red Hat Inc.
+Copyright Red Hat
