@@ -438,6 +438,8 @@ extern void nbd_internal_set_last_error (int errnum, char *error)
                      _context, ##__VA_ARGS__, strerror (_e));           \
     if (_r >= 0)                                                        \
       nbd_internal_set_last_error (_e, _errp);                          \
+    else                                                                \
+      nbd_internal_set_last_error (_e, fs /* best effort */);           \
   } while (0)
 
 /* flags.c */
