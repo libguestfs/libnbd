@@ -91,8 +91,14 @@ allocate_last_error_on_demand (void)
 
   if (!last_error) {
     last_error = calloc (1, sizeof *last_error);
-    if (last_error)
-      pthread_setspecific (errors_key, last_error);
+    if (last_error) {
+      int err = pthread_setspecific (errors_key, last_error);
+      if (err != 0) {
+        /* This is not supposed to happen (XXX). */
+        fprintf (stderr, "%s: %s: %s\n", "libnbd", "pthread_setspecific",
+                 strerror (err));
+      }
+    }
   }
   return last_error;
 }
