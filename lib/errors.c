@@ -37,27 +37,27 @@ static pthread_key_t errors_key;
 
 static void free_errors_key (void *vp) LIBNBD_ATTRIBUTE_NONNULL (1);
 
-/* Constructor/destructor to create the thread-local key when the
- * library is loaded and unloaded.
- */
-static void errors_init (void) __attribute__ ((constructor));
-static void errors_free (void) __attribute__ ((destructor));
+/* Create the thread-local key when the library is loaded. */
+static void errors_key_create (void) __attribute__ ((constructor));
 
 static void
-errors_init (void)
+errors_key_create (void)
 {
   int err;
 
   err = pthread_key_create (&errors_key, free_errors_key);
   if (err != 0) {
-    fprintf (stderr, "%s: pthread_key_create: %s\n", "libnbd",
+    fprintf (stderr, "%s: %s: %s\n", "libnbd", "pthread_key_create",
              strerror (err));
     abort ();
   }
 }
 
+/* Destroy the thread-local key when the library is unloaded. */
+static void errors_key_destroy (void) __attribute__ ((destructor));
+
 static void
-errors_free (void)
+errors_key_destroy (void)
 {
   struct last_error *last_error = pthread_getspecific (errors_key);
 
