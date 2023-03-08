@@ -69,7 +69,11 @@ errors_key_destroy (void)
     free (last_error->error);
     free (last_error);
   }
-  pthread_key_delete (errors_key);
+
+  /* We could do this, but that causes a race condition described here:
+   * https://listman.redhat.com/archives/libguestfs/2023-March/031002.html
+   */
+  //pthread_key_delete (errors_key);
 }
 
 /* This is called when a thread exits, to free the thread-local data

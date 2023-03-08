@@ -607,6 +607,14 @@ AS_IF([test "x$enable_golang" != "xno"],[
 ],[GOLANG=no])
 AM_CONDITIONAL([HAVE_GOLANG],[test "x$GOLANG" != "xno"])
 
+AC_MSG_CHECKING([for how to mark DSO non-deletable at runtime])
+NODELETE=
+`$LD --help 2>&1 | grep -- "-z nodelete" >/dev/null` && \
+    NODELETE="-Wl,-z -Wl,nodelete"
+AC_MSG_RESULT([$NODELETE])
+AC_SUBST([NODELETE])
+
+AC_MSG_CHECKING([for how to set DSO symbol versions])
 case $host_os in
   darwin*)
   VERSION_SCRIPT=
@@ -615,6 +623,7 @@ case $host_os in
   VERSION_SCRIPT="-Wl,--version-script=${srcdir}/libnbd.syms"
   ;;
 esac
+AC_MSG_RESULT([$VERSION_SCRIPT])
 AC_SUBST([VERSION_SCRIPT])
 
 dnl Produce output files.
