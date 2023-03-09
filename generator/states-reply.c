@@ -123,8 +123,14 @@ STATE_MACHINE {
     SET_NEXT_STATE (%STRUCTURED_REPLY.START);
   }
   else {
-    SET_NEXT_STATE (%.DEAD); /* We've probably lost synchronization. */
+    /* We've probably lost synchronization. */
+    SET_NEXT_STATE (%.DEAD);
     set_error (0, "invalid reply magic 0x%" PRIx32, magic);
+#if 0 /* uncomment to see desynchronized data */
+    nbd_internal_hexdump (&h->sbuf.simple_reply,
+                          sizeof (h->sbuf.simple_reply),
+                          stderr);
+#endif
     return 0;
   }
 
