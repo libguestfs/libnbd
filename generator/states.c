@@ -191,8 +191,12 @@ STATE_MACHINE {
   return 0;
 
  DEAD:
+  const char *err = nbd_get_error ();
+
   /* The caller should have used set_error() before reaching here */
-  assert (nbd_get_error ());
+  assert (err != NULL);
+  debug (h, "handle dead: %s", err);
+
   abort_option (h);
   nbd_internal_abort_commands (h, &h->cmds_to_issue);
   nbd_internal_abort_commands (h, &h->cmds_in_flight);
