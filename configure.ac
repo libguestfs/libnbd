@@ -132,11 +132,16 @@ dnl Check for various libc functions, all optional.
 dnl
 dnl posix_fadvise helps to optimise linear reads and writes.
 dnl
+dnl When /proc/sys/kernel/core_pattern starts with a pipe (|) symbol, Linux
+dnl ignores "ulimit -c" and (equivalent) setrlimit(RLIMIT_CORE) actions, for
+dnl disabling core dumping. Only prctl() can be used then, for that purpose.
+dnl
 dnl strerrordesc_np (glibc only) is preferred over sys_errlist:
 dnl https://lists.fedoraproject.org/archives/list/glibc@lists.fedoraproject.org/thread/WJHGG2OO7ABNAYICGA5WQZ2Q34Q2FEHU/
 AC_CHECK_FUNCS([\
         posix_fadvise \
         posix_memalign \
+        prctl \
         strerrordesc_np \
         valloc])
 

@@ -128,6 +128,8 @@ Makefile.in
 /lib/states-run.c
 /lib/states.c
 /lib/states.h
+/lib/test-fork-safe-assert
+/lib/test-fork-safe-assert.err
 /lib/unlocked.h
 /libtool
 /ltmain.sh

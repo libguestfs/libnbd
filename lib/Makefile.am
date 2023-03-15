@@ -25,14 +25,29 @@ generator_built = \
 	unlocked.h \
 	$(NULL)
 
+CLEANFILES += \
+	test-fork-safe-assert.err \
+	$(NULL)
+
 EXTRA_DIST = \
 	$(generator_built) \
 	libnbd.syms \
+	test-fork-safe-assert.sh \
 	$(NULL)
 
 lib_LTLIBRARIES = libnbd.la
 
 BUILT_SOURCES = $(generator_built)
+
+AM_CPPFLAGS = \
+	-I$(top_srcdir)/include \
+	-I$(top_srcdir)/common/include \
+	-I$(top_srcdir)/common/utils \
+	$(NULL)
+
+AM_CFLAGS = \
+	$(WARNINGS_CFLAGS) \
+	$(NULL)
 
 libnbd_la_SOURCES = \
 	aio.c \
@@ -60,13 +75,11 @@ libnbd_la_SOURCES = \
 	utils.c \
 	$(NULL)
 libnbd_la_CPPFLAGS = \
-	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/common/include \
-	-I$(top_srcdir)/common/utils \
+	$(AM_CPPFLAGS) \
 	-Dsysconfdir=\"$(sysconfdir)\" \
 	$(NULL)
 libnbd_la_CFLAGS = \
-	$(WARNINGS_CFLAGS) \
+	$(AM_CFLAGS) \
 	$(PTHREAD_CFLAGS) \
 	$(GNUTLS_CFLAGS) \
 	$(LIBXML2_CFLAGS) \
@@ -87,3 +100,20 @@ libnbd_la_LDFLAGS = \
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libnbd.pc
+
+# Unit tests.
+
+TESTS = \
+	test-fork-safe-assert.sh \
+	$(NULL)
+
+check_PROGRAMS = \
+	test-fork-safe-assert \
+	$(NULL)
+
+test_fork_safe_assert_SOURCES = \
+	$(top_srcdir)/common/utils/vector.c \
+	errors.c \
+	test-fork-safe-assert.c \
+	utils.c \
+	$(NULL)
