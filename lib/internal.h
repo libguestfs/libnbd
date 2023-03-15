@@ -529,4 +529,17 @@ extern int nbd_internal_socketpair (int domain, int type, int protocol,
                                     int *fds)
   LIBNBD_ATTRIBUTE_NONNULL (4);
 
+extern void nbd_internal_fork_safe_assert (int result, const char *file,
+                                           long line, const char *func,
+                                           const char *assertion)
+  LIBNBD_ATTRIBUTE_NONNULL (2, 4, 5);
+
+#ifdef NDEBUG
+#define NBD_INTERNAL_FORK_SAFE_ASSERT(expression) ((void)0)
+#else
+#define NBD_INTERNAL_FORK_SAFE_ASSERT(expression)                        \
+  (nbd_internal_fork_safe_assert ((expression) != 0, __FILE__, __LINE__, \
+                                  __func__, #expression))
+#endif
+
 #endif /* LIBNBD_INTERNAL_H */

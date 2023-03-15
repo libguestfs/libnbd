@@ -489,3 +489,19 @@ nbd_internal_socketpair (int domain, int type, int protocol, int *fds)
 
   return ret;
 }
+
+void
+nbd_internal_fork_safe_assert (int result, const char *file, long line,
+                               const char *func, const char *assertion)
+{
+  const char *line_out;
+  char line_buf[32];
+
+  if (result)
+    return;
+
+  line_out = nbd_internal_fork_safe_itoa (line, line_buf, sizeof line_buf);
+  xwritel (STDERR_FILENO, file, ":", line_out, ": ", func, ": Assertion `",
+           assertion, "' failed.\n", (char *)NULL);
+  abort ();
+}
