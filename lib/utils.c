@@ -25,7 +25,10 @@
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <stdarg.h>
+#include <sys/uio.h>
 
+#include "array-size.h"
 #include "minmax.h"
 
 #include "internal.h"
@@ -181,6 +184,85 @@ nbd_internal_fork_safe_itoa (long v, char *buf, size_t bufsize)
 #pragma GCC diagnostic ignored "-Wunused-result"
 #endif
 
+/* "Best effort" function for writing out a list of NUL-terminated strings to a
+ * file descriptor (without the NUL-terminators). The list is terminated with
+ * (char *)NULL. Partial writes, and EINTR and EAGAIN failures are handled
+ * internally. No value is returned; only call this function for writing
+ * diagnostic data on error paths, when giving up on a higher-level action
+ * anyway.
+ *
+ * No more than 16 strings, excluding the NULL terminator, will be written. (As
+ * of POSIX Issue 7 + TC2, _XOPEN_IOV_MAX is 16.)
+ *
+ * The function is supposed to remain async-signal-safe.
+ *
+ * (The va_*() macros, while not marked async-signal-safe in Issue 7 + TC2, are
+ * considered such, per <https://www.austingroupbugs.net/view.php?id=711>, which
+ * is binding for Issue 7 implementations via the Interpretations Track.
+ *
+ * Furthermore, writev(), while also not marked async-signal-safe in Issue 7 +
+ * TC2, is considered such, per
+ * <https://www.austingroupbugs.net/view.php?id=1455>, which is slated for
+ * inclusion in Issue 7 TC3 (if there's going to be a TC3), and in Issue 8.)
+ */
+static void __attribute__ ((sentinel))
+xwritel (int fildes, ...)
+{
+  /* Open-code the current value of _XOPEN_IOV_MAX, in order to contain stack
+   * footprint, should _XOPEN_IOV_MAX grow in the future.
+   */
+  struct iovec iovec[16], *filled, *end, *pos;
+  va_list ap;
+  char *arg;
+
+  /* Translate the variable argument list to IO vectors. Note that we cast away
+   * const-ness intentionally.
+   */
+  filled = iovec;
+  end = iovec + ARRAY_SIZE (iovec);
+  va_start (ap, fildes);
+  while (filled < end && (arg = va_arg (ap, char *)) != NULL)
+    *filled++ = (struct iovec){ .iov_base = arg, .iov_len = strlen (arg) };
+  va_end (ap);
+
+  /* Write out the IO vectors. */
+  pos = iovec;
+  while (pos < filled) {
+    ssize_t written;
+
+    /* Skip any empty vectors at the front. */
+    if (pos->iov_len == 0) {
+      ++pos;
+      continue;
+    }
+
+    /* Write out the vectors. */
+    do
+      written = writev (fildes, pos, filled - pos);
+    while (written == -1 && (errno == EINTR || errno == EAGAIN));
+
+    if (written == -1)
+      return;
+
+    /* Consume the vectors that have been written out (fully, or in part). Note
+     * that "written" is positive here.
+     */
+    do {
+      size_t advance;
+
+      advance = MIN (written, pos->iov_len);
+      /* Note that "advance" is positive here iff "pos->iov_len" is positive. */
+      pos->iov_base = (char *)pos->iov_base + advance;
+      pos->iov_len -= advance;
+      written -= advance;
+
+      /* At least one of "written" and "pos->iov_len" is zero here. */
+      if (pos->iov_len == 0)
+        ++pos;
+    } while (written > 0);
+  }
+}
+
 /* Fork-safe version of perror.  ONLY use this after fork and before
  * exec, the rest of the time use set_error().
  */
@@ -191,8 +273,6 @@ nbd_internal_fork_safe_perror (const char *s)
   const char *m = NULL;
   char buf[32];
 
-  write (2, s, strlen (s));
-  write (2, ": ", 2);
 #ifdef HAVE_STRERRORDESC_NP
   m = strerrordesc_np (errno);
 #else
@@ -202,8 +282,7 @@ nbd_internal_fork_safe_perror (const char *s)
 #endif
   if (!m)
     m = nbd_internal_fork_safe_itoa ((long) errno, buf, sizeof buf);
-  write (2, m, strlen (m));
-  write (2, "\n", 1);
+  xwritel (STDERR_FILENO, s, ": ", m, "\n", (char *)NULL);
 
   /* Restore original errno in case it was disturbed by the system
    * calls above.
