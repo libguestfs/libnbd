@@ -117,3 +117,4 @@ test_fork_safe_assert_SOURCES = \
 	test-fork-safe-assert.c \
 	utils.c \
 	$(NULL)
+test_fork_safe_assert_LDADD = $(PTHREAD_LIBS)
