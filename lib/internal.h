@@ -368,6 +368,18 @@ struct command {
   uint32_t error; /* Local errno value */
 };
 
+struct execvpe {
+  string_vector pathnames;
+
+  /* Note: "const_string_vector" is not a good type for "sh_argv" below. Even if
+   * we reserved enough space in a "const_string_vector",
+   * const_string_vector_append() would still not be async-signal-safe, due to
+   * the underlying const_string_vector_insert() calling assert().
+   */
+  char **sh_argv;
+  size_t num_sh_args;
+};
+
 /* Test if a callback is "null" or not, and set it to null. */
 #define CALLBACK_IS_NULL(cb)     ((cb).callback == NULL && (cb).free == NULL)
 #define CALLBACK_IS_NOT_NULL(cb) (! CALLBACK_IS_NULL ((cb)))
@@ -541,5 +553,15 @@ extern void nbd_internal_fork_safe_assert (int result, const char *file,
   (nbd_internal_fork_safe_assert ((expression) != 0, __FILE__, __LINE__, \
                                   __func__, #expression))
 #endif
+
+extern int nbd_internal_execvpe_init (struct execvpe *ctx, const char *file,
+                                      size_t num_args)
+  LIBNBD_ATTRIBUTE_NONNULL (1, 2);
+extern void nbd_internal_execvpe_uninit (struct execvpe *ctx)
+  LIBNBD_ATTRIBUTE_NONNULL (1);
+extern int nbd_internal_fork_safe_execvpe (struct execvpe *ctx,
+                                           const string_vector *argv,
+                                           char * const *envp)
+  LIBNBD_ATTRIBUTE_NONNULL (1, 2, 3);
 
 #endif /* LIBNBD_INTERNAL_H */

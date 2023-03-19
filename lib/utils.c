@@ -29,6 +29,7 @@
 #include <sys/uio.h>
 
 #include "array-size.h"
+#include "checked-overflow.h"
 #include "minmax.h"
 
 #include "internal.h"
@@ -504,4 +505,358 @@ nbd_internal_fork_safe_assert (int result, const char *file, long line,
   xwritel (STDERR_FILENO, file, ":", line_out, ": ", func, ": Assertion `",
            assertion, "' failed.\n", (char *)NULL);
   abort ();
+}
+
+/* Returns the value of the PATH environment variable -- falling back to
+ * confstr(_CS_PATH) if PATH is absent -- as a dynamically allocated string. On
+ * failure, sets "errno" and returns NULL.
+ */
+static char *
+get_path (void)
+  LIBNBD_ATTRIBUTE_ALLOC_DEALLOC (free)
+{
+  char *path;
+  bool env_path_found;
+  size_t path_size, path_size2;
+
+  /* Note: per POSIX, here we should lock the environment, even just for
+   * getenv(). However, glibc and any other high-quality libc will not be
+   * modifying "environ" during getenv(), and no sane application should modify
+   * the environment after launching threads.
+   */
+  path = getenv ("PATH");
+  if ((env_path_found = (path != NULL)))
+    path = strdup (path);
+  /* This is where we'd unlock the environment. */
+
+  if (env_path_found) {
+    /* This handles out-of-memory as well. */
+    return path;
+  }
+
+  errno = 0;
+  path_size = confstr (_CS_PATH, NULL, 0);
+  if (path_size == 0) {
+    /* If _CS_PATH does not have a configuration-defined value, just store
+     * ENOENT to "errno".
+     */
+    if (errno == 0)
+      errno = ENOENT;
+
+    return NULL;
+  }
+
+  path = malloc (path_size);
+  if (path == NULL)
+    return NULL;
+
+  path_size2 = confstr (_CS_PATH, path, path_size);
+  assert (path_size2 == path_size);
+  return path;
+}
+
+/* nbd_internal_execvpe_init() and nbd_internal_fork_safe_execvpe() together
+ * present an execvp() alternative that is async-signal-safe.
+ *
+ * nbd_internal_execvpe_init() may only be called before fork(), for filling in
+ * the caller-allocated, uninitialized "ctx" structure. If
+ * nbd_internal_execvpe_init() succeeds, then fork() may be called.
+ * Subsequently, in the child process, nbd_internal_fork_safe_execvpe() may be
+ * called with the inherited "ctx" structure, while in the parent process,
+ * nbd_internal_execvpe_uninit() must be called to uninitialize (evacuate) the
+ * "ctx" structure.
+ *
+ * On failure, "ctx" will not have been modified, "errno" is set, and -1 is
+ * returned. Failures include:
+ *
+ * - Errors forwarded from underlying functions such as strdup(), confstr(),
+ *   malloc(), string_vector_append().
+ *
+ * - ENOENT: "file" is an empty string.
+ *
+ * - ENOENT: "file" does not contain a <slash> "/" character, the PATH
+ *           environment variable is not set, and confstr() doesn't associate a
+ *           configuration-defined value with _CS_PATH.
+ *
+ * - ENOENT: "file" does not contain a <slash> "/" character, and: (a) the PATH
+ *           environment variable is set to the empty string, or (b) PATH is not
+ *           set, and confstr() outputs the empty string for _CS_PATH.
+ *
+ * - EOVERFLOW: the sizes or counts of necessary objects could not be expressed.
+ *
+ * - EINVAL: "num_args" is less than 2.
+ *
+ * On success, the "ctx" structure will have been filled in, and 0 is returned.
+ *
+ * - "pathnames" member:
+ *
+ *   - All strings pointed-to by elements of the "pathnames" string_vector
+ *     member are owned by "pathnames".
+ *
+ *   - If "file" contains a <slash> "/" character, then the sole entry in
+ *     "pathnames" is a copy of "file".
+ *
+ *   - If "file" does not contain a <slash> "/" character:
+ *
+ *     Let "system path" be defined as the value of the PATH environment
+ *     variable, if the latter exists, and as the value output by confstr() for
+ *     _CS_PATH otherwise. Per the ENOENT specifications above, "system path" is
+ *     a non-empty string. Let "system path" further be of the form
+ *
+ *       <prefix_0> [n = 1]
+ *
+ *     or
+ *
+ *       <prefix_0>:<prefix_1>:...:<prefix_(n-1)> [n >= 2]
+ *
+ *     where for each 0 <= i < n, <prefix_i> does not contain the <colon> ":"
+ *     character. In the (n = 1) case, <prefix_0> is never empty (see ENOENT
+ *     above), while in the (n >= 2) case, any individual <prefix_i> may or may
+ *     not be empty.
+ *
+ *     The "pathnames" string_vector member has n elements; for each 0 <= i < n,
+ *     element i is of the form
+ *
+ *       suffix(curdir(<prefix_i>))file
+ *
+ *     where
+ *
+ *       curdir(x) := "."  if x = ""
+ *       curdir(x) := x    otherwise
+ *
+ *     and
+ *
+ *       suffix(x) := x      if "x" ends with a <slash> "/"
+ *       suffix(x) := x "/"  otherwise
+ *
+ *     This transformation implements the POSIX XBD / PATH environment variable
+ *     semantics, creating candidate pathnames for execution by
+ *     nbd_internal_fork_safe_execvpe(). nbd_internal_fork_safe_execvpe() will
+ *     iterate over the candidate pathnames with execve() until execve()
+ *     succeeds, or fails with an error that is due to neither pathname
+ *     resolution, nor the candidate not being a regular file, nor the candidate
+ *     lacking execution permission.
+ *
+ * - The "sh_argv" array member will have at least (num_args + 1) elements
+ *   allocated, and none populated.
+ *
+ *   (The minimum value of "num_args" is 2 -- see EINVAL above. According to
+ *   POSIX, "[t]he argument /arg0/ should point to a filename string that is
+ *   associated with the process being started by one of the /exec/ functions",
+ *   plus "num_args" includes the null pointer that terminates the argument
+ *   list.)
+ *
+ *   This allocation is made in anticipation of execve() failing for a
+ *   particular candidate inside nbd_internal_fork_safe_execvpe() with ENOEXEC
+ *   ("[t]he new process image file has the appropriate access permission but
+ *   has an unrecognized format"). While that failure terminates the iteration,
+ *   the failed call
+ *
+ *     execve (pathnames[i],
+ *             { argv[0], argv[1], ..., NULL }, // (num_args >= 2) elements
+ *             { envp[0], envp[1], ..., NULL })
+ *
+ *   must be repeated as
+ *
+ *     execve (<shell-path>,
+ *             { argv[0], pathnames[i],         // ((num_args + 1) >= 3)
+                 argv[1], ..., NULL },          // elements
+ *             { envp[0], envp[1], ..., NULL })
+ *
+ *   for emulating execvp(). The allocation in the "sh_argv" member makes it
+ *   possible just to *link* the original "argv" elements and the "pathnames[i]"
+ *   candidate into the right positions.
+ *
+ *   (POSIX leaves the shell pathname unspecified; "/bin/sh" should be good
+ *   enough.)
+ *
+ *   The shell *binary* will see itself being executed under the name "argv[0]",
+ *   will receive "pathnames[i]" as the pathname of the shell *script* to read
+ *   and interpret ("command_file" in POSIX terminology), will expose
+ *   "pathnames[i]" as the positional parameter $0 to the script, and will
+ *   forward "argv[1]" and the rest to the script as positional parameters $1
+ *   and onward.
+ */
+int
+nbd_internal_execvpe_init (struct execvpe *ctx, const char *file,
+                           size_t num_args)
+{
+  int rc;
+  char *sys_path;
+  string_vector pathnames;
+  char *pathname;
+  size_t num_sh_args;
+  char **sh_argv;
+  size_t sh_argv_bytes;
+
+  rc = -1;
+
+  if (file[0] == '\0') {
+    errno = ENOENT;
+    return rc;
+  }
+
+  /* First phase. */
+  sys_path = NULL;
+  pathnames = (string_vector)empty_vector;
+
+  if (strchr (file, '/') == NULL) {
+    size_t file_len;
+    const char *sys_path_element, *scan;
+    bool finish;
+
+    sys_path = get_path ();
+    if (sys_path == NULL)
+      return rc;
+
+    if (sys_path[0] == '\0') {
+      errno = ENOENT;
+      goto free_sys_path;
+    }
+
+    pathname = NULL;
+    file_len = strlen (file);
+    sys_path_element = sys_path;
+    scan = sys_path;
+    do {
+      assert (sys_path_element <= scan);
+      finish = (*scan == '\0');
+      if (finish || *scan == ':') {
+        const char *sys_path_copy_start;
+        size_t sys_path_copy_size;
+        size_t sep_copy_size;
+        size_t pathname_size;
+        char *p;
+
+        if (scan == sys_path_element) {
+          sys_path_copy_start = ".";
+          sys_path_copy_size = 1;
+        } else {
+          sys_path_copy_start = sys_path_element;
+          sys_path_copy_size = scan - sys_path_element;
+        }
+
+        assert (sys_path_copy_size >= 1);
+        sep_copy_size = (sys_path_copy_start[sys_path_copy_size - 1] != '/');
+
+        if (ADD_OVERFLOW (sys_path_copy_size, sep_copy_size, &pathname_size) ||
+            ADD_OVERFLOW (pathname_size, file_len, &pathname_size) ||
+            ADD_OVERFLOW (pathname_size, 1u, &pathname_size)) {
+          errno = EOVERFLOW;
+          goto empty_pathnames;
+        }
+
+        pathname = malloc (pathname_size);
+        if (pathname == NULL)
+          goto empty_pathnames;
+        p = pathname;
+
+        memcpy (p, sys_path_copy_start, sys_path_copy_size);
+        p += sys_path_copy_size;
+
+        memcpy (p, "/", sep_copy_size);
+        p += sep_copy_size;
+
+        memcpy (p, file, file_len);
+        p += file_len;
+
+        *p++ = '\0';
+
+        if (string_vector_append (&pathnames, pathname) == -1)
+          goto empty_pathnames;
+        /* Ownership transferred. */
+        pathname = NULL;
+
+        sys_path_element = scan + 1;
+      }
+
+      ++scan;
+    } while (!finish);
+  } else {
+    pathname = strdup (file);
+    if (pathname == NULL)
+      return rc;
+
+    if (string_vector_append (&pathnames, pathname) == -1)
+      goto empty_pathnames;
+    /* Ownership transferred. */
+    pathname = NULL;
+  }
+
+  /* Second phase. */
+  if (num_args < 2) {
+    errno = EINVAL;
+    goto empty_pathnames;
+  }
+  if (ADD_OVERFLOW (num_args, 1u, &num_sh_args) ||
+      MUL_OVERFLOW (num_sh_args, sizeof *sh_argv, &sh_argv_bytes)) {
+    errno = EOVERFLOW;
+    goto empty_pathnames;
+  }
+  sh_argv = malloc (sh_argv_bytes);
+  if (sh_argv == NULL)
+    goto empty_pathnames;
+
+  /* Commit. */
+  ctx->pathnames = pathnames;
+  ctx->sh_argv = sh_argv;
+  ctx->num_sh_args = num_sh_args;
+  rc = 0;
+  /* Fall through, for freeing temporaries. */
+
+empty_pathnames:
+  if (rc == -1) {
+    free (pathname);
+    string_vector_empty (&pathnames);
+  }
+
+free_sys_path:
+  free (sys_path);
+
+  return rc;
+}
+
+void
+nbd_internal_execvpe_uninit (struct execvpe *ctx)
+{
+  free (ctx->sh_argv);
+  ctx->num_sh_args = 0;
+  string_vector_empty (&ctx->pathnames);
+}
+
+int
+nbd_internal_fork_safe_execvpe (struct execvpe *ctx, const string_vector *argv,
+                                char * const *envp)
+{
+  size_t pathname_idx;
+
+  NBD_INTERNAL_FORK_SAFE_ASSERT (ctx->pathnames.len > 0);
+
+  pathname_idx = 0;
+  do {
+    (void)execve (ctx->pathnames.ptr[pathname_idx], argv->ptr, envp);
+    if (errno != EACCES && errno != ELOOP && errno != ENAMETOOLONG &&
+        errno != ENOENT && errno != ENOTDIR)
+      break;
+
+    ++pathname_idx;
+  } while (pathname_idx < ctx->pathnames.len);
+
+  if (errno == ENOEXEC) {
+    char **sh_argp;
+    size_t argv_idx;
+
+    NBD_INTERNAL_FORK_SAFE_ASSERT (ctx->num_sh_args >= argv->len);
+    NBD_INTERNAL_FORK_SAFE_ASSERT (ctx->num_sh_args - argv->len == 1);
+
+    sh_argp = ctx->sh_argv;
+    *sh_argp++ = argv->ptr[0];
+    *sh_argp++ = ctx->pathnames.ptr[pathname_idx];
+    for (argv_idx = 1; argv_idx < argv->len; ++argv_idx)
+      *sh_argp++ = argv->ptr[argv_idx];
+
+    (void)execve ("/bin/sh", ctx->sh_argv, envp);
+  }
+
+  return -1;
 }
