@@ -130,6 +130,7 @@ Makefile.in
 /lib/states.h
 /lib/test-fork-safe-assert
 /lib/test-fork-safe-assert.err
+/lib/test-fork-safe-execvpe
 /lib/unlocked.h
 /libtool
 /ltmain.sh

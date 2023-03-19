@@ -33,6 +33,7 @@ EXTRA_DIST = \
 	$(generator_built) \
 	libnbd.syms \
 	test-fork-safe-assert.sh \
+	test-fork-safe-execvpe.sh \
 	$(NULL)
 
 lib_LTLIBRARIES = libnbd.la
@@ -105,10 +106,12 @@ pkgconfig_DATA = libnbd.pc
 
 TESTS = \
 	test-fork-safe-assert.sh \
+	test-fork-safe-execvpe.sh \
 	$(NULL)
 
 check_PROGRAMS = \
 	test-fork-safe-assert \
+	test-fork-safe-execvpe \
 	$(NULL)
 
 test_fork_safe_assert_SOURCES = \
@@ -118,3 +121,11 @@ test_fork_safe_assert_SOURCES = \
 	utils.c \
 	$(NULL)
 test_fork_safe_assert_LDADD = $(PTHREAD_LIBS)
+
+test_fork_safe_execvpe_SOURCES = \
+	$(top_srcdir)/common/utils/vector.c \
+	errors.c \
+	test-fork-safe-execvpe.c \
+	utils.c \
+	$(NULL)
+test_fork_safe_execvpe_LDADD = $(PTHREAD_LIBS)
