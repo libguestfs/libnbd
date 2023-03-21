@@ -22,9 +22,11 @@ set -e
 
 # Determine the absolute pathname of the execvpe helper binary. The "realpath"
 # utility is not in POSIX, but Linux, FreeBSD and OpenBSD all have it.
+# Unfortunately, not all variants recognize the "--" end-of-options argument
+# separator, though. :/
 bname=$(basename -- "$0" .sh)
 dname=$(dirname -- "$0")
-execvpe=$(realpath -- "$dname/$bname")
+execvpe=$(realpath "$dname/$bname")
 
 # This is an elaborate way to control the PATH variable around the $execvpe
 # helper binary as narrowly as possible.
