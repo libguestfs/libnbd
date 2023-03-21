@@ -6,3 +6,13 @@
 
 # CentOS (stream) 8 probably has an older, buggy version of nbdkit and is not updated
 ^CentOS .*8$;info/info-uri.sh info/info-list-uris.sh interop/list-exports-nbdkit
+
+# Alpine Linux provides the "expr" utility (under pathname "/usr/bin/expr") in
+# one of two forms: (1) as a symlink to the "/bin/busybox" binary executable,
+# when the "coreutils" package is not installed, (2) as a symlink to the
+# "coreutils" binary executable, otherwise. Both linked-to binary executables
+# key their behavior off the name under which they are invoked (that is, argv0).
+# Unfortunately, this breaks "lib/test-fork-safe-execvpe.sh": that test case
+# copies the "expr" utility to a file called "bin/f", and actually expects
+# "bin/f" to work. Both "busybox" and "coreutils" croak when invoked as "f".
+^Alpine Linux-.*$;lib/test-fork-safe-execvpe.sh
