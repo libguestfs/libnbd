@@ -511,9 +511,8 @@ nbd_internal_fork_safe_assert (int result, const char *file, long line,
  * confstr(_CS_PATH) if PATH is absent -- as a dynamically allocated string. On
  * failure, sets "errno" and returns NULL.
  */
-static char *
+static char * LIBNBD_ATTRIBUTE_ALLOC_DEALLOC (free)
 get_path (void)
-  LIBNBD_ATTRIBUTE_ALLOC_DEALLOC (free)
 {
   char *path;
   bool env_path_found;
