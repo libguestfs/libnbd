@@ -32,40 +32,50 @@ execvpe=$(realpath -- "$dname/$bname")
 # If $1 is "_", then the $execvpe helper binary is invoked with PATH unset.
 # Otherwise, the binary is invoked with PATH set to $1.
 #
-# $2 and onward are passed to $execvpe; note that $2 becomes *both*
-# "program-to-exec" for the helper *and* argv[0] for the program executed by the
-# helper.
+# $2 and onward are passed to $execvpe; $2 becomes "program-to-exec" for the
+# helper and $3 becomes argv[0] for the program executed by the helper.
 #
 # The command itself (including the PATH setting) is written to "cmd" (for error
 # reporting purposes only); the standard output and error are saved in "out" and
 # "err" respectively; the exit status is written to "status". This function
 # should never fail; if it does, then that's a bug in this unit test script, or
 # the disk is full etc.
-run()
+run0()
 {
     local pathctl=$1
-    local program=$2
     local exit_status
 
     shift 1
 
     if test _ = "$pathctl"; then
-        printf 'unset PATH; %s %s %s\n' "$execvpe" "$program" "$*" >cmd
+        printf 'unset PATH; %s %s\n' "$execvpe" "$*" >cmd
         set +e
         (
             unset PATH
-            "$execvpe" "$program" "$@" >out 2>err
+            "$execvpe" "$@" >out 2>err
         )
         exit_status=$?
         set -e
     else
-        printf 'PATH=%s %s %s %s\n' "$pathctl" "$execvpe" "$program" "$*" >cmd
+        printf 'PATH=%s %s %s\n' "$pathctl" "$execvpe" "$*" >cmd
         set +e
-        PATH=$pathctl "$execvpe" "$program" "$@" >out 2>err
+        PATH=$pathctl "$execvpe" "$@" >out 2>err
         exit_status=$?
         set -e
     fi
     printf '%d\n' $exit_status >status
+}
+
+# Does the same as "run0", but $2 becomes *both* "program-to-exec" for the the
+# $execvpe helper binary *and* argv[0] for the program executed by the helper.
+run()
+{
+    local pathctl=$1
+    local program=$2
+
+    shift 1
+
+    run0 "$pathctl" "$program" "$@"
 }
 
 # After "run" returns, the following three functions can verify the result.
