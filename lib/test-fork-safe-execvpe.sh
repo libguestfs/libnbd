@@ -24,7 +24,11 @@ set -e
 # utility is not in POSIX, but Linux, FreeBSD and OpenBSD all have it.
 bname=$(basename -- "$0" .sh)
 dname=$(dirname -- "$0")
-execvpe=$(realpath -- "$dname/$bname")
+if ! execvpe=$(realpath -- "$dname/$bname"); then
+    # Work around <https://bugs.busybox.net/show_bug.cgi?id=15466>. For example,
+    # Alpine Linux in the libnbd CI uses BusyBox.
+    execvpe=$(realpath "$dname/$bname")
+fi
 
 # This is an elaborate way to control the PATH variable around the $execvpe
 # helper binary as narrowly as possible.
@@ -34,6 +38,13 @@ execvpe=$(realpath -- "$dname/$bname")
 #
 # $2 and onward are passed to $execvpe; $2 becomes "program-to-exec" for the
 # helper and $3 becomes argv[0] for the program executed by the helper.
+#
+# (Outside of the "run" function below, "run0" should only ever be called for
+# working around BusyBox. (Alpine Linux in the libnbd CI uses BusyBox.)
+# BusyBox's utilities "expr", "sh" etc. are just symlinks to the central
+# "busybox" binary executable, and that executable keys its behavior off the
+# name under which it is invoked -- that is, $3 here. See
+# <https://bugs.busybox.net/show_bug.cgi?id=15481>.)
 #
 # The command itself (including the PATH setting) is written to "cmd" (for error
 # reporting purposes only); the standard output and error are saved in "out" and
@@ -218,7 +229,7 @@ run "" nxregf/f/; execve_fail nxregf/f/ ENOTDIR
 run "" symlink/f; execve_fail symlink/f ELOOP
 
 # This runs "expr 1 + 1".
-run "" bin/f 1 + 1; success bin/f,2
+run0 "" bin/f expr 1 + 1; success bin/f,2
 
 # This triggers the ENOEXEC branch in nbd_internal_fork_safe_execvpe().
 # nbd_internal_fork_safe_execvpe() will first try
@@ -231,7 +242,7 @@ run "" bin/f 1 + 1; success bin/f,2
 #
 # The shell script will get "sh/f" for $0 and "arg1" for $1, and print those
 # out.
-run "" sh/f arg1; success sh/f,"sh/f arg1"
+run0 "" sh/f sh arg1; success sh/f,"sh/f arg1"
 
 # In the tests below, the "file" parameter of execvpe() will not contain a
 # <slash> character.
@@ -267,21 +278,21 @@ execve_fail empty/f,fifo/f,subdir/f,nxregf/f,symlink/f ELOOP
 # seen), and (b) that nbd_internal_fork_safe_execvpe() succeeds for the *last*
 # candidate. Repeat the test with "expr" (called "f" under "bin") and the shell
 # script (called "f" under "sh", triggering the ENOEXEC branch).
-run bin f 1 + 1; success bin/f,2
-run sh  f arg1;  success sh/f,"sh/f arg1"
+run0 bin f expr 1 + 1; success bin/f,2
+run0 sh  f sh   arg1;  success sh/f,"sh/f arg1"
 
 # Demonstrate that the order of candidates matters. The first invocation finds
 # "expr" (called "f" under "bin"), the second invocation finds the shell script
 # under "sh" (triggering the ENOEXEC branch).
-run empty:bin:sh f 1 + 1; success empty/f,bin/f,sh/f,2
-run empty:sh:bin f arg1;  success empty/f,sh/f,bin/f,"sh/f arg1"
+run0 empty:bin:sh f expr 1 + 1; success empty/f,bin/f,sh/f,2
+run0 empty:sh:bin f sh   arg1;  success empty/f,sh/f,bin/f,"sh/f arg1"
 
 # Check the expansion of zero-length prefixes in PATH to ".", plus the
 # (non-)insertion of the "/" separator.
-run a/:       f;       execve_fail a/f,./f                 ENOENT
-run :a/       f;       execve_fail ./f,a/f                 ENOENT
-run :         f;       execve_fail ./f,./f                 ENOENT
+run  a/:       f;            execve_fail a/f,./f                 ENOENT
+run  :a/       f;            execve_fail ./f,a/f                 ENOENT
+run  :         f;            execve_fail ./f,./f                 ENOENT
 pushd bin
-run :         f 1 + 1; success     ./f,./f,2
+run0 :         f expr 1 + 1; success     ./f,./f,2
 popd
-run :a/:::b/: f;       execve_fail ./f,a/f,./f,./f,b/f,./f ENOENT
+run  :a/:::b/: f;            execve_fail ./f,a/f,./f,./f,b/f,./f ENOENT
